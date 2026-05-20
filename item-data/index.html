@@ -651,7 +651,7 @@ function buildProductMap(buf) {
 
 // ── 商品番号から内部品番を抽出 ───────────────────────────────────────────────
 // Rules (in priority order):
-//  1. ma-/mg-/mh-/wk-/ws-/wv-/wx- 手帳系 → 末尾の DR-XX-NNN / XDR-XX-NNN
+//  1. ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx- 手帳系 → DR-XX-NNN / XDR-XX-NNN
 //  2. cal-**- カレンダー → cal-XX- の後ろ
 //  3. elco- 自社商品  → lowercase セグメントを除去して残りを品番化
 //  4. auPAY 括弧コード → （XXX-NNN）の中身、MC-NNN は DR-MC-NNN に変換
@@ -661,10 +661,18 @@ function extractProductCode(pn, store) {
   if (!pn) return null;
   const auPAY = store && store.includes('auPAY');
 
-  // ① 手帳系プレフィックス: ma-/mg-/mh-/wk-/ws-/wv-/wx-
-  if (/^(?:ma|mg|mh|wk|ws|wv|wx)-/i.test(pn)) {
+  // ① 手帳系プレフィックス: ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx-
+  if (/^(?:ma|mg|mh|mc|mk|mb|wb|wk|ws|wv|wx)-/i.test(pn)) {
+    // DR-XX-NNN / XDR-XX-NNN パターンを優先
     const hits = pn.match(/X?DR-[A-Z]{2,3}-\d+/g);
-    return hits ? hits[hits.length - 1] : null;
+    if (hits) return hits[hits.length - 1];
+    // 括弧内コード: （WK-710） → DR-WK-710
+    const bm = pn.match(/[（(]([A-Z]{2,3}-\d+)[）)]/);
+    if (bm) return 'DR-' + bm[1];
+    // 裸の大文字コード: WB-478 → DR-WB-478
+    const dm = pn.match(/[A-Z]{2,3}-\d+/g);
+    if (dm) return 'DR-' + dm[dm.length - 1];
+    return null;
   }
 
   // ② カレンダー: cal-**-CAL-NNN
@@ -684,6 +692,7 @@ function extractProductCode(pn, store) {
     // elco- を除去して先頭のlowercase セグメントをさらに除去
     let rest = pn.slice(5); // drop "elco-"
     rest = rest.replace(/^[a-z][a-z0-9]*-/, ''); // drop lowercase base (e.g. "pbc001-")
+    rest = rest.replace(/^\d{3,}-?(?=[A-Z])/, ''); // strip leading numeric prefix (e.g. "074GYR-084" → "GYR-084")
     return rest ? normalizeCode(rest) : null;
   }
 
@@ -707,11 +716,16 @@ function extractProductCode(pn, store) {
   return null;
 }
 
-// LLN-/ECL- は先頭3桁以降を切り捨て (例: LLN-002wf-brown → LLN-002)
+// コード正規化: LLN-/ECL- は先頭3桁以降を切り捨て、wcl\d+ → WCL-\d+
 function normalizeCode(code) {
   if (!code) return code;
+  // LLN-/ECL- は先頭3桁以降を切り捨て (例: LLN-002wf-brown → LLN-002)
   const m = code.match(/^((?:LLN|ECL)-\d{3})/);
-  return m ? m[1] : code;
+  if (m) return m[1];
+  // wcl\d+ → WCL-\d+ (例: wcl023 → WCL-023)
+  const wm = code.match(/^wcl(\d+)$/i);
+  if (wm) return 'WCL-' + wm[1].padStart(3, '0');
+  return code;
 }
 
 // ── Main processing ──────────────────────────────────────────────────────────
