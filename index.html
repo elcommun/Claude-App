@@ -10,874 +10,704 @@
 
     body {
       font-family: 'Hiragino Kaku Gothic Pro', 'ヒラギノ角ゴ Pro W3', 'Meiryo', 'メイリオ', sans-serif;
-      background: #f0f2f5;
-      color: #1a1a2e;
-      font-size: 14px;
-      min-height: 100vh;
+      background: #f4f5f7;
+      color: #1e1e2e;
+      font-size: 13px;
     }
 
-    header {
-      background: #fff;
-      border-bottom: 1px solid #e8e8e8;
+    /* ── Header ── */
+    .header {
+      background: #1e2a45;
+      color: #fff;
       padding: 0 24px;
+      height: 52px;
       display: flex;
       align-items: center;
-      height: 56px;
+      gap: 12px;
       position: sticky;
       top: 0;
-      z-index: 100;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      z-index: 200;
     }
-    header h1 { font-size: 17px; font-weight: 700; color: #1a1a2e; letter-spacing: -0.3px; }
-    header .subtitle { font-size: 12px; color: #888; margin-left: 12px; margin-top: 2px; }
+    .header h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+    .header .badge {
+      background: rgba(255,255,255,0.15);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
 
-    .container { max-width: 1440px; margin: 0 auto; padding: 24px; }
+    .wrap { max-width: 1280px; margin: 0 auto; padding: 20px 20px 60px; }
 
-    /* Upload cards */
-    .upload-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
-    .upload-card {
+    /* ── Upload section ── */
+    .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+
+    .drop-zone {
       background: #fff;
-      border: 2px dashed #d0d5dd;
+      border: 2px dashed #c8d0e0;
       border-radius: 10px;
-      padding: 28px 20px;
+      padding: 24px 20px;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.15s, background 0.15s, transform 0.1s;
-      position: relative;
+      transition: border-color .15s, background .15s;
+      user-select: none;
     }
-    .upload-card:hover { border-color: #4a6fa5; background: #f5f8ff; }
-    .upload-card.drag-over { border-color: #4a6fa5; background: #eef2ff; transform: scale(1.01); }
-    .upload-card.loaded { border-color: #27ae60; border-style: solid; background: #f0fff6; }
-    .upload-card.loaded .upload-icon::after { content: ' ✓'; color: #27ae60; font-size: 20px; }
-    .upload-icon { font-size: 36px; margin-bottom: 10px; line-height: 1; }
-    .upload-label { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
-    .upload-hint { font-size: 12px; color: #999; }
-    .upload-filename { font-size: 12px; color: #27ae60; margin-top: 8px; font-weight: 600; word-break: break-all; }
-    input[type="file"] { display: none; }
+    .drop-zone:hover, .drop-zone.over { border-color: #3f7edd; background: #f0f5ff; }
+    .drop-zone.done { border-color: #27ae60; border-style: solid; background: #f0fff8; }
+    .drop-zone .icon { font-size: 32px; margin-bottom: 8px; }
+    .drop-zone .label { font-weight: 700; font-size: 14px; color: #1e2a45; margin-bottom: 3px; }
+    .drop-zone .hint { font-size: 12px; color: #9a9db0; }
+    .drop-zone .fname { font-size: 12px; color: #27ae60; margin-top: 6px; font-weight: 600; }
+    input[type=file] { display: none; }
 
-    /* Actions bar */
-    .actions { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-    .btn-primary {
-      background: #4a6fa5;
+    /* ── Action bar ── */
+    .action-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+
+    .btn-run {
+      background: #3f7edd;
       color: #fff;
       border: none;
-      padding: 11px 28px;
+      padding: 10px 28px;
       border-radius: 7px;
       font-size: 14px;
       font-weight: 700;
       cursor: pointer;
-      transition: background 0.15s, opacity 0.15s;
-      letter-spacing: 0.3px;
+      transition: background .15s, opacity .15s;
     }
-    .btn-primary:hover:not(:disabled) { background: #3a5a8a; }
-    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn-secondary {
+    .btn-run:hover:not(:disabled) { background: #2e6bc4; }
+    .btn-run:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-reset {
       background: #fff;
-      color: #4a6fa5;
-      border: 1.5px solid #4a6fa5;
-      padding: 10px 20px;
+      color: #555;
+      border: 1.5px solid #d0d5e0;
+      padding: 9px 18px;
       border-radius: 7px;
       font-size: 13px;
-      font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s;
     }
-    .btn-secondary:hover { background: #f0f4ff; }
+    .btn-reset:hover { background: #f7f8fa; }
 
-    /* Message */
-    .message {
-      padding: 12px 16px;
-      border-radius: 7px;
-      margin-bottom: 18px;
-      font-size: 13px;
+    /* ── Notice ── */
+    .notice {
       display: none;
+      padding: 11px 15px;
+      border-radius: 7px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      border-left: 4px solid transparent;
     }
-    .message.show { display: block; }
-    .message.info { background: #e3f2fd; color: #1565c0; border-left: 3px solid #1565c0; }
-    .message.success { background: #e8f5e9; color: #1b5e20; border-left: 3px solid #27ae60; }
-    .message.warning { background: #fff8e1; color: #e65100; border-left: 3px solid #ff9800; }
-    .message.error { background: #ffebee; color: #b71c1c; border-left: 3px solid #e53935; }
+    .notice.show { display: flex; align-items: center; gap: 8px; }
+    .notice.info  { background: #e8f0fe; border-color: #3f7edd; color: #1a52a0; }
+    .notice.ok    { background: #edfdf5; border-color: #27ae60; color: #145a32; }
+    .notice.err   { background: #fdf0ef; border-color: #e74c3c; color: #7b241c; }
 
-    /* Stats */
-    .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
-    .stat-card {
-      background: #fff;
-      border-radius: 8px;
-      padding: 14px 20px;
-      flex: 1;
-      min-width: 140px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
-      border-top: 3px solid transparent;
-    }
-    .stat-card:nth-child(1) { border-top-color: #4a6fa5; }
-    .stat-card:nth-child(2) { border-top-color: #27ae60; }
-    .stat-card:nth-child(3) { border-top-color: #e67e22; }
-    .stat-card:nth-child(4) { border-top-color: #8e44ad; }
-    .stat-card:nth-child(5) { border-top-color: #e74c3c; }
-    .stat-label { font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .stat-value { font-size: 24px; font-weight: 800; color: #1a1a2e; line-height: 1; }
-    .stat-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+    /* ── Result section ── */
+    #result { display: none; }
 
-    /* Results panel */
-    #resultsArea { display: none; }
-
-    /* Tab bar */
-    .tab-bar {
+    /* Summary strip */
+    .summary-strip {
       display: flex;
       gap: 0;
       background: #fff;
-      border-radius: 8px 8px 0 0;
-      border-bottom: 2px solid #e8e8e8;
+      border-radius: 8px;
       overflow: hidden;
+      margin-bottom: 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
     }
-    .tab-btn {
-      padding: 12px 24px;
-      border: none;
-      background: none;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      color: #888;
-      border-bottom: 3px solid transparent;
-      margin-bottom: -2px;
-      transition: color 0.15s;
-      white-space: nowrap;
+    .s-item {
+      flex: 1;
+      padding: 12px 18px;
+      border-right: 1px solid #f0f0f0;
+      text-align: center;
     }
-    .tab-btn:hover { color: #4a6fa5; }
-    .tab-btn.active { color: #4a6fa5; border-bottom-color: #4a6fa5; }
+    .s-item:last-child { border-right: none; }
+    .s-item .sv { font-size: 22px; font-weight: 800; color: #1e2a45; line-height: 1; }
+    .s-item .sk { font-size: 10px; color: #aaa; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-top: 3px; }
 
-    /* Table container */
-    .tab-panel {
+    /* Filter bar */
+    .filter-bar {
       background: #fff;
-      border-radius: 0 0 8px 8px;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-      overflow: hidden;
-    }
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
-
-    .toolbar {
-      padding: 12px 16px;
+      border-radius: 8px;
+      padding: 10px 14px;
       display: flex;
       align-items: center;
-      gap: 10px;
-      border-bottom: 1px solid #f0f0f0;
+      gap: 8px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
       flex-wrap: wrap;
     }
-    .search-box {
-      padding: 7px 12px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
+    .filter-bar input[type=text] {
+      padding: 7px 11px;
+      border: 1px solid #dde2ec;
+      border-radius: 5px;
       font-size: 13px;
-      width: 220px;
+      width: 200px;
       outline: none;
-      transition: border-color 0.15s;
     }
-    .search-box:focus { border-color: #4a6fa5; }
-    .filter-select {
-      padding: 7px 10px;
-      border: 1px solid #ddd;
-      border-radius: 6px;
+    .filter-bar input[type=text]:focus { border-color: #3f7edd; }
+    .filter-bar input[type=date] {
+      padding: 6px 8px;
+      border: 1px solid #dde2ec;
+      border-radius: 5px;
       font-size: 13px;
       outline: none;
+    }
+    .filter-bar input[type=date]:focus { border-color: #3f7edd; }
+    .filter-bar select {
+      padding: 7px 10px;
+      border: 1px solid #dde2ec;
+      border-radius: 5px;
+      font-size: 13px;
       background: #fff;
       cursor: pointer;
+      outline: none;
     }
+    .filter-label { font-size: 11px; color: #999; white-space: nowrap; }
+    .filter-bar .spacer { flex: 1; }
     .btn-export {
-      margin-left: auto;
-      padding: 7px 16px;
       background: #27ae60;
       color: #fff;
       border: none;
-      border-radius: 6px;
+      padding: 7px 16px;
+      border-radius: 5px;
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
-      transition: background 0.15s;
     }
-    .btn-export:hover { background: #219a52; }
+    .btn-export:hover { background: #1e8449; }
+    .filter-count { font-size: 12px; color: #999; white-space: nowrap; }
 
-    .table-wrap { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+    /* ── Main table ── */
+    .table-outer {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+    .table-scroll { overflow-x: auto; max-height: calc(100vh - 340px); overflow-y: auto; min-height: 300px; }
 
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; }
     thead { position: sticky; top: 0; z-index: 10; }
     th {
-      background: #f8f9fa;
+      background: #f0f2f7;
       padding: 9px 12px;
-      text-align: left;
       font-size: 11px;
       font-weight: 700;
-      color: #666;
-      border-bottom: 1px solid #e8e8e8;
+      color: #5a6070;
+      text-align: left;
+      border-bottom: 1px solid #e0e4ed;
       white-space: nowrap;
+      cursor: pointer;
       user-select: none;
     }
-    th.sortable { cursor: pointer; }
-    th.sortable:hover { background: #edf0f4; color: #4a6fa5; }
-    th.sort-asc::after { content: ' ▲'; font-size: 9px; }
-    th.sort-desc::after { content: ' ▼'; font-size: 9px; }
-    td { padding: 8px 12px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #fafbfc; }
-    .num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'SFMono-Regular', 'Consolas', monospace; }
-    .small { font-size: 11px; color: #aaa; }
+    th:hover { background: #e6eaf3; color: #3f7edd; }
+    th.asc::after  { content: ' ▲'; font-size: 9px; }
+    th.desc::after { content: ' ▼'; font-size: 9px; }
 
-    .badge {
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #f2f4f8;
+      vertical-align: middle;
+      line-height: 1.4;
+    }
+    tr:last-child td { border-bottom: none; }
+
+    /* Date group separator */
+    .date-row td {
+      background: #f8f9fc;
+      font-size: 11px;
+      font-weight: 700;
+      color: #7a8099;
+      padding: 5px 12px 4px;
+      letter-spacing: .3px;
+      border-bottom: 1px solid #e8eaf0;
+    }
+
+    tr.data-row:hover td { background: #fafbff; }
+
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+      white-space: nowrap;
+    }
+    td.code { font-size: 12px; color: #5a6080; white-space: nowrap; }
+    td.price { white-space: nowrap; }
+
+    .tag-unmatched {
       display: inline-block;
+      background: #fff3e0;
+      color: #d35400;
       font-size: 10px;
-      padding: 1px 6px;
+      padding: 1px 5px;
       border-radius: 3px;
-      font-weight: 600;
       vertical-align: middle;
       margin-left: 4px;
+      font-weight: 600;
     }
-    .badge-unmatched { background: #fff3e0; color: #e65100; }
-    .badge-matched { background: #e8f5e9; color: #27ae60; }
+
+    .empty { padding: 60px; text-align: center; color: #ccc; font-size: 14px; }
 
     /* Pagination */
     .pagination {
-      padding: 10px 16px;
       display: flex;
       align-items: center;
       gap: 4px;
-      border-top: 1px solid #f0f0f0;
-      font-size: 12px;
+      padding: 10px 14px;
+      border-top: 1px solid #f0f2f6;
     }
-    .pg-btn {
-      padding: 4px 9px;
-      border: 1px solid #ddd;
-      background: #fff;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-      color: #555;
-      transition: all 0.1s;
-    }
-    .pg-btn:hover { border-color: #4a6fa5; color: #4a6fa5; }
-    .pg-btn.active { background: #4a6fa5; color: #fff; border-color: #4a6fa5; }
-    .pg-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .pg-info { margin-left: auto; color: #999; }
+    .pg { padding: 4px 8px; border: 1px solid #dde2ec; border-radius: 4px; background: #fff; cursor: pointer; font-size: 12px; color: #555; }
+    .pg:hover { border-color: #3f7edd; color: #3f7edd; }
+    .pg.on { background: #3f7edd; color: #fff; border-color: #3f7edd; }
+    .pg:disabled { opacity: .35; cursor: not-allowed; }
+    .pg-info { margin-left: auto; font-size: 12px; color: #aaa; }
 
-    /* Loading spinner */
-    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #ddd; border-top-color: #4a6fa5; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .empty-state { padding: 48px; text-align: center; color: #bbb; font-size: 14px; }
   </style>
 </head>
 <body>
 
-<header>
+<div class="header">
   <h1>EC販売データ集計ツール</h1>
-  <span class="subtitle">販売データ CSV ＋ 商品データ Excel → 集計・エクスポート</span>
-</header>
+  <span class="badge">販売日順 明細表示</span>
+</div>
 
-<div class="container">
+<div class="wrap">
 
-  <!-- File Upload -->
-  <div class="upload-row">
-    <div class="upload-card" id="zone-sales">
-      <div class="upload-icon">📊</div>
-      <div class="upload-label">販売データ（CSV）</div>
-      <div class="upload-hint">楽天受注データ CSV（Shift-JIS）</div>
-      <input type="file" id="file-sales" accept=".csv">
-      <div class="upload-filename" id="name-sales"></div>
+  <!-- Upload -->
+  <div class="upload-grid">
+    <div class="drop-zone" id="z-sales">
+      <div class="icon">📊</div>
+      <div class="label">① 販売データ（CSV）</div>
+      <div class="hint">楽天受注CSV（Shift-JIS）をドロップ</div>
+      <input type="file" id="f-sales" accept=".csv">
+      <div class="fname" id="n-sales"></div>
     </div>
-    <div class="upload-card" id="zone-product">
-      <div class="upload-icon">📦</div>
-      <div class="upload-label">商品データ（Excel）</div>
-      <div class="upload-hint">商品マスター .xlsx（商品データシート含む）</div>
-      <input type="file" id="file-product" accept=".xlsx,.xls">
-      <div class="upload-filename" id="name-product"></div>
+    <div class="drop-zone" id="z-product">
+      <div class="icon">📦</div>
+      <div class="label">② 商品データ（Excel）</div>
+      <div class="hint">最新の商品マスター .xlsx をドロップ</div>
+      <input type="file" id="f-product" accept=".xlsx,.xls">
+      <div class="fname" id="n-product"></div>
     </div>
   </div>
 
   <!-- Actions -->
-  <div class="actions">
-    <button class="btn-primary" id="btn-process" disabled>集計する</button>
-    <button class="btn-secondary" id="btn-reset" style="display:none">リセット</button>
+  <div class="action-bar">
+    <button class="btn-run" id="btn-run" disabled>集計する</button>
+    <button class="btn-reset" id="btn-reset" style="display:none">リセット</button>
   </div>
 
-  <!-- Message -->
-  <div class="message" id="msg"></div>
+  <!-- Notice -->
+  <div class="notice" id="notice"></div>
 
-  <!-- Results -->
-  <div id="resultsArea">
+  <!-- Result -->
+  <div id="result">
 
-    <!-- Stats -->
-    <div class="stats-row" id="statsRow"></div>
+    <!-- Summary strip -->
+    <div class="summary-strip" id="summary"></div>
 
-    <!-- Tabs -->
-    <div class="tab-bar">
-      <button class="tab-btn active" data-tab="summary">商品別集計</button>
-      <button class="tab-btn" data-tab="monthly">月別集計</button>
-      <button class="tab-btn" data-tab="detail">明細データ</button>
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <span class="filter-label">期間</span>
+      <input type="date" id="f-from">
+      <span class="filter-label">〜</span>
+      <input type="date" id="f-to">
+      <select id="f-store"></select>
+      <input type="text" id="f-text" placeholder="商品名・商品番号で検索…">
+      <span class="spacer"></span>
+      <span class="filter-count" id="f-count"></span>
+      <button class="btn-export" onclick="doExport()">CSV 出力</button>
     </div>
 
-    <!-- 商品別集計 -->
-    <div class="tab-panel active" id="tab-summary">
-      <div class="toolbar">
-        <input class="search-box" id="s-search" placeholder="商品名・商品番号で絞り込み…" autocomplete="off">
-        <select class="filter-select" id="s-store"><option value="">すべての店舗</option></select>
-        <button class="btn-export" onclick="exportSummary()">CSV エクスポート</button>
-      </div>
-      <div class="table-wrap">
+    <!-- Table -->
+    <div class="table-outer">
+      <div class="table-scroll" id="table-scroll">
         <table>
           <thead>
             <tr>
-              <th class="sortable" data-col="code" data-tab="s">商品番号</th>
-              <th class="sortable" data-col="name" data-tab="s">商品名</th>
-              <th class="sortable num" data-col="price" data-tab="s">税抜単価</th>
-              <th class="sortable num" data-col="qty" data-tab="s">合計数量</th>
-              <th class="sortable num" data-col="amount" data-tab="s">合計金額（税抜）</th>
+              <th data-col="date"  style="min-width:90px">販売日</th>
+              <th data-col="name"  style="min-width:260px">商品名</th>
+              <th data-col="code"  style="min-width:110px">商品番号</th>
+              <th data-col="price" style="min-width:90px" class="num">税抜単価</th>
+              <th data-col="qty"   style="min-width:60px" class="num">数量</th>
             </tr>
           </thead>
-          <tbody id="tbody-s"></tbody>
+          <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div class="pagination" id="pg-s"></div>
+      <div class="pagination" id="pg"></div>
     </div>
 
-    <!-- 月別集計 -->
-    <div class="tab-panel" id="tab-monthly">
-      <div class="toolbar">
-        <select class="filter-select" id="m-store"><option value="">すべての店舗</option></select>
-        <button class="btn-export" onclick="exportMonthly()">CSV エクスポート</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>月</th>
-              <th class="num">明細件数</th>
-              <th class="num">合計数量</th>
-              <th class="num">合計金額（税抜）</th>
-            </tr>
-          </thead>
-          <tbody id="tbody-m"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 明細データ -->
-    <div class="tab-panel" id="tab-detail">
-      <div class="toolbar">
-        <input class="search-box" id="d-search" placeholder="商品名・商品番号で絞り込み…" autocomplete="off">
-        <select class="filter-select" id="d-month"><option value="">すべての月</option></select>
-        <select class="filter-select" id="d-store"><option value="">すべての店舗</option></select>
-        <button class="btn-export" onclick="exportDetail()">CSV エクスポート</button>
-      </div>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th class="sortable" data-col="date" data-tab="d">販売日</th>
-              <th class="sortable" data-col="store" data-tab="d">店舗</th>
-              <th class="sortable" data-col="code" data-tab="d">商品番号</th>
-              <th class="sortable" data-col="name" data-tab="d">商品名</th>
-              <th class="sortable num" data-col="price" data-tab="d">税抜単価</th>
-              <th class="sortable num" data-col="qty" data-tab="d">数量</th>
-              <th class="sortable num" data-col="amount" data-tab="d">小計（税抜）</th>
-            </tr>
-          </thead>
-          <tbody id="tbody-d"></tbody>
-        </table>
-      </div>
-      <div class="pagination" id="pg-d"></div>
-    </div>
-
-  </div><!-- /resultsArea -->
-</div><!-- /container -->
+  </div><!-- /result -->
+</div><!-- /wrap -->
 
 <script>
-// ─── State ──────────────────────────────────────────────────────────────────
+// ── State ───────────────────────────────────────────────────────────────────
 let salesBuf = null, productBuf = null;
-let rows = [];       // processed detail rows
-let summaryData = [];
-let monthlyData = [];
+let allRows   = [];   // fully processed rows
+let sortCol   = 'date';
+let sortDir   = 1;
+let curPage   = 1;
+const PER_PAGE = 500;
 
-const sort = {
-  s: { col: 'amount', dir: -1 },
-  d: { col: 'date',   dir:  1 },
-};
-const page = { s: 1, d: 1 };
-const PAGE = 150;
-
-// ─── File upload setup ───────────────────────────────────────────────────────
-function setupZone(zoneId, inputId, type) {
-  const zone = document.getElementById(zoneId);
+// ── File upload ──────────────────────────────────────────────────────────────
+function initZone(zoneId, inputId, type) {
+  const zone  = document.getElementById(zoneId);
   const input = document.getElementById(inputId);
   zone.addEventListener('click', () => input.click());
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) load(e.dataTransfer.files[0], type); });
-  input.addEventListener('change', e => { if (e.target.files[0]) load(e.target.files[0], type); });
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('over'); if (e.dataTransfer.files[0]) receive(e.dataTransfer.files[0], type); });
+  input.addEventListener('change', e => { if (e.target.files[0]) receive(e.target.files[0], type); });
 }
 
-function load(file, type) {
+function receive(file, type) {
   const reader = new FileReader();
   reader.onload = e => {
-    if (type === 'sales') { salesBuf = e.target.result; document.getElementById('name-sales').textContent = '✓ ' + file.name; document.getElementById('zone-sales').classList.add('loaded'); }
-    else { productBuf = e.target.result; document.getElementById('name-product').textContent = '✓ ' + file.name; document.getElementById('zone-product').classList.add('loaded'); }
-    document.getElementById('btn-process').disabled = !(salesBuf && productBuf);
+    if (type === 'sales') {
+      salesBuf = e.target.result;
+      document.getElementById('n-sales').textContent   = '✓ ' + file.name;
+      document.getElementById('z-sales').classList.add('done');
+    } else {
+      productBuf = e.target.result;
+      document.getElementById('n-product').textContent = '✓ ' + file.name;
+      document.getElementById('z-product').classList.add('done');
+    }
+    document.getElementById('btn-run').disabled = !(salesBuf && productBuf);
   };
   reader.readAsArrayBuffer(file);
 }
 
-setupZone('zone-sales',   'file-sales',   'sales');
-setupZone('zone-product', 'file-product', 'product');
+initZone('z-sales',   'f-sales',   'sales');
+initZone('z-product', 'f-product', 'product');
 
-// ─── CSV parser (Shift-JIS, handles quoted multiline fields) ─────────────────
+// ── CSV parser （Shift-JIS, handles quoted multiline） ────────────────────────
 function parseCSV(buf) {
   const text = new TextDecoder('shift-jis').decode(new Uint8Array(buf));
   const rows = [];
-  let cur = [], field = '', inQ = false;
+  let cur = [], f = '', inQ = false;
   for (let i = 0; i < text.length; i++) {
     const c = text[i];
     if (c === '"') {
-      if (inQ && text[i + 1] === '"') { field += '"'; i++; }
+      if (inQ && text[i+1] === '"') { f += '"'; i++; }
       else inQ = !inQ;
     } else if (c === ',' && !inQ) {
-      cur.push(field); field = '';
+      cur.push(f); f = '';
     } else if ((c === '\r' || c === '\n') && !inQ) {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      cur.push(field); field = '';
-      if (cur.some(f => f !== '')) rows.push(cur);
+      if (c === '\r' && text[i+1] === '\n') i++;
+      cur.push(f); f = '';
+      if (cur.some(v => v)) rows.push(cur);
       cur = [];
     } else {
-      field += c;
+      f += c;
     }
   }
-  if (field || cur.length) { cur.push(field); if (cur.some(f => f !== '')) rows.push(cur); }
+  if (f || cur.length) { cur.push(f); if (cur.some(v => v)) rows.push(cur); }
   return rows;
 }
 
-// ─── Excel product master parser ─────────────────────────────────────────────
-function parseProductMaster(buf) {
-  const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
-  const map = new Map(); // 品番 → 品名
+// ── Excel product master ─────────────────────────────────────────────────────
+function buildProductMap(buf) {
+  const wb  = XLSX.read(new Uint8Array(buf), { type: 'array' });
+  const map = new Map();
 
-  function loadSheet(name, codeIdx, nameIdx, startRow) {
-    const ws = wb.Sheets[name];
+  function load(sheetName) {
+    const ws = wb.Sheets[sheetName];
     if (!ws) return;
     const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
-    for (let i = startRow; i < data.length; i++) {
-      const r = data[i];
-      const code = r[codeIdx] != null ? String(r[codeIdx]).trim() : '';
-      const rawName = r[nameIdx] != null ? String(r[nameIdx]) : '';
-      const name = rawName.replace(/[　\s]+$/, '').replace(/^[　\s]+/, '').trim();
+    // Row 0 = guide row, Row 1 = header, Row 2+ = data
+    // col8 = 品番, col9 = 品名
+    for (let i = 2; i < data.length; i++) {
+      const r    = data[i];
+      const code = r[8] != null ? String(r[8]).trim() : '';
+      const name = r[9] != null ? String(r[9]).replace(/^[\s　]+|[\s　]+$/g, '') : '';
       if (code && name && code !== 'None') map.set(code, name);
     }
   }
 
-  // 商品データ: row1=guide, row2=header, row3+=data; 品番=col8, 品名=col9
-  loadSheet('商品データ', 8, 9, 2);
-  // plaisir別注: same structure
-  loadSheet('plaisir別注', 8, 9, 2);
-
+  load('商品データ');
+  load('plaisir別注');
   return map;
 }
 
-// ─── Extract product code from 商品番号 field ────────────────────────────────
-function extractCode(productNum) {
-  if (!productNum) return null;
-  // Pattern: lowercase-lowercase-CODE  e.g. elco-pbc001-PBC-010 → PBC-010
-  const m = productNum.match(/^[a-z][a-z0-9]*-[a-z][a-z0-9]*-(.+)$/);
-  if (m) return m[1];
-  // Numeric suffix: 8mw-mm110971-110972 → 110972
-  const m2 = productNum.match(/^[a-z0-9]+-[a-z0-9]+-(\d+)$/);
+// ── Extract internal code from 商品番号 ───────────────────────────────────────
+// e.g. "elco-pbc001-PBC-010" → "PBC-010"
+//      "8mw-mm110971-110972" → "110972"
+function extractCode(pn) {
+  if (!pn) return null;
+  // lowercase prefix pattern: elco-xxx-CODE
+  const m1 = pn.match(/^[a-z][a-z0-9]*-[a-z][a-z0-9]*-(.+)$/);
+  if (m1) return m1[1];
+  // numeric suffix: 8mw-mm110971-110972
+  const m2 = pn.match(/^[a-z0-9]+-[a-z0-9]+-(\d+)$/);
   if (m2) return m2[1];
   return null;
 }
 
-// ─── Clean raw CSV product name (fallback) ───────────────────────────────────
-function cleanName(raw) {
-  let s = raw
-    .replace(/^[＼\\][^＼\\／/]+[／/]\s*/, '')   // ＼P2倍＋クーポン／
-    .replace(/\([a-z0-9]+-[a-zA-Z0-9_-]+\)$/i, '') // (elco-xxx-YYY)
-    .trim();
-  // Take part before ｜ (SEO separator)
-  const pipe = s.indexOf('｜');
-  if (pipe > 0) s = s.substring(0, pipe).trim();
-  // Remove trailing size/color details after last 『 or 【
-  return s || raw;
-}
-
-// ─── Main processing ─────────────────────────────────────────────────────────
-document.getElementById('btn-process').addEventListener('click', () => {
-  showMsg('処理中…', 'info', true);
-  document.getElementById('btn-process').disabled = true;
-  setTimeout(process, 60);
+// ── Main processing ──────────────────────────────────────────────────────────
+document.getElementById('btn-run').addEventListener('click', () => {
+  msg('処理中…', 'info', true);
+  document.getElementById('btn-run').disabled = true;
+  setTimeout(run, 60);
 });
 
-function process() {
+function run() {
   try {
-    const productMap = parseProductMaster(productBuf);
+    const productMap = buildProductMap(productBuf);
 
     const csvRows = parseCSV(salesBuf);
     if (csvRows.length < 2) throw new Error('CSVにデータがありません');
 
-    // Build column index map
+    // Column index map
     const headers = csvRows[0].map(h => h.trim());
-    const col = {};
-    headers.forEach((h, i) => col[h] = i);
+    const ci = {};
+    headers.forEach((h, i) => ci[h] = i);
 
-    const required = ['出荷日', '注文日時', '商品名', '商品番号', 'SKU管理番号', '個数', '商品単価', '税込別', '販売店舗'];
-    const missing = required.filter(c => col[c] === undefined);
-    if (missing.length) throw new Error('CSVに必要な列がありません: ' + missing.join(', '));
+    const need = ['出荷日', '注文日時', '商品名', '商品番号', 'SKU管理番号', '個数', '商品単価', '税込別', '販売店舗'];
+    const miss = need.filter(h => ci[h] === undefined);
+    if (miss.length) throw new Error('必要な列がCSVにありません: ' + miss.join(', '));
 
-    rows = [];
-    const stores = new Set();
+    allRows = [];
+    const storeSet = new Set();
+    let dateMin = '', dateMax = '';
 
     for (let i = 1; i < csvRows.length; i++) {
       const r = csvRows[i];
-      const g = name => (r[col[name]] || '').trim();
+      const g = k => (r[ci[k]] || '').trim();
 
-      const date    = g('出荷日') || g('注文日時').substring(0, 10);
-      const skuCode = g('SKU管理番号');
-      const prodNum = g('商品番号');
-      const csvName = g('商品名');
+      const date    = g('出荷日') || g('注文日時').slice(0, 10);
+      const sku     = g('SKU管理番号');
+      const pn      = g('商品番号');
+      const rawName = g('商品名');
       const store   = g('販売店舗');
       const qty     = parseInt(g('個数'), 10) || 0;
       const taxType = g('税込別');
       let price     = parseInt(g('商品単価'), 10) || 0;
 
       if (!date) continue;
-
-      // 税抜き価格の確定
       if (taxType === '込') price = Math.round(price / 1.1);
 
-      // 商品名マッチング: 直接 → 抽出 → フォールバック
-      let productName = null;
+      // ── Product name lookup ──
+      let name    = null;
       let matched = false;
 
-      if (skuCode && productMap.has(skuCode)) {
-        productName = productMap.get(skuCode);
-        matched = true;
-      }
+      // 1. Direct: SKU管理番号 → 品番
+      if (sku && productMap.has(sku)) { name = productMap.get(sku); matched = true; }
 
+      // 2. Extract code from 商品番号
       if (!matched) {
-        // Try code extracted from 商品番号
-        const extracted = extractCode(prodNum);
-        if (extracted && productMap.has(extracted)) {
-          productName = productMap.get(extracted);
-          matched = true;
-        }
+        const ex = extractCode(pn);
+        if (ex && productMap.has(ex)) { name = productMap.get(ex); matched = true; }
       }
 
-      if (!matched && !skuCode && prodNum && productMap.has(prodNum)) {
-        productName = productMap.get(prodNum);
-        matched = true;
-      }
+      // 3. Try 商品番号 itself (e.g. "DR-MH-583" with empty SKU)
+      if (!matched && pn && productMap.has(pn)) { name = productMap.get(pn); matched = true; }
 
-      if (!productName) productName = cleanName(csvName);
+      // 4. Fallback: clean raw CSV name
+      if (!name) name = cleanRawName(rawName);
 
-      // 表示用商品番号: マスター一致→品番, それ以外→SKUコードまたは商品番号末尾
-      const displayCode = matched
-        ? (productMap.has(skuCode) ? skuCode : extractCode(prodNum) || skuCode || prodNum)
-        : (skuCode || prodNum);
+      // Display code: prefer matched 品番, else sku or pn
+      const code = matched
+        ? (productMap.has(sku) ? sku : (extractCode(pn) || sku || pn))
+        : (sku || pn);
 
-      stores.add(store);
-      rows.push({ date, store, code: displayCode, name: productName, price, qty, amount: price * qty, matched });
+      storeSet.add(store);
+      if (!dateMin || date < dateMin) dateMin = date;
+      if (!dateMax || date > dateMax) dateMax = date;
+
+      allRows.push({ date, store, code, name, price, qty, matched });
     }
 
-    buildAggregates(stores);
-    renderAll();
+    // Populate filters
+    const sel = document.getElementById('f-store');
+    sel.innerHTML = '<option value="">すべての店舗</option>';
+    storeSet.forEach(s => sel.innerHTML += `<option>${x(s)}</option>`);
 
-    const matchCnt = rows.filter(r => r.matched).length;
-    const pct = rows.length ? Math.round(matchCnt / rows.length * 100) : 0;
-    showMsg(
-      `集計完了： ${rows.length.toLocaleString()} 件処理 ／ 商品マスター一致率 ${pct}%（${matchCnt.toLocaleString()} 件）`,
-      'success'
-    );
-    document.getElementById('resultsArea').style.display = 'block';
+    document.getElementById('f-from').value = dateMin;
+    document.getElementById('f-to').value   = dateMax;
+
+    // Default sort: date asc
+    sortCol = 'date'; sortDir = 1;
+    renderSummary();
+    curPage = 1;
+    render();
+
+    document.getElementById('result').style.display = 'block';
     document.getElementById('btn-reset').style.display = '';
 
+    const mc = allRows.filter(r => r.matched).length;
+    msg(`完了：${allRows.length.toLocaleString()}件 ／ 商品マスター一致 ${Math.round(mc/allRows.length*100)}%（${mc.toLocaleString()}件）`, 'ok');
+
   } catch (e) {
-    showMsg('エラー: ' + e.message, 'error');
-    document.getElementById('btn-process').disabled = false;
+    msg('エラー: ' + e.message, 'err');
+    document.getElementById('btn-run').disabled = false;
     console.error(e);
   }
 }
 
-function buildAggregates(stores) {
-  // Product summary
-  const sm = new Map();
-  for (const r of rows) {
-    const key = r.code + '\x00' + r.name;
-    if (!sm.has(key)) sm.set(key, { code: r.code, name: r.name, price: r.price, qty: 0, amount: 0, matched: r.matched, stores: new Set() });
-    const p = sm.get(key);
-    p.qty += r.qty;
-    p.amount += r.amount;
-    p.stores.add(r.store);
-  }
-  summaryData = Array.from(sm.values());
-
-  // Monthly summary
-  const mm = new Map();
-  for (const r of rows) {
-    const mo = r.date.substring(0, 7);
-    if (!mm.has(mo)) mm.set(mo, { month: mo, count: 0, qty: 0, amount: 0 });
-    const m = mm.get(mo);
-    m.count += 1; m.qty += r.qty; m.amount += r.amount;
-  }
-  monthlyData = Array.from(mm.values()).sort((a, b) => a.month.localeCompare(b.month));
-
-  // Populate store filters
-  ['s-store', 'd-store', 'm-store'].forEach(id => {
-    const sel = document.getElementById(id);
-    sel.innerHTML = '<option value="">すべての店舗</option>';
-    stores.forEach(s => sel.innerHTML += `<option value="${esc(s)}">${esc(s)}</option>`);
-  });
-
-  // Month filter for detail
-  const dm = document.getElementById('d-month');
-  dm.innerHTML = '<option value="">すべての月</option>';
-  monthlyData.forEach(m => dm.innerHTML += `<option value="${m.month}">${m.month}</option>`);
+// ── Clean raw Rakuten product name ───────────────────────────────────────────
+function cleanRawName(raw) {
+  let s = raw
+    .replace(/^[＼\\][^＼\\／/]+[／/]\s*/, '')   // ＼P2倍＋クーポン／
+    .replace(/\([a-z0-9]+-[a-zA-Z0-9_-]+\)$/i, '')
+    .trim();
+  const pipe = s.indexOf('｜');
+  if (pipe > 4) s = s.slice(0, pipe).trim();
+  return s || raw;
 }
 
-// ─── Render ──────────────────────────────────────────────────────────────────
-function renderAll() {
-  renderStats();
-  renderSummary();
-  renderMonthly();
-  renderDetail();
-}
-
-function renderStats() {
-  const totalQty    = rows.reduce((s, r) => s + r.qty, 0);
-  const totalAmount = rows.reduce((s, r) => s + r.amount, 0);
-  const skus        = new Set(rows.map(r => r.code)).size;
-  const matchRate   = rows.length ? Math.round(rows.filter(r => r.matched).length / rows.length * 100) : 0;
-
-  document.getElementById('statsRow').innerHTML = `
-    <div class="stat-card"><div class="stat-label">明細件数</div><div class="stat-value">${rows.length.toLocaleString()}</div></div>
-    <div class="stat-card"><div class="stat-label">商品種類数 (SKU)</div><div class="stat-value">${skus.toLocaleString()}</div></div>
-    <div class="stat-card"><div class="stat-label">合計数量</div><div class="stat-value">${totalQty.toLocaleString()}</div></div>
-    <div class="stat-card"><div class="stat-label">合計金額（税抜）</div><div class="stat-value">¥${totalAmount.toLocaleString()}</div><div class="stat-sub">税抜き</div></div>
-    <div class="stat-card"><div class="stat-label">マスター一致率</div><div class="stat-value">${matchRate}%</div></div>
-  `;
-}
-
+// ── Summary strip ────────────────────────────────────────────────────────────
 function renderSummary() {
-  const search = document.getElementById('s-search').value.toLowerCase();
-  const store  = document.getElementById('s-store').value;
+  const qty    = allRows.reduce((s, r) => s + r.qty, 0);
+  const amount = allRows.reduce((s, r) => s + r.price * r.qty, 0);
+  const skus   = new Set(allRows.map(r => r.code)).size;
+  const mc     = allRows.filter(r => r.matched).length;
 
-  let data = summaryData.filter(r => {
-    if (store && !r.stores.has(store)) return false;
-    if (search && !r.code.toLowerCase().includes(search) && !r.name.toLowerCase().includes(search)) return false;
-    return true;
-  });
-
-  // Sort
-  const { col, dir } = sort.s;
-  data.sort((a, b) => {
-    const av = a[col], bv = b[col];
-    return dir * (typeof av === 'string' ? av.localeCompare(bv, 'ja') : av - bv);
-  });
-
-  const total = data.length, pages = Math.max(1, Math.ceil(total / PAGE));
-  page.s = Math.min(page.s, pages);
-  const slice = data.slice((page.s - 1) * PAGE, page.s * PAGE);
-
-  document.getElementById('tbody-s').innerHTML = slice.length
-    ? slice.map(r => `
-      <tr>
-        <td class="small">${esc(r.code)}</td>
-        <td>${esc(r.name)}${!r.matched ? '<span class="badge badge-unmatched">未一致</span>' : ''}</td>
-        <td class="num">¥${r.price.toLocaleString()}</td>
-        <td class="num">${r.qty.toLocaleString()}</td>
-        <td class="num">¥${r.amount.toLocaleString()}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="5" class="empty-state">該当データなし</td></tr>';
-
-  renderPg('pg-s', page.s, pages, 's');
-  updateSortHeaders('s', col, dir);
+  document.getElementById('summary').innerHTML = [
+    [allRows.length.toLocaleString(), '明細件数'],
+    [skus.toLocaleString(),           'SKU 種類'],
+    [qty.toLocaleString(),            '合計数量'],
+    ['¥' + amount.toLocaleString(),   '合計金額（税抜）'],
+    [Math.round(mc / allRows.length * 100) + '%', 'マスター一致率'],
+  ].map(([v, k]) => `<div class="s-item"><div class="sv">${v}</div><div class="sk">${k}</div></div>`).join('');
 }
 
-function renderMonthly() {
-  const store = document.getElementById('m-store').value;
+// ── Filter + sort + render ───────────────────────────────────────────────────
+function filtered() {
+  const from  = document.getElementById('f-from').value;
+  const to    = document.getElementById('f-to').value;
+  const store = document.getElementById('f-store').value;
+  const text  = document.getElementById('f-text').value.toLowerCase();
 
-  let data;
-  if (store) {
-    // Recalculate per store
-    const mm = new Map();
-    for (const r of rows) {
-      if (r.store !== store) continue;
-      const mo = r.date.substring(0, 7);
-      if (!mm.has(mo)) mm.set(mo, { month: mo, count: 0, qty: 0, amount: 0 });
-      const m = mm.get(mo);
-      m.count += 1; m.qty += r.qty; m.amount += r.amount;
+  return allRows.filter(r => {
+    if (from && r.date < from) return false;
+    if (to   && r.date > to)   return false;
+    if (store && r.store !== store) return false;
+    if (text && !r.name.toLowerCase().includes(text) && !r.code.toLowerCase().includes(text)) return false;
+    return true;
+  });
+}
+
+function sorted(data) {
+  const col = sortCol, dir = sortDir;
+  return [...data].sort((a, b) => {
+    const av = a[col], bv = b[col];
+    if (typeof av === 'string') return dir * av.localeCompare(bv, 'ja');
+    return dir * (av - bv);
+  });
+}
+
+function render() {
+  const data  = sorted(filtered());
+  const total = data.length;
+  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  curPage = Math.min(curPage, pages);
+
+  document.getElementById('f-count').textContent =
+    total < allRows.length ? `${total.toLocaleString()} 件（全${allRows.length.toLocaleString()}件中）` : `${total.toLocaleString()} 件`;
+
+  const slice = data.slice((curPage - 1) * PER_PAGE, curPage * PER_PAGE);
+
+  // Build rows with date group separators
+  let html = '';
+  let lastDate = null;
+
+  for (const r of slice) {
+    // Date separator row when sorting by date
+    if (sortCol === 'date' && r.date !== lastDate) {
+      const d = r.date;
+      const dayName = ['日','月','火','水','木','金','土'][new Date(d).getDay()];
+      html += `<tr class="date-row"><td colspan="5">${d}（${dayName}）</td></tr>`;
+      lastDate = r.date;
     }
-    data = Array.from(mm.values()).sort((a, b) => a.month.localeCompare(b.month));
-  } else {
-    data = monthlyData;
+    html += `<tr class="data-row">
+      <td style="color:#888;font-size:12px">${sortCol === 'date' ? '' : x(r.date)}</td>
+      <td>${x(r.name)}${!r.matched ? '<span class="tag-unmatched">未一致</span>' : ''}</td>
+      <td class="code">${x(r.code)}</td>
+      <td class="num price">¥${r.price.toLocaleString()}</td>
+      <td class="num">${r.qty.toLocaleString()}</td>
+    </tr>`;
   }
 
-  const totals = data.reduce((acc, m) => ({ count: acc.count + m.count, qty: acc.qty + m.qty, amount: acc.amount + m.amount }), { count: 0, qty: 0, amount: 0 });
+  if (!html) html = `<tr><td colspan="5" class="empty">表示するデータがありません</td></tr>`;
+  document.getElementById('tbody').innerHTML = html;
 
-  document.getElementById('tbody-m').innerHTML = data.length
-    ? [...data.map(m => `
-      <tr>
-        <td>${m.month}</td>
-        <td class="num">${m.count.toLocaleString()}</td>
-        <td class="num">${m.qty.toLocaleString()}</td>
-        <td class="num">¥${m.amount.toLocaleString()}</td>
-      </tr>`),
-      `<tr style="font-weight:700; background:#f8f9fa;">
-        <td>合計</td>
-        <td class="num">${totals.count.toLocaleString()}</td>
-        <td class="num">${totals.qty.toLocaleString()}</td>
-        <td class="num">¥${totals.amount.toLocaleString()}</td>
-      </tr>`].join('')
-    : '<tr><td colspan="4" class="empty-state">該当データなし</td></tr>';
-}
-
-function renderDetail() {
-  const search = document.getElementById('d-search').value.toLowerCase();
-  const month  = document.getElementById('d-month').value;
-  const store  = document.getElementById('d-store').value;
-
-  let data = rows.filter(r => {
-    if (month && !r.date.startsWith(month)) return false;
-    if (store && r.store !== store) return false;
-    if (search && !r.code.toLowerCase().includes(search) && !r.name.toLowerCase().includes(search)) return false;
-    return true;
+  // Update sort indicators
+  document.querySelectorAll('th[data-col]').forEach(th => {
+    th.classList.remove('asc', 'desc');
+    if (th.dataset.col === sortCol) th.classList.add(sortDir === 1 ? 'asc' : 'desc');
   });
 
-  const { col, dir } = sort.d;
-  data.sort((a, b) => {
-    const av = a[col], bv = b[col];
-    return dir * (typeof av === 'string' ? av.localeCompare(bv, 'ja') : av - bv);
-  });
-
-  const total = data.length, pages = Math.max(1, Math.ceil(total / PAGE));
-  page.d = Math.min(page.d, pages);
-  const slice = data.slice((page.d - 1) * PAGE, page.d * PAGE);
-
-  document.getElementById('tbody-d').innerHTML = slice.length
-    ? slice.map(r => `
-      <tr>
-        <td>${esc(r.date)}</td>
-        <td class="small">${esc(r.store)}</td>
-        <td class="small">${esc(r.code)}</td>
-        <td>${esc(r.name)}${!r.matched ? '<span class="badge badge-unmatched">未一致</span>' : ''}</td>
-        <td class="num">¥${r.price.toLocaleString()}</td>
-        <td class="num">${r.qty.toLocaleString()}</td>
-        <td class="num">¥${r.amount.toLocaleString()}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="7" class="empty-state">該当データなし</td></tr>';
-
-  renderPg('pg-d', page.d, pages, 'd');
-  updateSortHeaders('d', col, dir);
+  // Pagination
+  renderPg(pages);
 }
 
-// ─── Pagination ──────────────────────────────────────────────────────────────
-function renderPg(id, cur, total, key) {
-  const el = document.getElementById(id);
-  if (total <= 1) { el.innerHTML = ''; return; }
-  const start = Math.max(1, cur - 2), end = Math.min(total, cur + 2);
-  let h = `<button class="pg-btn" onclick="goPg('${key}',${cur-1})" ${cur===1?'disabled':''}>‹</button>`;
-  if (start > 1) h += `<button class="pg-btn" onclick="goPg('${key}',1)">1</button>${start>2?'<span style="padding:0 4px;color:#aaa">…</span>':''}`;
-  for (let p = start; p <= end; p++) h += `<button class="pg-btn${p===cur?' active':''}" onclick="goPg('${key}',${p})">${p}</button>`;
-  if (end < total) h += `${end<total-1?'<span style="padding:0 4px;color:#aaa">…</span>':''}<button class="pg-btn" onclick="goPg('${key}',${total})">${total}</button>`;
-  h += `<button class="pg-btn" onclick="goPg('${key}',${cur+1})" ${cur===total?'disabled':''}>›</button>`;
-  h += `<span class="pg-info">${cur} / ${total} ページ</span>`;
-  el.innerHTML = h;
+// ── Pagination ───────────────────────────────────────────────────────────────
+function renderPg(pages) {
+  if (pages <= 1) { document.getElementById('pg').innerHTML = ''; return; }
+  const p = curPage;
+  let h = `<button class="pg" onclick="goPage(${p-1})" ${p===1?'disabled':''}>‹</button>`;
+  const s = Math.max(1, p-2), e = Math.min(pages, p+2);
+  if (s > 1) { h += `<button class="pg" onclick="goPage(1)">1</button>`; if (s > 2) h += `<span style="padding:0 4px;color:#ccc">…</span>`; }
+  for (let i = s; i <= e; i++) h += `<button class="pg${i===p?' on':''}" onclick="goPage(${i})">${i}</button>`;
+  if (e < pages) { if (e < pages-1) h += `<span style="padding:0 4px;color:#ccc">…</span>`; h += `<button class="pg" onclick="goPage(${pages})">${pages}</button>`; }
+  h += `<button class="pg" onclick="goPage(${p+1})" ${p===pages?'disabled':''}>›</button>`;
+  h += `<span class="pg-info">${p} / ${pages} ページ（1ページ ${PER_PAGE.toLocaleString()}件）</span>`;
+  document.getElementById('pg').innerHTML = h;
 }
+function goPage(p) { curPage = p; render(); document.getElementById('table-scroll').scrollTop = 0; }
 
-function goPg(key, p) { page[key] = p; key === 's' ? renderSummary() : renderDetail(); }
-
-// ─── Sorting ─────────────────────────────────────────────────────────────────
-document.querySelectorAll('th.sortable').forEach(th => {
+// ── Sort on header click ─────────────────────────────────────────────────────
+document.querySelectorAll('th[data-col]').forEach(th => {
   th.addEventListener('click', () => {
-    const col = th.dataset.col, tab = th.dataset.tab;
-    if (sort[tab].col === col) sort[tab].dir *= -1;
-    else { sort[tab].col = col; sort[tab].dir = 1; }
-    page[tab] = 1;
-    tab === 's' ? renderSummary() : renderDetail();
+    const col = th.dataset.col;
+    if (sortCol === col) sortDir *= -1;
+    else { sortCol = col; sortDir = 1; }
+    curPage = 1;
+    render();
   });
 });
 
-function updateSortHeaders(tab, col, dir) {
-  document.querySelectorAll(`th[data-tab="${tab}"]`).forEach(th => {
-    th.classList.remove('sort-asc', 'sort-desc');
-    if (th.dataset.col === col) th.classList.add(dir === 1 ? 'sort-asc' : 'sort-desc');
+// ── Filter listeners ─────────────────────────────────────────────────────────
+['f-from','f-to','f-store','f-text'].forEach(id =>
+  document.getElementById(id).addEventListener('input', () => { curPage = 1; render(); })
+);
+
+// ── CSV export ───────────────────────────────────────────────────────────────
+function doExport() {
+  const data = sorted(filtered());
+  const rows = [['販売日', '商品名', '商品番号', '税抜単価', '数量', '小計（税抜）', '店舗', 'マスター一致']];
+  data.forEach(r => rows.push([r.date, r.name, r.code, r.price, r.qty, r.price * r.qty, r.store, r.matched ? '○' : '×']));
+  const csv = '﻿' + rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })),
+    download: '販売明細_' + new Date().toISOString().slice(0,10) + '.csv'
   });
+  a.click(); URL.revokeObjectURL(a.href);
 }
 
-// ─── Tab switching ───────────────────────────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const t = btn.dataset.tab;
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('tab-' + t).classList.add('active');
-  });
-});
-
-// ─── Filter listeners ────────────────────────────────────────────────────────
-['s-search', 's-store'].forEach(id => document.getElementById(id).addEventListener('input', () => { page.s = 1; renderSummary(); }));
-['d-search', 'd-month', 'd-store'].forEach(id => document.getElementById(id).addEventListener('input', () => { page.d = 1; renderDetail(); }));
-document.getElementById('m-store').addEventListener('change', renderMonthly);
-
-// ─── Export ──────────────────────────────────────────────────────────────────
-function csvBlob(rows) {
-  const bom = '﻿';
-  const content = bom + rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
-  return new Blob([content], { type: 'text/csv;charset=utf-8;' });
-}
-
-function dl(blob, name) {
-  const url = URL.createObjectURL(blob);
-  Object.assign(document.createElement('a'), { href: url, download: name }).click();
-  URL.revokeObjectURL(url);
-}
-
-function exportSummary() {
-  const data = [['商品番号', '商品名', '税抜単価', '合計数量', '合計金額（税抜）', 'マスター一致']];
-  summaryData.forEach(r => data.push([r.code, r.name, r.price, r.qty, r.amount, r.matched ? '○' : '×']));
-  dl(csvBlob(data), '商品別集計.csv');
-}
-
-function exportMonthly() {
-  const data = [['月', '明細件数', '合計数量', '合計金額（税抜）']];
-  monthlyData.forEach(m => data.push([m.month, m.count, m.qty, m.amount]));
-  dl(csvBlob(data), '月別集計.csv');
-}
-
-function exportDetail() {
-  const data = [['販売日', '店舗', '商品番号', '商品名', '税抜単価', '数量', '小計（税抜）', 'マスター一致']];
-  rows.forEach(r => data.push([r.date, r.store, r.code, r.name, r.price, r.qty, r.amount, r.matched ? '○' : '×']));
-  dl(csvBlob(data), '販売明細.csv');
-}
-
-// ─── Reset ───────────────────────────────────────────────────────────────────
+// ── Reset ────────────────────────────────────────────────────────────────────
 document.getElementById('btn-reset').addEventListener('click', () => {
-  salesBuf = productBuf = null;
-  rows = summaryData = monthlyData = [];
-  ['zone-sales', 'zone-product'].forEach(id => document.getElementById(id).classList.remove('loaded'));
-  ['name-sales', 'name-product'].forEach(id => document.getElementById(id).textContent = '');
-  ['file-sales', 'file-product'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('btn-process').disabled = true;
+  salesBuf = productBuf = null; allRows = [];
+  ['z-sales','z-product'].forEach(id => document.getElementById(id).classList.remove('done'));
+  ['n-sales','n-product'].forEach(id => document.getElementById(id).textContent = '');
+  ['f-sales','f-product'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('btn-run').disabled = true;
   document.getElementById('btn-reset').style.display = 'none';
-  document.getElementById('resultsArea').style.display = 'none';
-  hideMsg();
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('notice').className = 'notice';
 });
 
-// ─── Message helpers ─────────────────────────────────────────────────────────
-function showMsg(text, type, spinner) {
-  const el = document.getElementById('msg');
-  el.className = 'message show ' + type;
-  el.innerHTML = (spinner ? '<span class="spinner"></span>' : '') + text;
-}
-function hideMsg() {
-  document.getElementById('msg').className = 'message';
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function msg(text, type, spin) {
+  const el = document.getElementById('notice');
+  el.className = 'notice show ' + type;
+  el.innerHTML = (spin ? '<span class="spinner"></span>' : '') + text;
 }
 
-// ─── XSS escape ─────────────────────────────────────────────────────────────
-function esc(s) {
+function x(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
