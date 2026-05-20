@@ -479,7 +479,7 @@ function extractProductCode(pn, store) {
     }
   }
 
-  // ⑤ lowercase-prefix + UPPERCASE コード: ldw001-LDW-006, sh-304992--...
+  // ⑤ lowercase-prefix + UPPERCASE コード（メーカー商品含む: ldw001-LDW-006 など）
   const m5 = pn.match(/^[a-z][a-z0-9]*-([A-Z][A-Z0-9]+-\d+)$/);
   if (m5) return normalizeCode(m5[1]);
 
