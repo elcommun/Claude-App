@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EC販売データ集計ツール</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic Pro', 'ヒラギノ角ゴ Pro W3', 'Meiryo', 'メイリオ', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e8e8e8;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      height: 56px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    header h1 { font-size: 17px; font-weight: 700; color: #1a1a2e; letter-spacing: -0.3px; }
+    header .subtitle { font-size: 12px; color: #888; margin-left: 12px; margin-top: 2px; }
+
+    .container { max-width: 1440px; margin: 0 auto; padding: 24px; }
+
+    /* Upload cards */
+    .upload-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .upload-card {
+      background: #fff;
+      border: 2px dashed #d0d5dd;
+      border-radius: 10px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      position: relative;
+    }
+    .upload-card:hover { border-color: #4a6fa5; background: #f5f8ff; }
+    .upload-card.drag-over { border-color: #4a6fa5; background: #eef2ff; transform: scale(1.01); }
+    .upload-card.loaded { border-color: #27ae60; border-style: solid; background: #f0fff6; }
+    .upload-card.loaded .upload-icon::after { content: ' ✓'; color: #27ae60; font-size: 20px; }
+    .upload-icon { font-size: 36px; margin-bottom: 10px; line-height: 1; }
+    .upload-label { font-size: 14px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+    .upload-hint { font-size: 12px; color: #999; }
+    .upload-filename { font-size: 12px; color: #27ae60; margin-top: 8px; font-weight: 600; word-break: break-all; }
+    input[type="file"] { display: none; }
+
+    /* Actions bar */
+    .actions { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .btn-primary {
+      background: #4a6fa5;
+      color: #fff;
+      border: none;
+      padding: 11px 28px;
+      border-radius: 7px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .btn-primary:hover:not(:disabled) { background: #3a5a8a; }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-secondary {
+      background: #fff;
+      color: #4a6fa5;
+      border: 1.5px solid #4a6fa5;
+      padding: 10px 20px;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: #f0f4ff; }
+
+    /* Message */
+    .message {
+      padding: 12px 16px;
+      border-radius: 7px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      display: none;
+    }
+    .message.show { display: block; }
+    .message.info { background: #e3f2fd; color: #1565c0; border-left: 3px solid #1565c0; }
+    .message.success { background: #e8f5e9; color: #1b5e20; border-left: 3px solid #27ae60; }
+    .message.warning { background: #fff8e1; color: #e65100; border-left: 3px solid #ff9800; }
+    .message.error { background: #ffebee; color: #b71c1c; border-left: 3px solid #e53935; }
+
+    /* Stats */
+    .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+    .stat-card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 14px 20px;
+      flex: 1;
+      min-width: 140px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+      border-top: 3px solid transparent;
+    }
+    .stat-card:nth-child(1) { border-top-color: #4a6fa5; }
+    .stat-card:nth-child(2) { border-top-color: #27ae60; }
+    .stat-card:nth-child(3) { border-top-color: #e67e22; }
+    .stat-card:nth-child(4) { border-top-color: #8e44ad; }
+    .stat-card:nth-child(5) { border-top-color: #e74c3c; }
+    .stat-label { font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .stat-value { font-size: 24px; font-weight: 800; color: #1a1a2e; line-height: 1; }
+    .stat-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
+
+    /* Results panel */
+    #resultsArea { display: none; }
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      background: #fff;
+      border-radius: 8px 8px 0 0;
+      border-bottom: 2px solid #e8e8e8;
+      overflow: hidden;
+    }
+    .tab-btn {
+      padding: 12px 24px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.15s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover { color: #4a6fa5; }
+    .tab-btn.active { color: #4a6fa5; border-bottom-color: #4a6fa5; }
+
+    /* Table container */
+    .tab-panel {
+      background: #fff;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      overflow: hidden;
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .toolbar {
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid #f0f0f0;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      padding: 7px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      width: 220px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .search-box:focus { border-color: #4a6fa5; }
+    .filter-select {
+      padding: 7px 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      background: #fff;
+      cursor: pointer;
+    }
+    .btn-export {
+      margin-left: auto;
+      padding: 7px 16px;
+      background: #27ae60;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-export:hover { background: #219a52; }
+
+    .table-wrap { overflow-x: auto; max-height: 560px; overflow-y: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead { position: sticky; top: 0; z-index: 10; }
+    th {
+      background: #f8f9fa;
+      padding: 9px 12px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #666;
+      border-bottom: 1px solid #e8e8e8;
+      white-space: nowrap;
+      user-select: none;
+    }
+    th.sortable { cursor: pointer; }
+    th.sortable:hover { background: #edf0f4; color: #4a6fa5; }
+    th.sort-asc::after { content: ' ▲'; font-size: 9px; }
+    th.sort-desc::after { content: ' ▼'; font-size: 9px; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafbfc; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; font-family: 'SFMono-Regular', 'Consolas', monospace; }
+    .small { font-size: 11px; color: #aaa; }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-weight: 600;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+    .badge-unmatched { background: #fff3e0; color: #e65100; }
+    .badge-matched { background: #e8f5e9; color: #27ae60; }
+
+    /* Pagination */
+    .pagination {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border-top: 1px solid #f0f0f0;
+      font-size: 12px;
+    }
+    .pg-btn {
+      padding: 4px 9px;
+      border: 1px solid #ddd;
+      background: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      color: #555;
+      transition: all 0.1s;
+    }
+    .pg-btn:hover { border-color: #4a6fa5; color: #4a6fa5; }
+    .pg-btn.active { background: #4a6fa5; color: #fff; border-color: #4a6fa5; }
+    .pg-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .pg-info { margin-left: auto; color: #999; }
+
+    /* Loading spinner */
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #ddd; border-top-color: #4a6fa5; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .empty-state { padding: 48px; text-align: center; color: #bbb; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>EC販売データ集計ツール</h1>
+  <span class="subtitle">販売データ CSV ＋ 商品データ Excel → 集計・エクスポート</span>
+</header>
+
+<div class="container">
+
+  <!-- File Upload -->
+  <div class="upload-row">
+    <div class="upload-card" id="zone-sales">
+      <div class="upload-icon">📊</div>
+      <div class="upload-label">販売データ（CSV）</div>
+      <div class="upload-hint">楽天受注データ CSV（Shift-JIS）</div>
+      <input type="file" id="file-sales" accept=".csv">
+      <div class="upload-filename" id="name-sales"></div>
+    </div>
+    <div class="upload-card" id="zone-product">
+      <div class="upload-icon">📦</div>
+      <div class="upload-label">商品データ（Excel）</div>
+      <div class="upload-hint">商品マスター .xlsx（商品データシート含む）</div>
+      <input type="file" id="file-product" accept=".xlsx,.xls">
+      <div class="upload-filename" id="name-product"></div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn-primary" id="btn-process" disabled>集計する</button>
+    <button class="btn-secondary" id="btn-reset" style="display:none">リセット</button>
+  </div>
+
+  <!-- Message -->
+  <div class="message" id="msg"></div>
+
+  <!-- Results -->
+  <div id="resultsArea">
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="summary">商品別集計</button>
+      <button class="tab-btn" data-tab="monthly">月別集計</button>
+      <button class="tab-btn" data-tab="detail">明細データ</button>
+    </div>
+
+    <!-- 商品別集計 -->
+    <div class="tab-panel active" id="tab-summary">
+      <div class="toolbar">
+        <input class="search-box" id="s-search" placeholder="商品名・商品番号で絞り込み…" autocomplete="off">
+        <select class="filter-select" id="s-store"><option value="">すべての店舗</option></select>
+        <button class="btn-export" onclick="exportSummary()">CSV エクスポート</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-col="code" data-tab="s">商品番号</th>
+              <th class="sortable" data-col="name" data-tab="s">商品名</th>
+              <th class="sortable num" data-col="price" data-tab="s">税抜単価</th>
+              <th class="sortable num" data-col="qty" data-tab="s">合計数量</th>
+              <th class="sortable num" data-col="amount" data-tab="s">合計金額（税抜）</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-s"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pg-s"></div>
+    </div>
+
+    <!-- 月別集計 -->
+    <div class="tab-panel" id="tab-monthly">
+      <div class="toolbar">
+        <select class="filter-select" id="m-store"><option value="">すべての店舗</option></select>
+        <button class="btn-export" onclick="exportMonthly()">CSV エクスポート</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>月</th>
+              <th class="num">明細件数</th>
+              <th class="num">合計数量</th>
+              <th class="num">合計金額（税抜）</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-m"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 明細データ -->
+    <div class="tab-panel" id="tab-detail">
+      <div class="toolbar">
+        <input class="search-box" id="d-search" placeholder="商品名・商品番号で絞り込み…" autocomplete="off">
+        <select class="filter-select" id="d-month"><option value="">すべての月</option></select>
+        <select class="filter-select" id="d-store"><option value="">すべての店舗</option></select>
+        <button class="btn-export" onclick="exportDetail()">CSV エクスポート</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="sortable" data-col="date" data-tab="d">販売日</th>
+              <th class="sortable" data-col="store" data-tab="d">店舗</th>
+              <th class="sortable" data-col="code" data-tab="d">商品番号</th>
+              <th class="sortable" data-col="name" data-tab="d">商品名</th>
+              <th class="sortable num" data-col="price" data-tab="d">税抜単価</th>
+              <th class="sortable num" data-col="qty" data-tab="d">数量</th>
+              <th class="sortable num" data-col="amount" data-tab="d">小計（税抜）</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-d"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="pg-d"></div>
+    </div>
+
+  </div><!-- /resultsArea -->
+</div><!-- /container -->
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+let salesBuf = null, productBuf = null;
+let rows = [];       // processed detail rows
+let summaryData = [];
+let monthlyData = [];
+
+const sort = {
+  s: { col: 'amount', dir: -1 },
+  d: { col: 'date',   dir:  1 },
+};
+const page = { s: 1, d: 1 };
+const PAGE = 150;
+
+// ─── File upload setup ───────────────────────────────────────────────────────
+function setupZone(zoneId, inputId, type) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) load(e.dataTransfer.files[0], type); });
+  input.addEventListener('change', e => { if (e.target.files[0]) load(e.target.files[0], type); });
+}
+
+function load(file, type) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    if (type === 'sales') { salesBuf = e.target.result; document.getElementById('name-sales').textContent = '✓ ' + file.name; document.getElementById('zone-sales').classList.add('loaded'); }
+    else { productBuf = e.target.result; document.getElementById('name-product').textContent = '✓ ' + file.name; document.getElementById('zone-product').classList.add('loaded'); }
+    document.getElementById('btn-process').disabled = !(salesBuf && productBuf);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+setupZone('zone-sales',   'file-sales',   'sales');
+setupZone('zone-product', 'file-product', 'product');
+
+// ─── CSV parser (Shift-JIS, handles quoted multiline fields) ─────────────────
+function parseCSV(buf) {
+  const text = new TextDecoder('shift-jis').decode(new Uint8Array(buf));
+  const rows = [];
+  let cur = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQ && text[i + 1] === '"') { field += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      cur.push(field); field = '';
+    } else if ((c === '\r' || c === '\n') && !inQ) {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      cur.push(field); field = '';
+      if (cur.some(f => f !== '')) rows.push(cur);
+      cur = [];
+    } else {
+      field += c;
+    }
+  }
+  if (field || cur.length) { cur.push(field); if (cur.some(f => f !== '')) rows.push(cur); }
+  return rows;
+}
+
+// ─── Excel product master parser ─────────────────────────────────────────────
+function parseProductMaster(buf) {
+  const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+  const map = new Map(); // 品番 → 品名
+
+  function loadSheet(name, codeIdx, nameIdx, startRow) {
+    const ws = wb.Sheets[name];
+    if (!ws) return;
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    for (let i = startRow; i < data.length; i++) {
+      const r = data[i];
+      const code = r[codeIdx] != null ? String(r[codeIdx]).trim() : '';
+      const rawName = r[nameIdx] != null ? String(r[nameIdx]) : '';
+      const name = rawName.replace(/[　\s]+$/, '').replace(/^[　\s]+/, '').trim();
+      if (code && name && code !== 'None') map.set(code, name);
+    }
+  }
+
+  // 商品データ: row1=guide, row2=header, row3+=data; 品番=col8, 品名=col9
+  loadSheet('商品データ', 8, 9, 2);
+  // plaisir別注: same structure
+  loadSheet('plaisir別注', 8, 9, 2);
+
+  return map;
+}
+
+// ─── Extract product code from 商品番号 field ────────────────────────────────
+function extractCode(productNum) {
+  if (!productNum) return null;
+  // Pattern: lowercase-lowercase-CODE  e.g. elco-pbc001-PBC-010 → PBC-010
+  const m = productNum.match(/^[a-z][a-z0-9]*-[a-z][a-z0-9]*-(.+)$/);
+  if (m) return m[1];
+  // Numeric suffix: 8mw-mm110971-110972 → 110972
+  const m2 = productNum.match(/^[a-z0-9]+-[a-z0-9]+-(\d+)$/);
+  if (m2) return m2[1];
+  return null;
+}
+
+// ─── Clean raw CSV product name (fallback) ───────────────────────────────────
+function cleanName(raw) {
+  let s = raw
+    .replace(/^[＼\\][^＼\\／/]+[／/]\s*/, '')   // ＼P2倍＋クーポン／
+    .replace(/\([a-z0-9]+-[a-zA-Z0-9_-]+\)$/i, '') // (elco-xxx-YYY)
+    .trim();
+  // Take part before ｜ (SEO separator)
+  const pipe = s.indexOf('｜');
+  if (pipe > 0) s = s.substring(0, pipe).trim();
+  // Remove trailing size/color details after last 『 or 【
+  return s || raw;
+}
+
+// ─── Main processing ─────────────────────────────────────────────────────────
+document.getElementById('btn-process').addEventListener('click', () => {
+  showMsg('処理中…', 'info', true);
+  document.getElementById('btn-process').disabled = true;
+  setTimeout(process, 60);
+});
+
+function process() {
+  try {
+    const productMap = parseProductMaster(productBuf);
+
+    const csvRows = parseCSV(salesBuf);
+    if (csvRows.length < 2) throw new Error('CSVにデータがありません');
+
+    // Build column index map
+    const headers = csvRows[0].map(h => h.trim());
+    const col = {};
+    headers.forEach((h, i) => col[h] = i);
+
+    const required = ['出荷日', '注文日時', '商品名', '商品番号', 'SKU管理番号', '個数', '商品単価', '税込別', '販売店舗'];
+    const missing = required.filter(c => col[c] === undefined);
+    if (missing.length) throw new Error('CSVに必要な列がありません: ' + missing.join(', '));
+
+    rows = [];
+    const stores = new Set();
+
+    for (let i = 1; i < csvRows.length; i++) {
+      const r = csvRows[i];
+      const g = name => (r[col[name]] || '').trim();
+
+      const date    = g('出荷日') || g('注文日時').substring(0, 10);
+      const skuCode = g('SKU管理番号');
+      const prodNum = g('商品番号');
+      const csvName = g('商品名');
+      const store   = g('販売店舗');
+      const qty     = parseInt(g('個数'), 10) || 0;
+      const taxType = g('税込別');
+      let price     = parseInt(g('商品単価'), 10) || 0;
+
+      if (!date) continue;
+
+      // 税抜き価格の確定
+      if (taxType === '込') price = Math.round(price / 1.1);
+
+      // 商品名マッチング: 直接 → 抽出 → フォールバック
+      let productName = null;
+      let matched = false;
+
+      if (skuCode && productMap.has(skuCode)) {
+        productName = productMap.get(skuCode);
+        matched = true;
+      }
+
+      if (!matched) {
+        // Try code extracted from 商品番号
+        const extracted = extractCode(prodNum);
+        if (extracted && productMap.has(extracted)) {
+          productName = productMap.get(extracted);
+          matched = true;
+        }
+      }
+
+      if (!matched && !skuCode && prodNum && productMap.has(prodNum)) {
+        productName = productMap.get(prodNum);
+        matched = true;
+      }
+
+      if (!productName) productName = cleanName(csvName);
+
+      // 表示用商品番号: マスター一致→品番, それ以外→SKUコードまたは商品番号末尾
+      const displayCode = matched
+        ? (productMap.has(skuCode) ? skuCode : extractCode(prodNum) || skuCode || prodNum)
+        : (skuCode || prodNum);
+
+      stores.add(store);
+      rows.push({ date, store, code: displayCode, name: productName, price, qty, amount: price * qty, matched });
+    }
+
+    buildAggregates(stores);
+    renderAll();
+
+    const matchCnt = rows.filter(r => r.matched).length;
+    const pct = rows.length ? Math.round(matchCnt / rows.length * 100) : 0;
+    showMsg(
+      `集計完了： ${rows.length.toLocaleString()} 件処理 ／ 商品マスター一致率 ${pct}%（${matchCnt.toLocaleString()} 件）`,
+      'success'
+    );
+    document.getElementById('resultsArea').style.display = 'block';
+    document.getElementById('btn-reset').style.display = '';
+
+  } catch (e) {
+    showMsg('エラー: ' + e.message, 'error');
+    document.getElementById('btn-process').disabled = false;
+    console.error(e);
+  }
+}
+
+function buildAggregates(stores) {
+  // Product summary
+  const sm = new Map();
+  for (const r of rows) {
+    const key = r.code + '\x00' + r.name;
+    if (!sm.has(key)) sm.set(key, { code: r.code, name: r.name, price: r.price, qty: 0, amount: 0, matched: r.matched, stores: new Set() });
+    const p = sm.get(key);
+    p.qty += r.qty;
+    p.amount += r.amount;
+    p.stores.add(r.store);
+  }
+  summaryData = Array.from(sm.values());
+
+  // Monthly summary
+  const mm = new Map();
+  for (const r of rows) {
+    const mo = r.date.substring(0, 7);
+    if (!mm.has(mo)) mm.set(mo, { month: mo, count: 0, qty: 0, amount: 0 });
+    const m = mm.get(mo);
+    m.count += 1; m.qty += r.qty; m.amount += r.amount;
+  }
+  monthlyData = Array.from(mm.values()).sort((a, b) => a.month.localeCompare(b.month));
+
+  // Populate store filters
+  ['s-store', 'd-store', 'm-store'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="">すべての店舗</option>';
+    stores.forEach(s => sel.innerHTML += `<option value="${esc(s)}">${esc(s)}</option>`);
+  });
+
+  // Month filter for detail
+  const dm = document.getElementById('d-month');
+  dm.innerHTML = '<option value="">すべての月</option>';
+  monthlyData.forEach(m => dm.innerHTML += `<option value="${m.month}">${m.month}</option>`);
+}
+
+// ─── Render ──────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderStats();
+  renderSummary();
+  renderMonthly();
+  renderDetail();
+}
+
+function renderStats() {
+  const totalQty    = rows.reduce((s, r) => s + r.qty, 0);
+  const totalAmount = rows.reduce((s, r) => s + r.amount, 0);
+  const skus        = new Set(rows.map(r => r.code)).size;
+  const matchRate   = rows.length ? Math.round(rows.filter(r => r.matched).length / rows.length * 100) : 0;
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card"><div class="stat-label">明細件数</div><div class="stat-value">${rows.length.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">商品種類数 (SKU)</div><div class="stat-value">${skus.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">合計数量</div><div class="stat-value">${totalQty.toLocaleString()}</div></div>
+    <div class="stat-card"><div class="stat-label">合計金額（税抜）</div><div class="stat-value">¥${totalAmount.toLocaleString()}</div><div class="stat-sub">税抜き</div></div>
+    <div class="stat-card"><div class="stat-label">マスター一致率</div><div class="stat-value">${matchRate}%</div></div>
+  `;
+}
+
+function renderSummary() {
+  const search = document.getElementById('s-search').value.toLowerCase();
+  const store  = document.getElementById('s-store').value;
+
+  let data = summaryData.filter(r => {
+    if (store && !r.stores.has(store)) return false;
+    if (search && !r.code.toLowerCase().includes(search) && !r.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  // Sort
+  const { col, dir } = sort.s;
+  data.sort((a, b) => {
+    const av = a[col], bv = b[col];
+    return dir * (typeof av === 'string' ? av.localeCompare(bv, 'ja') : av - bv);
+  });
+
+  const total = data.length, pages = Math.max(1, Math.ceil(total / PAGE));
+  page.s = Math.min(page.s, pages);
+  const slice = data.slice((page.s - 1) * PAGE, page.s * PAGE);
+
+  document.getElementById('tbody-s').innerHTML = slice.length
+    ? slice.map(r => `
+      <tr>
+        <td class="small">${esc(r.code)}</td>
+        <td>${esc(r.name)}${!r.matched ? '<span class="badge badge-unmatched">未一致</span>' : ''}</td>
+        <td class="num">¥${r.price.toLocaleString()}</td>
+        <td class="num">${r.qty.toLocaleString()}</td>
+        <td class="num">¥${r.amount.toLocaleString()}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="empty-state">該当データなし</td></tr>';
+
+  renderPg('pg-s', page.s, pages, 's');
+  updateSortHeaders('s', col, dir);
+}
+
+function renderMonthly() {
+  const store = document.getElementById('m-store').value;
+
+  let data;
+  if (store) {
+    // Recalculate per store
+    const mm = new Map();
+    for (const r of rows) {
+      if (r.store !== store) continue;
+      const mo = r.date.substring(0, 7);
+      if (!mm.has(mo)) mm.set(mo, { month: mo, count: 0, qty: 0, amount: 0 });
+      const m = mm.get(mo);
+      m.count += 1; m.qty += r.qty; m.amount += r.amount;
+    }
+    data = Array.from(mm.values()).sort((a, b) => a.month.localeCompare(b.month));
+  } else {
+    data = monthlyData;
+  }
+
+  const totals = data.reduce((acc, m) => ({ count: acc.count + m.count, qty: acc.qty + m.qty, amount: acc.amount + m.amount }), { count: 0, qty: 0, amount: 0 });
+
+  document.getElementById('tbody-m').innerHTML = data.length
+    ? [...data.map(m => `
+      <tr>
+        <td>${m.month}</td>
+        <td class="num">${m.count.toLocaleString()}</td>
+        <td class="num">${m.qty.toLocaleString()}</td>
+        <td class="num">¥${m.amount.toLocaleString()}</td>
+      </tr>`),
+      `<tr style="font-weight:700; background:#f8f9fa;">
+        <td>合計</td>
+        <td class="num">${totals.count.toLocaleString()}</td>
+        <td class="num">${totals.qty.toLocaleString()}</td>
+        <td class="num">¥${totals.amount.toLocaleString()}</td>
+      </tr>`].join('')
+    : '<tr><td colspan="4" class="empty-state">該当データなし</td></tr>';
+}
+
+function renderDetail() {
+  const search = document.getElementById('d-search').value.toLowerCase();
+  const month  = document.getElementById('d-month').value;
+  const store  = document.getElementById('d-store').value;
+
+  let data = rows.filter(r => {
+    if (month && !r.date.startsWith(month)) return false;
+    if (store && r.store !== store) return false;
+    if (search && !r.code.toLowerCase().includes(search) && !r.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const { col, dir } = sort.d;
+  data.sort((a, b) => {
+    const av = a[col], bv = b[col];
+    return dir * (typeof av === 'string' ? av.localeCompare(bv, 'ja') : av - bv);
+  });
+
+  const total = data.length, pages = Math.max(1, Math.ceil(total / PAGE));
+  page.d = Math.min(page.d, pages);
+  const slice = data.slice((page.d - 1) * PAGE, page.d * PAGE);
+
+  document.getElementById('tbody-d').innerHTML = slice.length
+    ? slice.map(r => `
+      <tr>
+        <td>${esc(r.date)}</td>
+        <td class="small">${esc(r.store)}</td>
+        <td class="small">${esc(r.code)}</td>
+        <td>${esc(r.name)}${!r.matched ? '<span class="badge badge-unmatched">未一致</span>' : ''}</td>
+        <td class="num">¥${r.price.toLocaleString()}</td>
+        <td class="num">${r.qty.toLocaleString()}</td>
+        <td class="num">¥${r.amount.toLocaleString()}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="7" class="empty-state">該当データなし</td></tr>';
+
+  renderPg('pg-d', page.d, pages, 'd');
+  updateSortHeaders('d', col, dir);
+}
+
+// ─── Pagination ──────────────────────────────────────────────────────────────
+function renderPg(id, cur, total, key) {
+  const el = document.getElementById(id);
+  if (total <= 1) { el.innerHTML = ''; return; }
+  const start = Math.max(1, cur - 2), end = Math.min(total, cur + 2);
+  let h = `<button class="pg-btn" onclick="goPg('${key}',${cur-1})" ${cur===1?'disabled':''}>‹</button>`;
+  if (start > 1) h += `<button class="pg-btn" onclick="goPg('${key}',1)">1</button>${start>2?'<span style="padding:0 4px;color:#aaa">…</span>':''}`;
+  for (let p = start; p <= end; p++) h += `<button class="pg-btn${p===cur?' active':''}" onclick="goPg('${key}',${p})">${p}</button>`;
+  if (end < total) h += `${end<total-1?'<span style="padding:0 4px;color:#aaa">…</span>':''}<button class="pg-btn" onclick="goPg('${key}',${total})">${total}</button>`;
+  h += `<button class="pg-btn" onclick="goPg('${key}',${cur+1})" ${cur===total?'disabled':''}>›</button>`;
+  h += `<span class="pg-info">${cur} / ${total} ページ</span>`;
+  el.innerHTML = h;
+}
+
+function goPg(key, p) { page[key] = p; key === 's' ? renderSummary() : renderDetail(); }
+
+// ─── Sorting ─────────────────────────────────────────────────────────────────
+document.querySelectorAll('th.sortable').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col, tab = th.dataset.tab;
+    if (sort[tab].col === col) sort[tab].dir *= -1;
+    else { sort[tab].col = col; sort[tab].dir = 1; }
+    page[tab] = 1;
+    tab === 's' ? renderSummary() : renderDetail();
+  });
+});
+
+function updateSortHeaders(tab, col, dir) {
+  document.querySelectorAll(`th[data-tab="${tab}"]`).forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.col === col) th.classList.add(dir === 1 ? 'sort-asc' : 'sort-desc');
+  });
+}
+
+// ─── Tab switching ───────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const t = btn.dataset.tab;
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + t).classList.add('active');
+  });
+});
+
+// ─── Filter listeners ────────────────────────────────────────────────────────
+['s-search', 's-store'].forEach(id => document.getElementById(id).addEventListener('input', () => { page.s = 1; renderSummary(); }));
+['d-search', 'd-month', 'd-store'].forEach(id => document.getElementById(id).addEventListener('input', () => { page.d = 1; renderDetail(); }));
+document.getElementById('m-store').addEventListener('change', renderMonthly);
+
+// ─── Export ──────────────────────────────────────────────────────────────────
+function csvBlob(rows) {
+  const bom = '﻿';
+  const content = bom + rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  return new Blob([content], { type: 'text/csv;charset=utf-8;' });
+}
+
+function dl(blob, name) {
+  const url = URL.createObjectURL(blob);
+  Object.assign(document.createElement('a'), { href: url, download: name }).click();
+  URL.revokeObjectURL(url);
+}
+
+function exportSummary() {
+  const data = [['商品番号', '商品名', '税抜単価', '合計数量', '合計金額（税抜）', 'マスター一致']];
+  summaryData.forEach(r => data.push([r.code, r.name, r.price, r.qty, r.amount, r.matched ? '○' : '×']));
+  dl(csvBlob(data), '商品別集計.csv');
+}
+
+function exportMonthly() {
+  const data = [['月', '明細件数', '合計数量', '合計金額（税抜）']];
+  monthlyData.forEach(m => data.push([m.month, m.count, m.qty, m.amount]));
+  dl(csvBlob(data), '月別集計.csv');
+}
+
+function exportDetail() {
+  const data = [['販売日', '店舗', '商品番号', '商品名', '税抜単価', '数量', '小計（税抜）', 'マスター一致']];
+  rows.forEach(r => data.push([r.date, r.store, r.code, r.name, r.price, r.qty, r.amount, r.matched ? '○' : '×']));
+  dl(csvBlob(data), '販売明細.csv');
+}
+
+// ─── Reset ───────────────────────────────────────────────────────────────────
+document.getElementById('btn-reset').addEventListener('click', () => {
+  salesBuf = productBuf = null;
+  rows = summaryData = monthlyData = [];
+  ['zone-sales', 'zone-product'].forEach(id => document.getElementById(id).classList.remove('loaded'));
+  ['name-sales', 'name-product'].forEach(id => document.getElementById(id).textContent = '');
+  ['file-sales', 'file-product'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('btn-process').disabled = true;
+  document.getElementById('btn-reset').style.display = 'none';
+  document.getElementById('resultsArea').style.display = 'none';
+  hideMsg();
+});
+
+// ─── Message helpers ─────────────────────────────────────────────────────────
+function showMsg(text, type, spinner) {
+  const el = document.getElementById('msg');
+  el.className = 'message show ' + type;
+  el.innerHTML = (spinner ? '<span class="spinner"></span>' : '') + text;
+}
+function hideMsg() {
+  document.getElementById('msg').className = 'message';
+}
+
+// ─── XSS escape ─────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
