@@ -3,345 +3,560 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EC販売データ集計ツール</title>
+  <title>EC 販売データ集計</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
-      font-family: 'Hiragino Kaku Gothic Pro', 'ヒラギノ角ゴ Pro W3', 'Meiryo', 'メイリオ', sans-serif;
-      background: #f4f5f7;
-      color: #1e1e2e;
-      font-size: 13px;
+    :root {
+      --ink:     #1c1917;
+      --ink-2:   #44403c;
+      --ink-3:   #78716c;
+      --ink-4:   #a8a29e;
+      --paper:   #faf8f4;
+      --white:   #ffffff;
+      --border:  #e7e2da;
+      --border2: #f0ece5;
+      --gold:    #92754a;
+      --gold-lt: #f5efe4;
+      --green:   #3a6b52;
+      --green-lt:#edf5f0;
+      --red-lt:  #fdf2ee;
+      --red:     #b85c3c;
     }
 
-    /* ── Header ── */
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Hiragino Kaku Gothic Pro', 'ヒラギノ角ゴ Pro W3', 'Meiryo', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ══ Header ══════════════════════════════════════════════════════════════ */
     .header {
-      background: #1e2a45;
-      color: #fff;
-      padding: 0 24px;
-      height: 52px;
+      background: var(--ink);
+      color: var(--white);
+      height: 56px;
+      display: flex;
+      align-items: center;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 300;
+      gap: 20px;
+    }
+    .header-logo {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .header-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: .04em;
+      color: var(--white);
+    }
+    .header-sub {
+      font-size: 11px;
+      color: rgba(255,255,255,.4);
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      font-weight: 400;
+    }
+    .header-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,.1);
+    }
+    .header-tag {
+      font-size: 10px;
+      color: rgba(255,255,255,.45);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    /* ══ Page layout ═════════════════════════════════════════════════════════ */
+    .page { max-width: 1320px; margin: 0 auto; padding: 40px 32px 80px; }
+
+    /* ══ Section title ═══════════════════════════════════════════════════════ */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 14px;
+    }
+
+    /* ══ Upload cards ════════════════════════════════════════════════════════ */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .drop-zone {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 28px;
+      cursor: pointer;
+      transition: border-color .2s, box-shadow .2s, background .2s;
+      position: relative;
+      overflow: hidden;
+    }
+    .drop-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(146,117,74,.04) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .drop-zone:hover {
+      border-color: var(--gold);
+      box-shadow: 0 4px 24px rgba(146,117,74,.12);
+    }
+    .drop-zone.over {
+      border-color: var(--gold);
+      background: var(--gold-lt);
+      box-shadow: 0 4px 24px rgba(146,117,74,.18);
+    }
+    .drop-zone.done {
+      border-color: var(--green);
+      background: var(--green-lt);
+    }
+    .drop-zone.done::before { background: none; }
+
+    .dz-num {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      color: var(--gold);
+      margin-bottom: 12px;
+      display: block;
+    }
+    .dz-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+      display: block;
+      filter: grayscale(20%);
+    }
+    .dz-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .dz-hint {
+      font-size: 12px;
+      color: var(--ink-4);
+      line-height: 1.5;
+    }
+    .dz-file {
+      margin-top: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .dz-file::before { content: '✓'; font-size: 11px; }
+    input[type=file] { display: none; }
+
+    /* ══ Run button ══════════════════════════════════════════════════════════ */
+    .run-row {
       display: flex;
       align-items: center;
       gap: 12px;
-      position: sticky;
-      top: 0;
-      z-index: 200;
+      margin-bottom: 28px;
     }
-    .header h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
-    .header .badge {
-      background: rgba(255,255,255,0.15);
-      font-size: 11px;
-      padding: 2px 8px;
-      border-radius: 12px;
-    }
-
-    .wrap { max-width: 1280px; margin: 0 auto; padding: 20px 20px 60px; }
-
-    /* ── Upload section ── */
-    .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
-
-    .drop-zone {
-      background: #fff;
-      border: 2px dashed #c8d0e0;
-      border-radius: 10px;
-      padding: 24px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color .15s, background .15s;
-      user-select: none;
-    }
-    .drop-zone:hover, .drop-zone.over { border-color: #3f7edd; background: #f0f5ff; }
-    .drop-zone.done { border-color: #27ae60; border-style: solid; background: #f0fff8; }
-    .drop-zone .icon { font-size: 32px; margin-bottom: 8px; }
-    .drop-zone .label { font-weight: 700; font-size: 14px; color: #1e2a45; margin-bottom: 3px; }
-    .drop-zone .hint { font-size: 12px; color: #9a9db0; }
-    .drop-zone .fname { font-size: 12px; color: #27ae60; margin-top: 6px; font-weight: 600; }
-    input[type=file] { display: none; }
-
-    /* ── Action bar ── */
-    .action-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
-
     .btn-run {
-      background: #3f7edd;
-      color: #fff;
+      background: var(--ink);
+      color: var(--white);
       border: none;
-      padding: 10px 28px;
-      border-radius: 7px;
+      padding: 13px 36px;
+      border-radius: 8px;
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 600;
       cursor: pointer;
-      transition: background .15s, opacity .15s;
+      letter-spacing: .04em;
+      transition: background .18s, transform .1s, opacity .18s;
+      position: relative;
     }
-    .btn-run:hover:not(:disabled) { background: #2e6bc4; }
-    .btn-run:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-run:hover:not(:disabled) {
+      background: #2c2622;
+      transform: translateY(-1px);
+    }
+    .btn-run:active:not(:disabled) { transform: translateY(0); }
+    .btn-run:disabled { opacity: .35; cursor: not-allowed; }
 
-    .btn-reset {
-      background: #fff;
-      color: #555;
-      border: 1.5px solid #d0d5e0;
-      padding: 9px 18px;
-      border-radius: 7px;
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink-3);
+      border: 1.5px solid var(--border);
+      padding: 12px 20px;
+      border-radius: 8px;
       font-size: 13px;
       cursor: pointer;
+      transition: border-color .18s, color .18s;
     }
-    .btn-reset:hover { background: #f7f8fa; }
+    .btn-ghost:hover { border-color: var(--ink-3); color: var(--ink); }
 
-    /* ── Notice ── */
+    /* ══ Notice bar ══════════════════════════════════════════════════════════ */
     .notice {
       display: none;
-      padding: 11px 15px;
-      border-radius: 7px;
-      margin-bottom: 16px;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 18px;
+      border-radius: 8px;
+      margin-bottom: 24px;
       font-size: 13px;
-      border-left: 4px solid transparent;
+      font-weight: 500;
     }
-    .notice.show { display: flex; align-items: center; gap: 8px; }
-    .notice.info  { background: #e8f0fe; border-color: #3f7edd; color: #1a52a0; }
-    .notice.ok    { background: #edfdf5; border-color: #27ae60; color: #145a32; }
-    .notice.err   { background: #fdf0ef; border-color: #e74c3c; color: #7b241c; }
+    .notice.show { display: flex; }
+    .notice.info  { background: var(--gold-lt);  color: #7a5f35; border: 1px solid #dfd0b4; }
+    .notice.ok    { background: var(--green-lt); color: #2d5540; border: 1px solid #b4d4c4; }
+    .notice.err   { background: var(--red-lt);   color: #8a3820; border: 1px solid #e0beb0; }
 
-    /* ── Result section ── */
+    /* ══ Summary cards ═══════════════════════════════════════════════════════ */
     #result { display: none; }
 
-    /* Summary strip */
-    .summary-strip {
-      display: flex;
-      gap: 0;
-      background: #fff;
-      border-radius: 8px;
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .kpi {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      position: relative;
       overflow: hidden;
-      margin-bottom: 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.07);
     }
-    .s-item {
-      flex: 1;
-      padding: 12px 18px;
-      border-right: 1px solid #f0f0f0;
-      text-align: center;
+    .kpi::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--gold);
+      opacity: .35;
     }
-    .s-item:last-child { border-right: none; }
-    .s-item .sv { font-size: 22px; font-weight: 800; color: #1e2a45; line-height: 1; }
-    .s-item .sk { font-size: 10px; color: #aaa; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-top: 3px; }
+    .kpi-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1;
+      margin-bottom: 6px;
+      letter-spacing: -.02em;
+    }
+    .kpi-lbl {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ink-4);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
 
-    /* Filter bar */
-    .filter-bar {
-      background: #fff;
-      border-radius: 8px;
-      padding: 10px 14px;
+    /* ══ Filter row ══════════════════════════════════════════════════════════ */
+    .filter-row {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px 10px 0 0;
+      padding: 14px 18px;
       display: flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+      gap: 10px;
       flex-wrap: wrap;
+      border-bottom: none;
     }
-    .filter-bar input[type=text] {
-      padding: 7px 11px;
-      border: 1px solid #dde2ec;
-      border-radius: 5px;
+    .filter-label {
+      font-size: 11px;
+      color: var(--ink-4);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .f-input, .f-select {
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
       font-size: 13px;
-      width: 200px;
+      color: var(--ink);
+      background: var(--paper);
       outline: none;
+      transition: border-color .18s, box-shadow .18s;
+      font-family: inherit;
     }
-    .filter-bar input[type=text]:focus { border-color: #3f7edd; }
-    .filter-bar input[type=date] {
-      padding: 6px 8px;
-      border: 1px solid #dde2ec;
-      border-radius: 5px;
-      font-size: 13px;
-      outline: none;
+    .f-input:focus, .f-select:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(146,117,74,.12);
+      background: var(--white);
     }
-    .filter-bar input[type=date]:focus { border-color: #3f7edd; }
-    .filter-bar select {
-      padding: 7px 10px;
-      border: 1px solid #dde2ec;
-      border-radius: 5px;
-      font-size: 13px;
-      background: #fff;
-      cursor: pointer;
-      outline: none;
+    .f-input[type=text] { width: 210px; }
+    .f-input[type=date] { width: 140px; }
+
+    .f-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+    .f-spacer { flex: 1; }
+    .f-count {
+      font-size: 12px;
+      color: var(--ink-4);
+      white-space: nowrap;
     }
-    .filter-label { font-size: 11px; color: #999; white-space: nowrap; }
-    .filter-bar .spacer { flex: 1; }
+
     .btn-export {
-      background: #27ae60;
-      color: #fff;
+      height: 36px;
+      padding: 0 18px;
+      background: var(--green);
+      color: var(--white);
       border: none;
-      padding: 7px 16px;
-      border-radius: 5px;
+      border-radius: 6px;
       font-size: 12px;
       font-weight: 700;
       cursor: pointer;
+      letter-spacing: .04em;
+      transition: background .18s;
+      white-space: nowrap;
     }
-    .btn-export:hover { background: #1e8449; }
-    .filter-count { font-size: 12px; color: #999; white-space: nowrap; }
+    .btn-export:hover { background: #2e5742; }
 
-    /* ── Main table ── */
-    .table-outer {
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+    /* ══ Table ═══════════════════════════════════════════════════════════════ */
+    .table-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 0 0 10px 10px;
       overflow: hidden;
+      box-shadow: 0 2px 12px rgba(28,25,23,.05);
     }
-    .table-scroll { overflow-x: auto; max-height: calc(100vh - 340px); overflow-y: auto; min-height: 300px; }
+    .table-scroll {
+      overflow-x: auto;
+      max-height: calc(100vh - 380px);
+      overflow-y: auto;
+      min-height: 280px;
+    }
 
     table { width: 100%; border-collapse: collapse; }
     thead { position: sticky; top: 0; z-index: 10; }
+
     th {
-      background: #f0f2f7;
-      padding: 9px 12px;
-      font-size: 11px;
+      background: var(--ink);
+      color: rgba(255,255,255,.7);
+      padding: 11px 14px;
+      font-size: 10px;
       font-weight: 700;
-      color: #5a6070;
+      letter-spacing: .1em;
+      text-transform: uppercase;
       text-align: left;
-      border-bottom: 1px solid #e0e4ed;
+      border-right: 1px solid rgba(255,255,255,.06);
       white-space: nowrap;
       cursor: pointer;
       user-select: none;
+      transition: color .15s;
     }
-    th:hover { background: #e6eaf3; color: #3f7edd; }
-    th.asc::after  { content: ' ▲'; font-size: 9px; }
-    th.desc::after { content: ' ▼'; font-size: 9px; }
+    th:last-child { border-right: none; }
+    th:hover { color: rgba(255,255,255,.95); }
+    th.asc  { color: #e8d5a8; }
+    th.desc { color: #e8d5a8; }
+    th.asc::after  { content: ' ↑'; font-size: 10px; }
+    th.desc::after { content: ' ↓'; font-size: 10px; }
 
     td {
-      padding: 8px 12px;
-      border-bottom: 1px solid #f2f4f8;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border2);
       vertical-align: middle;
-      line-height: 1.4;
+      line-height: 1.45;
     }
     tr:last-child td { border-bottom: none; }
 
-    /* Date group separator */
+    .data-row { transition: background .1s; }
+    .data-row:hover td { background: #fdf9f4; }
+
+    /* Date group header */
     .date-row td {
-      background: #f8f9fc;
+      background: var(--paper);
+      padding: 6px 14px 5px;
       font-size: 11px;
       font-weight: 700;
-      color: #7a8099;
-      padding: 5px 12px 4px;
-      letter-spacing: .3px;
-      border-bottom: 1px solid #e8eaf0;
+      color: var(--gold);
+      letter-spacing: .08em;
+      border-bottom: 1px solid var(--border);
+      border-top: 1px solid var(--border);
     }
-
-    tr.data-row:hover td { background: #fafbff; }
+    .date-row:first-child td { border-top: none; }
 
     td.num {
       text-align: right;
       font-variant-numeric: tabular-nums;
-      font-family: 'SF Mono', 'Consolas', 'Menlo', monospace;
+      font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
       white-space: nowrap;
     }
-    td.code { font-size: 12px; color: #5a6080; white-space: nowrap; }
-    td.price { white-space: nowrap; }
+    td.td-date { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+    td.td-code { font-size: 11px; color: var(--ink-3); white-space: nowrap; font-family: 'SF Mono','Menlo','Consolas',monospace; }
+    td.td-name { max-width: 360px; }
+    td.td-price { white-space: nowrap; }
 
     .tag-unmatched {
       display: inline-block;
-      background: #fff3e0;
-      color: #d35400;
-      font-size: 10px;
-      padding: 1px 5px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      padding: 2px 6px;
       border-radius: 3px;
+      background: var(--red-lt);
+      color: var(--red);
       vertical-align: middle;
-      margin-left: 4px;
-      font-weight: 600;
+      margin-left: 5px;
+      text-transform: uppercase;
     }
 
-    .empty { padding: 60px; text-align: center; color: #ccc; font-size: 14px; }
+    .empty-row td {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--ink-4);
+      font-size: 14px;
+    }
 
-    /* Pagination */
-    .pagination {
+    /* ══ Pagination ══════════════════════════════════════════════════════════ */
+    .pager {
       display: flex;
       align-items: center;
       gap: 4px;
-      padding: 10px 14px;
-      border-top: 1px solid #f0f2f6;
+      padding: 12px 18px;
+      border-top: 1px solid var(--border2);
+      background: var(--white);
     }
-    .pg { padding: 4px 8px; border: 1px solid #dde2ec; border-radius: 4px; background: #fff; cursor: pointer; font-size: 12px; color: #555; }
-    .pg:hover { border-color: #3f7edd; color: #3f7edd; }
-    .pg.on { background: #3f7edd; color: #fff; border-color: #3f7edd; }
-    .pg:disabled { opacity: .35; cursor: not-allowed; }
-    .pg-info { margin-left: auto; font-size: 12px; color: #aaa; }
+    .pg {
+      min-width: 32px;
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--ink-2);
+      font-family: inherit;
+      transition: border-color .15s, color .15s, background .15s;
+    }
+    .pg:hover:not([disabled]) { border-color: var(--gold); color: var(--gold); }
+    .pg.on { background: var(--ink); color: var(--white); border-color: var(--ink); }
+    .pg[disabled] { opacity: .3; cursor: not-allowed; }
+    .pg-ellipsis { font-size: 12px; color: var(--ink-4); padding: 0 2px; }
+    .pg-info { margin-left: auto; font-size: 11px; color: var(--ink-4); }
 
-    .spinner { display: inline-block; width: 14px; height: 14px; border: 2.5px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+    /* ══ Spinner ═════════════════════════════════════════════════════════════ */
+    .spinner {
+      display: inline-block;
+      width: 13px; height: 13px;
+      border: 2px solid rgba(28,25,23,.2);
+      border-top-color: var(--ink);
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+      vertical-align: middle;
+      margin-right: 7px;
+    }
+    .notice.info .spinner { border-color: rgba(146,117,74,.3); border-top-color: var(--gold); }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ══ Divider ═════════════════════════════════════════════════════════════ */
+    .divider { height: 1px; background: var(--border); margin: 32px 0; }
   </style>
 </head>
 <body>
 
-<div class="header">
-  <h1>EC販売データ集計ツール</h1>
-  <span class="badge">販売日順 明細表示</span>
-</div>
+<!-- ── Header ── -->
+<header class="header">
+  <div class="header-logo">
+    <span class="header-title">EC 販売データ集計</span>
+    <span class="header-sub">Sales Report</span>
+  </div>
+  <div class="header-line"></div>
+  <span class="header-tag">EL COMMUN</span>
+</header>
 
-<div class="wrap">
+<!-- ── Page ── -->
+<div class="page">
 
   <!-- Upload -->
+  <p class="section-label">Step 1 — ファイルをアップロード</p>
   <div class="upload-grid">
     <div class="drop-zone" id="z-sales">
-      <div class="icon">📊</div>
-      <div class="label">① 販売データ（CSV）</div>
-      <div class="hint">楽天受注CSV（Shift-JIS）をドロップ</div>
+      <span class="dz-num">01 &nbsp;販売データ</span>
+      <span class="dz-icon">📊</span>
+      <div class="dz-label">CSV ファイル</div>
+      <div class="dz-hint">楽天受注CSV（Shift-JIS）<br>クリックまたはドラッグ＆ドロップ</div>
       <input type="file" id="f-sales" accept=".csv">
-      <div class="fname" id="n-sales"></div>
+      <div class="dz-file" id="n-sales" style="display:none"></div>
     </div>
     <div class="drop-zone" id="z-product">
-      <div class="icon">📦</div>
-      <div class="label">② 商品データ（Excel）</div>
-      <div class="hint">最新の商品マスター .xlsx をドロップ</div>
+      <span class="dz-num">02 &nbsp;商品データ</span>
+      <span class="dz-icon">📦</span>
+      <div class="dz-label">Excel ファイル</div>
+      <div class="dz-hint">最新の商品マスター .xlsx<br>クリックまたはドラッグ＆ドロップ</div>
       <input type="file" id="f-product" accept=".xlsx,.xls">
-      <div class="fname" id="n-product"></div>
+      <div class="dz-file" id="n-product" style="display:none"></div>
     </div>
   </div>
 
-  <!-- Actions -->
-  <div class="action-bar">
+  <!-- Run -->
+  <p class="section-label">Step 2 — 集計を実行</p>
+  <div class="run-row">
     <button class="btn-run" id="btn-run" disabled>集計する</button>
-    <button class="btn-reset" id="btn-reset" style="display:none">リセット</button>
+    <button class="btn-ghost" id="btn-reset" style="display:none">リセット</button>
   </div>
 
   <!-- Notice -->
   <div class="notice" id="notice"></div>
 
-  <!-- Result -->
+  <!-- Results -->
   <div id="result">
 
-    <!-- Summary strip -->
-    <div class="summary-strip" id="summary"></div>
+    <!-- KPIs -->
+    <div class="kpi-row" id="kpi-row"></div>
 
-    <!-- Filter bar -->
-    <div class="filter-bar">
+    <!-- Filter -->
+    <div class="filter-row">
       <span class="filter-label">期間</span>
-      <input type="date" id="f-from">
+      <input class="f-input" type="date" id="f-from">
       <span class="filter-label">〜</span>
-      <input type="date" id="f-to">
-      <select id="f-store"></select>
-      <input type="text" id="f-text" placeholder="商品名・商品番号で検索…">
-      <span class="spacer"></span>
-      <span class="filter-count" id="f-count"></span>
+      <input class="f-input" type="date" id="f-to">
+      <div class="f-sep"></div>
+      <select class="f-select" id="f-store"></select>
+      <input class="f-input" type="text" id="f-text" placeholder="商品名・商品番号で検索…">
+      <div class="f-spacer"></div>
+      <span class="f-count" id="f-count"></span>
       <button class="btn-export" onclick="doExport()">CSV 出力</button>
     </div>
 
     <!-- Table -->
-    <div class="table-outer">
+    <div class="table-card">
       <div class="table-scroll" id="table-scroll">
         <table>
           <thead>
             <tr>
-              <th data-col="date"  style="min-width:90px">販売日</th>
-              <th data-col="name"  style="min-width:260px">商品名</th>
+              <th data-col="date"  style="min-width:86px">販売日</th>
+              <th data-col="name"  style="min-width:280px">商品名</th>
               <th data-col="code"  style="min-width:110px">商品番号</th>
               <th data-col="price" style="min-width:90px" class="num">税抜単価</th>
-              <th data-col="qty"   style="min-width:60px" class="num">数量</th>
+              <th data-col="qty"   style="min-width:56px" class="num">数量</th>
             </tr>
           </thead>
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div class="pagination" id="pg"></div>
+      <div class="pager" id="pg"></div>
     </div>
 
   </div><!-- /result -->
-</div><!-- /wrap -->
+</div><!-- /page -->
 
 <script>
 // ── State ───────────────────────────────────────────────────────────────────
@@ -368,11 +583,13 @@ function receive(file, type) {
   reader.onload = e => {
     if (type === 'sales') {
       salesBuf = e.target.result;
-      document.getElementById('n-sales').textContent   = '✓ ' + file.name;
+      const el = document.getElementById('n-sales');
+      el.textContent = file.name; el.style.display = 'flex';
       document.getElementById('z-sales').classList.add('done');
     } else {
       productBuf = e.target.result;
-      document.getElementById('n-product').textContent = '✓ ' + file.name;
+      const el = document.getElementById('n-product');
+      el.textContent = file.name; el.style.display = 'flex';
       document.getElementById('z-product').classList.add('done');
     }
     document.getElementById('btn-run').disabled = !(salesBuf && productBuf);
@@ -432,18 +649,83 @@ function buildProductMap(buf) {
   return map;
 }
 
-// ── Extract internal code from 商品番号 ───────────────────────────────────────
-// e.g. "elco-pbc001-PBC-010" → "PBC-010"
-//      "8mw-mm110971-110972" → "110972"
-function extractCode(pn) {
+// ── 商品番号から内部品番を抽出 ───────────────────────────────────────────────
+// Rules (in priority order):
+//  1. ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx- 手帳系 → DR-XX-NNN / XDR-XX-NNN
+//  2. cal-**- カレンダー → cal-XX- の後ろ
+//  3. elco- 自社商品  → lowercase セグメントを除去して残りを品番化
+//  4. auPAY 括弧コード → （XXX-NNN）の中身、MC-NNN は DR-MC-NNN に変換
+//  5. その他 lowercase-PREFIX-UPPERCASE コード（メーカー商品含む: ldw001-LDW-006 など）
+//  6. 数値サフィックス (例: 8mw-mm110971-110972)
+function extractProductCode(pn, store) {
   if (!pn) return null;
-  // lowercase prefix pattern: elco-xxx-CODE
-  const m1 = pn.match(/^[a-z][a-z0-9]*-[a-z][a-z0-9]*-(.+)$/);
-  if (m1) return m1[1];
-  // numeric suffix: 8mw-mm110971-110972
-  const m2 = pn.match(/^[a-z0-9]+-[a-z0-9]+-(\d+)$/);
-  if (m2) return m2[1];
+  const auPAY = store && store.includes('auPAY');
+
+  // ① 手帳系プレフィックス: ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx-
+  if (/^(?:ma|mg|mh|mc|mk|mb|wb|wk|ws|wv|wx)-/i.test(pn)) {
+    // DR-XX-NNN / XDR-XX-NNN パターンを優先
+    const hits = pn.match(/X?DR-[A-Z]{2,3}-\d+/g);
+    if (hits) return hits[hits.length - 1];
+    // 括弧内コード: （WK-710） → DR-WK-710
+    const bm = pn.match(/[（(]([A-Z]{2,3}-\d+)[）)]/);
+    if (bm) return 'DR-' + bm[1];
+    // 裸の大文字コード: WB-478 → DR-WB-478
+    const dm = pn.match(/[A-Z]{2,3}-\d+/g);
+    if (dm) return 'DR-' + dm[dm.length - 1];
+    return null;
+  }
+
+  // ② カレンダー: cal-**-CAL-NNN
+  if (/^cal-/i.test(pn)) {
+    const m = pn.match(/^cal-[^-]+-(.+)$/i);
+    return m ? normalizeCode(m[1]) : null;
+  }
+
+  // ③ elco- 自社商品
+  if (/^elco-/i.test(pn)) {
+    // auPAY or 括弧あり → 括弧内コードを優先
+    const bm = pn.match(/[（(]([A-Z]+-\d+)[）)]/);
+    if (bm) {
+      const c = bm[1];
+      return normalizeCode(/^MC-\d+$/.test(c) ? 'DR-' + c : c);
+    }
+    // elco- を除去して先頭のlowercase セグメントをさらに除去
+    let rest = pn.slice(5); // drop "elco-"
+    rest = rest.replace(/^[a-z][a-z0-9]*-/, ''); // drop lowercase base (e.g. "pbc001-")
+    rest = rest.replace(/^\d{3,}-?(?=[A-Z])/, ''); // strip leading numeric prefix (e.g. "074GYR-084" → "GYR-084")
+    return rest ? normalizeCode(rest) : null;
+  }
+
+  // ④ auPAY 括弧コード (elco- 以外)
+  if (auPAY || pn.includes('（') || pn.includes('(')) {
+    const bm = pn.match(/[（(]([A-Z]+-\d+)[）)]/);
+    if (bm) {
+      const c = bm[1];
+      return normalizeCode(/^MC-\d+$/.test(c) ? 'DR-' + c : c);
+    }
+  }
+
+  // ⑤ lowercase-prefix + UPPERCASE コード（メーカー商品含む: ldw001-LDW-006 など）
+  const m5 = pn.match(/^[a-z][a-z0-9]*-([A-Z][A-Z0-9]+-\d+)$/);
+  if (m5) return normalizeCode(m5[1]);
+
+  // ⑥ 数値サフィックス: 8mw-mm110971-110972 → 110972
+  const m6 = pn.match(/^[a-z0-9]+-[a-z0-9]+-(\d+)$/);
+  if (m6) return m6[1];
+
   return null;
+}
+
+// コード正規化: LLN-/ECL- は先頭3桁以降を切り捨て、wcl\d+ → WCL-\d+
+function normalizeCode(code) {
+  if (!code) return code;
+  // LLN-/ECL- は先頭3桁以降を切り捨て (例: LLN-002wf-brown → LLN-002)
+  const m = code.match(/^((?:LLN|ECL)-\d{3})/);
+  if (m) return m[1];
+  // wcl\d+ → WCL-\d+ (例: wcl023 → WCL-023)
+  const wm = code.match(/^wcl(\d+)$/i);
+  if (wm) return 'WCL-' + wm[1].padStart(3, '0');
+  return code;
 }
 
 // ── Main processing ──────────────────────────────────────────────────────────
@@ -489,29 +771,34 @@ function run() {
       if (!date) continue;
       if (taxType === '込') price = Math.round(price / 1.1);
 
-      // ── Product name lookup ──
+      // ── 商品名・品番の決定 ──
+      // 商品番号列から内部品番を抽出（最も信頼できるソース）
+      const extracted = extractProductCode(pn, store);
+      // SKU管理番号も正規化（LLN/ECL の truncation など）
+      const normSku   = sku ? normalizeCode(sku) : null;
+
       let name    = null;
       let matched = false;
+      let code    = extracted || normSku || pn;
 
-      // 1. Direct: SKU管理番号 → 品番
-      if (sku && productMap.has(sku)) { name = productMap.get(sku); matched = true; }
-
-      // 2. Extract code from 商品番号
-      if (!matched) {
-        const ex = extractCode(pn);
-        if (ex && productMap.has(ex)) { name = productMap.get(ex); matched = true; }
+      // 1. 商品番号から抽出した品番でマスター照合
+      if (extracted && productMap.has(extracted)) {
+        name = productMap.get(extracted); matched = true; code = extracted;
       }
-
-      // 3. Try 商品番号 itself (e.g. "DR-MH-583" with empty SKU)
-      if (!matched && pn && productMap.has(pn)) { name = productMap.get(pn); matched = true; }
-
-      // 4. Fallback: clean raw CSV name
+      // 2. SKU管理番号（正規化済み）でマスター照合
+      if (!matched && normSku && productMap.has(normSku)) {
+        name = productMap.get(normSku); matched = true; code = normSku;
+      }
+      // 3. SKU管理番号（そのまま）でマスター照合
+      if (!matched && sku && productMap.has(sku)) {
+        name = productMap.get(sku); matched = true; code = normalizeCode(sku) || sku;
+      }
+      // 4. 商品番号そのものが品番の場合（例: DR-MH-583 で SKU が空）
+      if (!matched && pn && productMap.has(pn)) {
+        name = productMap.get(pn); matched = true; code = pn;
+      }
+      // 5. フォールバック: CSV商品名を整形
       if (!name) name = cleanRawName(rawName);
-
-      // Display code: prefer matched 品番, else sku or pn
-      const code = matched
-        ? (productMap.has(sku) ? sku : (extractCode(pn) || sku || pn))
-        : (sku || pn);
 
       storeSet.add(store);
       if (!dateMin || date < dateMin) dateMin = date;
@@ -530,7 +817,7 @@ function run() {
 
     // Default sort: date asc
     sortCol = 'date'; sortDir = 1;
-    renderSummary();
+    renderKPI();
     curPage = 1;
     render();
 
@@ -538,7 +825,7 @@ function run() {
     document.getElementById('btn-reset').style.display = '';
 
     const mc = allRows.filter(r => r.matched).length;
-    msg(`完了：${allRows.length.toLocaleString()}件 ／ 商品マスター一致 ${Math.round(mc/allRows.length*100)}%（${mc.toLocaleString()}件）`, 'ok');
+    msg(`集計完了 — ${allRows.length.toLocaleString()}件 ／ 商品マスター一致率 ${Math.round(mc/allRows.length*100)}%（${mc.toLocaleString()}件）`, 'ok');
 
   } catch (e) {
     msg('エラー: ' + e.message, 'err');
@@ -558,20 +845,20 @@ function cleanRawName(raw) {
   return s || raw;
 }
 
-// ── Summary strip ────────────────────────────────────────────────────────────
-function renderSummary() {
+// ── KPI strip ────────────────────────────────────────────────────────────────
+function renderKPI() {
   const qty    = allRows.reduce((s, r) => s + r.qty, 0);
   const amount = allRows.reduce((s, r) => s + r.price * r.qty, 0);
   const skus   = new Set(allRows.map(r => r.code)).size;
   const mc     = allRows.filter(r => r.matched).length;
 
-  document.getElementById('summary').innerHTML = [
-    [allRows.length.toLocaleString(), '明細件数'],
-    [skus.toLocaleString(),           'SKU 種類'],
-    [qty.toLocaleString(),            '合計数量'],
-    ['¥' + amount.toLocaleString(),   '合計金額（税抜）'],
-    [Math.round(mc / allRows.length * 100) + '%', 'マスター一致率'],
-  ].map(([v, k]) => `<div class="s-item"><div class="sv">${v}</div><div class="sk">${k}</div></div>`).join('');
+  document.getElementById('kpi-row').innerHTML = [
+    ['明細件数',        allRows.length.toLocaleString()],
+    ['SKU 種類',       skus.toLocaleString()],
+    ['合計数量',        qty.toLocaleString()],
+    ['合計金額（税抜）', '¥' + amount.toLocaleString()],
+    ['マスター一致率',  Math.round(mc / allRows.length * 100) + '%'],
+  ].map(([l, v]) => `<div class="kpi"><div class="kpi-val">${v}</div><div class="kpi-lbl">${l}</div></div>`).join('');
 }
 
 // ── Filter + sort + render ───────────────────────────────────────────────────
@@ -610,37 +897,32 @@ function render() {
 
   const slice = data.slice((curPage - 1) * PER_PAGE, curPage * PER_PAGE);
 
-  // Build rows with date group separators
   let html = '';
   let lastDate = null;
 
   for (const r of slice) {
-    // Date separator row when sorting by date
     if (sortCol === 'date' && r.date !== lastDate) {
-      const d = r.date;
-      const dayName = ['日','月','火','水','木','金','土'][new Date(d).getDay()];
-      html += `<tr class="date-row"><td colspan="5">${d}（${dayName}）</td></tr>`;
+      const dayName = ['日','月','火','水','木','金','土'][new Date(r.date).getDay()];
+      html += `<tr class="date-row"><td colspan="5">${r.date} &nbsp;${dayName}曜日</td></tr>`;
       lastDate = r.date;
     }
     html += `<tr class="data-row">
-      <td style="color:#888;font-size:12px">${sortCol === 'date' ? '' : x(r.date)}</td>
-      <td>${x(r.name)}${!r.matched ? '<span class="tag-unmatched">未一致</span>' : ''}</td>
-      <td class="code">${x(r.code)}</td>
-      <td class="num price">¥${r.price.toLocaleString()}</td>
+      <td class="td-date">${sortCol === 'date' ? '—' : x(r.date)}</td>
+      <td class="td-name">${x(r.name)}${!r.matched ? '<span class="tag-unmatched">未一致</span>' : ''}</td>
+      <td class="td-code">${x(r.code)}</td>
+      <td class="num td-price">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
     </tr>`;
   }
 
-  if (!html) html = `<tr><td colspan="5" class="empty">表示するデータがありません</td></tr>`;
+  if (!html) html = `<tr class="empty-row"><td colspan="5">表示するデータがありません</td></tr>`;
   document.getElementById('tbody').innerHTML = html;
 
-  // Update sort indicators
   document.querySelectorAll('th[data-col]').forEach(th => {
     th.classList.remove('asc', 'desc');
     if (th.dataset.col === sortCol) th.classList.add(sortDir === 1 ? 'asc' : 'desc');
   });
 
-  // Pagination
   renderPg(pages);
 }
 
@@ -650,16 +932,16 @@ function renderPg(pages) {
   const p = curPage;
   let h = `<button class="pg" onclick="goPage(${p-1})" ${p===1?'disabled':''}>‹</button>`;
   const s = Math.max(1, p-2), e = Math.min(pages, p+2);
-  if (s > 1) { h += `<button class="pg" onclick="goPage(1)">1</button>`; if (s > 2) h += `<span style="padding:0 4px;color:#ccc">…</span>`; }
+  if (s > 1) { h += `<button class="pg" onclick="goPage(1)">1</button>`; if (s>2) h+=`<span class="pg-ellipsis">…</span>`; }
   for (let i = s; i <= e; i++) h += `<button class="pg${i===p?' on':''}" onclick="goPage(${i})">${i}</button>`;
-  if (e < pages) { if (e < pages-1) h += `<span style="padding:0 4px;color:#ccc">…</span>`; h += `<button class="pg" onclick="goPage(${pages})">${pages}</button>`; }
+  if (e < pages) { if (e<pages-1) h+=`<span class="pg-ellipsis">…</span>`; h+=`<button class="pg" onclick="goPage(${pages})">${pages}</button>`; }
   h += `<button class="pg" onclick="goPage(${p+1})" ${p===pages?'disabled':''}>›</button>`;
-  h += `<span class="pg-info">${p} / ${pages} ページ（1ページ ${PER_PAGE.toLocaleString()}件）</span>`;
+  h += `<span class="pg-info">${p} / ${pages} ページ &nbsp;·&nbsp; 1ページ ${PER_PAGE.toLocaleString()}件</span>`;
   document.getElementById('pg').innerHTML = h;
 }
 function goPage(p) { curPage = p; render(); document.getElementById('table-scroll').scrollTop = 0; }
 
-// ── Sort on header click ─────────────────────────────────────────────────────
+// ── Sort ─────────────────────────────────────────────────────────────────────
 document.querySelectorAll('th[data-col]').forEach(th => {
   th.addEventListener('click', () => {
     const col = th.dataset.col;
@@ -692,7 +974,7 @@ function doExport() {
 document.getElementById('btn-reset').addEventListener('click', () => {
   salesBuf = productBuf = null; allRows = [];
   ['z-sales','z-product'].forEach(id => document.getElementById(id).classList.remove('done'));
-  ['n-sales','n-product'].forEach(id => document.getElementById(id).textContent = '');
+  ['n-sales','n-product'].forEach(id => { const el = document.getElementById(id); el.textContent = ''; el.style.display = 'none'; });
   ['f-sales','f-product'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('btn-run').disabled = true;
   document.getElementById('btn-reset').style.display = 'none';
@@ -706,7 +988,6 @@ function msg(text, type, spin) {
   el.className = 'notice show ' + type;
   el.innerHTML = (spin ? '<span class="spinner"></span>' : '') + text;
 }
-
 function x(s) {
   return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
