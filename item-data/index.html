@@ -691,9 +691,13 @@ function extractProductCode(pn, store) {
     }
     // elco- を除去して先頭のlowercase セグメントをさらに除去
     let rest = pn.slice(5); // drop "elco-"
+    // lowercase セグメント自体を記憶（rest が空になった場合のフォールバック用）
+    const lowSeg = (rest.match(/^([a-z][a-z0-9]*)(?:-|$)/) || [])[1] || null;
     rest = rest.replace(/^[a-z][a-z0-9]*-/, ''); // drop lowercase base (e.g. "pbc001-")
     rest = rest.replace(/^\d{3,}-?(?=[A-Z])/, ''); // strip leading numeric prefix (e.g. "074GYR-084" → "GYR-084")
-    return rest ? normalizeCode(rest) : null;
+    if (rest) return normalizeCode(rest);
+    // trailing hyphen only (例: elco-lln001-) → lowercase セグメントを品番化
+    return lowSeg ? normalizeCode(lowSeg) : null;
   }
 
   // ④ auPAY 括弧コード (elco- 以外)
@@ -713,18 +717,25 @@ function extractProductCode(pn, store) {
   const m6 = pn.match(/^[a-z0-9]+-[a-z0-9]+-(\d+)$/);
   if (m6) return m6[1];
 
+  // ⑦ X?DR-XX-NNN をそのまま返す (例: DR-MH-566, XDR-WK-001 → as-is)
+  if (/^X?DR-[A-Z]{2,3}-\d+$/.test(pn)) return pn;
+
+  // ⑧ 裸の手帳系コード: WB-471 → DR-WB-471 (prefixなしで届く場合)
+  const m8 = pn.match(/^(WB|WK|WS|WV|WX|MA|MG|MH|MC|MB|MK)-(\d+)$/i);
+  if (m8) return 'DR-' + m8[1].toUpperCase() + '-' + m8[2];
+
   return null;
 }
 
-// コード正規化: LLN-/ECL- は先頭3桁以降を切り捨て、wcl\d+ → WCL-\d+
+// コード正規化
 function normalizeCode(code) {
   if (!code) return code;
   // LLN-/ECL- は先頭3桁以降を切り捨て (例: LLN-002wf-brown → LLN-002)
   const m = code.match(/^((?:LLN|ECL)-\d{3})/);
   if (m) return m[1];
-  // wcl\d+ → WCL-\d+ (例: wcl023 → WCL-023)
-  const wm = code.match(/^wcl(\d+)$/i);
-  if (wm) return 'WCL-' + wm[1].padStart(3, '0');
+  // lowercase エンコードされた品番を変換 (例: lln001 → LLN-001, wcl023 → WCL-023, pbc001 → PBC-001)
+  const lm = code.match(/^([a-z]{2,4})(\d+)$/);
+  if (lm) return lm[1].toUpperCase() + '-' + lm[2].padStart(3, '0');
   return code;
 }
 
@@ -779,7 +790,7 @@ function run() {
 
       let name    = null;
       let matched = false;
-      let code    = extracted || normSku || pn;
+      let code    = extracted || pn; // normSku を使わない（文字化けSKUが表示されるのを防ぐ）
 
       // 1. 商品番号から抽出した品番でマスター照合
       if (extracted && productMap.has(extracted)) {
