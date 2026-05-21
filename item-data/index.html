@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21f</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21g</span>
 </header>
 
 <!-- ── Page ── -->
@@ -650,6 +650,18 @@ function buildProductMap(buf) {
   return map;
 }
 
+// ── 商品番号→品番 ハードコードマップ（自動抽出できない店舗固有コード用）────────
+const PN_OVERRIDE = {
+  // Amazon
+  'Z6-ZRJM-E460':       'CLB-226',
+  // Qoo10
+  'elco-lnc311-10244':  'LNC-313',
+  'elco-lnc311-13248':  'LNC-321',
+  'elco-pbc001-10523':  'PBC-027',
+  'elco-pnb001-13238':  'PNB-003',
+  'elco-leaf24-10133':  'CLB-723',
+};
+
 // ── 商品番号から内部品番を抽出 ───────────────────────────────────────────────
 // Rules (in priority order):
 //  1. ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx- 手帳系 → DR-XX-NNN / XDR-XX-NNN
@@ -804,8 +816,11 @@ function run() {
       if (taxType === '込') price = Math.round(price / 1.1);
 
       // ── 商品名・品番の決定 ──
+      // 0. ハードコードマップ優先（Qoo10数値コード・Amazon ASINなど自動抽出不可のコード）
+      const overrideCode = pn && PN_OVERRIDE[pn.trim()] || null;
+
       // 商品番号列から内部品番を抽出（最も信頼できるソース）
-      const extracted = extractProductCode(pn, store);
+      const extracted = overrideCode || extractProductCode(pn, store);
       // SKU管理番号も正規化（LLN/ECL の truncation など）
       const normSku   = sku ? normalizeCode(sku) : null;
 
@@ -814,8 +829,14 @@ function run() {
       // extracted を優先、なければ pn を正規化して表示（文字化けSKUが表示されるのを防ぐ）
       let code    = extracted || normalizeCode(pn) || pn;
 
+      // 0b. ハードコードマップにヒットしたコードは自社確定（マスター照合も試みる）
+      if (overrideCode) {
+        code = overrideCode; matched = true;
+        if (productMap.has(overrideCode)) name = productMap.get(overrideCode);
+      }
+
       // 1. 商品番号から抽出した品番でマスター照合
-      if (extracted && productMap.has(extracted)) {
+      if (!matched && extracted && productMap.has(extracted)) {
         name = productMap.get(extracted); matched = true; code = extracted;
       }
       // 2. SKU管理番号（正規化済み）でマスター照合
