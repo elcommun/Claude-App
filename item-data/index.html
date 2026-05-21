@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21p</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21q</span>
 </header>
 
 <!-- ── Page ── -->
@@ -777,6 +777,25 @@ function buildCategoryMap(buf) {
 const PN_OVERRIDE = {
   // Amazon
   'Z6-ZRJM-E460':       'CLB-226',
+  'FX-N2ER-PH3F':       'CLB-504',
+  'H7-LXP2-BH31':       'CLB-505',
+  'NQ-4UGF-AHYD':       'FC-05',
+  'PBC-002.':            'PBC-002',
+  'PBC-003.':            'PBC-003',
+  'PBC-005.':            'PBC-005',
+  'PBC-006.':            'PBC-006',
+  'QO-4W6M-NLX3':       'CLB-503',
+  'RDL-011':             'RGL-011',
+  'T0-AJFH-JQKL':       'FC-06',
+  'V5-SGBZ-OU7C':       'FC-07',
+  'WY-T0RV-OQRQ':       'FC-08',
+  'XN-I1C9-HG7Y':       'FC-03',
+  'GYR-51':              'GYR-051',
+  'GYR-52':              'GYR-052',
+  'GYR-53':              'GYR-053',
+  'GYR-54':              'GYR-054',
+  'GYR-55':              'GYR-055',
+  'GYR-56':              'GYR-056',
   // Qoo10
   'elco-lnc311-10244':  'LNC-313',
   'elco-lnc311-13248':  'LNC-321',
@@ -797,8 +816,8 @@ function extractProductCode(pn, store) {
   if (!pn) return null;
   const auPAY = store && store.includes('auPAY');
 
-  // ① 手帳系プレフィックス: ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx-
-  if (/^(?:ma|mg|mh|mc|mk|mb|wb|wk|ws|wv|wx)-/i.test(pn)) {
+  // ① 手帳系プレフィックス: ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx-/wl-
+  if (/^(?:ma|mg|mh|mc|mk|mb|wb|wk|ws|wv|wx|wl)-/i.test(pn)) {
     // DR-XX-NNN / XDR-XX-NNN パターンを優先
     const hits = pn.match(/X?DR-[A-Z]{2,3}-\d+/g);
     if (hits) return hits[hits.length - 1];
@@ -883,8 +902,11 @@ function normalizeCode(code) {
   // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703)
   const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
   if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
-  // 手帳コードに DR- プレフィックスを補完 (例: WB-470 → DR-WB-470)
-  const dm = code.match(/^(WB|WK|WS|WV|WX|MA|MG|MH|MC|MB|MK)-(\d+)$/i);
+  // CRBコード正規化 (例: CRB102-xxx → CRB-102, CRB111- → CRB-111)
+  const crb = code.match(/^CRB(\d+)-/i);
+  if (crb) return 'CRB-' + crb[1].padStart(3, '0');
+  // 手帳コードに DR- プレフィックスを補完 (例: WB-470 → DR-WB-470, WL-123 → DR-WL-123)
+  const dm = code.match(/^(WB|WK|WS|WV|WX|WL|MA|MG|MH|MC|MB|MK)-(\d+)$/i);
   if (dm) return 'DR-' + dm[1].toUpperCase() + '-' + dm[2];
   // AMPC → AMP-C 変換 (例: ampc037 → AMP-C037、AMPC-037 → AMP-C037)
   const ac = code.match(/^[Aa][Mm][Pp][Cc]-?(\d+)$/);
