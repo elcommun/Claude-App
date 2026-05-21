@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21g</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21h</span>
 </header>
 
 <!-- ── Page ── -->
@@ -544,6 +544,9 @@
           <thead>
             <tr>
               <th data-col="date"  style="min-width:86px">販売日</th>
+              <th data-col="cat1"  style="min-width:100px">大分類</th>
+              <th data-col="cat2"  style="min-width:100px">中分類</th>
+              <th data-col="cat3"  style="min-width:100px">小分類</th>
               <th data-col="name"  style="min-width:280px">商品名</th>
               <th data-col="code"  style="min-width:110px">商品番号</th>
               <th data-col="price" style="min-width:90px" class="num">税抜単価</th>
@@ -647,6 +650,42 @@ function buildProductMap(buf) {
 
   load('商品データ');
   load('plaisir別注');
+  return map;
+}
+
+// 商品分類マップ: 品番 → { cat1, cat2, cat3 }
+function buildCategoryMap(buf) {
+  const wb  = XLSX.read(new Uint8Array(buf), { type: 'array' });
+  const map = new Map();
+  const ws  = wb.Sheets['商品分類'];
+  if (!ws) return map;
+
+  const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+
+  // ヘッダ行を自動検出（"品番" "大分類" "中分類" "小分類" が揃う行）
+  let hi = -1, ci = -1, c1i = -1, c2i = -1, c3i = -1;
+  for (let r = 0; r < Math.min(5, data.length); r++) {
+    const row = data[r].map(v => v != null ? String(v).trim() : '');
+    const pi  = row.indexOf('品番');
+    const q1  = row.indexOf('大分類');
+    const q2  = row.indexOf('中分類');
+    const q3  = row.indexOf('小分類');
+    if (pi >= 0 && (q1 >= 0 || q2 >= 0 || q3 >= 0)) {
+      hi = r; ci = pi; c1i = q1; c2i = q2; c3i = q3;
+      break;
+    }
+  }
+  if (hi < 0) return map; // シートの列構成が不明なら空を返す
+
+  for (let i = hi + 1; i < data.length; i++) {
+    const r    = data[i];
+    const code = ci >= 0 && r[ci] != null ? String(r[ci]).trim() : '';
+    if (!code) continue;
+    const cat1 = c1i >= 0 && r[c1i] != null ? String(r[c1i]).trim() : '';
+    const cat2 = c2i >= 0 && r[c2i] != null ? String(r[c2i]).trim() : '';
+    const cat3 = c3i >= 0 && r[c3i] != null ? String(r[c3i]).trim() : '';
+    map.set(code, { cat1, cat2, cat3 });
+  }
   return map;
 }
 
@@ -781,7 +820,8 @@ document.getElementById('btn-run').addEventListener('click', () => {
 
 function run() {
   try {
-    const productMap = buildProductMap(productBuf);
+    const productMap  = buildProductMap(productBuf);
+    const categoryMap = buildCategoryMap(productBuf);
 
     const csvRows = parseCSV(salesBuf);
     if (csvRows.length < 2) throw new Error('CSVにデータがありません');
@@ -872,7 +912,8 @@ function run() {
       if (!dateMin || date < dateMin) dateMin = date;
       if (!dateMax || date > dateMax) dateMax = date;
 
-      allRows.push({ date, store, code, name, price, qty, matched });
+      const cats = categoryMap.get(code) || { cat1: '', cat2: '', cat3: '' };
+      allRows.push({ date, store, code, name, price, qty, matched, ...cats });
     }
 
     // Populate filters
@@ -971,11 +1012,14 @@ function render() {
   for (const r of slice) {
     if (sortCol === 'date' && r.date !== lastDate) {
       const dayName = ['日','月','火','水','木','金','土'][new Date(r.date).getDay()];
-      html += `<tr class="date-row"><td colspan="5">${r.date} &nbsp;${dayName}曜日</td></tr>`;
+      html += `<tr class="date-row"><td colspan="8">${r.date} &nbsp;${dayName}曜日</td></tr>`;
       lastDate = r.date;
     }
     html += `<tr class="data-row">
       <td class="td-date">${sortCol === 'date' ? '—' : x(r.date)}</td>
+      <td class="td-code">${x(r.cat1)}</td>
+      <td class="td-code">${x(r.cat2)}</td>
+      <td class="td-code">${x(r.cat3)}</td>
       <td class="td-name">${x(r.name)}${!r.matched ? '<span class="tag-unmatched">未一致</span>' : ''}</td>
       <td class="td-code">${x(r.code)}</td>
       <td class="num td-price">¥${r.price.toLocaleString()}</td>
@@ -983,7 +1027,7 @@ function render() {
     </tr>`;
   }
 
-  if (!html) html = `<tr class="empty-row"><td colspan="5">表示するデータがありません</td></tr>`;
+  if (!html) html = `<tr class="empty-row"><td colspan="8">表示するデータがありません</td></tr>`;
   document.getElementById('tbody').innerHTML = html;
 
   document.querySelectorAll('th[data-col]').forEach(th => {
@@ -1028,8 +1072,8 @@ document.querySelectorAll('th[data-col]').forEach(th => {
 // ── CSV export ───────────────────────────────────────────────────────────────
 function doExport() {
   const data = sorted(filtered());
-  const rows = [['販売日', '商品名', '商品番号', '税抜単価', '数量', '小計（税抜）', '店舗', 'マスター一致']];
-  data.forEach(r => rows.push([r.date, r.name, r.code, r.price, r.qty, r.price * r.qty, r.store, r.matched ? '○' : '×']));
+  const rows = [['販売日', '大分類', '中分類', '小分類', '商品名', '商品番号', '税抜単価', '数量', '小計（税抜）', '店舗', 'マスター一致']];
+  data.forEach(r => rows.push([r.date, r.cat1, r.cat2, r.cat3, r.name, r.code, r.price, r.qty, r.price * r.qty, r.store, r.matched ? '○' : '×']));
   const csv = '﻿' + rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\r\n');
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })),
