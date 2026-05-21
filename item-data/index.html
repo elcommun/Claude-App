@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21j</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21k</span>
 </header>
 
 <!-- ── Page ── -->
@@ -687,57 +687,59 @@ function buildCategoryMap(buf) {
   const cat1Map = new Map(), cat2Map = new Map(), cat3Map = new Map();
   const wsCat   = wb.Sheets['商品分類'];
   if (wsCat && codeMap.size) {
-    const rows = XLSX.utils.sheet_to_json(wsCat, { header: 1, defval: null });
+    const allRows = XLSX.utils.sheet_to_json(wsCat, { header: 1, defval: null });
 
-    // 既知コードのセットを用意
-    const known = [new Set(), new Set(), new Set()]; // [c1set, c2set, c3set]
+    // 既知コードのセット（全レベル合算）を用意
+    const knownAll = new Set();
+    const known = [new Set(), new Set(), new Set()];
     for (const { c1, c2, c3 } of codeMap.values()) {
-      if (c1) known[0].add(c1);
-      if (c2) known[1].add(c2);
-      if (c3) known[2].add(c3);
+      if (c1) { known[0].add(c1); knownAll.add(c1); }
+      if (c2) { known[1].add(c2); knownAll.add(c2); }
+      if (c3) { known[2].add(c3); knownAll.add(c3); }
     }
 
-    const numCols = rows.reduce((m, r) => Math.max(m, r.length), 0);
-
-    // 各列×各レベルのマッチ数をカウント
-    const score = [new Array(numCols).fill(0), new Array(numCols).fill(0), new Array(numCols).fill(0)];
-    for (const row of rows) {
-      for (let col = 0; col < row.length; col++) {
-        const v = row[col] != null ? String(row[col]).trim() : '';
-        if (!v) continue;
-        for (let lv = 0; lv < 3; lv++) {
-          if (known[lv].has(v)) score[lv][col]++;
-        }
+    // ヘッダ行をスキップしてデータ行を取得
+    let dataStart = 0;
+    for (let r = 0; r < Math.min(5, allRows.length); r++) {
+      if (allRows[r].some(v => v != null && /分類/.test(String(v)))) {
+        dataStart = r + 1; break;
       }
     }
+    const dataRows = allRows.slice(dataStart).filter(r => r.some(v => v != null));
 
-    // レベルごとに最高スコアの列をコード列として採用
-    // c2/c3 が同じ列を競合する場合は別々の列を割り当てる
-    const codeCol = score.map(s => { const mx = Math.max(...s); return mx > 0 ? s.indexOf(mx) : -1; });
-    if (codeCol[1] >= 0 && codeCol[1] === codeCol[2]) {
-      // c3 の次点列を探す
-      const s3 = [...score[2]];
-      s3[codeCol[1]] = -1;
-      const mx2 = Math.max(...s3);
-      codeCol[2] = mx2 > 0 ? s3.indexOf(mx2) : -1;
+    const numCols = allRows.reduce((m, r) => Math.max(m, r.length), 0);
+
+    // 各列を「コード列」か「名称列」に分類する
+    //  コード列: 非空値の大半が既知コードに一致 かつ 平均文字長が短い
+    //  名称列 : その他（日本語テキストなど）
+    const codeCols = []; // コード列のインデックス（左→右順）
+    for (let col = 0; col < numCols; col++) {
+      const vals = dataRows
+        .map(r => r[col] != null ? String(r[col]).trim() : '')
+        .filter(Boolean);
+      if (vals.length === 0) continue;
+      const matchCount = vals.filter(v => knownAll.has(v)).length;
+      const matchFrac  = matchCount / vals.length;
+      const avgLen     = vals.reduce((s, v) => s + v.length, 0) / vals.length;
+      // 50%以上が既知コード かつ 平均8文字以内 → コード列と判定
+      if (matchFrac >= 0.5 && avgLen <= 8) codeCols.push(col);
     }
+    // codeCols[0]=大分類コード列、codeCols[1]=中分類コード列、codeCols[2]=小分類コード列
+    // ※列の出現順序（左→右）でそのまま c1→c2→c3 に対応させる
 
-    // コード列が決まったら隣接列（col+1、次にcol-1）を名称列として試みる
-    const targets = [
-      { cc: codeCol[0], map: cat1Map, set: known[0] },
-      { cc: codeCol[1], map: cat2Map, set: known[1] },
-      { cc: codeCol[2], map: cat3Map, set: known[2] },
-    ];
-    for (const { cc, map, set } of targets) {
+    const maps = [cat1Map, cat2Map, cat3Map];
+    for (let lv = 0; lv < 3; lv++) {
+      const cc = codeCols[lv] ?? -1;
       if (cc < 0) continue;
+      // 隣接列（col+1 優先、次に col-1）のうちコード列でない方を名称列とする
       for (const nc of [cc + 1, cc - 1]) {
-        if (nc < 0) continue;
-        for (const row of rows) {
+        if (nc < 0 || nc >= numCols || codeCols.includes(nc)) continue;
+        for (const row of dataRows) {
           const code = row[cc] != null ? String(row[cc]).trim() : '';
           const name = row[nc] != null ? String(row[nc]).trim() : '';
-          if (code && name && set.has(code)) map.set(code, name);
+          if (code && name) maps[lv].set(code, name);
         }
-        if (map.size > 0) break; // 名称が取れたら確定
+        if (maps[lv].size > 0) break;
       }
     }
   }
