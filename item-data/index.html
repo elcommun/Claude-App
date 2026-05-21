@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21e</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21f</span>
 </header>
 
 <!-- ── Page ── -->
@@ -684,7 +684,7 @@ function extractProductCode(pn, store) {
 
   // ③ elco- 自社商品
   if (/^elco-/i.test(pn)) {
-    // auPAY or 括弧あり → 括弧内コードを優先
+    // 括弧あり → 括弧内コードを優先
     const bm = pn.match(/[（(]([A-Z]+-\d+)[）)]/);
     if (bm) {
       const c = bm[1];
@@ -696,6 +696,8 @@ function extractProductCode(pn, store) {
     const lowSeg = (rest.match(/^([a-z][a-z0-9]*)(?:-|$)/) || [])[1] || null;
     rest = rest.replace(/^[a-z][a-z0-9]*-/, ''); // drop lowercase base (e.g. "pbc001-")
     rest = rest.replace(/^\d{3,}-?(?=[A-Z])/, ''); // strip leading numeric prefix (e.g. "074GYR-084" → "GYR-084")
+    // 二重 elco- 対策: rest がまだ elco- で始まる場合は再帰抽出（例: elco-fls001-elco-fls001-FLS-002）
+    if (/^elco-/i.test(rest)) return extractProductCode(rest, store);
     if (rest) return normalizeCode(rest);
     // trailing hyphen only (例: elco-lln001-) → lowercase セグメントを品番化
     return lowSeg ? normalizeCode(lowSeg) : null;
@@ -726,8 +728,8 @@ function extractProductCode(pn, store) {
   if (m8) return 'DR-' + m8[1].toUpperCase() + '-' + m8[2];
 
   // ⑨ 文字化け・不正サフィックス形式: EGP-701.00 → EGP-701、-EGP?701.00 → EGP-701、-MTP?1.00 → MTP-001
-  const m9a = pn.match(/^([A-Z]{2,4}-\d+)\.00$/);            // EGP-701.00 → EGP-701
-  if (m9a) return m9a[1];
+  const m9a = pn.match(/^([A-Z]{2,4})-(\d+)\.00$/);          // EGP-701.00 → EGP-701 (ゼロパディング付き)
+  if (m9a) return m9a[1] + '-' + m9a[2].padStart(3, '0');
   const m9b = pn.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);       // -EGP?701.00 → EGP-701
   if (m9b) return m9b[1] + '-' + m9b[2].padStart(3, '0');
 
@@ -740,12 +742,18 @@ function normalizeCode(code) {
   // LLN-/ECL- は先頭3桁以降を切り捨て (例: LLN-002wf-brown → LLN-002)
   const m = code.match(/^((?:LLN|ECL)-\d{3})/);
   if (m) return m[1];
-  // 不正サフィックス除去: EGP-701.00 → EGP-701
-  const sa = code.match(/^([A-Z]{2,4}-\d+)\.00$/);
-  if (sa) return sa[1];
+  // 不正サフィックス除去: EGP-701.00 → EGP-701 (ゼロパディング付き)
+  const sa = code.match(/^([A-Z]{2,4})-(\d+)\.00$/);
+  if (sa) return sa[1] + '-' + sa[2].padStart(3, '0');
   // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703)
   const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
   if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
+  // 手帳コードに DR- プレフィックスを補完 (例: WB-470 → DR-WB-470)
+  const dm = code.match(/^(WB|WK|WS|WV|WX|MA|MG|MH|MC|MB|MK)-(\d+)$/i);
+  if (dm) return 'DR-' + dm[1].toUpperCase() + '-' + dm[2];
+  // AMPC → AMP-C 変換 (例: ampc037 → AMP-C037、AMPC-037 → AMP-C037)
+  const ac = code.match(/^[Aa][Mm][Pp][Cc]-?(\d+)$/);
+  if (ac) return 'AMP-C' + ac[1];
   // lowercase エンコードされた品番を変換 (例: lln001 → LLN-001, wcl023 → WCL-023)
   const lm = code.match(/^([a-z]{2,4})(\d+)$/);
   if (lm) return lm[1].toUpperCase() + '-' + lm[2].padStart(3, '0');
@@ -832,7 +840,11 @@ function run() {
           }
         }
       }
-      // 6. フォールバック: CSV商品名を整形
+      // 6. 自社確定プレフィックス: LBG- / AMP-C はマスター未登録でも自社扱いとする
+      if (!matched && /^(?:LBG-|AMP-C)/i.test(code)) {
+        matched = true;
+      }
+      // 7. フォールバック: CSV商品名を整形
       if (!name) name = cleanRawName(rawName);
 
       storeSet.add(store);
