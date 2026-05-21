@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21i</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21j</span>
 </header>
 
 <!-- ── Page ── -->
@@ -653,20 +653,19 @@ function buildProductMap(buf) {
   return map;
 }
 
-// 商品分類マップ: 品番 → { cat1, cat2, cat3 }
-// 2段階ルックアップ:
-//   ① '商品データ' シートの 品番 列 → 大分類/中分類/小分類 列の英数字コードを取得
-//   ② '商品分類' シートでそのコードに対応する分類名を取得し結合
+// 商品分類マップ: 品番 → { cat1, cat2, cat3 }（名称）
+// Step A: '商品データ' の 品番→{大分類コード, 中分類コード, 小分類コード} を取得
+// Step B: '商品分類' の各列を既知コードでスコアリングし コード→名称 マップを生成
+// Step C: 2マップを結合して 品番→{cat1,cat2,cat3}（名称）を返す
 function buildCategoryMap(buf) {
   const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
 
   // ── Step A: '商品データ' から 品番 → {c1, c2, c3} コードマップを作成 ──────
-  const codeMap = new Map(); // 品番 → { c1, c2, c3 }（英数字コード）
+  const codeMap = new Map();
   const wsData  = wb.Sheets['商品データ'];
   if (wsData) {
-    const rows = XLSX.utils.sheet_to_json(wsData, { header: 1, defval: null });
-    // '商品データ' は row0=ガイド, row1=ヘッダ, row2+=データ
-    const hRow = rows[1] ? rows[1].map(v => v != null ? String(v).trim() : '') : [];
+    const rows  = XLSX.utils.sheet_to_json(wsData, { header: 1, defval: null });
+    const hRow  = rows[1] ? rows[1].map(v => v != null ? String(v).trim() : '') : [];
     const piCol = hRow.indexOf('品番');
     const c1Col = hRow.indexOf('大分類');
     const c2Col = hRow.indexOf('中分類');
@@ -684,60 +683,71 @@ function buildCategoryMap(buf) {
     }
   }
 
-  // ── Step B: '商品分類' シートで 分類コード → 分類名 マップを作成 ────────────
-  // 想定レイアウト（ヘッダ行に "大分類" "中分類" "小分類" が並ぶ）:
-  //   | 大分類コード | 大分類 | 中分類コード | 中分類 | 小分類コード | 小分類 |
-  //   | 大分類 | 大分類名 | 中分類 | 中分類名 | 小分類 | 小分類名 |
-  // 隣接する「コード列→名称列」のペアを自動検出する
+  // ── Step B: '商品分類' シートでスコアリングによりコード列→名称列を自動検出 ──
   const cat1Map = new Map(), cat2Map = new Map(), cat3Map = new Map();
-  const wsCat = wb.Sheets['商品分類'];
-  if (wsCat) {
+  const wsCat   = wb.Sheets['商品分類'];
+  if (wsCat && codeMap.size) {
     const rows = XLSX.utils.sheet_to_json(wsCat, { header: 1, defval: null });
 
-    // ヘッダ行を検出（"分類" を含む列がある行）
-    let hi = -1;
-    const cols = { c1c: -1, c1n: -1, c2c: -1, c2n: -1, c3c: -1, c3n: -1 };
-    for (let r = 0; r < Math.min(8, rows.length); r++) {
-      const row = rows[r].map(v => v != null ? String(v).trim() : '');
-      if (!row.some(v => /分類/.test(v))) continue;
-      hi = r;
-      row.forEach((v, i) => {
-        if (/大分類.*(コード|code)/i.test(v)) cols.c1c = i;
-        else if (/大分類.*(名|称)/i.test(v))   cols.c1n = i;
-        else if (v === '大分類')               { if (cols.c1c < 0) cols.c1c = i; else cols.c1n = i; }
-        if (/中分類.*(コード|code)/i.test(v)) cols.c2c = i;
-        else if (/中分類.*(名|称)/i.test(v))   cols.c2n = i;
-        else if (v === '中分類')               { if (cols.c2c < 0) cols.c2c = i; else cols.c2n = i; }
-        if (/小分類.*(コード|code)/i.test(v)) cols.c3c = i;
-        else if (/小分類.*(名|称)/i.test(v))   cols.c3n = i;
-        else if (v === '小分類')               { if (cols.c3c < 0) cols.c3c = i; else cols.c3n = i; }
-      });
-      // コード列しか見つからなかった場合は次の列を名称列と仮定
-      if (cols.c1c >= 0 && cols.c1n < 0) cols.c1n = cols.c1c + 1;
-      if (cols.c2c >= 0 && cols.c2n < 0) cols.c2n = cols.c2c + 1;
-      if (cols.c3c >= 0 && cols.c3n < 0) cols.c3n = cols.c3c + 1;
-      break;
+    // 既知コードのセットを用意
+    const known = [new Set(), new Set(), new Set()]; // [c1set, c2set, c3set]
+    for (const { c1, c2, c3 } of codeMap.values()) {
+      if (c1) known[0].add(c1);
+      if (c2) known[1].add(c2);
+      if (c3) known[2].add(c3);
     }
-    if (hi >= 0) {
-      const val = (row, col) => col >= 0 && row[col] != null ? String(row[col]).trim() : '';
-      for (let i = hi + 1; i < rows.length; i++) {
-        const r = rows[i];
-        const c1c = val(r, cols.c1c), c1n = val(r, cols.c1n);
-        const c2c = val(r, cols.c2c), c2n = val(r, cols.c2n);
-        const c3c = val(r, cols.c3c), c3n = val(r, cols.c3n);
-        if (c1c && c1n) cat1Map.set(c1c, c1n);
-        if (c2c && c2n) cat2Map.set(c2c, c2n);
-        if (c3c && c3n) cat3Map.set(c3c, c3n);
+
+    const numCols = rows.reduce((m, r) => Math.max(m, r.length), 0);
+
+    // 各列×各レベルのマッチ数をカウント
+    const score = [new Array(numCols).fill(0), new Array(numCols).fill(0), new Array(numCols).fill(0)];
+    for (const row of rows) {
+      for (let col = 0; col < row.length; col++) {
+        const v = row[col] != null ? String(row[col]).trim() : '';
+        if (!v) continue;
+        for (let lv = 0; lv < 3; lv++) {
+          if (known[lv].has(v)) score[lv][col]++;
+        }
+      }
+    }
+
+    // レベルごとに最高スコアの列をコード列として採用
+    // c2/c3 が同じ列を競合する場合は別々の列を割り当てる
+    const codeCol = score.map(s => { const mx = Math.max(...s); return mx > 0 ? s.indexOf(mx) : -1; });
+    if (codeCol[1] >= 0 && codeCol[1] === codeCol[2]) {
+      // c3 の次点列を探す
+      const s3 = [...score[2]];
+      s3[codeCol[1]] = -1;
+      const mx2 = Math.max(...s3);
+      codeCol[2] = mx2 > 0 ? s3.indexOf(mx2) : -1;
+    }
+
+    // コード列が決まったら隣接列（col+1、次にcol-1）を名称列として試みる
+    const targets = [
+      { cc: codeCol[0], map: cat1Map, set: known[0] },
+      { cc: codeCol[1], map: cat2Map, set: known[1] },
+      { cc: codeCol[2], map: cat3Map, set: known[2] },
+    ];
+    for (const { cc, map, set } of targets) {
+      if (cc < 0) continue;
+      for (const nc of [cc + 1, cc - 1]) {
+        if (nc < 0) continue;
+        for (const row of rows) {
+          const code = row[cc] != null ? String(row[cc]).trim() : '';
+          const name = row[nc] != null ? String(row[nc]).trim() : '';
+          if (code && name && set.has(code)) map.set(code, name);
+        }
+        if (map.size > 0) break; // 名称が取れたら確定
       }
     }
   }
 
-  // ── Step C: 2マップを結合して 品番 → {cat1, cat2, cat3}（名称）マップを返す ─
+  // ── Step C: 品番 → {cat1, cat2, cat3}（名称）マップを返す ──────────────────
   const map = new Map();
   for (const [code, { c1, c2, c3 }] of codeMap) {
-    const cat1 = cat1Map.get(c1) || c1 || '';
-    const cat2 = cat2Map.get(c2) || c2 || '';
-    const cat3 = cat3Map.get(c3) || c3 || '';
+    const cat1 = cat1Map.get(c1) || '';
+    const cat2 = cat2Map.get(c2) || '';
+    const cat3 = cat3Map.get(c3) || '';
     if (cat1 || cat2 || cat3) map.set(code, { cat1, cat2, cat3 });
   }
   return map;
