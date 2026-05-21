@@ -480,6 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21e</span>
 </header>
 
 <!-- ── Page ── -->
@@ -721,13 +722,14 @@ function extractProductCode(pn, store) {
   if (/^X?DR-[A-Z]{2,3}-\d+$/.test(pn)) return pn;
 
   // ⑧ 裸の手帳系コード: WB-471 → DR-WB-471 (prefixなしで届く場合)
-  const m8 = pn.match(/^(WB|WK|WS|WV|WX|MA|MG|MH|MC|MB|MK)-(\d+)$/i);
+  const m8 = pn.match(/^(WB|WK|WS|WV|WX|MA|MG|MH|MC|MB|MK|LB)-(\d+)$/i);
   if (m8) return 'DR-' + m8[1].toUpperCase() + '-' + m8[2];
 
-  // ⑨ 文字化け形式の商品番号: -EGP?701.00 → EGP-701、-MTP?1.00 → MTP-001
-  //    (商品番号列自体が文字化けしているケース)
-  const m9 = pn.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
-  if (m9) return m9[1] + '-' + m9[2].padStart(3, '0');
+  // ⑨ 文字化け・不正サフィックス形式: EGP-701.00 → EGP-701、-EGP?701.00 → EGP-701、-MTP?1.00 → MTP-001
+  const m9a = pn.match(/^([A-Z]{2,4}-\d+)\.00$/);            // EGP-701.00 → EGP-701
+  if (m9a) return m9a[1];
+  const m9b = pn.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);       // -EGP?701.00 → EGP-701
+  if (m9b) return m9b[1] + '-' + m9b[2].padStart(3, '0');
 
   return null;
 }
@@ -738,7 +740,10 @@ function normalizeCode(code) {
   // LLN-/ECL- は先頭3桁以降を切り捨て (例: LLN-002wf-brown → LLN-002)
   const m = code.match(/^((?:LLN|ECL)-\d{3})/);
   if (m) return m[1];
-  // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703, -MTP?1.00 → MTP-001)
+  // 不正サフィックス除去: EGP-701.00 → EGP-701
+  const sa = code.match(/^([A-Z]{2,4}-\d+)\.00$/);
+  if (sa) return sa[1];
+  // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703)
   const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
   if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
   // lowercase エンコードされた品番を変換 (例: lln001 → LLN-001, wcl023 → WCL-023)
