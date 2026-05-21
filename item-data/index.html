@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21l</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21m</span>
 </header>
 
 <!-- ── Page ── -->
@@ -683,6 +683,10 @@ function buildCategoryMap(buf) {
       c1Col = find('大分類');
       c2Col = find('中分類');
       c3Col = find('小分類');
+      // ── デバッグ: ブラウザのコンソールでヘッダを確認 ──
+      console.log('[CAT-DEBUG] 商品データ header row index:', r);
+      console.log('[CAT-DEBUG] 商品データ header:', JSON.stringify(row));
+      console.log('[CAT-DEBUG] piCol:', piCol, 'c1Col:', c1Col, 'c2Col:', c2Col, 'c3Col:', c3Col);
       break;
     }
     if (piCol >= 0) {
@@ -695,6 +699,8 @@ function buildCategoryMap(buf) {
         if (c1 || c2 || c3) codeMap.set(code, { c1, c2, c3 });
       }
     }
+    console.log('[CAT-DEBUG] codeMap size:', codeMap.size,
+      '| sample:', JSON.stringify([...codeMap.entries()].slice(0, 3)));
   }
 
   // ── Step B: '商品分類' シートで コード→名称 マップを作成 ──────────────────
@@ -773,6 +779,12 @@ function buildCategoryMap(buf) {
         if (maps[lv].size > 0) break;
       }
     }
+    // ── デバッグ ──
+    console.log('[CAT-DEBUG] 商品分類 dataRows count:', dataRows.length);
+    console.log('[CAT-DEBUG] knownAll:', [...knownAll]);
+    console.log('[CAT-DEBUG] candidates:', candidates.map(c => ({ col: c.col, lvScore: c.lvScore })));
+    console.log('[CAT-DEBUG] assigned cols [c1,c2,c3]:', assigned);
+    console.log('[CAT-DEBUG] cat1Map:', [...cat1Map], '| cat2Map:', [...cat2Map], '| cat3Map:', [...cat3Map]);
   }
 
   // ── Step C: 品番 → {cat1, cat2, cat3}（名称）マップを返す ──────────────────
