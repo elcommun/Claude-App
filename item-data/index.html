@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21q</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21r</span>
 </header>
 
 <!-- ── Page ── -->
@@ -814,6 +814,8 @@ const PN_OVERRIDE = {
 //  6. 数値サフィックス (例: 8mw-mm110971-110972)
 function extractProductCode(pn, store) {
   if (!pn) return null;
+  // 在庫SFD- プレフィックス除去（例: 在庫SFD-001 → SFD-001）
+  if (/^在庫SFD-/i.test(pn)) return pn.slice(2);
   const auPAY = store && store.includes('auPAY');
 
   // ① 手帳系プレフィックス: ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx-/wl-
@@ -905,6 +907,11 @@ function normalizeCode(code) {
   // CRBコード正規化 (例: CRB102-xxx → CRB-102, CRB111- → CRB-111)
   const crb = code.match(/^CRB(\d+)-/i);
   if (crb) return 'CRB-' + crb[1].padStart(3, '0');
+  // GYR 桁数不足をゼロパディング (例: GYR-51 → GYR-051)
+  const gyr = code.match(/^GYR-(\d{1,2})$/i);
+  if (gyr) return 'GYR-' + gyr[1].padStart(3, '0');
+  // 在庫SFD- プレフィックス除去 (例: 在庫SFD-001 → SFD-001)
+  if (/^在庫SFD-/i.test(code)) return code.slice(2);
   // 手帳コードに DR- プレフィックスを補完 (例: WB-470 → DR-WB-470, WL-123 → DR-WL-123)
   const dm = code.match(/^(WB|WK|WS|WV|WX|WL|MA|MG|MH|MC|MB|MK)-(\d+)$/i);
   if (dm) return 'DR-' + dm[1].toUpperCase() + '-' + dm[2];
@@ -1007,8 +1014,8 @@ function run() {
           }
         }
       }
-      // 6. 自社確定プレフィックス: LBG- / AMP-C はマスター未登録でも自社扱いとする
-      if (!matched && /^(?:LBG-|AMP-C)/i.test(code)) {
+      // 6. 自社確定プレフィックス: LBG- / AMP-C / SFD- はマスター未登録でも自社扱いとする
+      if (!matched && /^(?:LBG-|AMP-C|SFD-)/i.test(code)) {
         matched = true;
       }
       // 7. フォールバック: CSV商品名を整形
