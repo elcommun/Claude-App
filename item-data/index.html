@@ -733,7 +733,10 @@ function normalizeCode(code) {
   // LLN-/ECL- は先頭3桁以降を切り捨て (例: LLN-002wf-brown → LLN-002)
   const m = code.match(/^((?:LLN|ECL)-\d{3})/);
   if (m) return m[1];
-  // lowercase エンコードされた品番を変換 (例: lln001 → LLN-001, wcl023 → WCL-023, pbc001 → PBC-001)
+  // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703, -MTP?1.00 → MTP-001)
+  const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
+  if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
+  // lowercase エンコードされた品番を変換 (例: lln001 → LLN-001, wcl023 → WCL-023)
   const lm = code.match(/^([a-z]{2,4})(\d+)$/);
   if (lm) return lm[1].toUpperCase() + '-' + lm[2].padStart(3, '0');
   return code;
@@ -808,7 +811,17 @@ function run() {
       if (!matched && pn && productMap.has(pn)) {
         name = productMap.get(pn); matched = true; code = pn;
       }
-      // 5. フォールバック: CSV商品名を整形
+      // 5. DR- ↔ XDR- 相互補完 (auPAY は DR- で登録、Excel は XDR- 限定版で登録されている場合)
+      if (!matched) {
+        const base = extracted || pn;
+        if (base) {
+          const alt = /^DR-/.test(base) ? 'X' + base : /^XDR-/.test(base) ? base.slice(1) : null;
+          if (alt && productMap.has(alt)) {
+            name = productMap.get(alt); matched = true; code = alt;
+          }
+        }
+      }
+      // 6. フォールバック: CSV商品名を整形
       if (!name) name = cleanRawName(rawName);
 
       storeSet.add(store);
