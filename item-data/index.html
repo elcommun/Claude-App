@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21n</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21o</span>
 </header>
 
 <!-- ── Page ── -->
@@ -656,145 +656,101 @@ function buildProductMap(buf) {
 // 商品分類マップ: 品番 → { cat1, cat2, cat3 }（名称）
 // 戻り値: { map: Map, debug: string }
 function buildCategoryMap(buf) {
-  const wb   = XLSX.read(new Uint8Array(buf), { type: 'array' });
-  const dbg  = [];  // 画面表示用デバッグ情報
+  const wb  = XLSX.read(new Uint8Array(buf), { type: 'array' });
+  const dbg = [];
+  dbg.push('シート一覧: ' + wb.SheetNames.join(' / '));
 
-  dbg.push('【Excelシート一覧】 ' + wb.SheetNames.join(' / '));
+  // ── Step 1: '商品分類' シートから cat1/cat2/cat3 コード→名称マップを構築 ────
+  // 構造: Row0=タイトル, Row1=ヘッダ(大分類|―|中分類|―|小分類|―|―), Row2+=データ
+  const cat1Map = new Map(), cat2Map = new Map(), cat3Map = new Map();
+  const wsCat   = wb.Sheets['商品分類'];
+  if (!wsCat) { dbg.push('商品分類シートなし'); }
+  else {
+    const rows    = XLSX.utils.sheet_to_json(wsCat, { header: 1, defval: null });
+    // 「大分類」と「中分類」を両方含む行を実ヘッダ行として検出
+    let hdrIdx = -1, c1c = -1, c2c = -1, c3c = -1;
+    for (let r = 0; r < Math.min(8, rows.length); r++) {
+      const row = rows[r].map(v => v != null ? String(v).trim() : '');
+      const i1 = row.indexOf('大分類'), i2 = row.indexOf('中分類'), i3 = row.indexOf('小分類');
+      if (i1 >= 0 && i2 >= 0) { hdrIdx = r; c1c = i1; c2c = i2; c3c = i3; break; }
+    }
+    dbg.push(`商品分類: ヘッダ行=${hdrIdx} c1col=${c1c} c2col=${c2c} c3col=${c3c}`);
+    if (hdrIdx >= 0) {
+      const dataRows = rows.slice(hdrIdx + 1).filter(r => r.some(v => v != null));
+      dbg.push(`商品分類: データ行数=${dataRows.length}`);
+      // 最初の3行を確認
+      dataRows.slice(0, 3).forEach((r, i) =>
+        dbg.push(`  [${i}]: ` + r.map((v,ci) => v != null ? `col${ci}=${String(v).trim()}` : '').filter(Boolean).join(' ')));
+      // コード列(code)の隣が名称列(code+1)
+      const val = (row, col) => col >= 0 && row[col] != null ? String(row[col]).trim() : '';
+      for (const row of dataRows) {
+        const c1v = val(row, c1c), c1n = val(row, c1c + 1);
+        const c2v = val(row, c2c), c2n = val(row, c2c + 1);
+        const c3v = val(row, c3c), c3n = val(row, c3c + 1);
+        if (c1v && c1n) cat1Map.set(c1v, c1n);
+        if (c2v && c2n) cat2Map.set(c2v, c2n);
+        if (c3v && c3n) cat3Map.set(c3v, c3n);
+      }
+      dbg.push(`cat1Map(${cat1Map.size}): ` + JSON.stringify([...cat1Map].slice(0, 5)));
+      dbg.push(`cat2Map(${cat2Map.size}): ` + JSON.stringify([...cat2Map].slice(0, 5)));
+      dbg.push(`cat3Map(${cat3Map.size}): ` + JSON.stringify([...cat3Map].slice(0, 5)));
+    }
+  }
 
-  // ── Step A: '商品データ' から 品番 → {c1, c2, c3} コードマップを作成 ──────
+  // ── Step 2: '商品データ' から 品番 → {c1,c2,c3} コードを取得 ────────────────
+  // 品番は buildProductMap と同じく col8 を使用。
+  // カテゴリコード列は「cat1/cat2/cat3Map のキーと一致する値が多い列」で自動検出。
   const codeMap = new Map();
   const wsData  = wb.Sheets['商品データ'];
   if (wsData) {
-    const rows = XLSX.utils.sheet_to_json(wsData, { header: 1, defval: null });
-    let piCol = -1, c1Col = -1, c2Col = -1, c3Col = -1, dataStart = 2, hdrRow = [];
-    for (let r = 0; r < Math.min(5, rows.length); r++) {
-      const row = rows[r].map(v => v != null ? String(v).trim() : '');
-      const pi  = row.findIndex(v => v === '品番');
-      if (pi < 0) continue;
-      piCol = pi; dataStart = r + 1; hdrRow = row;
-      const find = (kw) => {
-        let i = row.indexOf(kw);
-        if (i < 0) i = row.findIndex(v => v.includes(kw) && !v.includes('名'));
-        if (i < 0) i = row.findIndex(v => v.includes(kw));
-        return i;
-      };
-      c1Col = find('大分類'); c2Col = find('中分類'); c3Col = find('小分類');
-      break;
+    const rows     = XLSX.utils.sheet_to_json(wsData, { header: 1, defval: null });
+    const piCol    = 8; // buildProductMap と同じ固定列
+    const dataRows = rows.slice(2).filter(r => r[piCol] != null);
+
+    dbg.push(`商品データ: データ行数=${dataRows.length} 品番col=${piCol}`);
+    dataRows.slice(0, 2).forEach((r, i) =>
+      dbg.push(`  行${i}: ` + r.map((v, ci) => v != null ? `col${ci}=${String(v).trim()}` : '').filter(Boolean).slice(0, 15).join(' ')));
+
+    const numCols = rows.reduce((m, r) => Math.max(m, r.length), 0);
+    const knownC1 = new Set(cat1Map.keys()), knownC2 = new Set(cat2Map.keys()), knownC3 = new Set(cat3Map.keys());
+
+    // 各列をスキャンして既知コードとのマッチ率を計算（排他的グリーディ割り当て）
+    const colScores = [];
+    for (let col = 0; col < numCols; col++) {
+      const vals = dataRows.map(r => r[col] != null ? String(r[col]).trim() : '').filter(Boolean);
+      if (!vals.length) { colScores.push({ col, s1: 0, s2: 0, s3: 0 }); continue; }
+      colScores.push({
+        col,
+        s1: vals.filter(v => knownC1.has(v)).length / vals.length,
+        s2: vals.filter(v => knownC2.has(v)).length / vals.length,
+        s3: vals.filter(v => knownC3.has(v)).length / vals.length,
+      });
     }
-    dbg.push('【商品データ ヘッダ行】 ' + hdrRow.map((v,i) => `[${i}]${v||'―'}`).join(' '));
-    dbg.push(`  品番col=${piCol}  大分類col=${c1Col}  中分類col=${c2Col}  小分類col=${c3Col}`);
-    if (piCol >= 0) {
-      for (let i = dataStart; i < rows.length; i++) {
-        const r    = rows[i];
-        const code = r[piCol] != null ? String(r[piCol]).trim() : '';
+    // 排他的割り当て: 最高スコアから順に割り当て、同一列を重複使用しない
+    const bestExclusive = (key, exclude) => {
+      const sorted = [...colScores].sort((a, b) => b[key] - a[key]);
+      return sorted.find(e => !exclude.has(e.col) && e[key] > 0.3) || null;
+    };
+    const used = new Set();
+    const b1 = bestExclusive('s1', used); const c1Col = b1 ? (used.add(b1.col), b1.col) : -1;
+    const b2 = bestExclusive('s2', used); const c2Col = b2 ? (used.add(b2.col), b2.col) : -1;
+    const b3 = bestExclusive('s3', used); const c3Col = b3 ? (used.add(b3.col), b3.col) : -1;
+    dbg.push(`商品データ 検出: c1col=${c1Col}(${b1?.s1?.toFixed(2)||'-'}) c2col=${c2Col}(${b2?.s2?.toFixed(2)||'-'}) c3col=${c3Col}(${b3?.s3?.toFixed(2)||'-'})`);
+    dbg.push('列スコアtop5: ' + [...colScores].sort((a,b)=>Math.max(b.s1,b.s2,b.s3)-Math.max(a.s1,a.s2,a.s3)).slice(0,5).map(e=>`col${e.col}[${e.s1.toFixed(2)}/${e.s2.toFixed(2)}/${e.s3.toFixed(2)}]`).join(' '));
+
+    if (c1Col >= 0 || c2Col >= 0 || c3Col >= 0) {
+      for (const row of dataRows) {
+        const code = String(row[piCol]).trim();
         if (!code || code === 'None') continue;
-        const str = (ci) => ci >= 0 && r[ci] != null ? String(r[ci]).trim() : '';
-        const c1 = str(c1Col), c2 = str(c2Col), c3 = str(c3Col);
+        const s = (ci) => ci >= 0 && row[ci] != null ? String(row[ci]).trim() : '';
+        const c1 = s(c1Col), c2 = s(c2Col), c3 = s(c3Col);
         if (c1 || c2 || c3) codeMap.set(code, { c1, c2, c3 });
       }
     }
-    dbg.push(`  codeMap件数=${codeMap.size}  サンプル: ` +
-      JSON.stringify([...codeMap.entries()].slice(0, 3)));
-  } else {
-    dbg.push('【商品データ】シートが見つかりません');
+    dbg.push(`codeMap: ${codeMap.size}件  サンプル: ` + JSON.stringify([...codeMap.entries()].slice(0, 3)));
   }
 
-  // ── Step B: '商品分類' シートで コード→名称 マップを作成 ──────────────────
-  const cat1Map = new Map(), cat2Map = new Map(), cat3Map = new Map();
-  const wsCat   = wb.Sheets['商品分類'];
-
-  if (!wsCat) {
-    dbg.push('【商品分類】シートが見つかりません');
-  } else {
-    const allRows = XLSX.utils.sheet_to_json(wsCat, { header: 1, defval: null });
-    const numCols = allRows.reduce((m, r) => Math.max(m, r.length), 0);
-
-    // ヘッダ行（先頭5行内で '分類' を含む行）をスキップ
-    let dataStart = 0;
-    for (let r = 0; r < Math.min(5, allRows.length); r++) {
-      if (allRows[r].some(v => v != null && /分類/.test(String(v)))) { dataStart = r + 1; break; }
-    }
-    const dataRows = allRows.slice(dataStart).filter(r => r.some(v => v != null));
-    dbg.push(`【商品分類】ヘッダ行=${dataStart-1 >= 0 ? dataStart-1 : 'なし'}  データ行数=${dataRows.length}  列数=${numCols}`);
-    if (dataStart > 0) {
-      const hdr = allRows[dataStart - 1].map((v,i) => `[${i}]${v != null ? String(v).trim() : '―'}`);
-      dbg.push('  ヘッダ: ' + hdr.join(' '));
-    }
-    if (dataRows.length > 0) {
-      dbg.push('  1行目: ' + dataRows[0].map((v,i) =>
-        `[${i}]${v != null ? String(v).trim() : '―'}`).join(' '));
-    }
-
-    if (codeMap.size > 0) {
-      // 既知コードセット
-      const knownAll = new Set();
-      const known = [new Set(), new Set(), new Set()];
-      for (const { c1, c2, c3 } of codeMap.values()) {
-        if (c1) { known[0].add(c1); knownAll.add(c1); }
-        if (c2) { known[1].add(c2); knownAll.add(c2); }
-        if (c3) { known[2].add(c3); knownAll.add(c3); }
-      }
-      const unique = known.map((s, i) => new Set([...s].filter(v => !known.some((t, j) => j !== i && t.has(v)))));
-      dbg.push(`  knownAll(${knownAll.size}): ` + [...knownAll].slice(0, 20).join(', '));
-
-      // コード列候補をスコアリング
-      const candidates = [];
-      for (let col = 0; col < numCols; col++) {
-        const vals = dataRows.map(r => r[col] != null ? String(r[col]).trim() : '').filter(Boolean);
-        if (!vals.length) continue;
-        const matchFrac = vals.filter(v => knownAll.has(v)).length / vals.length;
-        const avgLen    = vals.reduce((s, v) => s + v.length, 0) / vals.length;
-        if (matchFrac >= 0.3 && avgLen <= 8) {
-          const lvScore = unique.map(u => vals.filter(v => u.has(v)).length);
-          candidates.push({ col, matchFrac: matchFrac.toFixed(2), avgLen: avgLen.toFixed(1), lvScore });
-        }
-      }
-      candidates.sort((a, b) => a.col - b.col);
-      dbg.push('  コード列候補: ' + JSON.stringify(candidates));
-
-      // レベル割り当て（固有コード優先→位置順補填）
-      const assigned = [-1, -1, -1];
-      const usedCols = new Set();
-      for (let lv = 0; lv < 3; lv++) {
-        let best = -1, bestScore = -1;
-        for (const c of candidates) {
-          if (usedCols.has(c.col)) continue;
-          const s = c.lvScore[lv];
-          const otherMax = Math.max(...c.lvScore.filter((_, i) => i !== lv));
-          if (s > 0 && s > otherMax && s > bestScore) { best = c.col; bestScore = s; }
-        }
-        if (best >= 0) { assigned[lv] = best; usedCols.add(best); }
-      }
-      const remaining = candidates.filter(c => !usedCols.has(c.col));
-      let ri = 0;
-      for (let lv = 0; lv < 3; lv++) {
-        if (assigned[lv] >= 0 || ri >= remaining.length) continue;
-        assigned[lv] = remaining[ri++].col;
-      }
-      dbg.push('  割り当て [大分類col, 中分類col, 小分類col]: ' + JSON.stringify(assigned));
-
-      // コード→名称マップ構築
-      const maps = [cat1Map, cat2Map, cat3Map];
-      for (let lv = 0; lv < 3; lv++) {
-        const cc = assigned[lv];
-        if (cc < 0) continue;
-        for (const nc of [cc + 1, cc - 1]) {
-          if (nc < 0 || nc >= numCols || assigned.includes(nc)) continue;
-          for (const row of dataRows) {
-            const code = row[cc] != null ? String(row[cc]).trim() : '';
-            const name = row[nc] != null ? String(row[nc]).trim() : '';
-            if (code && name) maps[lv].set(code, name);
-          }
-          if (maps[lv].size > 0) break;
-        }
-      }
-      dbg.push(`  cat1Map(${cat1Map.size}): ` + JSON.stringify([...cat1Map].slice(0,5)));
-      dbg.push(`  cat2Map(${cat2Map.size}): ` + JSON.stringify([...cat2Map].slice(0,5)));
-      dbg.push(`  cat3Map(${cat3Map.size}): ` + JSON.stringify([...cat3Map].slice(0,5)));
-    }
-  }
-
-  // ── Step C: 品番 → {cat1, cat2, cat3}（名称）マップを返す ──────────────────
+  // ── Step 3: 品番 → {cat1, cat2, cat3}（名称）マップを返す ──────────────────
   const map = new Map();
   for (const [code, { c1, c2, c3 }] of codeMap) {
     const cat1 = cat1Map.get(c1) || '';
@@ -802,8 +758,7 @@ function buildCategoryMap(buf) {
     const cat3 = cat3Map.get(c3) || '';
     if (cat1 || cat2 || cat3) map.set(code, { cat1, cat2, cat3 });
   }
-  dbg.push(`【結果】品番→カテゴリ マップ件数=${map.size}  サンプル: ` +
-    JSON.stringify([...map.entries()].slice(0, 3)));
+  dbg.push(`最終マップ: ${map.size}件  サンプル: ` + JSON.stringify([...map.entries()].slice(0, 3)));
   return { map, debug: dbg.join('\n') };
 }
 
