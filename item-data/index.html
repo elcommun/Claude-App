@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21o</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21p</span>
 </header>
 
 <!-- ── Page ── -->
@@ -660,14 +660,16 @@ function buildCategoryMap(buf) {
   const dbg = [];
   dbg.push('シート一覧: ' + wb.SheetNames.join(' / '));
 
-  // ── Step 1: '商品分類' シートから cat1/cat2/cat3 コード→名称マップを構築 ────
-  // 構造: Row0=タイトル, Row1=ヘッダ(大分類|―|中分類|―|小分類|―|―), Row2+=データ
-  const cat1Map = new Map(), cat2Map = new Map(), cat3Map = new Map();
+  // ── Step 1: '商品分類' から階層ツリーを構築（スパース行を繰り越しで処理）────────
+  // 小分類コードは中分類をまたいで重複するため複合キー "c1|c2|c3" で管理する。
+  // データ行はスパース形式（大分類/中分類は変わる時のみ値あり）なので繰り越しが必要。
+  const catTree = new Map(); // "c1|c2|c3" → {cat1, cat2, cat3}
+  const cat1Map = new Map(); // c1 → cat1名（大分類コードは全体一意）
+  const cat2Map = new Map(); // "c1|c2" → cat2名
   const wsCat   = wb.Sheets['商品分類'];
   if (!wsCat) { dbg.push('商品分類シートなし'); }
   else {
     const rows    = XLSX.utils.sheet_to_json(wsCat, { header: 1, defval: null });
-    // 「大分類」と「中分類」を両方含む行を実ヘッダ行として検出
     let hdrIdx = -1, c1c = -1, c2c = -1, c3c = -1;
     for (let r = 0; r < Math.min(8, rows.length); r++) {
       const row = rows[r].map(v => v != null ? String(v).trim() : '');
@@ -678,22 +680,26 @@ function buildCategoryMap(buf) {
     if (hdrIdx >= 0) {
       const dataRows = rows.slice(hdrIdx + 1).filter(r => r.some(v => v != null));
       dbg.push(`商品分類: データ行数=${dataRows.length}`);
-      // 最初の3行を確認
       dataRows.slice(0, 3).forEach((r, i) =>
         dbg.push(`  [${i}]: ` + r.map((v,ci) => v != null ? `col${ci}=${String(v).trim()}` : '').filter(Boolean).join(' ')));
-      // コード列(code)の隣が名称列(code+1)
       const val = (row, col) => col >= 0 && row[col] != null ? String(row[col]).trim() : '';
+      let lastC1v = '', lastC1n = '', lastC2v = '', lastC2n = '';
       for (const row of dataRows) {
         const c1v = val(row, c1c), c1n = val(row, c1c + 1);
         const c2v = val(row, c2c), c2n = val(row, c2c + 1);
         const c3v = val(row, c3c), c3n = val(row, c3c + 1);
-        if (c1v && c1n) cat1Map.set(c1v, c1n);
-        if (c2v && c2n) cat2Map.set(c2v, c2n);
-        if (c3v && c3n) cat3Map.set(c3v, c3n);
+        // 大分類/中分類が空のスパース行は直前の値を継承
+        if (c1v) { lastC1v = c1v; lastC1n = c1n; }
+        if (c2v) { lastC2v = c2v; lastC2n = c2n; }
+        const ec1v = c1v || lastC1v, ec1n = c1n || lastC1n;
+        const ec2v = c2v || lastC2v, ec2n = c2n || lastC2n;
+        if (ec1v) cat1Map.set(ec1v, ec1n);
+        if (ec1v && ec2v) cat2Map.set(ec1v + '|' + ec2v, ec2n);
+        if (ec1v && ec2v && c3v) catTree.set(ec1v + '|' + ec2v + '|' + c3v, { cat1: ec1n, cat2: ec2n, cat3: c3n });
       }
       dbg.push(`cat1Map(${cat1Map.size}): ` + JSON.stringify([...cat1Map].slice(0, 5)));
       dbg.push(`cat2Map(${cat2Map.size}): ` + JSON.stringify([...cat2Map].slice(0, 5)));
-      dbg.push(`cat3Map(${cat3Map.size}): ` + JSON.stringify([...cat3Map].slice(0, 5)));
+      dbg.push(`catTree(${catTree.size}): ` + JSON.stringify([...catTree].slice(0, 3)));
     }
   }
 
@@ -712,7 +718,10 @@ function buildCategoryMap(buf) {
       dbg.push(`  行${i}: ` + r.map((v, ci) => v != null ? `col${ci}=${String(v).trim()}` : '').filter(Boolean).slice(0, 15).join(' ')));
 
     const numCols = rows.reduce((m, r) => Math.max(m, r.length), 0);
-    const knownC1 = new Set(cat1Map.keys()), knownC2 = new Set(cat2Map.keys()), knownC3 = new Set(cat3Map.keys());
+    const knownC1 = new Set(cat1Map.keys());
+    // 複合キーから個々のコード部分を抽出してマッチ用セットを作成
+    const knownC2 = new Set([...cat2Map.keys()].map(k => k.split('|')[1]));
+    const knownC3 = new Set([...catTree.keys()].map(k => k.split('|')[2]));
 
     // 各列をスキャンして既知コードとのマッチ率を計算（排他的グリーディ割り当て）
     const colScores = [];
@@ -751,11 +760,13 @@ function buildCategoryMap(buf) {
   }
 
   // ── Step 3: 品番 → {cat1, cat2, cat3}（名称）マップを返す ──────────────────
+  // 複合キー "c1|c2|c3" で階層ツリーを参照し、小分類コードの衝突を回避する
   const map = new Map();
   for (const [code, { c1, c2, c3 }] of codeMap) {
-    const cat1 = cat1Map.get(c1) || '';
-    const cat2 = cat2Map.get(c2) || '';
-    const cat3 = cat3Map.get(c3) || '';
+    const tree = catTree.get(c1 + '|' + c2 + '|' + c3);
+    const cat1 = tree?.cat1 || cat1Map.get(c1) || '';
+    const cat2 = tree?.cat2 || cat2Map.get(c1 + '|' + c2) || '';
+    const cat3 = tree?.cat3 || '';
     if (cat1 || cat2 || cat3) map.set(code, { cat1, cat2, cat3 });
   }
   dbg.push(`最終マップ: ${map.size}件  サンプル: ` + JSON.stringify([...map.entries()].slice(0, 3)));
