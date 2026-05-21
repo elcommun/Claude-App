@@ -724,6 +724,11 @@ function extractProductCode(pn, store) {
   const m8 = pn.match(/^(WB|WK|WS|WV|WX|MA|MG|MH|MC|MB|MK)-(\d+)$/i);
   if (m8) return 'DR-' + m8[1].toUpperCase() + '-' + m8[2];
 
+  // ⑨ 文字化け形式の商品番号: -EGP?701.00 → EGP-701、-MTP?1.00 → MTP-001
+  //    (商品番号列自体が文字化けしているケース)
+  const m9 = pn.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
+  if (m9) return m9[1] + '-' + m9[2].padStart(3, '0');
+
   return null;
 }
 
@@ -793,7 +798,8 @@ function run() {
 
       let name    = null;
       let matched = false;
-      let code    = extracted || pn; // normSku を使わない（文字化けSKUが表示されるのを防ぐ）
+      // extracted を優先、なければ pn を正規化して表示（文字化けSKUが表示されるのを防ぐ）
+      let code    = extracted || normalizeCode(pn) || pn;
 
       // 1. 商品番号から抽出した品番でマスター照合
       if (extracted && productMap.has(extracted)) {
