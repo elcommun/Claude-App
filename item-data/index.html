@@ -327,6 +327,8 @@
       white-space: nowrap;
     }
     .btn-export:hover { background: #2e5742; }
+    .btn-export-xl { background: #1e6b99; }
+    .btn-export-xl:hover { background: #155480; }
 
     /* ══ Table ═══════════════════════════════════════════════════════════════ */
     .table-card {
@@ -480,7 +482,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21w</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21x</span>
 </header>
 
 <!-- ── Page ── -->
@@ -535,6 +537,7 @@
       <div class="f-spacer"></div>
       <span class="f-count" id="f-count"></span>
       <button class="btn-export" onclick="doExport()">CSV 出力</button>
+      <button class="btn-export btn-export-xl" onclick="doExportXLSX()">XLSX 出力</button>
     </div>
 
     <!-- Table -->
@@ -1243,6 +1246,23 @@ function doExport() {
     download: '販売明細_' + new Date().toISOString().slice(0,10) + '.csv'
   });
   a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ── XLSX export ──────────────────────────────────────────────────────────────
+function doExportXLSX() {
+  const data = sorted(filtered());
+  const rows = [['販売日', '大分類', '中分類', '小分類', '商品名', '商品番号', '税抜単価', '数量', '小計（税抜）', '店舗', 'マスター一致']];
+  data.forEach(r => rows.push([r.date, r.cat1, r.cat2, r.cat3, r.name, r.code, r.price, r.qty, r.price * r.qty, r.store, r.matched ? '○' : '×']));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  // 列幅の自動設定
+  ws['!cols'] = [
+    { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 20 },
+    { wch: 40 }, { wch: 14 }, { wch: 10 }, { wch: 6 },
+    { wch: 12 }, { wch: 24 }, { wch: 10 },
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '販売明細');
+  XLSX.writeFile(wb, '販売明細_' + new Date().toISOString().slice(0, 10) + '.xlsx');
 }
 
 // ── Reset ────────────────────────────────────────────────────────────────────
