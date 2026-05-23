@@ -485,7 +485,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23d</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23e</span>
 </header>
 
 <!-- ── Page ── -->
@@ -856,14 +856,13 @@ const QOO10_PN_OVERRIDE = {
   '10499': 'PBC-009',
   '10501': 'PBC-011',
   '10515': 'PBC-022',
-  '10699': 'SKL-003',
+  '10699': 'SKL-002',
   '10700': 'SKL-003',
   '10971': 'YGC-062',
   '10977': 'YGC-068',
   '11365': 'SLW-243',
   '11366': 'SLW-244',
   '13097': 'CPC-024',
-  '13238': 'PNB-003',
   '13239': 'PNB-004',
   '13245': 'LNC-024',
   '13250': 'LNC-124',
@@ -889,6 +888,11 @@ function extractProductCode(pn, store) {
   // mb-01-/mb-03- prefix → MB-NNN（中間に小文字セグメントがあっても対応）
   const mbpfx = pn.match(/^mb-0[13]-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
   if (mbpfx) return mbpfx[1].toUpperCase();
+  // mm-NN-XDR-XX-NNN → XDR-XX-NNN (Qoo10: mm-03-XDR-WK-415, mm-42-XDR-MC-230)
+  if (store && store.includes('Qoo10')) {
+    const mmpfx = pn.match(/^mm-\d+-(X?DR-.+)$/i);
+    if (mmpfx) return mmpfx[1];
+  }
   // elco-wcl-NNN → WCL-NNN（extractProductCode の elco ルールを補完）
   if (/^elco-wcl-/i.test(pn)) return 'WCL-' + pn.slice(9);
   // DR-MK-NNN → MK-NNN（モイッカボートバッグ: DR-プレフィックスを除去）
