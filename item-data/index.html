@@ -485,7 +485,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23g</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23h</span>
 </header>
 
 <!-- ── Page ── -->
@@ -976,7 +976,8 @@ function extractProductCode(pn, store) {
   if (m9b) return m9b[1] + '-' + m9b[2].padStart(3, '0');
 
   // ⑩ 二重コード連結: WCL-017WCL-018 → WCL-018 (後ろのコードを採用)
-  const dblm = pn.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/);
+  const dblm = pn.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/)
+            || pn.match(/^[A-Z]{2,4}\d+-([A-Z]{2,4}-\d+.*)$/);
   if (dblm) return dblm[1];
 
   return null;
@@ -994,8 +995,9 @@ function normalizeCode(code) {
   // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703)
   const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
   if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
-  // 二重コード連結 (例: WCL-017WCL-018 → WCL-018 / 後ろのコードを採用)
-  const dbl = code.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/);
+  // 二重コード連結: WCL-017WCL-018 → WCL-018、CLB301-CLB-301 → CLB-301 (後ろのコードを採用)
+  const dbl = code.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/)
+           || code.match(/^[A-Z]{2,4}\d+-([A-Z]{2,4}-\d+.*)$/);
   if (dbl) return dbl[1];
   // elco-wcl-NNN → WCL-NNN
   if (/^elco-wcl-/i.test(code)) return 'WCL-' + code.slice(9);
