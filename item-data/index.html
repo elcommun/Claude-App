@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21r</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21s</span>
 </header>
 
 <!-- ── Page ── -->
@@ -796,6 +796,32 @@ const PN_OVERRIDE = {
   'GYR-54':              'GYR-054',
   'GYR-55':              'GYR-055',
   'GYR-56':              'GYR-056',
+  '1T-BV4P-C8SS':       'CPC-007',
+  '3O-Z747-CB0C':       'PPC-054',
+  '6I-3MK8-XBTJ':       'FC-01',
+  '1L-29S5-4M45':       'CLB-501',
+  '7O-HOPN-LCJ7':       'CPC-014',
+  '7U-9U6Y-LE5C':       'SLV-502',
+  '9Y-ICHO-LN2M':       'CPC-001',
+  'AC-GXJG-CK78':       'CLB-202',
+  'B6-1J7F-DA1E':       'B6-1J7F-DA1E',
+  'EL-VZLO-THM2':       'WCL-001',
+  'H9-JXV2-AIUK':       'CPC-016',
+  'HI-MB14-92DB':       'CPC-012',
+  'IC-QG26-4DD3':       'RGL-021',
+  'IE-I6GU-BIQV':       'KIT-003',
+  'IS-WB3X-Y17O':       'PPC-001',
+  'JC-BDBM-8OXZ':       'PPC-011',
+  'K3-N7L5-OV6G':       'PPC-010',
+  'KG-JDDN-COL3':       'CLB-102',
+  'MJ-ZBYY-1VUO':       'CLB-205',
+  'PBC-001.':            'PBC-001',
+  'T9-7A7U-HRDS':       'CLB-206',
+  'WQ-NRJO-FWH3':       'KIT-101',
+  'XS-5IIC-P4CZ':       'CLB-204',
+  'Y2-D3UX-K7OT':       'CPC-008',
+  'YW-RI9H-WNH7':       'CLB-606',
+  'Z1-YSGL-E2AI':       'WCL-010',
   // Qoo10
   'elco-lnc311-10244':  'LNC-313',
   'elco-lnc311-13248':  'LNC-321',
@@ -904,12 +930,15 @@ function normalizeCode(code) {
   // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703)
   const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
   if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
-  // CRBコード正規化 (例: CRB102-xxx → CRB-102, CRB111- → CRB-111)
-  const crb = code.match(/^CRB(\d+)-/i);
+  // CRBコード正規化 (例: CRB102-xxx → CRB-102, CRB_011 → CRB-011)
+  const crb = code.match(/^CRB(\d+)[-_]/i);
   if (crb) return 'CRB-' + crb[1].padStart(3, '0');
   // GYR 桁数不足をゼロパディング (例: GYR-51 → GYR-051)
   const gyr = code.match(/^GYR-(\d{1,2})$/i);
   if (gyr) return 'GYR-' + gyr[1].padStart(3, '0');
+  // DR ハイフン欠落を補正 (例: DRMG-371 → DR-MG-371, DRMH-306 → DR-MH-306)
+  const drn = code.match(/^DR([A-Z]{2})-(\d+)$/);
+  if (drn) return 'DR-' + drn[1] + '-' + drn[2];
   // 在庫SFD- プレフィックス除去 (例: 在庫SFD-001 → SFD-001)
   if (/^在庫SFD-/i.test(code)) return code.slice(2);
   // 手帳コードに DR- プレフィックスを補完 (例: WB-470 → DR-WB-470, WL-123 → DR-WL-123)
@@ -1015,7 +1044,7 @@ function run() {
         }
       }
       // 6. 自社確定プレフィックス: LBG- / AMP-C / SFD- はマスター未登録でも自社扱いとする
-      if (!matched && /^(?:LBG-|AMP-C|SFD-)/i.test(code)) {
+      if (!matched && (/^(?:LBG-|AMP-C|SFD-)/i.test(code) || code === 'LNC-413')) {
         matched = true;
       }
       // 7. フォールバック: CSV商品名を整形
