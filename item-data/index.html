@@ -482,7 +482,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23a</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23b</span>
 </header>
 
 <!-- ── Page ── -->
@@ -843,6 +843,29 @@ const PN_OVERRIDE = {
   'elco-leaf24-10133':  'CLB-723',
 };
 
+// Qoo10 数値品番オーバーライド（「EL COMMUN Qoo10」店舗限定）
+const QOO10_PN_OVERRIDE = {
+  '10109': 'CLB-205',
+  '10116': 'CLB-420',
+  '10241': 'LNC-320',
+  '10242': 'LNC-311',
+  '10497': 'PBC-007',
+  '10499': 'PBC-009',
+  '10501': 'PBC-011',
+  '10515': 'PBC-022',
+  '10699': 'SKL-003',
+  '10700': 'SKL-003',
+  '10971': 'YGC-062',
+  '10977': 'YGC-068',
+  '11365': 'SLW-243',
+  '11366': 'SLW-244',
+  '13097': 'CPC-024',
+  '13238': 'PNB-003',
+  '13239': 'PNB-004',
+  '13245': 'LNC-024',
+  '13250': 'LNC-124',
+};
+
 // ── 商品番号から内部品番を抽出 ───────────────────────────────────────────────
 // Rules (in priority order):
 //  1. ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx- 手帳系 → DR-XX-NNN / XDR-XX-NNN
@@ -1049,7 +1072,10 @@ function run() {
 
       // ── 商品名・品番の決定 ──
       // 0. ハードコードマップ優先（Qoo10数値コード・Amazon ASINなど自動抽出不可のコード）
-      const overrideCode = pn && PN_OVERRIDE[pn.trim()] || null;
+      const isQoo10 = store && store.includes('Qoo10');
+      const overrideCode = (pn && PN_OVERRIDE[pn.trim()])
+        || (isQoo10 && pn && QOO10_PN_OVERRIDE[pn.trim()])
+        || null;
 
       // 商品番号列から内部品番を抽出（最も信頼できるソース）
       const extracted = overrideCode || extractProductCode(pn, store);
