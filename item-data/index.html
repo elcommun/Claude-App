@@ -482,7 +482,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21y</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21z</span>
 </header>
 
 <!-- ── Page ── -->
@@ -834,6 +834,7 @@ const PN_OVERRIDE = {
   'OA-CO5U-F6XK':       'CPC-006',
   'PBC-004.':            'PBC-004',
   'VH-6MJV-QFCE':       'CPC-002',
+  'ZN-MSL4-0GQJ':       'CPC-013',
   // Qoo10
   'elco-lnc311-10244':  'LNC-313',
   'elco-lnc311-13248':  'LNC-321',
@@ -854,6 +855,11 @@ function extractProductCode(pn, store) {
   if (!pn) return null;
   // 在庫SFD- プレフィックス除去（例: 在庫SFD-001 → SFD-001）
   if (/^在庫SFD-/i.test(pn)) return pn.slice(2);
+  // DRXX- 形式（ハイフン欠落）→ DR-XX-... 明示ルール（drxx⑥.5の手前でも確実に処理）
+  if (/^DRMC-/i.test(pn)) return 'DR-MC-' + pn.slice(5);
+  if (/^DRMH-/i.test(pn)) return 'DR-MH-' + pn.slice(5);
+  if (/^DRMG-/i.test(pn)) return 'DR-MG-' + pn.slice(5);
+  if (/^DRWK-/i.test(pn)) return 'DR-WK-' + pn.slice(5);
   // mb-01-/mb-03- prefix → MB-NNN（中間に小文字セグメントがあっても対応）
   const mbpfx = pn.match(/^mb-0[13]-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
   if (mbpfx) return mbpfx[1].toUpperCase();
@@ -952,8 +958,16 @@ function normalizeCode(code) {
   // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703)
   const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
   if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
+  // 二重コード連結 (例: WCL-017WCL-018 → WCL-018 / 後ろのコードを採用)
+  const dbl = code.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/);
+  if (dbl) return dbl[1];
   // elco-wcl-NNN → WCL-NNN
   if (/^elco-wcl-/i.test(code)) return 'WCL-' + code.slice(9);
+  // DRXX- 明示ルール (drn汎用ルールのフォールバック)
+  if (/^DRMC-/i.test(code)) return 'DR-MC-' + code.slice(5);
+  if (/^DRMH-/i.test(code)) return 'DR-MH-' + code.slice(5);
+  if (/^DRMG-/i.test(code)) return 'DR-MG-' + code.slice(5);
+  if (/^DRWK-/i.test(code)) return 'DR-WK-' + code.slice(5);
   // mb-0N-UPPER-NNN → UPPER-NNN (例: mb-03-MB-001 → MB-001)
   const mbv = code.match(/^mb-\d+-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
   if (mbv) return mbv[1].toUpperCase();
