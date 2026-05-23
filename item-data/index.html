@@ -482,7 +482,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21x</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21y</span>
 </header>
 
 <!-- ── Page ── -->
@@ -830,6 +830,10 @@ const PN_OVERRIDE = {
   'CT-K3PB-93HB':       'WCL-011',
   'CV-B543-60EE':       'TCL-302',
   'VV-ZLOI-O4F6':       'CPC-018',
+  'NT-LK0T-8EW4':       'SLV-503',
+  'OA-CO5U-F6XK':       'CPC-006',
+  'PBC-004.':            'PBC-004',
+  'VH-6MJV-QFCE':       'CPC-002',
   // Qoo10
   'elco-lnc311-10244':  'LNC-313',
   'elco-lnc311-13248':  'LNC-321',
@@ -850,9 +854,11 @@ function extractProductCode(pn, store) {
   if (!pn) return null;
   // 在庫SFD- プレフィックス除去（例: 在庫SFD-001 → SFD-001）
   if (/^在庫SFD-/i.test(pn)) return pn.slice(2);
-  // mb-01-MB-NNN / mb-03-MB-NNN → MB-NNN（DR-付与しない: モイッカ等）
-  const mbpfx = pn.match(/^mb-0[13]-([A-Z]+-\d+)$/i);
+  // mb-01-/mb-03- prefix → MB-NNN（中間に小文字セグメントがあっても対応）
+  const mbpfx = pn.match(/^mb-0[13]-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
   if (mbpfx) return mbpfx[1].toUpperCase();
+  // elco-wcl-NNN → WCL-NNN（extractProductCode の elco ルールを補完）
+  if (/^elco-wcl-/i.test(pn)) return 'WCL-' + pn.slice(9);
   // DR-MK-NNN → MK-NNN（モイッカボートバッグ: DR-プレフィックスを除去）
   if (/DR-MK-\d+/i.test(pn)) { const m = pn.match(/DR-MK-(\d+)/i); if (m) return 'MK-' + m[1]; }
   const auPAY = store && store.includes('auPAY');
@@ -916,7 +922,7 @@ function extractProductCode(pn, store) {
   if (m6) return m6[1];
 
   // ⑥.5 DRXX-NNN → DR-XX-NNN (ハイフン欠落、大小文字不問: drwk-306, DRMG-371)
-  const drxx = pn.match(/^DR([A-Z]{2})-(\d+)$/i);
+  const drxx = pn.match(/^DR([A-Z]{2})-(.+)$/i);
   if (drxx) return 'DR-' + drxx[1].toUpperCase() + '-' + drxx[2];
   // ⑦ X?DR-XX-NNN をそのまま返す (例: DR-MH-566, XDR-WK-001 → as-is)
   if (/^X?DR-[A-Z]{2,3}-\d+$/.test(pn)) return pn;
@@ -946,6 +952,11 @@ function normalizeCode(code) {
   // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703)
   const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
   if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
+  // elco-wcl-NNN → WCL-NNN
+  if (/^elco-wcl-/i.test(code)) return 'WCL-' + code.slice(9);
+  // mb-0N-UPPER-NNN → UPPER-NNN (例: mb-03-MB-001 → MB-001)
+  const mbv = code.match(/^mb-\d+-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
+  if (mbv) return mbv[1].toUpperCase();
   // CRBコード正規化
   // CRB_NNN → CRB-NNN (アンダースコアをハイフンに: CRB_011 → CRB-011)
   if (/^CRB_/i.test(code)) return 'CRB-' + code.slice(4);
@@ -955,8 +966,8 @@ function normalizeCode(code) {
   // GYR 桁数不足をゼロパディング (例: GYR-51 → GYR-051)
   const gyr = code.match(/^GYR-(\d{1,2})$/i);
   if (gyr) return 'GYR-' + gyr[1].padStart(3, '0');
-  // DR ハイフン欠落を補正 (例: DRMG-371 → DR-MG-371, drwk-306 → DR-WK-306)
-  const drn = code.match(/^DR([A-Z]{2})-(\d+)$/i);
+  // DR ハイフン欠落を補正・非数字サフィックス対応 (例: DRMG-371→DR-MG-371, DRMC-ABC→DR-MC-ABC)
+  const drn = code.match(/^DR([A-Z]{2})-(.+)$/i);
   if (drn) return 'DR-' + drn[1].toUpperCase() + '-' + drn[2];
   // 在庫SFD- プレフィックス除去 (例: 在庫SFD-001 → SFD-001)
   if (/^在庫SFD-/i.test(code)) return code.slice(2);
