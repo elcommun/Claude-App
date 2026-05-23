@@ -482,7 +482,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23b</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23c</span>
 </header>
 
 <!-- ── Page ── -->
@@ -1119,9 +1119,9 @@ function run() {
           }
         }
       }
-      // 6. 自社確定プレフィックス: EGP- / LBG- / AMP-C / SFD- / MK- / CRB- はマスター未登録でも自社扱いとする
+      // 6. 自社確定プレフィックス: EGP- / LBG- / AMP-C / SFD- / MK- / CRB- / WCL- / DR- / XDR- はマスター未登録でも自社扱いとする
       // AK- は大文字のみ自社（小文字 ak- は他社商品）
-      if (!matched && (/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-|WCL-)/i.test(code) || /^AK-/.test(code) || code === 'LNC-413')) {
+      if (!matched && (/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-|WCL-|X?DR-)/i.test(code) || /^AK-/.test(code) || code === 'LNC-413')) {
         matched = true;
       }
       // 7. フォールバック: CSV商品名を整形
