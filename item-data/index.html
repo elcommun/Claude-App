@@ -485,7 +485,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23e</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23f</span>
 </header>
 
 <!-- ── Page ── -->
@@ -1080,12 +1080,17 @@ function run() {
       // ── 商品名・品番の決定 ──
       // 0. ハードコードマップ優先（Qoo10数値コード・Amazon ASINなど自動抽出不可のコード）
       const isQoo10 = store && store.includes('Qoo10');
-      const overrideCode = (pn && PN_OVERRIDE[pn.trim()])
-        || (isQoo10 && pn && QOO10_PN_OVERRIDE[pn.trim()])
-        || null;
-
+      // PN_OVERRIDE は raw pn で照合（全店舗）
+      const pnOverride = (pn && PN_OVERRIDE[pn.trim()]) || null;
       // 商品番号列から内部品番を抽出（最も信頼できるソース）
-      const extracted = overrideCode || extractProductCode(pn, store);
+      const rawExtracted = pnOverride || extractProductCode(pn, store);
+      // Qoo10: raw pn で照合できなかった場合、抽出後コードでも照合
+      // (例: elco-clb205-10109 → extracted='10109' → QOO10_PN_OVERRIDE['10109']='CLB-205')
+      const qoo10Override = isQoo10
+        ? (QOO10_PN_OVERRIDE[pn ? pn.trim() : ''] || (rawExtracted && QOO10_PN_OVERRIDE[rawExtracted])) || null
+        : null;
+      const overrideCode = pnOverride || qoo10Override;
+      const extracted    = qoo10Override || rawExtracted;
       // SKU管理番号も正規化（LLN/ECL の truncation など）
       const normSku   = sku ? normalizeCode(sku) : null;
 
