@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21t</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21u</span>
 </header>
 
 <!-- ── Page ── -->
@@ -843,6 +843,11 @@ function extractProductCode(pn, store) {
   if (!pn) return null;
   // 在庫SFD- プレフィックス除去（例: 在庫SFD-001 → SFD-001）
   if (/^在庫SFD-/i.test(pn)) return pn.slice(2);
+  // mb-01-MB-NNN / mb-03-MB-NNN → MB-NNN（DR-付与しない: モイッカ等）
+  const mbpfx = pn.match(/^mb-0[13]-([A-Z]+-\d+)$/i);
+  if (mbpfx) return mbpfx[1].toUpperCase();
+  // DR-MK-NNN → MK-NNN（モイッカボートバッグ: DR-プレフィックスを除去）
+  if (/DR-MK-\d+/i.test(pn)) { const m = pn.match(/DR-MK-(\d+)/i); if (m) return 'MK-' + m[1]; }
   const auPAY = store && store.includes('auPAY');
 
   // ① 手帳系プレフィックス: ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx-/wl-
@@ -903,6 +908,9 @@ function extractProductCode(pn, store) {
   const m6 = pn.match(/^[a-z0-9]+-[a-z0-9]+-(\d+)$/);
   if (m6) return m6[1];
 
+  // ⑥.5 DRXX-NNN → DR-XX-NNN (ハイフン欠落、大小文字不問: drwk-306, DRMG-371)
+  const drxx = pn.match(/^DR([A-Z]{2})-(\d+)$/i);
+  if (drxx) return 'DR-' + drxx[1].toUpperCase() + '-' + drxx[2];
   // ⑦ X?DR-XX-NNN をそのまま返す (例: DR-MH-566, XDR-WK-001 → as-is)
   if (/^X?DR-[A-Z]{2,3}-\d+$/.test(pn)) return pn;
 
@@ -937,9 +945,9 @@ function normalizeCode(code) {
   // GYR 桁数不足をゼロパディング (例: GYR-51 → GYR-051)
   const gyr = code.match(/^GYR-(\d{1,2})$/i);
   if (gyr) return 'GYR-' + gyr[1].padStart(3, '0');
-  // DR ハイフン欠落を補正 (例: DRMG-371 → DR-MG-371, DRMH-306 → DR-MH-306)
-  const drn = code.match(/^DR([A-Z]{2})-(\d+)$/);
-  if (drn) return 'DR-' + drn[1] + '-' + drn[2];
+  // DR ハイフン欠落を補正 (例: DRMG-371 → DR-MG-371, drwk-306 → DR-WK-306)
+  const drn = code.match(/^DR([A-Z]{2})-(\d+)$/i);
+  if (drn) return 'DR-' + drn[1].toUpperCase() + '-' + drn[2];
   // 在庫SFD- プレフィックス除去 (例: 在庫SFD-001 → SFD-001)
   if (/^在庫SFD-/i.test(code)) return code.slice(2);
   // 手帳コードに DR- プレフィックスを補完 (例: WB-470 → DR-WB-470, WL-123 → DR-WL-123)
@@ -1046,8 +1054,8 @@ function run() {
           }
         }
       }
-      // 6. 自社確定プレフィックス: EGP- / LBG- / AMP-C / SFD- はマスター未登録でも自社扱いとする
-      if (!matched && (/^(?:EGP-|LBG-|AMP-C|SFD-)/i.test(code) || code === 'LNC-413')) {
+      // 6. 自社確定プレフィックス: EGP- / LBG- / AMP-C / SFD- / AK- / MK- はマスター未登録でも自社扱いとする
+      if (!matched && (/^(?:EGP-|LBG-|AMP-C|SFD-|AK-|MK-)/i.test(code) || code === 'LNC-413')) {
         matched = true;
       }
       // 7. フォールバック: CSV商品名を整形
