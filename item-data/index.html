@@ -485,7 +485,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23f</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23g</span>
 </header>
 
 <!-- ── Page ── -->
@@ -889,6 +889,7 @@ function extractProductCode(pn, store) {
   const mbpfx = pn.match(/^mb-0[13]-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
   if (mbpfx) return mbpfx[1].toUpperCase();
   // mm-NN-XDR-XX-NNN → XDR-XX-NNN (Qoo10: mm-03-XDR-WK-415, mm-42-XDR-MC-230)
+  // ※ rule ① (mm- 追加) でも対応するが、ここで先に補足
   if (store && store.includes('Qoo10')) {
     const mmpfx = pn.match(/^mm-\d+-(X?DR-.+)$/i);
     if (mmpfx) return mmpfx[1];
@@ -899,8 +900,9 @@ function extractProductCode(pn, store) {
   if (/DR-MK-\d+/i.test(pn)) { const m = pn.match(/DR-MK-(\d+)/i); if (m) return 'MK-' + m[1]; }
   const auPAY = store && store.includes('auPAY');
 
-  // ① 手帳系プレフィックス: ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx-/wl-
-  if (/^(?:ma|mg|mh|mc|mk|mb|wb|wk|ws|wv|wx|wl)-/i.test(pn)) {
+  // ① 手帳系プレフィックス: ma-/mg-/mh-/mc-/mk-/mb-/wb-/wk-/ws-/wv-/wx-/wl-/mm-
+  // mm- : Qoo10/auPAY で使われる手帳コード (例: mm-03-elco-drmm022-XDR-MM-024)
+  if (/^(?:ma|mg|mh|mc|mk|mb|wb|wk|ws|wv|wx|wl|mm)-/i.test(pn)) {
     // DR-XX-NNN / XDR-XX-NNN パターンを優先
     const hits = pn.match(/X?DR-[A-Z]{2,3}-\d+/g);
     if (hits) return hits[hits.length - 1];
