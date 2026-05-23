@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21u</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21v</span>
 </header>
 
 <!-- ── Page ── -->
@@ -823,6 +823,10 @@ const PN_OVERRIDE = {
   'YW-RI9H-WNH7':       'CLB-606',
   'Z1-YSGL-E2AI':       'WCL-010',
   'DRWK-306':           'DR-WK-306',
+  'DRMH-306':           'DR-MH-306',
+  'CT-K3PB-93HB':       'WCL-011',
+  'CV-B543-60EE':       'TCL-302',
+  'VV-ZLOI-O4F6':       'CPC-018',
   // Qoo10
   'elco-lnc311-10244':  'LNC-313',
   'elco-lnc311-13248':  'LNC-321',
@@ -939,7 +943,10 @@ function normalizeCode(code) {
   // 文字化けSKU正規化: -PREFIX?NNN.00 → PREFIX-NNN (例: -EGP?703.00 → EGP-703)
   const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
   if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
-  // CRBコード正規化 (例: CRB102-xxx → CRB-102, CRB_011 → CRB-011)
+  // CRBコード正規化
+  // CRB_NNN → CRB-NNN (アンダースコアをハイフンに: CRB_011 → CRB-011)
+  if (/^CRB_/i.test(code)) return 'CRB-' + code.slice(4);
+  // CRBnnn- → CRB-nnn (数字埋め込み形式: CRB102-xxx → CRB-102)
   const crb = code.match(/^CRB(\d+)[-_]/i);
   if (crb) return 'CRB-' + crb[1].padStart(3, '0');
   // GYR 桁数不足をゼロパディング (例: GYR-51 → GYR-051)
@@ -1054,8 +1061,8 @@ function run() {
           }
         }
       }
-      // 6. 自社確定プレフィックス: EGP- / LBG- / AMP-C / SFD- / AK- / MK- はマスター未登録でも自社扱いとする
-      if (!matched && (/^(?:EGP-|LBG-|AMP-C|SFD-|AK-|MK-)/i.test(code) || code === 'LNC-413')) {
+      // 6. 自社確定プレフィックス: EGP- / LBG- / AMP-C / SFD- / AK- / MK- / CRB- はマスター未登録でも自社扱いとする
+      if (!matched && (/^(?:EGP-|LBG-|AMP-C|SFD-|AK-|MK-|CRB-)/i.test(code) || code === 'LNC-413')) {
         matched = true;
       }
       // 7. フォールバック: CSV商品名を整形
