@@ -480,7 +480,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21s</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21t</span>
 </header>
 
 <!-- ── Page ── -->
@@ -822,6 +822,7 @@ const PN_OVERRIDE = {
   'Y2-D3UX-K7OT':       'CPC-008',
   'YW-RI9H-WNH7':       'CLB-606',
   'Z1-YSGL-E2AI':       'WCL-010',
+  'DRWK-306':           'DR-WK-306',
   // Qoo10
   'elco-lnc311-10244':  'LNC-313',
   'elco-lnc311-13248':  'LNC-321',
@@ -987,9 +988,11 @@ function run() {
 
       const date    = g('出荷日') || g('注文日時').slice(0, 10);
       const sku     = g('SKU管理番号');
-      const pn      = g('商品番号');
+      let   pn      = g('商品番号');
       const rawName = g('商品名');
       const store   = g('販売店舗');
+      // Excelが数式と誤解釈して#NAME?等に化けた商品番号 → SKU管理番号で代替
+      if (pn.startsWith('#') && sku) pn = sku;
       const qty     = parseInt(g('個数'), 10) || 0;
       const taxType = g('税込別');
       let price     = parseInt(g('商品単価'), 10) || 0;
@@ -1043,8 +1046,8 @@ function run() {
           }
         }
       }
-      // 6. 自社確定プレフィックス: LBG- / AMP-C / SFD- はマスター未登録でも自社扱いとする
-      if (!matched && (/^(?:LBG-|AMP-C|SFD-)/i.test(code) || code === 'LNC-413')) {
+      // 6. 自社確定プレフィックス: EGP- / LBG- / AMP-C / SFD- はマスター未登録でも自社扱いとする
+      if (!matched && (/^(?:EGP-|LBG-|AMP-C|SFD-)/i.test(code) || code === 'LNC-413')) {
         matched = true;
       }
       // 7. フォールバック: CSV商品名を整形
