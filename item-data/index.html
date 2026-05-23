@@ -482,7 +482,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-21z</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23a</span>
 </header>
 
 <!-- ── Page ── -->
@@ -943,6 +943,10 @@ function extractProductCode(pn, store) {
   const m9b = pn.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);       // -EGP?701.00 → EGP-701
   if (m9b) return m9b[1] + '-' + m9b[2].padStart(3, '0');
 
+  // ⑩ 二重コード連結: WCL-017WCL-018 → WCL-018 (後ろのコードを採用)
+  const dblm = pn.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/);
+  if (dblm) return dblm[1];
+
   return null;
 }
 
@@ -1091,7 +1095,7 @@ function run() {
       }
       // 6. 自社確定プレフィックス: EGP- / LBG- / AMP-C / SFD- / MK- / CRB- はマスター未登録でも自社扱いとする
       // AK- は大文字のみ自社（小文字 ak- は他社商品）
-      if (!matched && (/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-)/i.test(code) || /^AK-/.test(code) || code === 'LNC-413')) {
+      if (!matched && (/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-|WCL-)/i.test(code) || /^AK-/.test(code) || code === 'LNC-413')) {
         matched = true;
       }
       // 7. フォールバック: CSV商品名を整形
