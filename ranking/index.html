@@ -763,7 +763,7 @@ function renderSidebar() {
     const pct=maxVal?(val/maxVal*100).toFixed(1):0;
     const badge=sortMode==='qty'?t.qty.toLocaleString()+'個':'¥'+Math.round(t.amount/10000)+'万';
     const act=displayCat===selectedCategory?' active':'';
-    let indentStyle='',labelText=displayCat,icon=CAT_ICONS[displayCat]||'📦',iconSize='13';
+    let indentStyle='',labelText=displayCat,icon=CAT_ICONS[displayCat]||(/カレンダー/.test(displayCat)?'📅':'📦'),iconSize='13';
     if(level===1){
       indentStyle='padding-left:22px;font-size:12px';
       labelText=displayCat.includes(':')?displayCat.split(':')[1]:displayCat;
