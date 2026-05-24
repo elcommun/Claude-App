@@ -308,7 +308,7 @@ function buildSelects() {
   const ssel = document.getElementById('f-store');
   const curS = ssel.value;
   ssel.innerHTML = '<option value="all">すべての店舗</option>';
-  for (const s of stores) ssel.innerHTML += `<option value="${x(s)}">${x(s)}</option>`;
+  for (const s of stores) ssel.add(new Option(s, s));
   ssel.value = stores.includes(curS) ? curS : 'all';
 }
 
@@ -652,10 +652,12 @@ function processAndMerge(buf, updatedYears){
     const r=rows[i]; if(!r) continue;
     const d=parseDate(r[dateCol]); if(d) fileYears.add(d.slice(0,4));
   }
-  // Clear those years in UPLOADS (replace, not accumulate)
+  // Clear those years in UPLOADS (replace, not accumulate) — only once per batch
   for(const year of fileYears){
-    UPLOADS[year]={by_store:{},date_range:null,products:{}};
-    updatedYears.add(year);
+    if(!updatedYears.has(year)){
+      UPLOADS[year]={by_store:{},date_range:null,products:{}};
+      updatedYears.add(year);
+    }
   }
 
   for(let i=1;i<rows.length;i++){
@@ -684,7 +686,7 @@ function processAndMerge(buf, updatedYears){
 
 function parseDate(val){
   if(!val) return'';
-  if(val instanceof Date) return val.toISOString().slice(0,10);
+  if(val instanceof Date){const y=val.getFullYear(),m=String(val.getMonth()+1).padStart(2,'0'),d=String(val.getDate()).padStart(2,'0');return`${y}-${m}-${d}`;}
   const s=String(val).trim();
   if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   const m1=s.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})/);
