@@ -110,6 +110,9 @@ input[type=file]{display:none}
 .tbl{width:100%;border-collapse:collapse}
 .tbl thead{position:sticky;top:0;z-index:10}
 .tbl th{background:var(--ink);color:rgba(255,255,255,.6);padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid rgba(255,255,255,.06);white-space:nowrap}
+.th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
+.cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
+.prev-up{color:#2a8a3e;font-size:10px;white-space:nowrap}.prev-dn{color:#c0392b;font-size:10px;white-space:nowrap}
 .tbl th:last-child{border-right:none}
 .tbl td{padding:8px 13px;border-bottom:1px solid var(--border2);vertical-align:middle}
 .tbl tr:last-child td{border-bottom:none}
@@ -223,6 +226,10 @@ input[type=file]{display:none}
       <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty')">個数順</button>
       <button class="sb-tbtn"   id="tog-amt" onclick="setSort('amount')">金額順</button>
     </div>
+    <div class="sb-tog" style="margin-top:4px">
+      <button class="sb-tbtn" id="tog-cmp"  onclick="toggleComparison()">前年比較</button>
+      <button class="sb-tbtn" id="tog-heat" onclick="toggleHeatmap()">🌡️ ヒートマップ</button>
+    </div>
     <div class="sb-list" id="sb-list"></div>
   </aside>
 
@@ -234,13 +241,15 @@ input[type=file]{display:none}
         <div class="cat-stats" id="cat-stats"></div>
         <div class="sort-lbl" id="sort-lbl">個数ランキング</div>
       </div>
-      <div class="tw"><table class="tbl">
+      <div class="tw"><table class="tbl" id="rank-tbl">
         <thead><tr>
           <th style="width:50px">順位</th>
           <th style="min-width:94px">品番</th>
           <th style="min-width:240px">商品名</th>
           <th class="num" style="width:76px">上代</th>
           <th class="num" style="width:76px">個数</th>
+          <th class="num cmp-col" style="width:72px" id="th-prev">前年</th>
+          <th class="num cmp-col" style="width:72px" id="th-prev2">前々年</th>
           <th class="num" style="width:108px">合計金額</th>
           <th style="width:96px">売上比</th>
         </tr></thead>
@@ -249,15 +258,15 @@ input[type=file]{display:none}
     </div>
     <div id="search-view" style="display:none">
       <div class="cat-hd"><div class="cat-name" id="search-title"></div></div>
-      <div class="tw"><table class="tbl">
+      <div class="tw"><table class="tbl" id="search-tbl">
         <thead><tr>
-          <th style="width:50px">順位</th>
+          <th class="th-sort" onclick="setSearchSort('rank')" style="width:50px">順位<span class="sort-ind" id="si-rank">▼</span></th>
           <th style="min-width:106px">カテゴリ</th>
-          <th style="min-width:94px">品番</th>
-          <th style="min-width:240px">商品名</th>
+          <th class="th-sort" onclick="setSearchSort('code')" style="min-width:94px">品番<span class="sort-ind" id="si-code"></span></th>
+          <th class="th-sort" onclick="setSearchSort('name')" style="min-width:240px">商品名<span class="sort-ind" id="si-name"></span></th>
           <th class="num" style="width:76px">上代</th>
-          <th class="num" style="width:76px">個数</th>
-          <th class="num" style="width:108px">合計金額</th>
+          <th class="th-sort num" onclick="setSearchSort('qty')" style="width:76px">個数<span class="sort-ind" id="si-qty"></span></th>
+          <th class="th-sort num" onclick="setSearchSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="si-amount"></span></th>
         </tr></thead>
         <tbody id="search-tbody"></tbody>
       </table></div>
@@ -295,6 +304,9 @@ let UPLOADS = {};   // {'YYYY-MM': {by_store:{}, products:{}, date_range:[]}} sa
 let DATA    = {};   // merged view (PRELOADED + UPLOADS)
 let aggregated = {}, totalQty = 0, totalAmount = 0;
 let selectedCategory = null, sortMode = 'qty';
+let comparisonMode = false, heatmapMode = false;
+let aggPrev = {}, aggPrev2 = {}, prevByCode = {}, prev2ByCode = {};
+let searchSortCol = 'rank', searchSortDir = 'desc';
 
 // ── LocalStorage ──────────────────────────────────────────────────────────────
 function loadUploads() {
@@ -479,6 +491,21 @@ function applyFilter() {
   for (const codes of Object.values(aggregated))
     for (const item of Object.values(codes)) { totalQty += item.qty; totalAmount += item.amount; }
 
+  // Build comparison data for previous years (same month range)
+  function buildAggForPeriod(fYM, tYM) {
+    const a={}, ulYrs=new Set(Object.keys(UPLOADS).map(ym=>ym.slice(0,4)));
+    const yF=fYM.slice(0,4), yT=tYM.slice(0,4);
+    function mg(bs){const sts=str==='all'?Object.keys(bs):[str];for(const s of sts){const bc=bs[s];if(!bc)continue;for(const[cat,cd] of Object.entries(bc)){if(!a[cat])a[cat]={};for(const[code,qa] of Object.entries(cd)){if(!a[cat][code])a[cat][code]=[0,0];a[cat][code][0]+=qa[0];a[cat][code][1]+=qa[1];}}}}
+    for(const yr of Object.keys(PRELOADED.by_store)){if(ulYrs.has(yr)||yr<yF||yr>yT)continue;mg(PRELOADED.by_store[yr]);}
+    for(const[ym,umd] of Object.entries(UPLOADS)){if(ym<fYM||ym>tYM)continue;mg(umd.by_store||{});}
+    return a;
+  }
+  function codeIdx(agg){const idx={};for(const cd of Object.values(agg))for(const[c,qa] of Object.entries(cd)){if(!idx[c])idx[c]=[0,0];idx[c][0]+=qa[0];idx[c][1]+=qa[1];}return idx;}
+  const shiftYr=(ym,n)=>String(parseInt(ym.slice(0,4))-n)+ym.slice(4);
+  aggPrev=comparisonMode?buildAggForPeriod(shiftYr(fromYM,1),shiftYr(toYM,1)):{};
+  aggPrev2=comparisonMode?buildAggForPeriod(shiftYr(fromYM,2),shiftYr(toYM,2)):{};
+  prevByCode=codeIdx(aggPrev); prev2ByCode=codeIdx(aggPrev2);
+
   updateHeaderDate();
   renderKPI();
   renderSidebar();
@@ -488,7 +515,7 @@ function applyFilter() {
   else if(first) showCategory(first);
 }
 
-// ── Sort ──────────────────────────────────────────────────────────────────────
+// ── Sort / Comparison / Heatmap ───────────────────────────────────────────────
 function setSort(m) {
   sortMode = m;
   document.getElementById('tog-qty').className = 'sb-tbtn'+(m==='qty'?' on':'');
@@ -496,6 +523,38 @@ function setSort(m) {
   document.getElementById('sort-lbl').textContent = m==='qty'?'個数ランキング':'金額ランキング';
   renderSidebar();
   if (selectedCategory) showCategory(selectedCategory, false);
+}
+function toggleComparison() {
+  comparisonMode = !comparisonMode;
+  document.getElementById('tog-cmp').classList.toggle('on', comparisonMode);
+  document.getElementById('rank-tbl').classList.toggle('show-cmp', comparisonMode);
+  // Update comparison column year labels
+  const yrFrom = document.getElementById('f-year-from').value;
+  if (yrFrom) {
+    document.getElementById('th-prev').textContent  = (parseInt(yrFrom)-1)+'年';
+    document.getElementById('th-prev2').textContent = (parseInt(yrFrom)-2)+'年';
+  }
+  applyFilter();
+}
+function toggleHeatmap() {
+  heatmapMode = !heatmapMode;
+  document.getElementById('tog-heat').classList.toggle('on', heatmapMode);
+  if (document.getElementById('cat-view').style.display !== 'none') showCategory(selectedCategory, false);
+  else document.getElementById('hd-search').dispatchEvent(new Event('input'));
+}
+function heatBg(val, maxVal) {
+  if (!heatmapMode || !maxVal || !val) return '';
+  const a = (0.07 + (val / maxVal) * 0.43).toFixed(2);
+  return `;background:rgba(122,92,30,${a})`;
+}
+function setSearchSort(col) {
+  if (searchSortCol === col) searchSortDir = searchSortDir === 'asc' ? 'desc' : 'asc';
+  else { searchSortCol = col; searchSortDir = (col === 'code' || col === 'name') ? 'asc' : 'desc'; }
+  ['rank','code','name','qty','amount'].forEach(c => {
+    const el = document.getElementById('si-'+c);
+    if (el) el.textContent = searchSortCol===c ? (searchSortDir==='asc'?'▲':'▼') : '';
+  });
+  document.getElementById('hd-search').dispatchEvent(new Event('input'));
 }
 
 // ── KPI ───────────────────────────────────────────────────────────────────────
@@ -619,22 +678,34 @@ function showCategory(cat, updateSidebar=true) {
     <span class="cs">全体の <b>${catPct}%</b></span>
     <span class="cs">SKU <b>${items.length}</b>種</span>`;
 
+  const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
+  const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
+  const colspan = 7 + (comparisonMode ? 2 : 0);
   let html='';
   if (!items.length) {
-    html=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">📭</div>データがありません</div></td></tr>`;
+    html=`<tr><td colspan="${colspan}"><div class="empty"><div class="empty-icon">📭</div>データがありません</div></td></tr>`;
   } else {
     items.forEach((item,i)=>{
       const rank=i+1;
       const val=sortMode==='qty'?item.qty:item.amount;
       const pct=topVal?(val/topVal*100).toFixed(1):0;
       const ri=rank===1?`<div class="rn r1">🥇</div>`:rank===2?`<div class="rn r2">🥈</div>`:rank===3?`<div class="rn r3">🥉</div>`:`<div class="rn ro">${rank}</div>`;
+      function cmpCell(pqa) {
+        const pq = pqa?.[0]||0;
+        if (!pq) return `<td class="num cmp-col" style="color:var(--ink4)">-</td>`;
+        const diff = item.qty - pq;
+        const pct2 = Math.round(diff/pq*100);
+        const cls = diff>=0?'prev-up':'prev-dn', arrow = diff>=0?'▲':'▼';
+        return `<td class="num cmp-col">${pq.toLocaleString()}<br><span class="${cls}">${arrow}${Math.abs(pct2)}%</span></td>`;
+      }
       html+=`<tr>
         <td>${ri}</td>
         <td class="cc">${x(item.code)}</td>
         <td class="nc">${x(item.name)}</td>
         <td class="num">¥${item.price.toLocaleString()}</td>
-        <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}">${item.qty.toLocaleString()}</td>
-        <td class="num">¥${item.amount.toLocaleString()}</td>
+        <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
+        ${cmpCell(prevByCode[item.code])}${cmpCell(prev2ByCode[item.code])}
+        <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
         <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
       </tr>`;
     });
@@ -802,15 +873,27 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   document.getElementById('search-view').style.display='block';
   const qn=normalize(q), trans=[...(TRANS[qn]||[]),...getAliasTerms(qn)], allTerms=[qn,...trans], results=[];
   for(const[cat,codes] of Object.entries(aggregated)){
-    const items=Object.values(codes).sort((a,b)=>sortMode==='qty'?b.qty-a.qty:b.amount-a.amount);
+    const items=Object.values(codes).sort((a,b)=>b.qty-a.qty);
     items.forEach((item,i)=>{
       const nn=normalize(item.name),nc=normalize(item.code);
       if(allTerms.some(t=>nn.includes(t)||nc.includes(t)))
         results.push({...item,cat,rank:i+1});
     });
   }
-  results.sort((a,b)=>sortMode==='qty'?b.qty-a.qty:b.amount-a.amount);
+  // Apply column sort
+  results.sort((a,b)=>{
+    let va,vb;
+    if(searchSortCol==='qty'||searchSortCol==='rank'){va=a.qty;vb=b.qty;}
+    else if(searchSortCol==='amount'){va=a.amount;vb=b.amount;}
+    else if(searchSortCol==='code'){va=a.code;vb=b.code;}
+    else if(searchSortCol==='name'){va=a.name;vb=b.name;}
+    else{va=a.qty;vb=b.qty;}
+    if(typeof va==='string') return searchSortDir==='asc'?va.localeCompare(vb,'ja'):vb.localeCompare(va,'ja');
+    return searchSortDir==='asc'?va-vb:vb-va;
+  });
   document.getElementById('search-title').innerHTML=`🔍 "${x(q)}" <span style="font-size:14px;font-weight:400;color:var(--ink3);margin-left:6px">${results.length}件</span>`;
+  const maxQtyS=results.reduce((m,r)=>Math.max(m,r.qty),1);
+  const maxAmtS=results.reduce((m,r)=>Math.max(m,r.amount),1);
   let html='';
   if(!results.length){
     html=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
@@ -823,8 +906,8 @@ document.getElementById('hd-search').addEventListener('input',e=>{
         <td class="cc">${x(r.code)}</td>
         <td class="nc">${hl(r.name,q,trans)}</td>
         <td class="num">¥${r.price.toLocaleString()}</td>
-        <td class="num" style="font-weight:600">${r.qty.toLocaleString()}</td>
-        <td class="num">¥${r.amount.toLocaleString()}</td>
+        <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
+        <td class="num" style="${heatBg(r.amount,maxAmtS).slice(1)}">¥${r.amount.toLocaleString()}</td>
       </tr>`;
     }
   }
