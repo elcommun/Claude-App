@@ -1189,8 +1189,7 @@ function showCategory(cat, updateSidebar=true) {
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
   const catType = getCatType(cat);
-  const diaryOrCal = catType==='手帳' || catType==='カレンダー';
-  const showCmp = comparisonMode || diaryOrCal;
+  const showCmp = comparisonMode;
   document.getElementById('rank-tbl').classList.toggle('show-cmp', showCmp);
   const colspan = 7 + (showCmp ? 2 : 0);
   let html='';
