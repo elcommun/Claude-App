@@ -780,6 +780,8 @@ function processAndMerge(buf, updatedYears){
   const wb=XLSX.read(new Uint8Array(buf),{type:'array',cellDates:true});
   const ws=wb.Sheets[wb.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+  // SheetJS bug: when workbook uses 1904 date system (Mac Excel), Date cells are 1462 days behind
+  if(wb.Workbook?.WBProps?.date1904){const off=1462*86400000;for(const row of rows){if(!row)continue;for(let j=0;j<row.length;j++){if(row[j] instanceof Date)row[j]=new Date(row[j].getTime()+off);}}}
   if(rows.length<2) return;
   const hdr=rows[0]; const ci={};
   hdr.forEach((h,i)=>{if(h)ci[String(h).trim()]=i;});
