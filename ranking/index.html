@@ -390,6 +390,8 @@ function getGroupCats(displayName){
       if(displayName===g.name+':'+s.name) return Object.keys(aggregated).filter(c=>g.match(c)&&s.match(c));
     }
   }
+  const mg=MACRO_GROUPS.find(m=>m.name===displayName);
+  if(mg) return mg.cats.filter(c=>aggregated[c]);
   return null;
 }
 // Returns true if cat is a real (non-virtual) category that belongs to a CAT_GROUP and has a year prefix
@@ -416,6 +418,15 @@ function buildCodeIdxForSpecificCats(catList,str){
   return idx;
 }
 const CAT_ICONS={'手帳':'📔','カレンダー':'📆','手帳:1月始まり':'🗓️','手帳:4月始まり':'🌸','手帳:10月始まり':'🍂','ブックカバー':'📖','レターセット':'✉️','保冷バッグ':'🧊','ペンケース':'✏️','ブックマーク':'🔖','メッセージカード':'💌','ぽち袋・金封':'🧧','ポーチ・ケース':'👜','ノート':'📓','ステッカー・シール':'⭐','メガネケース':'👓','マスキングテープ':'📏','スタンプ':'📮','メモ':'📋','マウスパッド':'🖱️','ふせん':'📌','ポスター':'🎨','グリーティングカード':'🎴','下敷き':'📐','ボールペン':'🖊️','トートバッグ':'🛍️','時計':'⏰','ランチボックス':'🍱','キーリング':'🗝️','エコバッグ':'🌿','箸セット':'🥢','タグ':'🎟️','クリアファイル':'📂','他カバー系':'🗂️','食器':'🍽️','ハンカチクロス':'🎗️','コースター他':'☕','アウトドア':'⛺','ブランケット':'🧣','ライトスポーツ':'🪁'};
+// Large category groupings (drill-down in sidebar, below 手帳/カレンダー)
+const MACRO_GROUPS=[
+  {name:'ステーショナリー',icon:'📝',cats:['ブックカバー','レターセット','ペンケース','ブックマーク','メッセージカード','ぽち袋・金封','ノート','ステッカー・シール','マスキングテープ','スタンプ','メモ','ふせん','グリーティングカード','下敷き','ボールペン','クリアファイル','タグ']},
+  {name:'ランチ関係',icon:'🍱',cats:['保冷バッグ','ランチボックス','箸セット','食器']},
+  {name:'レジャー',icon:'🏕️',cats:['アウトドア','ブランケット','ライトスポーツ']},
+  {name:'ファッション',icon:'👜',cats:['ポーチ・ケース','メガネケース','トートバッグ','エコバッグ','キーリング','ハンカチクロス','他カバー系']},
+  {name:'インテリア',icon:'🏠',cats:['マウスパッド','ポスター','時計','コースター他']},
+  {name:'グッズ',icon:'🎁',cats:[]},
+];
 const LS_KEY = 'ec_ranking_uploads_v2';
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -716,18 +727,21 @@ function getCatTotal(cat) {
 }
 let expandedGroups=new Set(['手帳','カレンダー']);
 let expandedSubs=new Set();
+let expandedMacros=new Set();
 function toggleGroup(name){if(expandedGroups.has(name))expandedGroups.delete(name);else expandedGroups.add(name);renderSidebar();}
 function toggleSub(key){if(expandedSubs.has(key))expandedSubs.delete(key);else expandedSubs.add(key);renderSidebar();}
+function toggleMacro(name){if(expandedMacros.has(name))expandedMacros.delete(name);else expandedMacros.add(name);renderSidebar();}
 function renderSidebar() {
   // Collect all real categories (excluding diary/calendar which go into groups)
   const groupMatchAny=c=>CAT_GROUPS.some(g=>g.match(c));
-  // Regular cats = CATEGORY_ORDER members that have data, sorted by qty (descending)
-  const regularCats=CATEGORY_ORDER.filter(c=>aggregated[c]&&!groupMatchAny(c));
-  regularCats.sort((a,b)=>getCatTotal(b).qty-getCatTotal(a).qty);
+  const macroMatchAny=c=>MACRO_GROUPS.some(m=>m.cats.includes(c));
+  // Orphan cats: in CATEGORY_ORDER, have data, not diary/calendar, not in a macro group, not その他
+  const orphanCats=CATEGORY_ORDER.filter(c=>aggregated[c]&&!groupMatchAny(c)&&!macroMatchAny(c)&&c!=='その他');
+  orphanCats.sort((a,b)=>getCatTotal(b).qty-getCatTotal(a).qty);
 
-  // Compute maxVal across groups + regular cats for bar scaling
-  const allDisplay=[...CAT_GROUPS.map(g=>g.name),...regularCats];
-  const maxVal=allDisplay.reduce((m,c)=>{const t=getCatTotal(c);return Math.max(m,sortMode==='qty'?t.qty:t.amount);},0);
+  // Compute maxVal for bar scaling across all displayed items
+  const v=d=>sortMode==='qty'?getCatTotal(d).qty:getCatTotal(d).amount;
+  const maxVal=Math.max(...CAT_GROUPS.map(g=>v(g.name)),...MACRO_GROUPS.map(m=>v(m.name)),...orphanCats.map(v),aggregated['その他']?v('その他'):0,0);
 
   function itemHtml(displayCat,level=0){
     const t=getCatTotal(displayCat);
@@ -805,8 +819,34 @@ function renderSidebar() {
       }
     }
   }
-  // Regular categories
-  for(const cat of regularCats) html+=itemHtml(cat);
+  // Macro groups (ステーショナリー / ランチ関係 / レジャー / ファッション / インテリア / グッズ)
+  for(const mg of MACRO_GROUPS){
+    const subCats=mg.cats.filter(c=>aggregated[c]);
+    if(!subCats.length) continue;
+    const t=getCatTotal(mg.name);
+    if(!t.qty&&!t.amount) continue;
+    const expanded=expandedMacros.has(mg.name);
+    const chev=expanded?'▼':'▶';
+    const val=sortMode==='qty'?t.qty:t.amount;
+    const pct=maxVal?(val/maxVal*100).toFixed(1):0;
+    const badge=sortMode==='qty'?t.qty.toLocaleString()+'個':'¥'+Math.round(t.amount/10000)+'万';
+    const act=mg.name===selectedCategory?' active':'';
+    html+=`<div class="sbi${act}" onclick="showCategory('${esc(mg.name)}')" data-cat="${esc(mg.name)}" style="font-weight:600">
+      <span style="font-size:13px">${mg.icon}</span>
+      <span class="sbi-name">${x(mg.name)}</span>
+      <span class="sbi-badge">${badge}</span>
+      <span onclick="event.stopPropagation();toggleMacro('${esc(mg.name)}')" style="font-size:10px;color:var(--ink4);padding:0 4px;cursor:pointer">${chev}</span>
+      <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+    if(expanded){
+      subCats.sort((a,b)=>getCatTotal(b).qty-getCatTotal(a).qty);
+      for(const c of subCats) html+=itemHtml(c,1);
+    }
+  }
+  // Orphan categories (not in any macro group)
+  for(const cat of orphanCats) html+=itemHtml(cat);
+  // その他: fixed at bottom
+  if(aggregated['その他']) html+=itemHtml('その他');
 
   document.getElementById('sb-list').innerHTML=html;
   const yrFrom=document.getElementById('f-year-from').value;
