@@ -1122,11 +1122,18 @@ async function downloadCheckedCategories(){
     ws.views=[{state:'frozen',ySplit:3,topLeftCell:'A4',activeCell:'A4'}];
   }
 
+  const dateFrom=`${yrFrom}${moFrom.padStart(2,'0')}01`;
+  const lastDay=new Date(parseInt(yrTo),parseInt(moTo),0).getDate();
+  const dateTo=`${yrTo}${moTo.padStart(2,'0')}${String(lastDay).padStart(2,'0')}`;
+  const cats=[...exportChecks];
+  const catPrefix=cats.length===1?cats[0]:'EC';
+  const safePrefix=catPrefix.replace(/[\\/:*?"<>|]/g,'_');
+
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=`EC販売ランキング_${yrFrom}${moFrom}-${yrTo}${moTo}.xlsx`;
+  a.href=url; a.download=`${safePrefix}販売数（EC全体）${dateFrom}-${dateTo}.xlsx`;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
 }
