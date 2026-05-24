@@ -329,6 +329,7 @@ let aggregated = {}, totalQty = 0, totalAmount = 0;
 let selectedCategory = null, sortMode = 'qty';
 let comparisonMode = false, heatmapMode = false;
 let aggPrev = {}, aggPrev2 = {}, prevByCode = {}, prev2ByCode = {};
+let prevYearLabel = '前年', prev2YearLabel = '前々年';
 let searchSortCol = 'rank', searchSortDir = 'desc';
 
 // ── LocalStorage ──────────────────────────────────────────────────────────────
@@ -524,10 +525,15 @@ function applyFilter() {
     return a;
   }
   function codeIdx(agg){const idx={};for(const cd of Object.values(agg))for(const[c,qa] of Object.entries(cd)){if(!idx[c])idx[c]=[0,0];idx[c][0]+=qa[0];idx[c][1]+=qa[1];}return idx;}
-  const shiftYr=(ym,n)=>String(parseInt(ym.slice(0,4))-n)+ym.slice(4);
-  aggPrev=comparisonMode?buildAggForPeriod(shiftYr(fromYM,1),shiftYr(toYM,1)):{};
-  aggPrev2=comparisonMode?buildAggForPeriod(shiftYr(fromYM,2),shiftYr(toYM,2)):{};
+  // Anchor comparison to toYM's year so multi-year filters don't pull in stale years
+  const toYr=parseInt(toYM.slice(0,4));
+  const mkFrom=(n)=>String(toYr-n)+fromYM.slice(4);
+  const mkTo  =(n)=>String(toYr-n)+toYM.slice(4);
+  aggPrev =comparisonMode?buildAggForPeriod(mkFrom(1),mkTo(1)):{};
+  aggPrev2=comparisonMode?buildAggForPeriod(mkFrom(2),mkTo(2)):{};
   prevByCode=codeIdx(aggPrev); prev2ByCode=codeIdx(aggPrev2);
+  prevYearLabel =comparisonMode?String(toYr-1)+'年':'前年';
+  prev2YearLabel=comparisonMode?String(toYr-2)+'年':'前々年';
 
   updateHeaderDate();
   renderKPI();
@@ -710,7 +716,7 @@ function showCategory(cat, updateSidebar=true) {
   // Year-specific diary/calendar: compare against equivalent year category, not period-shifted
   const _str=document.getElementById('f-store').value;
   let localPrevByCode=prevByCode, localPrev2ByCode=prev2ByCode;
-  let prevLabel='前年', prev2Label='前々年', prevCatTot=null, prev2CatTot=null;
+  let prevLabel=prevYearLabel, prev2Label=prev2YearLabel, prevCatTot=null, prev2CatTot=null;
   if(comparisonMode&&isYearGroupCat(cat)){
     const pc=getEquivYearCat(cat,-1), p2c=getEquivYearCat(cat,-2);
     if(pc){localPrevByCode=buildCodeIdxForSpecificCats([pc],_str);prevLabel=pc.match(/^\d{4}年/)?.[0]||'前年';prevCatTot={qty:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[1],0)};}
