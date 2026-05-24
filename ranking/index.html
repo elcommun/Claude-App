@@ -590,18 +590,28 @@ function renderSidebar() {
   const allDisplay=[...CAT_GROUPS.map(g=>g.name),...regularCats];
   const maxVal=allDisplay.reduce((m,c)=>{const t=getCatTotal(c);return Math.max(m,sortMode==='qty'?t.qty:t.amount);},0);
 
-  function itemHtml(displayCat,indent=false){
+  function itemHtml(displayCat,level=0){
     const t=getCatTotal(displayCat);
     if(!t.qty&&!t.amount) return '';
     const val=sortMode==='qty'?t.qty:t.amount;
     const pct=maxVal?(val/maxVal*100).toFixed(1):0;
     const badge=sortMode==='qty'?t.qty.toLocaleString()+'個':'¥'+Math.round(t.amount/10000)+'万';
-    const icon=CAT_ICONS[displayCat]||'📦';
     const act=displayCat===selectedCategory?' active':'';
-    const indentStyle=indent?'padding-left:22px;font-size:12px':'';
+    let indentStyle='',labelText=displayCat,icon=CAT_ICONS[displayCat]||'📦',iconSize='13';
+    if(level===1){
+      indentStyle='padding-left:22px;font-size:12px';
+      labelText=displayCat.includes(':')?displayCat.split(':')[1]:displayCat;
+      iconSize='11';
+    } else if(level===2){
+      indentStyle='padding-left:36px;font-size:11px';
+      const ym=displayCat.match(/^(\d{4}年)/);
+      labelText=ym?ym[0]:displayCat;
+      icon='📅';
+      iconSize='10';
+    }
     return`<div class="sbi${act}" style="${indentStyle}" onclick="showCategory('${esc(displayCat)}')" data-cat="${esc(displayCat)}">
-      <span style="font-size:${indent?'11':'13'}px">${icon}</span>
-      <span class="sbi-name">${x(indent?(displayCat.includes(':')?displayCat.split(':')[1]:displayCat):displayCat)}</span>
+      <span style="font-size:${iconSize}px">${icon}</span>
+      <span class="sbi-name">${x(labelText)}</span>
       <span class="sbi-badge">${badge}</span>
       <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
@@ -631,15 +641,18 @@ function renderSidebar() {
         for(const s of g.subs){
           const subKey=g.name+':'+s.name;
           const subCats=matchingCats.filter(c=>s.match(c));
-          if(subCats.length) html+=itemHtml(subKey,true);
+          if(subCats.length){
+            html+=itemHtml(subKey,1);
+            for(const c of subCats.sort().reverse()) html+=itemHtml(c,2);
+          }
         }
       } else {
-        for(const c of matchingCats.sort()) html+=itemHtml(c,true);
+        for(const c of matchingCats.sort()) html+=itemHtml(c,1);
       }
     }
   }
   // Regular categories
-  for(const cat of regularCats) html+=itemHtml(cat,false);
+  for(const cat of regularCats) html+=itemHtml(cat);
 
   document.getElementById('sb-list').innerHTML=html;
   const yrFrom=document.getElementById('f-year-from').value;
