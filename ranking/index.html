@@ -760,9 +760,12 @@ document.getElementById('modal-run').addEventListener('click',()=>{
       for(const{buf} of pendingBufs) processAndMerge(buf, updatedYears);
       saveUploads();
       buildData();
-      // Extend 'to' year to include any newly uploaded year
-      const newLatest=Object.keys(DATA.by_store).sort().reverse()[0];
-      if(newLatest) document.getElementById('f-year-to').value=newLatest;
+      // Set year range to show the uploaded year(s) so new data is immediately visible
+      const uploadedYrsSorted=[...updatedYears].sort();
+      if(uploadedYrsSorted.length){
+        document.getElementById('f-year-from').value=uploadedYrsSorted[0];
+        document.getElementById('f-year-to').value=uploadedYrsSorted[uploadedYrsSorted.length-1];
+      }
       applyFilter();
       closeModal();
     }catch(e){
@@ -840,8 +843,14 @@ function parseDate(val){
   if(m1) return`${m1[1]}-${m1[2].padStart(2,'0')}-${m1[3].padStart(2,'0')}`;
   const m2=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if(m2) return`${m2[3]}-${m2[1].padStart(2,'0')}-${m2[2].padStart(2,'0')}`;
+  const m3=s.match(/^(\d{4})年(\d{1,2})月(\d{1,2})日/);
+  if(m3) return`${m3[1]}-${m3[2].padStart(2,'0')}-${m3[3].padStart(2,'0')}`;
+  const m4=s.match(/^令和(\d+)年(\d{1,2})月(\d{1,2})日/);
+  if(m4) return`${2018+parseInt(m4[1])}-${m4[2].padStart(2,'0')}-${m4[3].padStart(2,'0')}`;
+  const m5=s.match(/^平成(\d+)年(\d{1,2})月(\d{1,2})日/);
+  if(m5) return`${1988+parseInt(m5[1])}-${m5[2].padStart(2,'0')}-${m5[3].padStart(2,'0')}`;
   const n=Number(s);
-  if(!isNaN(n)&&n>40000) return new Date((n-25569)*86400000).toISOString().slice(0,10);
+  if(!isNaN(n)&&n>40000){const dt=new Date((n-25569)*86400000);return`${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;}
   return'';
 }
 
