@@ -485,7 +485,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23k</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23l</span>
 </header>
 
 <!-- ── Page ── -->
@@ -1104,6 +1104,7 @@ function run() {
     }
 
     // ── パス2: 全行を処理して allRows を構築 ─────────────────────────────────
+    for (let i = 1; i < csvRows.length; i++) {
       const r = csvRows[i];
       const g = k => (r[ci[k]] || '').trim();
 
