@@ -485,7 +485,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23i</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23j</span>
 </header>
 
 <!-- ── Page ── -->
@@ -555,6 +555,7 @@
               <th data-col="cat3"  style="min-width:100px">小分類</th>
               <th data-col="name"  style="min-width:280px">商品名</th>
               <th data-col="code"  style="min-width:110px">商品番号</th>
+              <th data-col="search" style="min-width:120px">検索コード</th>
               <th data-col="price" style="min-width:90px" class="num">税抜単価</th>
               <th data-col="qty"   style="min-width:56px" class="num">数量</th>
             </tr>
@@ -1159,8 +1160,18 @@ function run() {
       if (!dateMin || date < dateMin) dateMin = date;
       if (!dateMax || date > dateMax) dateMax = date;
 
+      // 検索コード: DR-/XDR-/CAL- 品番のみ 商品URL の末尾セグメント（.html除去）を使用
+      let searchCode = '';
+      if (/^(?:X?DR-|CAL-)/i.test(code)) {
+        const url = g('商品URL');
+        if (url) {
+          const seg = url.replace(/\/$/, '').split('/').pop();
+          searchCode = seg ? seg.replace(/\.html?$/i, '') : '';
+        }
+      }
+
       const cats = categoryMap.get(code) || { cat1: '', cat2: '', cat3: '' };
-      allRows.push({ date, store, code, name, price, qty, matched, ...cats });
+      allRows.push({ date, store, code, name, price, qty, matched, searchCode, ...cats });
     }
 
     // Populate filters
@@ -1261,7 +1272,7 @@ function render() {
   for (const r of slice) {
     if (sortCol === 'date' && r.date !== lastDate) {
       const dayName = ['日','月','火','水','木','金','土'][new Date(r.date).getDay()];
-      html += `<tr class="date-row"><td colspan="8">${r.date} &nbsp;${dayName}曜日</td></tr>`;
+      html += `<tr class="date-row"><td colspan="9">${r.date} &nbsp;${dayName}曜日</td></tr>`;
       lastDate = r.date;
     }
     html += `<tr class="data-row">
@@ -1271,12 +1282,13 @@ function render() {
       <td class="td-code">${x(r.cat3)}</td>
       <td class="td-name">${x(r.name)}${!r.matched ? '<span class="tag-unmatched">未一致</span>' : ''}</td>
       <td class="td-code">${x(r.code)}</td>
+      <td class="td-code">${x(r.searchCode || '')}</td>
       <td class="num td-price">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
     </tr>`;
   }
 
-  if (!html) html = `<tr class="empty-row"><td colspan="8">表示するデータがありません</td></tr>`;
+  if (!html) html = `<tr class="empty-row"><td colspan="9">表示するデータがありません</td></tr>`;
   document.getElementById('tbody').innerHTML = html;
 
   document.querySelectorAll('th[data-col]').forEach(th => {
@@ -1321,8 +1333,8 @@ document.querySelectorAll('th[data-col]').forEach(th => {
 // ── CSV export ───────────────────────────────────────────────────────────────
 function doExport() {
   const data = sorted(filtered());
-  const rows = [['販売日', '大分類', '中分類', '小分類', '商品名', '商品番号', '税抜単価', '数量', '小計（税抜）', '店舗', 'マスター一致']];
-  data.forEach(r => rows.push([r.date, r.cat1, r.cat2, r.cat3, r.name, r.code, r.price, r.qty, r.price * r.qty, r.store, r.matched ? '○' : '×']));
+  const rows = [['販売日', '大分類', '中分類', '小分類', '商品名', '商品番号', '税抜単価', '数量', '小計（税抜）', '店舗', '検索コード', 'マスター一致']];
+  data.forEach(r => rows.push([r.date, r.cat1, r.cat2, r.cat3, r.name, r.code, r.price, r.qty, r.price * r.qty, r.store, r.searchCode || '', r.matched ? '○' : '×']));
   const csv = '﻿' + rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\r\n');
   const a = Object.assign(document.createElement('a'), {
     href: URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })),
@@ -1334,14 +1346,14 @@ function doExport() {
 // ── XLSX export ──────────────────────────────────────────────────────────────
 function doExportXLSX() {
   const data = sorted(filtered());
-  const rows = [['販売日', '大分類', '中分類', '小分類', '商品名', '商品番号', '税抜単価', '数量', '小計（税抜）', '店舗', 'マスター一致']];
-  data.forEach(r => rows.push([r.date, r.cat1, r.cat2, r.cat3, r.name, r.code, r.price, r.qty, r.price * r.qty, r.store, r.matched ? '○' : '×']));
+  const rows = [['販売日', '大分類', '中分類', '小分類', '商品名', '商品番号', '税抜単価', '数量', '小計（税抜）', '店舗', '検索コード', 'マスター一致']];
+  data.forEach(r => rows.push([r.date, r.cat1, r.cat2, r.cat3, r.name, r.code, r.price, r.qty, r.price * r.qty, r.store, r.searchCode || '', r.matched ? '○' : '×']));
   const ws = XLSX.utils.aoa_to_sheet(rows);
   // 列幅の自動設定
   ws['!cols'] = [
     { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 20 },
     { wch: 40 }, { wch: 14 }, { wch: 10 }, { wch: 6 },
-    { wch: 12 }, { wch: 24 }, { wch: 10 },
+    { wch: 12 }, { wch: 24 }, { wch: 20 }, { wch: 10 },
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '販売明細');
