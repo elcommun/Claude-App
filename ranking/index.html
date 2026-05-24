@@ -606,7 +606,9 @@ function getCatTotal(cat) {
   return{qty:items.reduce((s,i)=>s+i.qty,0),amount:items.reduce((s,i)=>s+i.amount,0)};
 }
 let expandedGroups=new Set(['手帳','カレンダー']);
+let expandedSubs=new Set();
 function toggleGroup(name){if(expandedGroups.has(name))expandedGroups.delete(name);else expandedGroups.add(name);renderSidebar();}
+function toggleSub(key){if(expandedSubs.has(key))expandedSubs.delete(key);else expandedSubs.add(key);renderSidebar();}
 function renderSidebar() {
   // Collect all real categories (excluding diary/calendar which go into groups)
   const groupMatchAny=c=>CAT_GROUPS.some(g=>g.match(c));
@@ -670,8 +672,23 @@ function renderSidebar() {
         for(const s of g.subs){
           const subKey=g.name+':'+s.name;
           const subCats=matchingCats.filter(c=>s.match(c));
-          if(subCats.length){
-            html+=itemHtml(subKey,1);
+          if(!subCats.length) continue;
+          const subT=getCatTotal(subKey);
+          if(!subT.qty&&!subT.amount) continue;
+          const subVal=sortMode==='qty'?subT.qty:subT.amount;
+          const subPct=maxVal?(subVal/maxVal*100).toFixed(1):0;
+          const subBadge=sortMode==='qty'?subT.qty.toLocaleString()+'個':'¥'+Math.round(subT.amount/10000)+'万';
+          const subAct=subKey===selectedCategory?' active':'';
+          const subExp=expandedSubs.has(subKey);
+          const subChev=subExp?'▼':'▶';
+          html+=`<div class="sbi${subAct}" style="padding-left:22px;font-size:12px" onclick="showCategory('${esc(subKey)}')" data-cat="${esc(subKey)}">
+            <span style="font-size:11px">${s.icon}</span>
+            <span class="sbi-name">${x(s.name)}</span>
+            <span class="sbi-badge">${subBadge}</span>
+            <span onclick="event.stopPropagation();toggleSub('${esc(subKey)}')" style="font-size:9px;color:var(--ink4);padding:0 3px;cursor:pointer">${subChev}</span>
+            <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${subPct}%"></div></div>
+          </div>`;
+          if(subExp){
             for(const c of subCats.sort().reverse()) html+=itemHtml(c,2);
           }
         }
