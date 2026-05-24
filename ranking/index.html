@@ -935,11 +935,11 @@ async function downloadCheckedCategories(){
     const sheetName=catName.substring(0,31).replace(/[[\]*?:/\\]/g,'_');
     const ws=wb.addWorksheet(sheetName);
 
-    // Column widths: A B  C  D  E  F  G  H  I  J  K  L  M  N
+    // Column widths: A B  C  D  E  F  G  H  I  J   K   L  M   N
     ws.columns=[
       {width:5},{width:15},{width:32},{width:8},{width:8},{width:13},
       {width:2},{width:2},
-      {width:10},{width:15},{width:32},{width:8},{width:9},{width:13},
+      {width:8},{width:12},{width:28},{width:9},{width:12},{width:9},
     ];
 
     // ── Row 1: Title ──────────────────────────────────────────────────────
@@ -978,128 +978,143 @@ async function downloadCheckedCategories(){
     r3right.alignment={vertical:'middle',horizontal:'center'};
     r3right.border=medAll;
 
+    // ── Helpers for YoY ratio ────────────────────────────────────────────
+    const ratioOf=(a,b)=>b>0?Math.round(a/b*100):null;
+    const ratioStr=(r)=>{if(r===null)return '';const d=r-100;return(d>=0?'▲ ':'▼ ')+Math.abs(d)+'%';};
+    const ratioArgb=(r)=>r===null?'FF888888':(r>=100?'FF1A6B3A':'FFCC2200');
+
     // ── Data rows ─────────────────────────────────────────────────────────
+    // Right side layout:
+    //   i=0  row4: year header (今期 | prevYearLabel | prev2YearLabel)
+    //   i=1  row5: 販売数  (today | prev qty + ratio | prev2 qty + ratio)
+    //   i=2  row6: 合計金額 (today | prev amt + ratio | prev2 amt + ratio)
+    //   i=3  row7: ranking header
+    //   i=4+ row8+: ranking data  rank=i-3
     const numRows=Math.max(leftItems.length,36);
     for(let i=0;i<numRows;i++){
-      const ri=i+4; // Excel row index
-      ws.getRow(ri).height=16;
+      const ri=i+4;
       const isStripe=(i%2===1);
       const lBg=isStripe?C.STR:C.WHT;
+
+      // Row heights
+      if(i===0||i===3) ws.getRow(ri).height=18;
+      else if(i===1||i===2) ws.getRow(ri).height=22;
+      else ws.getRow(ri).height=16;
 
       // Left table: cols A-F
       for(let c=0;c<6;c++){
         const cell=ws.getCell(ri,c+1);
-        cell.fill=fill(lBg);
-        cell.border=thinAll;
-        cell.font={size:10,name:'Yu Gothic'};
+        cell.fill=fill(lBg); cell.border=thinAll; cell.font={size:10,name:'Yu Gothic'};
         if(i<leftItems.length){
           const it=leftItems[i];
           const vals=[i+1,it.code,it.name,it.price,it.qty,it.amount];
           cell.value=vals[c];
-          if(c===0){cell.alignment={horizontal:'center',vertical:'middle'};}
-          else if(c<=2){cell.alignment={horizontal:'left',vertical:'middle'};}
+          if(c===0) cell.alignment={horizontal:'center',vertical:'middle'};
+          else if(c<=2) cell.alignment={horizontal:'left',vertical:'middle'};
           else{cell.alignment={horizontal:'right',vertical:'middle'};cell.numFmt='#,##0';}
         }
       }
 
-      // Right section
+      // ── Right section ────────────────────────────────────────────────
       if(i===0){
-        // 販売数 summary
-        const lblS=ws.getCell(ri,9);
-        lblS.value='販売数';
-        lblS.font={bold:true,size:10,color:{argb:C.GLDTX},name:'Yu Gothic'};
-        lblS.fill=fill(C.GLDH);
-        lblS.alignment={horizontal:'center',vertical:'middle'};
-        lblS.border=thinAll;
+        // Year comparison header row
+        const hLbl=ws.getCell(ri,9);
+        hLbl.fill=fill(C.NAV); hLbl.border=thinAll;
 
-        const valS=ws.getCell(ri,10);
-        valS.value=totalQtyCat;
-        valS.font={bold:true,size:12,name:'Yu Gothic'};
-        valS.numFmt='#,##0';
-        valS.fill=fill(C.GLD);
-        valS.alignment={horizontal:'right',vertical:'middle'};
-        valS.border=thinAll;
+        const hNow=ws.getCell(ri,10);
+        hNow.value='今期';
+        hNow.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
+        hNow.fill=fill(C.NAV); hNow.alignment={horizontal:'center',vertical:'middle'}; hNow.border=thinAll;
 
         if(hasPrev){
-          const pLbl=ws.getCell(ri,11);
-          pLbl.value=prevYearLabel+'販売数';
-          pLbl.font={size:9,color:{argb:'FF444444'},name:'Yu Gothic'};
-          pLbl.fill=fill(C.GLD);
-          pLbl.border=thinAll;
-
-          const pQty=ws.getCell(ri,12);
-          pQty.value=prevT.qty;
-          pQty.numFmt='#,##0';
-          pQty.font={size:10,name:'Yu Gothic'};
-          pQty.fill=fill(C.GLD);
-          pQty.alignment={horizontal:'right',vertical:'middle'};
-          pQty.border=thinAll;
+          ws.mergeCells(ri,11,ri,12);
+          const hp=ws.getCell(ri,11);
+          hp.value=prevYearLabel;
+          hp.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
+          hp.fill=fill('FF1E5F8C'); hp.alignment={horizontal:'center',vertical:'middle'}; hp.border=thinAll;
         }
         if(hasPrev2){
-          const p2Lbl=ws.getCell(ri,13);
-          p2Lbl.value=prev2YearLabel+'販売数';
-          p2Lbl.font={size:9,color:{argb:'FF444444'},name:'Yu Gothic'};
-          p2Lbl.fill=fill(C.GLD);
-          p2Lbl.border=thinAll;
-
-          const p2Qty=ws.getCell(ri,14);
-          p2Qty.value=prev2T.qty;
-          p2Qty.numFmt='#,##0';
-          p2Qty.font={size:10,name:'Yu Gothic'};
-          p2Qty.fill=fill(C.GLD);
-          p2Qty.alignment={horizontal:'right',vertical:'middle'};
-          p2Qty.border=thinAll;
+          ws.mergeCells(ri,13,ri,14);
+          const hp2=ws.getCell(ri,13);
+          hp2.value=prev2YearLabel;
+          hp2.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
+          hp2.fill=fill('FF4B5D6C'); hp2.alignment={horizontal:'center',vertical:'middle'}; hp2.border=thinAll;
         }
+
       } else if(i===1){
-        // 金額 summary
-        const lblS=ws.getCell(ri,9);
-        lblS.value='合計金額';
-        lblS.font={bold:true,size:10,color:{argb:C.GLDTX},name:'Yu Gothic'};
-        lblS.fill=fill(C.GLDH);
-        lblS.alignment={horizontal:'center',vertical:'middle'};
-        lblS.border=thinAll;
+        // 販売数 comparison row
+        const lc=ws.getCell(ri,9);
+        lc.value='販売数'; lc.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
+        lc.fill=fill(C.NAV); lc.alignment={horizontal:'center',vertical:'middle'}; lc.border=thinAll;
 
-        const valS=ws.getCell(ri,10);
-        valS.value=totalAmtCat;
-        valS.font={bold:true,size:12,name:'Yu Gothic'};
-        valS.numFmt='#,##0';
-        valS.fill=fill(C.GLD);
-        valS.alignment={horizontal:'right',vertical:'middle'};
-        valS.border=thinAll;
+        const nc=ws.getCell(ri,10);
+        nc.value=totalQtyCat; nc.numFmt='#,##0';
+        nc.font={bold:true,size:13,name:'Yu Gothic'};
+        nc.fill=fill(C.GLD); nc.alignment={horizontal:'right',vertical:'middle'}; nc.border=thinAll;
 
         if(hasPrev){
-          const pAmt=ws.getCell(ri,12);
-          pAmt.value=prevT.amount;
-          pAmt.numFmt='#,##0';
-          pAmt.font={size:10,name:'Yu Gothic'};
-          pAmt.fill=fill(C.GLD);
-          pAmt.alignment={horizontal:'right',vertical:'middle'};
-          pAmt.border=thinAll;
+          const pq=ws.getCell(ri,11);
+          pq.value=prevT.qty; pq.numFmt='#,##0'; pq.font={size:11,name:'Yu Gothic'};
+          pq.fill=fill('FFDAEAF7'); pq.alignment={horizontal:'right',vertical:'middle'}; pq.border=thinAll;
+          const r=ratioOf(totalQtyCat,prevT.qty);
+          const pr=ws.getCell(ri,12);
+          pr.value=ratioStr(r); pr.font={bold:true,size:10,color:{argb:ratioArgb(r)},name:'Yu Gothic'};
+          pr.fill=fill('FFDAEAF7'); pr.alignment={horizontal:'center',vertical:'middle'}; pr.border=thinAll;
         }
         if(hasPrev2){
-          const p2Amt=ws.getCell(ri,14);
-          p2Amt.value=prev2T.amount;
-          p2Amt.numFmt='#,##0';
-          p2Amt.font={size:10,name:'Yu Gothic'};
-          p2Amt.fill=fill(C.GLD);
-          p2Amt.alignment={horizontal:'right',vertical:'middle'};
-          p2Amt.border=thinAll;
+          const p2q=ws.getCell(ri,13);
+          p2q.value=prev2T.qty; p2q.numFmt='#,##0'; p2q.font={size:11,name:'Yu Gothic'};
+          p2q.fill=fill('FFE8EFF5'); p2q.alignment={horizontal:'right',vertical:'middle'}; p2q.border=thinAll;
+          const r2=ratioOf(totalQtyCat,prev2T.qty);
+          const p2r=ws.getCell(ri,14);
+          p2r.value=ratioStr(r2); p2r.font={bold:true,size:10,color:{argb:ratioArgb(r2)},name:'Yu Gothic'};
+          p2r.fill=fill('FFE8EFF5'); p2r.alignment={horizontal:'center',vertical:'middle'}; p2r.border=thinAll;
         }
+
       } else if(i===2){
+        // 合計金額 comparison row
+        const lc=ws.getCell(ri,9);
+        lc.value='合計金額'; lc.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
+        lc.fill=fill(C.NAV); lc.alignment={horizontal:'center',vertical:'middle'}; lc.border=thinAll;
+
+        const nc=ws.getCell(ri,10);
+        nc.value=totalAmtCat; nc.numFmt='#,##0';
+        nc.font={bold:true,size:13,name:'Yu Gothic'};
+        nc.fill=fill(C.GLD); nc.alignment={horizontal:'right',vertical:'middle'}; nc.border=thinAll;
+
+        if(hasPrev){
+          const pa=ws.getCell(ri,11);
+          pa.value=prevT.amount; pa.numFmt='#,##0'; pa.font={size:11,name:'Yu Gothic'};
+          pa.fill=fill('FFDAEAF7'); pa.alignment={horizontal:'right',vertical:'middle'}; pa.border=thinAll;
+          const r=ratioOf(totalAmtCat,prevT.amount);
+          const par=ws.getCell(ri,12);
+          par.value=ratioStr(r); par.font={bold:true,size:10,color:{argb:ratioArgb(r)},name:'Yu Gothic'};
+          par.fill=fill('FFDAEAF7'); par.alignment={horizontal:'center',vertical:'middle'}; par.border=thinAll;
+        }
+        if(hasPrev2){
+          const p2a=ws.getCell(ri,13);
+          p2a.value=prev2T.amount; p2a.numFmt='#,##0'; p2a.font={size:11,name:'Yu Gothic'};
+          p2a.fill=fill('FFE8EFF5'); p2a.alignment={horizontal:'right',vertical:'middle'}; p2a.border=thinAll;
+          const r2=ratioOf(totalAmtCat,prev2T.amount);
+          const p2ar=ws.getCell(ri,14);
+          p2ar.value=ratioStr(r2); p2ar.font={bold:true,size:10,color:{argb:ratioArgb(r2)},name:'Yu Gothic'};
+          p2ar.fill=fill('FFE8EFF5'); p2ar.alignment={horizontal:'center',vertical:'middle'}; p2ar.border=thinAll;
+        }
+
+      } else if(i===3){
         // Ranking header
         const rHdrs=['順位','品番','品名','上代','個数','合計金額'];
         for(let c=0;c<6;c++){
           const cell=ws.getCell(ri,9+c);
           cell.value=rHdrs[c];
           cell.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
-          cell.fill=fill(C.GRN);
-          cell.alignment={horizontal:'center',vertical:'middle'};
-          cell.border=thinAll;
+          cell.fill=fill(C.GRN); cell.alignment={horizontal:'center',vertical:'middle'}; cell.border=thinAll;
         }
-      } else if(i>=3&&(i-3)<top30.length){
-        // Ranking data
-        const rank=i-2; // 1-indexed
-        const it=top30[i-3];
+
+      } else if(i>=4&&(i-4)<top30.length){
+        // Ranking data  rank=i-3 (i=4→rank1)
+        const rank=i-3;
+        const it=top30[i-4];
         let rankBg=isStripe?C.STR:C.WHT;
         if(rank===1) rankBg=C.GOLD;
         else if(rank===2) rankBg=C.SILV;
@@ -1107,14 +1122,11 @@ async function downloadCheckedCategories(){
         const rankVals=[rank,it.code,it.name,it.price,it.qty,it.amount];
         for(let c=0;c<6;c++){
           const cell=ws.getCell(ri,9+c);
-          cell.value=rankVals[c];
-          cell.fill=fill(rankBg);
-          cell.border=thinAll;
-          cell.font={size:10,name:'Yu Gothic'};
-          if(c===0){cell.alignment={horizontal:'center',vertical:'middle'};}
-          else if(c<=2){cell.alignment={horizontal:'left',vertical:'middle'};}
+          cell.value=rankVals[c]; cell.fill=fill(rankBg); cell.border=thinAll;
+          cell.font={size:10,name:'Yu Gothic',...(rank<=3?{bold:true}:{})};
+          if(c===0) cell.alignment={horizontal:'center',vertical:'middle'};
+          else if(c<=2) cell.alignment={horizontal:'left',vertical:'middle'};
           else{cell.alignment={horizontal:'right',vertical:'middle'};cell.numFmt='#,##0';}
-          if(rank<=3) cell.font={...cell.font,bold:true};
         }
       }
     }
