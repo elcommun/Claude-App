@@ -485,7 +485,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23j</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23k</span>
 </header>
 
 <!-- ── Page ── -->
@@ -1076,7 +1076,34 @@ function run() {
     const storeSet = new Set();
     let dateMin = '', dateMax = '';
 
+    // ── パス1: 楽天市場店の 品番 → 検索コード マップを構築 ──────────────────
+    // 「EL COMMUN 楽天市場店」の商品URLを正とし、他店舗にも同じコードを適用する
+    const rakutenSearchMap = new Map(); // code → searchCode
     for (let i = 1; i < csvRows.length; i++) {
+      const r = csvRows[i];
+      const g = k => (r[ci[k]] || '').trim();
+      const store = g('販売店舗');
+      if (!store.includes('楽天市場')) continue;
+      const url = g('商品URL');
+      if (!url) continue;
+      const seg = url.replace(/\/$/, '').split('/').pop();
+      const sc  = seg ? seg.replace(/\.html?$/i, '') : '';
+      if (!sc) continue;
+      // 品番を解決してキーとして登録
+      let pn = g('商品番号');
+      const sku = g('SKU管理番号');
+      if (pn.startsWith('#') && sku) pn = sku;
+      const isQoo10r = false;
+      const pnOverrideR = (pn && PN_OVERRIDE[pn.trim()]) || null;
+      const rawExtR = pnOverrideR || extractProductCode(pn, store);
+      const extractedR = rawExtR || pn;
+      const codeR = normalizeCode(extractedR) || extractedR;
+      if (/^(?:X?DR-|CAL-)/i.test(codeR) && !rakutenSearchMap.has(codeR)) {
+        rakutenSearchMap.set(codeR, sc);
+      }
+    }
+
+    // ── パス2: 全行を処理して allRows を構築 ─────────────────────────────────
       const r = csvRows[i];
       const g = k => (r[ci[k]] || '').trim();
 
@@ -1160,15 +1187,10 @@ function run() {
       if (!dateMin || date < dateMin) dateMin = date;
       if (!dateMax || date > dateMax) dateMax = date;
 
-      // 検索コード: DR-/XDR-/CAL- 品番のみ 商品URL の末尾セグメント（.html除去）を使用
-      let searchCode = '';
-      if (/^(?:X?DR-|CAL-)/i.test(code)) {
-        const url = g('商品URL');
-        if (url) {
-          const seg = url.replace(/\/$/, '').split('/').pop();
-          searchCode = seg ? seg.replace(/\.html?$/i, '') : '';
-        }
-      }
+      // 検索コード: 楽天市場店の商品URLを元に構築したマップから取得（全店舗共通）
+      const searchCode = /^(?:X?DR-|CAL-)/i.test(code)
+        ? (rakutenSearchMap.get(code) || '')
+        : '';
 
       const cats = categoryMap.get(code) || { cat1: '', cat2: '', cat3: '' };
       allRows.push({ date, store, code, name, price, qty, matched, searchCode, ...cats });
