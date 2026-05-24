@@ -298,7 +298,8 @@ function renderUploadList() {
   let html='<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);margin-bottom:5px">アップロード済みデータ</div>';
   for(const y of years){
     const dr=UPLOADS[y]?.date_range;
-    const range=dr?` (${dr[0].slice(0,7).replace('-','年')}月〜${dr[1].slice(0,7).replace('-','年')}月)`:'';
+    const fmtD=s=>s?`${s.slice(0,4)}年${s.slice(5,7)}月${s.slice(8,10)}日`:'';
+    const range=dr?` (${fmtD(dr[0])}〜${fmtD(dr[1])})`:'';
     html+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border2)">
       <span style="font-size:12px;flex:1">${y}年${range}</span>
       <button onclick="deleteUploadYear('${y}')" style="font-size:10px;color:var(--red);background:none;border:1px solid var(--border);padding:2px 8px;border-radius:4px;cursor:pointer;font-family:inherit">削除</button>
