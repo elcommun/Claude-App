@@ -113,6 +113,7 @@ input[type=file]{display:none}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
 .prev-up{color:#2a8a3e;font-size:10px;white-space:nowrap}.prev-dn{color:#c0392b;font-size:10px;white-space:nowrap}
+.fmt-hdr td{background:var(--paper2);font-weight:600;font-size:11px;color:var(--ink3);padding:5px 10px;letter-spacing:.03em;border-bottom:1px solid var(--line)}
 .tbl th:last-child{border-right:none}
 .tbl td{padding:8px 13px;border-bottom:1px solid var(--border2);vertical-align:middle}
 .tbl tr:last-child td{border-bottom:none}
@@ -287,6 +288,27 @@ const CAT_GROUPS=[
   ]},
   {name:'カレンダー',icon:'📆',match:c=>/カレンダー/.test(c),subs:[]},
 ];
+// Format groupings for diary and calendar product tables
+const DIARY_FORMATS=[
+  {prefix:'MC-',name:'新書判 コンパクトマンスリー'},
+  {prefix:'MG-',name:'B6マンスリー｜スタンダード'},
+  {prefix:'MH-',name:'B6マンスリー｜フルカラー'},
+  {prefix:'WB-',name:'B6ウィークリー｜レフト'},
+  {prefix:'WK-',name:'B6ウィークリー｜ブロック'},
+  {prefix:'WV-',name:'A5ウィークリー｜バーチカルノート'},
+  {prefix:'WS-',name:'Nitte 新書判 ウィークリー'},
+  {prefix:'WL-',name:'ロングウィークリー'},
+  {prefix:'WX-',name:'B6ウィークリー｜インデックス レフト'},
+];
+function getDiaryFormat(code){for(const f of DIARY_FORMATS){if(code.includes(f.prefix))return f.name;}return 'その他';}
+function getCalendarFormat(code,name){if(/卓上/.test(code)||/卓上/.test(name))return '卓上';if(/壁掛け/.test(code)||/壁掛け/.test(name))return '壁掛け';return 'その他';}
+function getCatType(cat){
+  const rc=getGroupCats(cat)||[cat];
+  const hg=CAT_GROUPS.find(g=>g.name==='手帳'), cg=CAT_GROUPS.find(g=>g.name==='カレンダー');
+  if(rc.some(c=>hg.match(c)))return '手帳';
+  if(rc.some(c=>cg.match(c)))return 'カレンダー';
+  return null;
+}
 function getGroupCats(displayName){
   for(const g of CAT_GROUPS){
     if(displayName===g.name) return Object.keys(aggregated).filter(c=>g.match(c));
@@ -758,34 +780,39 @@ function showCategory(cat, updateSidebar=true) {
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
   const colspan = 7 + (comparisonMode ? 2 : 0);
+  const catType = getCatType(cat);
   let html='';
+  function renderRow(item,rank,topV){
+    const val=sortMode==='qty'?item.qty:item.amount;
+    const pct=topV?(val/topV*100).toFixed(1):0;
+    const ri=rank===1?`<div class="rn r1">🥇</div>`:rank===2?`<div class="rn r2">🥈</div>`:rank===3?`<div class="rn r3">🥉</div>`:`<div class="rn ro">${rank}</div>`;
+    function cmpCell(pqa){const pq=pqa?.[0]||0;if(!pq)return`<td class="num cmp-col" style="color:var(--ink4)">-</td>`;const diff=item.qty-pq;const pct2=Math.round(diff/pq*100);const cls=diff>=0?'prev-up':'prev-dn',arrow=diff>=0?'▲':'▼';return`<td class="num cmp-col">${pq.toLocaleString()}<br><span class="${cls}">${arrow}${Math.abs(pct2)}%</span></td>`;}
+    return`<tr>
+      <td>${ri}</td>
+      <td class="cc">${x(item.code)}</td>
+      <td class="nc">${x(item.name)}</td>
+      <td class="num">¥${item.price.toLocaleString()}</td>
+      <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
+      ${cmpCell(localPrevByCode[item.code])}${cmpCell(localPrev2ByCode[item.code])}
+      <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
+      <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
+    </tr>`;
+  }
   if (!items.length) {
     html=`<tr><td colspan="${colspan}"><div class="empty"><div class="empty-icon">📭</div>データがありません</div></td></tr>`;
+  } else if (catType) {
+    const formatFn=catType==='手帳'?(item=>getDiaryFormat(item.code)):(item=>getCalendarFormat(item.code,item.name));
+    const fmtOrder=catType==='手帳'?[...DIARY_FORMATS.map(f=>f.name),'その他']:['卓上','壁掛け','その他'];
+    const groups={};
+    for(const item of items){const f=formatFn(item);if(!groups[f])groups[f]=[];groups[f].push(item);}
+    for(const fmtName of fmtOrder){
+      const gi=groups[fmtName]; if(!gi?.length) continue;
+      const gTop=sortMode==='qty'?gi[0].qty:gi[0].amount;
+      html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(fmtName)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${gi.length}種)</span></td></tr>`;
+      gi.forEach((item,i)=>{ html+=renderRow(item,i+1,gTop); });
+    }
   } else {
-    items.forEach((item,i)=>{
-      const rank=i+1;
-      const val=sortMode==='qty'?item.qty:item.amount;
-      const pct=topVal?(val/topVal*100).toFixed(1):0;
-      const ri=rank===1?`<div class="rn r1">🥇</div>`:rank===2?`<div class="rn r2">🥈</div>`:rank===3?`<div class="rn r3">🥉</div>`:`<div class="rn ro">${rank}</div>`;
-      function cmpCell(pqa) {
-        const pq = pqa?.[0]||0;
-        if (!pq) return `<td class="num cmp-col" style="color:var(--ink4)">-</td>`;
-        const diff = item.qty - pq;
-        const pct2 = Math.round(diff/pq*100);
-        const cls = diff>=0?'prev-up':'prev-dn', arrow = diff>=0?'▲':'▼';
-        return `<td class="num cmp-col">${pq.toLocaleString()}<br><span class="${cls}">${arrow}${Math.abs(pct2)}%</span></td>`;
-      }
-      html+=`<tr>
-        <td>${ri}</td>
-        <td class="cc">${x(item.code)}</td>
-        <td class="nc">${x(item.name)}</td>
-        <td class="num">¥${item.price.toLocaleString()}</td>
-        <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
-        ${cmpCell(localPrevByCode[item.code])}${cmpCell(localPrev2ByCode[item.code])}
-        <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
-        <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
-      </tr>`;
-    });
+    items.forEach((item,i)=>{ html+=renderRow(item,i+1,topVal); });
   }
   document.getElementById('rank-tbody').innerHTML=html;
 }
