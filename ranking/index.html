@@ -86,7 +86,7 @@ input[type=file]{display:none}
 .sbi.active .sbi-badge{color:var(--gold)}
 .sbi-bar{position:absolute;bottom:0;left:17px;right:14px;height:2px;background:var(--border2);border-radius:1px}
 .sbi-bar-fill{height:100%;background:var(--gold);border-radius:1px;opacity:.5;transition:width .3s}
-.sb-flt{padding:9px 11px;border-top:1px solid var(--border2);display:flex;flex-direction:column;gap:7px}
+.sb-flt{padding:9px 11px;border-bottom:1px solid var(--border2);display:flex;flex-direction:column;gap:7px}
 .fl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);margin-bottom:3px}
 .fsel{width:100%;height:29px;padding:0 7px;border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--ink);background:var(--paper);outline:none;font-family:inherit}
 .fsel:focus{border-color:var(--gold)}
@@ -155,6 +155,7 @@ input[type=file]{display:none}
       同じ年のファイルを再アップロードすると、そのデータが更新されます。<br>
       アップロードしたデータはブラウザに保存されます。
     </div>
+    <div id="upload-list" style="margin-bottom:10px"></div>
     <div class="mn" id="mn"></div>
     <div class="dz" id="dz">
       <div class="dz-icon">📂</div>
@@ -177,17 +178,14 @@ input[type=file]{display:none}
       <div class="sb-lbl">カテゴリ</div>
       <div class="sb-total" id="sb-total"></div>
     </div>
-    <div class="sb-tog">
-      <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty')">個数順</button>
-      <button class="sb-tbtn"   id="tog-amt" onclick="setSort('amount')">金額順</button>
-    </div>
-    <div class="sb-list" id="sb-list"></div>
     <div class="sb-flt">
       <div>
-        <div class="fl">年度</div>
-        <select class="fsel" id="f-year" onchange="applyFilter()">
-          <option value="all">全期間</option>
-        </select>
+        <div class="fl">期間</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <select class="fsel" id="f-year-from" onchange="applyFilter()" style="flex:1"></select>
+          <span style="font-size:11px;color:var(--ink4);flex-shrink:0">〜</span>
+          <select class="fsel" id="f-year-to" onchange="applyFilter()" style="flex:1"></select>
+        </div>
       </div>
       <div>
         <div class="fl">店舗</div>
@@ -196,6 +194,11 @@ input[type=file]{display:none}
         </select>
       </div>
     </div>
+    <div class="sb-tog">
+      <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty')">個数順</button>
+      <button class="sb-tbtn"   id="tog-amt" onclick="setSort('amount')">金額順</button>
+    </div>
+    <div class="sb-list" id="sb-list"></div>
   </aside>
 
   <main class="main">
@@ -265,11 +268,48 @@ function saveUploads() {
     alert('ブラウザのストレージ容量が不足しています。古いデータを削除してください。');
   }
 }
+function renderUploadList() {
+  const ul=document.getElementById('upload-list');
+  if(!ul) return;
+  const years=Object.keys(UPLOADS).sort().reverse();
+  if(!years.length){
+    ul.innerHTML='<div style="font-size:11px;color:var(--ink4);padding:4px 0 6px">追加アップロード: なし（内蔵データのみ）</div>';
+    return;
+  }
+  let html='<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);margin-bottom:5px">アップロード済みデータ</div>';
+  for(const y of years){
+    const dr=UPLOADS[y]?.date_range;
+    const range=dr?` (${dr[0].slice(0,7).replace('-','年')}月〜${dr[1].slice(0,7).replace('-','年')}月)`:'';
+    html+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border2)">
+      <span style="font-size:12px;flex:1">${y}年${range}</span>
+      <button onclick="deleteUploadYear('${y}')" style="font-size:10px;color:var(--red);background:none;border:1px solid var(--border);padding:2px 8px;border-radius:4px;cursor:pointer;font-family:inherit">削除</button>
+    </div>`;
+  }
+  ul.innerHTML=html;
+}
+function deleteUploadYear(year){
+  if(!confirm(`${year}年のアップロードデータを削除しますか？\n（内蔵データがある場合はそちらに戻ります）`)) return;
+  delete UPLOADS[year];
+  saveUploads();
+  buildData();
+  const allYrs=Object.keys(DATA.by_store).sort();
+  if(allYrs.length){
+    const fy=document.getElementById('f-year-from'),ft=document.getElementById('f-year-to');
+    if(!allYrs.includes(fy.value)) fy.value=allYrs[allYrs.length-1];
+    if(!allYrs.includes(ft.value)) ft.value=allYrs[allYrs.length-1];
+  }
+  applyFilter();
+  renderUploadList();
+  if(!Object.keys(UPLOADS).length) document.getElementById('hd-saved').classList.remove('show');
+}
+
 function resetData() {
   if (!confirm('アップロードしたデータをすべて削除し、内蔵データ（2021〜2025）に戻しますか？')) return;
   localStorage.removeItem(LS_KEY);
   UPLOADS = {};
   buildData();
+  const allYrs=Object.keys(DATA.by_store).sort();
+  if(allYrs.length){document.getElementById('f-year-from').value=allYrs[allYrs.length-1];document.getElementById('f-year-to').value=allYrs[allYrs.length-1];}
   applyFilter();
   document.getElementById('hd-saved').classList.remove('show');
   closeModal();
@@ -294,16 +334,22 @@ function buildData() {
 }
 
 function buildSelects() {
-  const years  = Object.keys(DATA.by_store).sort().reverse();
+  const years  = Object.keys(DATA.by_store).sort();
   const storeSet = new Set();
   for (const y of years) for (const s of Object.keys(DATA.by_store[y]||{})) storeSet.add(s);
   const stores = [...storeSet].sort();
 
-  const ysel = document.getElementById('f-year');
-  const curY = ysel.value;
-  ysel.innerHTML = '<option value="all">全期間</option>';
-  for (const y of years) ysel.innerHTML += `<option value="${y}">${y}年</option>`;
-  ysel.value = years.includes(curY) ? curY : (years[0] || 'all');
+  const fyFrom = document.getElementById('f-year-from');
+  const fyTo   = document.getElementById('f-year-to');
+  const curFrom = fyFrom.value, curTo = fyTo.value;
+  fyFrom.innerHTML = '';
+  fyTo.innerHTML   = '';
+  for (const y of years) {
+    fyFrom.add(new Option(y+'年', y));
+    fyTo.add(new Option(y+'年', y));
+  }
+  fyFrom.value = years.includes(curFrom) ? curFrom : (years[0] || '');
+  fyTo.value   = years.includes(curTo)   ? curTo   : (years[years.length-1] || '');
 
   const ssel = document.getElementById('f-store');
   const curS = ssel.value;
@@ -314,10 +360,11 @@ function buildSelects() {
 
 // ── Filter & aggregate ────────────────────────────────────────────────────────
 function applyFilter() {
-  const yr  = document.getElementById('f-year').value;
+  const yrFrom = document.getElementById('f-year-from').value;
+  const yrTo   = document.getElementById('f-year-to').value;
   const str = document.getElementById('f-store').value;
   aggregated = {}; totalQty = 0; totalAmount = 0;
-  const years = yr === 'all' ? Object.keys(DATA.by_store) : [yr];
+  const years = Object.keys(DATA.by_store).filter(y=>(!yrFrom||y>=yrFrom)&&(!yrTo||y<=yrTo));
   for (const year of years) {
     const byStore = DATA.by_store[year]; if (!byStore) continue;
     const stores  = str === 'all' ? Object.keys(byStore) : [str];
@@ -396,8 +443,9 @@ function renderSidebar() {
     </div>`;
   }
   document.getElementById('sb-list').innerHTML = html;
-  const yr = document.getElementById('f-year').value;
-  const period = yr==='all'?'全期間':yr+'年';
+  const yrFrom = document.getElementById('f-year-from').value;
+  const yrTo   = document.getElementById('f-year-to').value;
+  const period = yrFrom===yrTo ? yrFrom+'年' : (yrFrom&&yrTo ? yrFrom+'〜'+yrTo+'年' : '全期間');
   document.getElementById('sb-total').innerHTML =
     `<b>${period}</b>&nbsp; ${totalQty.toLocaleString()}個 / ¥${totalAmount.toLocaleString()}`;
 }
@@ -558,9 +606,10 @@ document.getElementById('hd-search').addEventListener('input',e=>{
 
 // ── Header date ───────────────────────────────────────────────────────────────
 function updateHeaderDate() {
-  const yr=document.getElementById('f-year').value;
+  const yrFrom=document.getElementById('f-year-from').value;
+  const yrTo=document.getElementById('f-year-to').value;
   let mn='', mx='';
-  const years=yr==='all'?Object.keys(DATA.date_ranges):[yr];
+  const years=Object.keys(DATA.date_ranges).filter(y=>(!yrFrom||y>=yrFrom)&&(!yrTo||y<=yrTo));
   for(const y of years){const dr=DATA.date_ranges[y];if(!dr)continue;if(!mn||dr[0]<mn)mn=dr[0];if(!mx||dr[1]>mx)mx=dr[1];}
   if(!mx){document.getElementById('hd-date').textContent='データなし';return;}
   const fmt=d=>d.slice(0,4)+'年'+d.slice(5,7)+'月'+d.slice(8,10)+'日';
@@ -569,7 +618,7 @@ function updateHeaderDate() {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 const modal=document.getElementById('modal');
-document.getElementById('hd-update-btn').addEventListener('click',()=>modal.classList.add('show'));
+document.getElementById('hd-update-btn').addEventListener('click',()=>{renderUploadList();modal.classList.add('show');});
 function closeModal(){
   modal.classList.remove('show');
   document.getElementById('dz').classList.remove('done','over');
@@ -616,6 +665,9 @@ document.getElementById('modal-run').addEventListener('click',()=>{
       for(const{buf} of pendingBufs) processAndMerge(buf, updatedYears);
       saveUploads();
       buildData();
+      // Extend 'to' year to include any newly uploaded year
+      const newLatest=Object.keys(DATA.by_store).sort().reverse()[0];
+      if(newLatest) document.getElementById('f-year-to').value=newLatest;
       applyFilter();
       closeModal();
     }catch(e){
@@ -716,10 +768,10 @@ function hl(text,q,trans=[]){
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadUploads();
 buildData();
-// Default: show latest year
-const latestYear = Object.keys(DATA.by_store).sort().reverse()[0];
-if (latestYear) document.getElementById('f-year').value = latestYear;
-if (Object.keys(UPLOADS).length > 0) document.getElementById('hd-saved').classList.add('show');
+// Default: show latest year only
+const allYrs=Object.keys(DATA.by_store).sort();
+if(allYrs.length){document.getElementById('f-year-from').value=allYrs[allYrs.length-1];document.getElementById('f-year-to').value=allYrs[allYrs.length-1];}
+if(Object.keys(UPLOADS).length>0) document.getElementById('hd-saved').classList.add('show');
 applyFilter();
 </script>
 </body>
