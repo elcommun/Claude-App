@@ -646,18 +646,19 @@ function applyFilter() {
     return a;
   }
   function codeIdx(agg){const idx={};for(const cd of Object.values(agg))for(const[c,qa] of Object.entries(cd)){if(!idx[c])idx[c]=[0,0];idx[c][0]+=qa[0];idx[c][1]+=qa[1];}return idx;}
-  // Anchor comparison to toYM's year so multi-year filters don't pull in stale years
-  const toYr=parseInt(toYM.slice(0,4));
-  const mkFrom=(n)=>String(toYr-n)+fromYM.slice(4);
+  // Shift from/to independently so multi-year periods (e.g. 2025-07〜2026-05) shift correctly
+  const fromYr=parseInt(fromYM.slice(0,4)), toYr=parseInt(toYM.slice(0,4));
+  const mkFrom=(n)=>String(fromYr-n)+fromYM.slice(4);
   const mkTo  =(n)=>String(toYr-n)+toYM.slice(4);
-  aggPrev =comparisonMode?buildAggForPeriod(mkFrom(1),mkTo(1)):{};
-  aggPrev2=comparisonMode?buildAggForPeriod(mkFrom(2),mkTo(2)):{};
+  // Always build comparison data so 手帳/カレンダー can use it regardless of comparisonMode
+  aggPrev =buildAggForPeriod(mkFrom(1),mkTo(1));
+  aggPrev2=buildAggForPeriod(mkFrom(2),mkTo(2));
   prevByCode=codeIdx(aggPrev); prev2ByCode=codeIdx(aggPrev2);
   function scIdx(ci){const idx={};for(const[c,qa] of Object.entries(ci)){const sc=(DATA.products[c]||[])[2];if(!sc)continue;if(!idx[sc])idx[sc]=[0,0];idx[sc][0]+=qa[0];idx[sc][1]+=qa[1];}return idx;}
-  prevBySearchCode =comparisonMode?scIdx(prevByCode):{};
-  prev2BySearchCode=comparisonMode?scIdx(prev2ByCode):{};
-  prevYearLabel =comparisonMode?String(toYr-1)+'年':'前年';
-  prev2YearLabel=comparisonMode?String(toYr-2)+'年':'前々年';
+  prevBySearchCode =scIdx(prevByCode);
+  prev2BySearchCode=scIdx(prev2ByCode);
+  prevYearLabel =String(toYr-1)+'年';
+  prev2YearLabel=String(toYr-2)+'年';
 
   updateHeaderDate();
   renderKPI();
@@ -680,13 +681,6 @@ function setSort(m) {
 function toggleComparison() {
   comparisonMode = !comparisonMode;
   document.getElementById('tog-cmp').classList.toggle('on', comparisonMode);
-  document.getElementById('rank-tbl').classList.toggle('show-cmp', comparisonMode);
-  // Update comparison column year labels
-  const yrFrom = document.getElementById('f-year-from').value;
-  if (yrFrom) {
-    document.getElementById('th-prev').textContent  = (parseInt(yrFrom)-1)+'年';
-    document.getElementById('th-prev2').textContent = (parseInt(yrFrom)-2)+'年';
-  }
   applyFilter();
 }
 function toggleHeatmap() {
@@ -737,9 +731,17 @@ function toggleGroup(name){if(expandedGroups.has(name))expandedGroups.delete(nam
 function toggleSub(key){if(expandedSubs.has(key))expandedSubs.delete(key);else expandedSubs.add(key);renderSidebar();}
 function toggleMacro(name){if(expandedMacros.has(name))expandedMacros.delete(name);else expandedMacros.add(name);renderSidebar();}
 function toggleCheck(cat){
-  if(exportChecks.has(cat))exportChecks.delete(cat);else exportChecks.add(cat);
+  const nowOn=!exportChecks.has(cat);
+  if(nowOn)exportChecks.add(cat);else exportChecks.delete(cat);
+  // If a MACRO_GROUP header is toggled, also toggle all its sub-categories
+  const mg=MACRO_GROUPS.find(m=>m.name===cat);
+  if(mg){for(const c of mg.cats){if(nowOn)exportChecks.add(c);else exportChecks.delete(c);}}
+  // If a CAT_GROUP header (手帳/カレンダー) is toggled, also toggle its season subs
+  const cg=CAT_GROUPS.find(g=>g.name===cat);
+  if(cg&&cg.subs.length){for(const s of cg.subs){const k=cg.name+':'+s.name;if(nowOn)exportChecks.add(k);else exportChecks.delete(k);}}
   const btn=document.getElementById('export-btn');
   if(btn){btn.disabled=!exportChecks.size;btn.style.opacity=exportChecks.size?'1':'0.4';}
+  renderSidebar();
 }
 function renderSidebar() {
   // Collect all real categories (excluding diary/calendar which go into groups)
@@ -969,7 +971,7 @@ function showCategory(cat, updateSidebar=true) {
   const _str=document.getElementById('f-store').value;
   let localPrevByCode=prevByCode, localPrev2ByCode=prev2ByCode;
   let prevLabel=prevYearLabel, prev2Label=prev2YearLabel, prevCatTot=null, prev2CatTot=null;
-  if(comparisonMode&&isYearGroupCat(cat)){
+  if(isYearGroupCat(cat)){
     const pc=getEquivYearCat(cat,-1), p2c=getEquivYearCat(cat,-2);
     if(pc){localPrevByCode=buildCodeIdxForSpecificCats([pc],_str);prevLabel=pc.match(/^\d{4}年/)?.[0]||'前年';prevCatTot={qty:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[1],0)};}
     else localPrevByCode={};
@@ -979,13 +981,13 @@ function showCategory(cat, updateSidebar=true) {
   // SearchCode indexes for 手帳・カレンダー: built from localPrevByCode if year-specific, else from global
   function scIdxLocal(ci){const idx={};for(const[c,qa] of Object.entries(ci)){const sc=(DATA.products[c]||[])[2];if(!sc)continue;if(!idx[sc])idx[sc]=[0,0];idx[sc][0]+=qa[0];idx[sc][1]+=qa[1];}return idx;}
   let localPrevBySC=prevBySearchCode, localPrev2BySC=prev2BySearchCode;
-  if(comparisonMode&&isYearGroupCat(cat)){localPrevBySC=scIdxLocal(localPrevByCode);localPrev2BySC=scIdxLocal(localPrev2ByCode);}
+  if(isYearGroupCat(cat)){localPrevBySC=scIdxLocal(localPrevByCode);localPrev2BySC=scIdxLocal(localPrev2ByCode);}
   document.getElementById('th-prev').textContent=prevLabel;
   document.getElementById('th-prev2').textContent=prev2Label;
 
   let cmpSt='';
-  if(comparisonMode&&prevCatTot){const d=prevCatTot.qty?Math.round((t.qty-prevCatTot.qty)/prevCatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prevLabel} <b>${prevCatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
-  if(comparisonMode&&prev2CatTot){const d=prev2CatTot.qty?Math.round((t.qty-prev2CatTot.qty)/prev2CatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prev2Label} <b>${prev2CatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
+  if(prevCatTot){const d=prevCatTot.qty?Math.round((t.qty-prevCatTot.qty)/prevCatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prevLabel} <b>${prevCatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
+  if(prev2CatTot){const d=prev2CatTot.qty?Math.round((t.qty-prev2CatTot.qty)/prev2CatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prev2Label} <b>${prev2CatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
 
   document.getElementById('cat-name').textContent=(CAT_ICONS[cat]||'📦')+' '+cat;
   document.getElementById('cat-stats').innerHTML=`
@@ -996,8 +998,11 @@ function showCategory(cat, updateSidebar=true) {
 
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
-  const colspan = 7 + (comparisonMode ? 2 : 0);
   const catType = getCatType(cat);
+  const diaryOrCal = catType==='手帳' || catType==='カレンダー';
+  const showCmp = comparisonMode || diaryOrCal;
+  document.getElementById('rank-tbl').classList.toggle('show-cmp', showCmp);
+  const colspan = 7 + (showCmp ? 2 : 0);
   let html='';
   function renderRow(item,rank,topV){
     const val=sortMode==='qty'?item.qty:item.amount;
