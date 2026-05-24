@@ -542,7 +542,7 @@ function renderSidebar() {
     const indentStyle=indent?'padding-left:22px;font-size:12px':'';
     return`<div class="sbi${act}" style="${indentStyle}" onclick="showCategory('${esc(displayCat)}')" data-cat="${esc(displayCat)}">
       <span style="font-size:${indent?'11':'13'}px">${icon}</span>
-      <span class="sbi-name">${x(indent?displayCat.split(':')[1]:displayCat)}</span>
+      <span class="sbi-name">${x(indent?(displayCat.includes(':')?displayCat.split(':')[1]:displayCat):displayCat)}</span>
       <span class="sbi-badge">${badge}</span>
       <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
