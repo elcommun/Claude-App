@@ -232,6 +232,9 @@ input[type=file]{display:none}
       <button class="sb-tbtn" id="tog-heat" onclick="toggleHeatmap()">🌡️ ヒートマップ</button>
     </div>
     <div class="sb-list" id="sb-list"></div>
+    <div id="sb-export" style="padding:6px 8px;border-top:1px solid #e0d9cf">
+      <button id="export-btn" onclick="downloadCheckedCategories()" disabled style="width:100%;padding:5px 8px;background:#4a7c59;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;opacity:0.4;transition:opacity .2s">📥 選択してExcelダウンロード</button>
+    </div>
   </aside>
 
   <main class="main">
@@ -729,9 +732,15 @@ function getCatTotal(cat) {
 let expandedGroups=new Set(['手帳','カレンダー']);
 let expandedSubs=new Set();
 let expandedMacros=new Set();
+let exportChecks=new Set();
 function toggleGroup(name){if(expandedGroups.has(name))expandedGroups.delete(name);else expandedGroups.add(name);renderSidebar();}
 function toggleSub(key){if(expandedSubs.has(key))expandedSubs.delete(key);else expandedSubs.add(key);renderSidebar();}
 function toggleMacro(name){if(expandedMacros.has(name))expandedMacros.delete(name);else expandedMacros.add(name);renderSidebar();}
+function toggleCheck(cat){
+  if(exportChecks.has(cat))exportChecks.delete(cat);else exportChecks.add(cat);
+  const btn=document.getElementById('export-btn');
+  if(btn){btn.disabled=!exportChecks.size;btn.style.opacity=exportChecks.size?'1':'0.4';}
+}
 function renderSidebar() {
   // Collect all real categories (excluding diary/calendar which go into groups)
   const groupMatchAny=c=>CAT_GROUPS.some(g=>g.match(c));
@@ -763,7 +772,9 @@ function renderSidebar() {
       icon='📅';
       iconSize='10';
     }
+    const chkd=exportChecks.has(displayCat)?'checked':'';
     return`<div class="sbi${act}" style="${indentStyle}" onclick="showCategory('${esc(displayCat)}')" data-cat="${esc(displayCat)}">
+      <input type="checkbox" ${chkd} onclick="event.stopPropagation();toggleCheck('${esc(displayCat)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:#4a7c59">
       <span style="font-size:${iconSize}px">${icon}</span>
       <span class="sbi-name">${x(labelText)}</span>
       <span class="sbi-badge">${badge}</span>
@@ -783,7 +794,9 @@ function renderSidebar() {
     const pct=maxVal?(val/maxVal*100).toFixed(1):0;
     const badge=sortMode==='qty'?t.qty.toLocaleString()+'個':'¥'+Math.round(t.amount/10000)+'万';
     const act=g.name===selectedCategory?' active':'';
+    const gChkd=exportChecks.has(g.name)?'checked':'';
     html+=`<div class="sbi${act}" onclick="showCategory('${esc(g.name)}')" data-cat="${esc(g.name)}" style="font-weight:600">
+      <input type="checkbox" ${gChkd} onclick="event.stopPropagation();toggleCheck('${esc(g.name)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:#4a7c59">
       <span style="font-size:13px">${g.icon}</span>
       <span class="sbi-name">${x(g.name)}</span>
       <span class="sbi-badge">${badge}</span>
@@ -804,7 +817,9 @@ function renderSidebar() {
           const subAct=subKey===selectedCategory?' active':'';
           const subExp=expandedSubs.has(subKey);
           const subChev=subExp?'▼':'▶';
+          const skChkd=exportChecks.has(subKey)?'checked':'';
           html+=`<div class="sbi${subAct}" style="padding-left:22px;font-size:12px" onclick="showCategory('${esc(subKey)}')" data-cat="${esc(subKey)}">
+            <input type="checkbox" ${skChkd} onclick="event.stopPropagation();toggleCheck('${esc(subKey)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:#4a7c59">
             <span style="font-size:11px">${s.icon}</span>
             <span class="sbi-name">${x(s.name)}</span>
             <span class="sbi-badge">${subBadge}</span>
@@ -832,7 +847,9 @@ function renderSidebar() {
     const pct=maxVal?(val/maxVal*100).toFixed(1):0;
     const badge=sortMode==='qty'?t.qty.toLocaleString()+'個':'¥'+Math.round(t.amount/10000)+'万';
     const act=mg.name===selectedCategory?' active':'';
+    const mgChkd=exportChecks.has(mg.name)?'checked':'';
     html+=`<div class="sbi${act}" onclick="showCategory('${esc(mg.name)}')" data-cat="${esc(mg.name)}" style="font-weight:600">
+      <input type="checkbox" ${mgChkd} onclick="event.stopPropagation();toggleCheck('${esc(mg.name)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:#4a7c59">
       <span style="font-size:13px">${mg.icon}</span>
       <span class="sbi-name">${x(mg.name)}</span>
       <span class="sbi-badge">${badge}</span>
@@ -850,6 +867,8 @@ function renderSidebar() {
   if(aggregated['その他']) html+=itemHtml('その他');
 
   document.getElementById('sb-list').innerHTML=html;
+  const ebtn=document.getElementById('export-btn');
+  if(ebtn){ebtn.disabled=!exportChecks.size;ebtn.style.opacity=exportChecks.size?'1':'0.4';}
   const yrFrom=document.getElementById('f-year-from').value;
   const moFrom=document.getElementById('f-month-from').value||'01';
   const yrTo=document.getElementById('f-year-to').value;
@@ -858,6 +877,73 @@ function renderSidebar() {
   if(yrFrom===yrTo) period=moFrom==='01'&&moTo==='12'?yrFrom+'年':yrFrom+'年'+moFrom+'〜'+moTo+'月';
   else period=(yrFrom&&yrTo)?yrFrom+'年'+moFrom+'月〜'+yrTo+'年'+moTo+'月':'全期間';
   document.getElementById('sb-total').innerHTML=`<b>${period}</b>&nbsp; ${totalQty.toLocaleString()}個 / ¥${totalAmount.toLocaleString()}`;
+}
+
+// ── Excel export ──────────────────────────────────────────────────────────────
+function downloadCheckedCategories(){
+  if(!exportChecks.size) return;
+  const wb=XLSX.utils.book_new();
+  const yrFrom=document.getElementById('f-year-from').value;
+  const moFrom=document.getElementById('f-month-from').value||'01';
+  const yrTo=document.getElementById('f-year-to').value;
+  const moTo=document.getElementById('f-month-to').value||'12';
+  const periodStr=`${yrFrom}/${moFrom}/01〜${yrTo}/${moTo}/末`;
+
+  for(const catName of exportChecks){
+    const realCats=getGroupCats(catName)||[catName];
+    const combined={};
+    for(const rc of realCats){
+      for(const[code,item] of Object.entries(aggregated[rc]||{})){
+        if(!combined[code])combined[code]={...item,qty:0,amount:0};
+        combined[code].qty+=item.qty; combined[code].amount+=item.amount;
+      }
+    }
+    const allItems=Object.values(combined);
+    if(!allItems.length) continue;
+
+    const leftItems=[...allItems].sort((a,b)=>a.code.localeCompare(b.code));
+    const top30=[...allItems].sort((a,b)=>b.qty-a.qty).slice(0,30);
+    const totalQtyCat=allItems.reduce((s,i)=>s+i.qty,0);
+    const totalAmtCat=allItems.reduce((s,i)=>s+i.amount,0);
+
+    const catCodes=new Set(allItems.map(i=>i.code));
+    const sumPrev=bc=>{let q=0,a=0;for(const[c,qa] of Object.entries(bc)){if(catCodes.has(c)){q+=qa[0];a+=qa[1];}}return{qty:q,amount:a};};
+    const prevT=comparisonMode?sumPrev(prevByCode):{qty:0,amount:0};
+    const prev2T=comparisonMode?sumPrev(prev2ByCode):{qty:0,amount:0};
+
+    const data=[];
+    data.push([null,catName]);
+    data.push([null,periodStr]);
+    data.push([null,'品番','品名','上代','個数','合計金額',null,null,null,null,
+      prev2T.qty?'前々期販売数':null,null,prev2T.qty||null]);
+
+    const numRows=Math.max(leftItems.length,33);
+    for(let i=0;i<numRows;i++){
+      const rowNum=i+4;
+      const row=new Array(16).fill(null);
+      if(i<leftItems.length){
+        const it=leftItems[i];
+        row[0]=i+1; row[1]=it.code; row[2]=it.name; row[3]=it.price; row[4]=it.qty; row[5]=it.amount;
+      }
+      if(rowNum===4){
+        row[8]='販売数'; row[9]=totalQtyCat;
+        if(prevT.qty){row[10]='前期販売数'; row[12]=prevT.qty; row[15]=prevT.amount;}
+      } else if(rowNum===5){
+        row[8]='金額'; row[9]=totalAmtCat;
+      } else if(i>=3&&(i-3)<top30.length){
+        const ri=top30[i-3];
+        row[8]=i-2; row[9]=ri.code; row[10]=ri.name; row[11]=ri.price; row[12]=ri.qty; row[13]=ri.amount;
+      }
+      data.push(row);
+    }
+
+    const ws=XLSX.utils.aoa_to_sheet(data);
+    ws['!cols']=[{wch:4},{wch:14},{wch:32},{wch:7},{wch:7},{wch:12},{wch:2},{wch:2},
+                 {wch:8},{wch:10},{wch:32},{wch:7},{wch:9},{wch:12}];
+    const sheetName=catName.substring(0,31).replace(/[[\]*?:/\\]/g,'_');
+    XLSX.utils.book_append_sheet(wb,ws,sheetName);
+  }
+  XLSX.writeFile(wb,`EC販売ランキング_${yrFrom}${moFrom}-${yrTo}${moTo}.xlsx`);
 }
 
 // ── Category view ─────────────────────────────────────────────────────────────
