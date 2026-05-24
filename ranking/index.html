@@ -129,6 +129,15 @@ input[type=file]{display:none}
 .empty-icon{font-size:32px;margin-bottom:8px}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(146,117,74,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
 @keyframes spin{to{transform:rotate(360deg)}}
+.alias-panel{margin-bottom:12px;border:1px solid var(--border);border-radius:7px;padding:0 12px;font-family:inherit}
+.alias-panel summary{padding:9px 0;cursor:pointer;font-size:11px;font-weight:600;color:var(--ink3);user-select:none;list-style:none;outline:none}
+.alias-panel summary::-webkit-details-marker{display:none}
+.alias-add{display:flex;gap:6px;align-items:center;margin:6px 0 10px}
+.alias-inp{flex:1;height:28px;padding:0 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;outline:none;font-family:inherit;background:var(--paper);color:var(--ink)}
+.alias-inp:focus{border-color:var(--gold)}
+.alias-eq{font-size:12px;color:var(--ink4);flex-shrink:0}
+.alias-abtn{height:28px;padding:0 12px;border:none;background:var(--ink);color:#fff;border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;transition:background .15s}
+.alias-abtn:hover{background:#2c2622}
 </style>
 </head>
 <body>
@@ -164,6 +173,16 @@ input[type=file]{display:none}
       <div class="dz-files" id="dz-files"></div>
       <input type="file" id="dz-input" accept=".xlsx,.xls" multiple>
     </div>
+    <details class="alias-panel">
+      <summary>🔍 検索エイリアス設定（カスタム検索ルール）</summary>
+      <div id="alias-list" style="margin:6px 0"></div>
+      <div class="alias-add">
+        <input id="alias-a" class="alias-inp" placeholder="検索語（例: フェルメール）">
+        <span class="alias-eq">＝</span>
+        <input id="alias-b" class="alias-inp" placeholder="一致語（例: Vermeer）">
+        <button class="alias-abtn" onclick="addAlias()">追加</button>
+      </div>
+    </details>
     <div class="modal-btns">
       <button class="modal-reset" onclick="resetData()">元のデータに戻す</button>
       <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -508,50 +527,57 @@ function normalize(s){
 }
 function toKatakana(s){return s.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));}
 const TRANS={
-  'ぽいんと':['point'],'point':['ぽいんと'],
-  'ぐりーん':['green'],'green':['ぐりーん'],
-  'ぶるー':['blue'],'blue':['ぶるー'],
-  'れっど':['red'],'red':['れっど'],
+  // 色
+  'ぽいんと':['point'],'わんぽいんと':['point'],'point':['ぽいんと','わんぽいんと'],
+  'ぐりーん':['green'],'みどり':['green'],'green':['ぐりーん','みどり'],
+  'ぶるー':['blue'],'あお':['blue'],'blue':['ぶるー','あお'],
+  'れっど':['red'],'あか':['red'],'red':['れっど','あか'],
   'ぴんく':['pink'],'pink':['ぴんく'],
-  'いえろー':['yellow'],'yellow':['いえろー'],
+  'いえろー':['yellow'],'きいろ':['yellow'],'yellow':['いえろー','きいろ'],
   'おれんじ':['orange'],'orange':['おれんじ'],
-  'ぱーぷる':['purple'],'purple':['ぱーぷる'],
-  'ほわいと':['white'],'うぁいと':['white'],'white':['ほわいと','うぁいと'],
-  'ぶらっく':['black'],'black':['ぶらっく'],
+  'ぱーぷる':['purple'],'むらさき':['purple'],'purple':['ぱーぷる','むらさき'],
+  'ほわいと':['white'],'うぁいと':['white'],'しろ':['white'],'white':['ほわいと','うぁいと','しろ'],
+  'ぶらっく':['black'],'くろ':['black'],'black':['ぶらっく','くろ'],
   'ねいびー':['navy'],'navy':['ねいびー'],
   'べーじゅ':['beige'],'beige':['べーじゅ'],
-  'ぶらうん':['brown'],'brown':['ぶらうん'],
+  'ぶらうん':['brown'],'ちゃいろ':['brown'],'brown':['ぶらうん','ちゃいろ'],
   'ぐれー':['gray','grey'],'gray':['ぐれー'],'grey':['ぐれー'],
   'あいぼりー':['ivory'],'ivory':['あいぼりー'],
   'なちゅらる':['natural'],'natural':['なちゅらる'],
   'くりあ':['clear'],'clear':['くりあ'],
+  'ごーるど':['gold'],'きん':['gold'],'gold':['ごーるど','きん'],
+  'しるばー':['silver'],'ぎん':['silver'],'silver':['しるばー','ぎん'],
+  'らべんだー':['lavender'],'lavender':['らべんだー'],
+  'みんと':['mint'],'mint':['みんと'],
+  'あくあ':['aqua'],'aqua':['あくあ'],
+  'てらこった':['terracotta'],'terracotta':['てらこった'],
+  'ぼるどー':['bordeaux'],'bordeaux':['ぼるどー'],
+  'さんど':['sand'],'sand':['さんど'],
+  'もすぐりーん':['moss'],'moss':['もすぐりーん'],
+  // 画家・アーティスト
+  'ふぇるめーる':['vermeer'],'vermeer':['ふぇるめーる'],
+  'もね':['monet'],'monet':['もね'],
+  'ごっほ':['gogh','van gogh'],'gogh':['ごっほ'],
+  'るのわーる':['renoir'],'れのわーる':['renoir'],'renoir':['るのわーる','れのわーる'],
+  'まちす':['matisse'],'matisse':['まちす'],
+  'くりむと':['klimt'],'klimt':['くりむと'],
+  'みゅしゃ':['mucha'],'むーしゃ':['mucha'],'mucha':['みゅしゃ','むーしゃ'],
+  'ほくさい':['hokusai'],'hokusai':['ほくさい'],
+  'ひろしげ':['hiroshige'],'hiroshige':['ひろしげ'],
+  'せざんぬ':['cezanne'],'cezanne':['せざんぬ'],
+  'どが':['degas'],'degas':['どが'],
+  'えっしゃー':['escher'],'escher':['えっしゃー'],
+  'だびんち':['davinci','leonardo'],'davinci':['だびんち'],'leonardo':['だびんち'],
+  'らふぁえろ':['raphael'],'raphael':['らふぁえろ'],
+  'ぴかそ':['picasso'],'picasso':['ぴかそ'],
+  'かんでぃんすきー':['kandinsky'],'kandinsky':['かんでぃんすきー'],
+  'みけらんじぇろ':['michelangelo'],'michelangelo':['みけらんじぇろ'],
+  // 動物
   'ねこ':['cat'],'きゃっと':['cat'],'cat':['ねこ','きゃっと'],
   'いぬ':['dog'],'dog':['いぬ'],
   'うさぎ':['rabbit','bunny'],'rabbit':['うさぎ'],'bunny':['うさぎ'],
   'とり':['bird'],'bird':['とり'],
   'くま':['bear'],'bear':['くま'],
-  'はな':['flower'],'ふらわー':['flower'],'flower':['はな','ふらわー'],
-  'ほし':['star'],'star':['ほし'],
-  'つき':['moon'],'moon':['つき'],
-  'たいよう':['sun'],'sun':['たいよう'],
-  'はっぱ':['leaf'],'leaf':['はっぱ'],
-  'きのこ':['mushroom'],'mushroom':['きのこ'],
-  'ちょうちょ':['butterfly'],'butterfly':['ちょうちょ'],
-  'うみ':['sea','ocean'],'sea':['うみ'],'ocean':['うみ'],
-  'やま':['mountain'],'mountain':['やま'],
-  'さくら':['sakura','cherry'],'sakura':['さくら'],'cherry':['さくら'],
-  'ゆき':['snow'],'snow':['ゆき'],
-  'こーひー':['coffee'],'coffee':['こーひー'],
-  'ぼたにかる':['botanical'],'botanical':['ぼたにかる'],
-  'ちぇっく':['check'],'check':['ちぇっく'],
-  'どっと':['dot'],'dot':['どっと'],
-  'すとらいぷ':['stripe'],'stripe':['すとらいぷ'],
-  'しんぷる':['simple'],'simple':['しんぷる'],
-  'ぎふと':['gift'],'gift':['ぎふと'],
-  'かめれおん':['chameleon'],'chameleon':['かめれおん'],
-  'はっぴー':['happy'],'happy':['はっぴー'],
-  'まーぶる':['marble'],'marble':['まーぶる'],
-  'ゆにこーん':['unicorn'],'unicorn':['ゆにこーん'],
   'ふくろう':['owl'],'owl':['ふくろう'],
   'きつね':['fox'],'fox':['きつね'],
   'りす':['squirrel'],'squirrel':['りす'],
@@ -560,11 +586,80 @@ const TRANS={
   'ぞう':['elephant'],'elephant':['ぞう'],
   'ひつじ':['sheep'],'sheep':['ひつじ'],
   'くじゃく':['peacock'],'peacock':['くじゃく'],
-  'ふじ':['fuji'],'fuji':['ふじ'],
+  'たこ':['octopus'],'octopus':['たこ'],
+  'くらげ':['jellyfish'],'jellyfish':['くらげ'],
+  'ぱんだ':['panda'],'panda':['ぱんだ'],
+  'らいおん':['lion'],'lion':['らいおん'],
+  'とら':['tiger'],'tiger':['とら'],
+  'きりん':['giraffe'],'giraffe':['きりん'],
+  'こあら':['koala'],'koala':['こあら'],
+  'すずめ':['sparrow'],'sparrow':['すずめ'],
+  'つばめ':['swallow'],'swallow':['つばめ'],
+  'かもめ':['seagull'],'seagull':['かもめ'],
+  'ひよこ':['chick'],'chick':['ひよこ'],
+  'いるか':['dolphin'],'dolphin':['いるか'],
+  'くじら':['whale'],'whale':['くじら'],
+  'さかな':['fish'],'fish':['さかな'],
+  'かに':['crab'],'crab':['かに'],
+  'とんぼ':['dragonfly'],'dragonfly':['とんぼ'],
+  'ちょうちょ':['butterfly'],'butterfly':['ちょうちょ'],
+  'みつばち':['bee'],'bee':['みつばち'],
+  'かめれおん':['chameleon'],'chameleon':['かめれおん'],
+  'ゆにこーん':['unicorn'],'unicorn':['ゆにこーん'],
+  // 自然・植物
+  'はな':['flower'],'ふらわー':['flower'],'flower':['はな','ふらわー'],
+  'ほし':['star'],'star':['ほし'],
+  'つき':['moon'],'moon':['つき'],
+  'たいよう':['sun'],'sun':['たいよう'],
+  'はっぱ':['leaf'],'leaf':['はっぱ'],
+  'きのこ':['mushroom'],'mushroom':['きのこ'],
+  'うみ':['sea','ocean'],'sea':['うみ'],'ocean':['うみ'],
+  'やま':['mountain'],'mountain':['やま'],
+  'さくら':['sakura','cherry'],'sakura':['さくら'],'cherry':['さくら'],
+  'ゆき':['snow'],'snow':['ゆき'],
   'にじ':['rainbow'],'rainbow':['にじ'],
   'かさ':['umbrella'],'umbrella':['かさ'],
-  'くらげ':['jellyfish'],'jellyfish':['くらげ'],
-  'たこ':['octopus'],'octopus':['たこ'],
+  'ふじ':['fuji'],'fuji':['ふじ'],
+  'ばら':['rose'],'rose':['ばら'],
+  'ひまわり':['sunflower'],'sunflower':['ひまわり'],
+  'ちゅーりっぷ':['tulip'],'tulip':['ちゅーりっぷ'],
+  'もみじ':['maple'],'maple':['もみじ'],
+  'たんぽぽ':['dandelion'],'dandelion':['たんぽぽ'],
+  'たけ':['bamboo'],'bamboo':['たけ'],
+  'つばき':['camellia'],'camellia':['つばき'],
+  'あじさい':['hydrangea'],'hydrangea':['あじさい'],
+  'ゆり':['lily'],'lily':['ゆり'],
+  'すみれ':['violet'],'violet':['すみれ'],
+  'もも':['peach'],'peach':['もも'],
+  'いちご':['strawberry'],'strawberry':['いちご'],
+  'れもん':['lemon'],'lemon':['れもん'],
+  'りんご':['apple'],'apple':['りんご'],
+  'ぶどう':['grape'],'grape':['ぶどう'],
+  'まつ':['pine'],'pine':['まつ'],
+  // 季節
+  'はる':['spring'],'spring':['はる'],
+  'なつ':['summer'],'summer':['なつ'],
+  'あき':['autumn','fall'],'autumn':['あき'],'fall':['あき'],
+  'ふゆ':['winter'],'winter':['ふゆ'],
+  // スタイル・デザイン
+  'ぼたにかる':['botanical'],'botanical':['ぼたにかる'],
+  'ちぇっく':['check'],'check':['ちぇっく'],
+  'どっと':['dot'],'dot':['どっと'],
+  'すとらいぷ':['stripe'],'stripe':['すとらいぷ'],
+  'しんぷる':['simple'],'simple':['しんぷる'],
+  'のるでぃっく':['nordic'],'nordic':['のるでぃっく'],
+  'えすにっく':['ethnic'],'ethnic':['えすにっく'],
+  'あんてぃーく':['antique'],'antique':['あんてぃーく'],
+  'びんてーじ':['vintage'],'vintage':['びんてーじ'],
+  'れとろ':['retro'],'retro':['れとろ'],
+  'もだん':['modern'],'modern':['もだん'],
+  'くらしっく':['classic'],'classic':['くらしっく'],
+  'えれがんと':['elegant'],'elegant':['えれがんと'],
+  'まーぶる':['marble'],'marble':['まーぶる'],
+  // その他
+  'こーひー':['coffee'],'coffee':['こーひー'],
+  'ぎふと':['gift'],'ぷれぜんと':['gift'],'gift':['ぎふと','ぷれぜんと'],
+  'はっぴー':['happy'],'happy':['はっぴー'],
 };
 
 // ── Search ────────────────────────────────────────────────────────────────────
@@ -573,7 +668,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';return;}
   document.getElementById('cat-view').style.display='none';
   document.getElementById('search-view').style.display='block';
-  const qn=normalize(q), trans=TRANS[qn]||[], allTerms=[qn,...trans], results=[];
+  const qn=normalize(q), trans=[...(TRANS[qn]||[]),...getAliasTerms(qn)], allTerms=[qn,...trans], results=[];
   for(const[cat,codes] of Object.entries(aggregated)){
     const items=Object.values(codes).sort((a,b)=>sortMode==='qty'?b.qty-a.qty:b.amount-a.amount);
     items.forEach((item,i)=>{
@@ -618,7 +713,7 @@ function updateHeaderDate() {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 const modal=document.getElementById('modal');
-document.getElementById('hd-update-btn').addEventListener('click',()=>{renderUploadList();modal.classList.add('show');});
+document.getElementById('hd-update-btn').addEventListener('click',()=>{renderUploadList();renderAliasList();modal.classList.add('show');});
 function closeModal(){
   modal.classList.remove('show');
   document.getElementById('dz').classList.remove('done','over');
@@ -765,8 +860,52 @@ function hl(text,q,trans=[]){
   return r;
 }
 
+// ── Custom aliases ────────────────────────────────────────────────────────────
+const ALIAS_KEY='ec_search_aliases_v1';
+let CUSTOM_ALIASES=[];
+function loadAliases(){CUSTOM_ALIASES=JSON.parse(localStorage.getItem(ALIAS_KEY)||'[]');}
+function saveAliases(){localStorage.setItem(ALIAS_KEY,JSON.stringify(CUSTOM_ALIASES));}
+function getAliasTerms(qn){
+  const extras=[];
+  for(const{a,b} of CUSTOM_ALIASES){
+    const na=normalize(a),nb=normalize(b);
+    if(qn===na) extras.push(nb);
+    else if(qn===nb) extras.push(na);
+  }
+  return extras;
+}
+function renderAliasList(){
+  const el=document.getElementById('alias-list');
+  if(!el) return;
+  if(!CUSTOM_ALIASES.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--ink4);padding:2px 0 4px">なし</div>';
+    return;
+  }
+  el.innerHTML=CUSTOM_ALIASES.map((al,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border2)">
+      <span style="font-size:12px;flex:1">${x(al.a)} ＝ ${x(al.b)}</span>
+      <button onclick="removeAlias(${i})" style="font-size:10px;color:var(--red);background:none;border:1px solid var(--border);padding:2px 8px;border-radius:4px;cursor:pointer;font-family:inherit">削除</button>
+    </div>`).join('');
+}
+function addAlias(){
+  const a=document.getElementById('alias-a').value.trim();
+  const b=document.getElementById('alias-b').value.trim();
+  if(!a||!b) return;
+  CUSTOM_ALIASES.push({a,b});
+  saveAliases();
+  renderAliasList();
+  document.getElementById('alias-a').value='';
+  document.getElementById('alias-b').value='';
+}
+function removeAlias(i){
+  CUSTOM_ALIASES.splice(i,1);
+  saveAliases();
+  renderAliasList();
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadUploads();
+loadAliases();
 buildData();
 // Default: show latest year only
 const allYrs=Object.keys(DATA.by_store).sort();
