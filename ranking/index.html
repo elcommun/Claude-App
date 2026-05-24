@@ -296,6 +296,29 @@ function getGroupCats(displayName){
   }
   return null;
 }
+// Returns true if cat is a real (non-virtual) category that belongs to a CAT_GROUP and has a year prefix
+function isYearGroupCat(cat){
+  if(!/^\d{4}年/.test(cat)) return false;
+  for(const g of CAT_GROUPS){if(g.match(cat)) return true;}
+  return false;
+}
+// Returns the equivalent category name shifted by yearOffset years (negative = earlier)
+function getEquivYearCat(cat,yearOffset){
+  const m=cat.match(/^(\d{4})(年.*)/);
+  if(!m) return null;
+  return String(parseInt(m[1])+yearOffset)+m[2];
+}
+// Builds code→[qty,amount] index from ALL data (PRELOADED+UPLOADS) for specific named categories
+function buildCodeIdxForSpecificCats(catList,str){
+  const idx={};
+  function addFrom(byStore){
+    const sts=str==='all'?Object.keys(byStore):[str];
+    for(const s of sts){const bc=byStore[s];if(!bc)continue;for(const cat of catList){const codes=bc[cat];if(!codes)continue;for(const[code,qa] of Object.entries(codes)){if(!idx[code])idx[code]=[0,0];idx[code][0]+=qa[0];idx[code][1]+=qa[1];}}}
+  }
+  for(const bsy of Object.values(PRELOADED.by_store)) addFrom(bsy);
+  for(const umd of Object.values(UPLOADS)) addFrom(umd.by_store||{});
+  return idx;
+}
 const CAT_ICONS={'手帳':'📔','カレンダー':'📆','手帳:1月始まり':'🗓️','手帳:4月始まり':'🌸','手帳:10月始まり':'🍂','ブックカバー':'📖','レターセット':'✉️','保冷バッグ':'🧊','ペンケース':'✏️','ブックマーク':'🔖','メッセージカード':'💌','ぽち袋・金封':'🧧','ポーチ・ケース':'👜','ノート':'📓','ステッカー・シール':'⭐','メガネケース':'👓','マスキングテープ':'📏','スタンプ':'📮','メモ':'📋','マウスパッド':'🖱️','ふせん':'📌','ポスター':'🎨','グリーティングカード':'🎴','下敷き':'📐','ボールペン':'🖊️','トートバッグ':'🛍️','時計':'⏰','ランチボックス':'🍱','キーリング':'🗝️','エコバッグ':'🌿','箸セット':'🥢','タグ':'🎟️','クリアファイル':'📂','他カバー系':'🗂️','食器':'🍽️','ハンカチクロス':'🎗️','コースター他':'☕'};
 const LS_KEY = 'ec_ranking_uploads_v2';
 
@@ -684,12 +707,30 @@ function showCategory(cat, updateSidebar=true) {
   const topVal = items.length?(sortMode==='qty'?items[0].qty:items[0].amount):1;
   const catPct = totalQty?(t.qty/totalQty*100).toFixed(1):0;
 
+  // Year-specific diary/calendar: compare against equivalent year category, not period-shifted
+  const _str=document.getElementById('f-store').value;
+  let localPrevByCode=prevByCode, localPrev2ByCode=prev2ByCode;
+  let prevLabel='前年', prev2Label='前々年', prevCatTot=null, prev2CatTot=null;
+  if(comparisonMode&&isYearGroupCat(cat)){
+    const pc=getEquivYearCat(cat,-1), p2c=getEquivYearCat(cat,-2);
+    if(pc){localPrevByCode=buildCodeIdxForSpecificCats([pc],_str);prevLabel=pc.match(/^\d{4}年/)?.[0]||'前年';prevCatTot={qty:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[1],0)};}
+    else localPrevByCode={};
+    if(p2c){localPrev2ByCode=buildCodeIdxForSpecificCats([p2c],_str);prev2Label=p2c.match(/^\d{4}年/)?.[0]||'前々年';prev2CatTot={qty:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[1],0)};}
+    else localPrev2ByCode={};
+  }
+  document.getElementById('th-prev').textContent=prevLabel;
+  document.getElementById('th-prev2').textContent=prev2Label;
+
+  let cmpSt='';
+  if(comparisonMode&&prevCatTot){const d=prevCatTot.qty?Math.round((t.qty-prevCatTot.qty)/prevCatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prevLabel} <b>${prevCatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
+  if(comparisonMode&&prev2CatTot){const d=prev2CatTot.qty?Math.round((t.qty-prev2CatTot.qty)/prev2CatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prev2Label} <b>${prev2CatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
+
   document.getElementById('cat-name').textContent=(CAT_ICONS[cat]||'📦')+' '+cat;
   document.getElementById('cat-stats').innerHTML=`
     <span class="cs"><b>${t.qty.toLocaleString()}</b> 個</span>
     <span class="cs"><b>¥${t.amount.toLocaleString()}</b></span>
     <span class="cs">全体の <b>${catPct}%</b></span>
-    <span class="cs">SKU <b>${items.length}</b>種</span>`;
+    <span class="cs">SKU <b>${items.length}</b>種</span>${cmpSt}`;
 
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
@@ -717,7 +758,7 @@ function showCategory(cat, updateSidebar=true) {
         <td class="nc">${x(item.name)}</td>
         <td class="num">¥${item.price.toLocaleString()}</td>
         <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
-        ${cmpCell(prevByCode[item.code])}${cmpCell(prev2ByCode[item.code])}
+        ${cmpCell(localPrevByCode[item.code])}${cmpCell(localPrev2ByCode[item.code])}
         <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
         <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
       </tr>`;
