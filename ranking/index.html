@@ -325,7 +325,6 @@ const CAT_MAP={
   '未分類':'その他',
   '別注（仕入れ）':'その他',
 };
-function mapCategory(cat){return CAT_MAP[cat]||(CATEGORY_ORDER.includes(cat)?cat:'その他');}
 // Groups that appear pinned at top of sidebar with expandable sub-categories
 const CAT_GROUPS=[
   {name:'手帳',icon:'📔',match:c=>/ダイアリー/.test(c),subs:[
@@ -335,6 +334,11 @@ const CAT_GROUPS=[
   ]},
   {name:'カレンダー',icon:'📆',match:c=>/カレンダー/.test(c),subs:[]},
 ];
+function mapCategory(cat){
+  // 手帳・カレンダーグループに属するカテゴリーはそのまま返す（グループマッチングに使うため）
+  for(const g of CAT_GROUPS){if(g.match(cat))return cat;}
+  return CAT_MAP[cat]||(CATEGORY_ORDER.includes(cat)?cat:'その他');
+}
 // Format groupings for diary and calendar product tables
 const DIARY_FORMATS=[
   {prefix:'MC-',name:'新書判 コンパクトマンスリー'},
