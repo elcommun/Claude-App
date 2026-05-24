@@ -86,7 +86,7 @@ input[type=file]{display:none}
 .sbi.active .sbi-badge{color:var(--gold)}
 .sbi-bar{position:absolute;bottom:0;left:17px;right:14px;height:2px;background:var(--border2);border-radius:1px}
 .sbi-bar-fill{height:100%;background:var(--gold);border-radius:1px;opacity:.5;transition:width .3s}
-.sb-flt{padding:9px 11px;border-top:1px solid var(--border2);display:flex;flex-direction:column;gap:7px}
+.sb-flt{padding:9px 11px;border-bottom:1px solid var(--border2);display:flex;flex-direction:column;gap:7px}
 .fl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);margin-bottom:3px}
 .fsel{width:100%;height:29px;padding:0 7px;border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--ink);background:var(--paper);outline:none;font-family:inherit}
 .fsel:focus{border-color:var(--gold)}
@@ -129,6 +129,15 @@ input[type=file]{display:none}
 .empty-icon{font-size:32px;margin-bottom:8px}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(146,117,74,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
 @keyframes spin{to{transform:rotate(360deg)}}
+.alias-panel{margin-bottom:12px;border:1px solid var(--border);border-radius:7px;padding:0 12px;font-family:inherit}
+.alias-panel summary{padding:9px 0;cursor:pointer;font-size:11px;font-weight:600;color:var(--ink3);user-select:none;list-style:none;outline:none}
+.alias-panel summary::-webkit-details-marker{display:none}
+.alias-add{display:flex;gap:6px;align-items:center;margin:6px 0 10px}
+.alias-inp{flex:1;height:28px;padding:0 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;outline:none;font-family:inherit;background:var(--paper);color:var(--ink)}
+.alias-inp:focus{border-color:var(--gold)}
+.alias-eq{font-size:12px;color:var(--ink4);flex-shrink:0}
+.alias-abtn{height:28px;padding:0 12px;border:none;background:var(--ink);color:#fff;border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;transition:background .15s}
+.alias-abtn:hover{background:#2c2622}
 </style>
 </head>
 <body>
@@ -155,6 +164,7 @@ input[type=file]{display:none}
       同じ年のファイルを再アップロードすると、そのデータが更新されます。<br>
       アップロードしたデータはブラウザに保存されます。
     </div>
+    <div id="upload-list" style="margin-bottom:10px"></div>
     <div class="mn" id="mn"></div>
     <div class="dz" id="dz">
       <div class="dz-icon">📂</div>
@@ -163,6 +173,16 @@ input[type=file]{display:none}
       <div class="dz-files" id="dz-files"></div>
       <input type="file" id="dz-input" accept=".xlsx,.xls" multiple>
     </div>
+    <details class="alias-panel">
+      <summary>🔍 検索エイリアス設定（カスタム検索ルール）</summary>
+      <div id="alias-list" style="margin:6px 0"></div>
+      <div class="alias-add">
+        <input id="alias-a" class="alias-inp" placeholder="検索語（例: フェルメール）">
+        <span class="alias-eq">＝</span>
+        <input id="alias-b" class="alias-inp" placeholder="一致語（例: Vermeer）">
+        <button class="alias-abtn" onclick="addAlias()">追加</button>
+      </div>
+    </details>
     <div class="modal-btns">
       <button class="modal-reset" onclick="resetData()">元のデータに戻す</button>
       <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -177,17 +197,14 @@ input[type=file]{display:none}
       <div class="sb-lbl">カテゴリ</div>
       <div class="sb-total" id="sb-total"></div>
     </div>
-    <div class="sb-tog">
-      <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty')">個数順</button>
-      <button class="sb-tbtn"   id="tog-amt" onclick="setSort('amount')">金額順</button>
-    </div>
-    <div class="sb-list" id="sb-list"></div>
     <div class="sb-flt">
       <div>
-        <div class="fl">年度</div>
-        <select class="fsel" id="f-year" onchange="applyFilter()">
-          <option value="all">全期間</option>
-        </select>
+        <div class="fl">期間</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <select class="fsel" id="f-year-from" onchange="applyFilter()" style="flex:1"></select>
+          <span style="font-size:11px;color:var(--ink4);flex-shrink:0">〜</span>
+          <select class="fsel" id="f-year-to" onchange="applyFilter()" style="flex:1"></select>
+        </div>
       </div>
       <div>
         <div class="fl">店舗</div>
@@ -196,6 +213,11 @@ input[type=file]{display:none}
         </select>
       </div>
     </div>
+    <div class="sb-tog">
+      <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty')">個数順</button>
+      <button class="sb-tbtn"   id="tog-amt" onclick="setSort('amount')">金額順</button>
+    </div>
+    <div class="sb-list" id="sb-list"></div>
   </aside>
 
   <main class="main">
@@ -265,11 +287,48 @@ function saveUploads() {
     alert('ブラウザのストレージ容量が不足しています。古いデータを削除してください。');
   }
 }
+function renderUploadList() {
+  const ul=document.getElementById('upload-list');
+  if(!ul) return;
+  const years=Object.keys(UPLOADS).sort().reverse();
+  if(!years.length){
+    ul.innerHTML='<div style="font-size:11px;color:var(--ink4);padding:4px 0 6px">追加アップロード: なし（内蔵データのみ）</div>';
+    return;
+  }
+  let html='<div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);margin-bottom:5px">アップロード済みデータ</div>';
+  for(const y of years){
+    const dr=UPLOADS[y]?.date_range;
+    const range=dr?` (${dr[0].slice(0,7).replace('-','年')}月〜${dr[1].slice(0,7).replace('-','年')}月)`:'';
+    html+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border2)">
+      <span style="font-size:12px;flex:1">${y}年${range}</span>
+      <button onclick="deleteUploadYear('${y}')" style="font-size:10px;color:var(--red);background:none;border:1px solid var(--border);padding:2px 8px;border-radius:4px;cursor:pointer;font-family:inherit">削除</button>
+    </div>`;
+  }
+  ul.innerHTML=html;
+}
+function deleteUploadYear(year){
+  if(!confirm(`${year}年のアップロードデータを削除しますか？\n（内蔵データがある場合はそちらに戻ります）`)) return;
+  delete UPLOADS[year];
+  saveUploads();
+  buildData();
+  const allYrs=Object.keys(DATA.by_store).sort();
+  if(allYrs.length){
+    const fy=document.getElementById('f-year-from'),ft=document.getElementById('f-year-to');
+    if(!allYrs.includes(fy.value)) fy.value=allYrs[allYrs.length-1];
+    if(!allYrs.includes(ft.value)) ft.value=allYrs[allYrs.length-1];
+  }
+  applyFilter();
+  renderUploadList();
+  if(!Object.keys(UPLOADS).length) document.getElementById('hd-saved').classList.remove('show');
+}
+
 function resetData() {
   if (!confirm('アップロードしたデータをすべて削除し、内蔵データ（2021〜2025）に戻しますか？')) return;
   localStorage.removeItem(LS_KEY);
   UPLOADS = {};
   buildData();
+  const allYrs=Object.keys(DATA.by_store).sort();
+  if(allYrs.length){document.getElementById('f-year-from').value=allYrs[allYrs.length-1];document.getElementById('f-year-to').value=allYrs[allYrs.length-1];}
   applyFilter();
   document.getElementById('hd-saved').classList.remove('show');
   closeModal();
@@ -294,16 +353,22 @@ function buildData() {
 }
 
 function buildSelects() {
-  const years  = Object.keys(DATA.by_store).sort().reverse();
+  const years  = Object.keys(DATA.by_store).sort();
   const storeSet = new Set();
   for (const y of years) for (const s of Object.keys(DATA.by_store[y]||{})) storeSet.add(s);
   const stores = [...storeSet].sort();
 
-  const ysel = document.getElementById('f-year');
-  const curY = ysel.value;
-  ysel.innerHTML = '<option value="all">全期間</option>';
-  for (const y of years) ysel.innerHTML += `<option value="${y}">${y}年</option>`;
-  ysel.value = years.includes(curY) ? curY : (years[0] || 'all');
+  const fyFrom = document.getElementById('f-year-from');
+  const fyTo   = document.getElementById('f-year-to');
+  const curFrom = fyFrom.value, curTo = fyTo.value;
+  fyFrom.innerHTML = '';
+  fyTo.innerHTML   = '';
+  for (const y of years) {
+    fyFrom.add(new Option(y+'年', y));
+    fyTo.add(new Option(y+'年', y));
+  }
+  fyFrom.value = years.includes(curFrom) ? curFrom : (years[0] || '');
+  fyTo.value   = years.includes(curTo)   ? curTo   : (years[years.length-1] || '');
 
   const ssel = document.getElementById('f-store');
   const curS = ssel.value;
@@ -314,10 +379,11 @@ function buildSelects() {
 
 // ── Filter & aggregate ────────────────────────────────────────────────────────
 function applyFilter() {
-  const yr  = document.getElementById('f-year').value;
+  const yrFrom = document.getElementById('f-year-from').value;
+  const yrTo   = document.getElementById('f-year-to').value;
   const str = document.getElementById('f-store').value;
   aggregated = {}; totalQty = 0; totalAmount = 0;
-  const years = yr === 'all' ? Object.keys(DATA.by_store) : [yr];
+  const years = Object.keys(DATA.by_store).filter(y=>(!yrFrom||y>=yrFrom)&&(!yrTo||y<=yrTo));
   for (const year of years) {
     const byStore = DATA.by_store[year]; if (!byStore) continue;
     const stores  = str === 'all' ? Object.keys(byStore) : [str];
@@ -396,8 +462,9 @@ function renderSidebar() {
     </div>`;
   }
   document.getElementById('sb-list').innerHTML = html;
-  const yr = document.getElementById('f-year').value;
-  const period = yr==='all'?'全期間':yr+'年';
+  const yrFrom = document.getElementById('f-year-from').value;
+  const yrTo   = document.getElementById('f-year-to').value;
+  const period = yrFrom===yrTo ? yrFrom+'年' : (yrFrom&&yrTo ? yrFrom+'〜'+yrTo+'年' : '全期間');
   document.getElementById('sb-total').innerHTML =
     `<b>${period}</b>&nbsp; ${totalQty.toLocaleString()}個 / ¥${totalAmount.toLocaleString()}`;
 }
@@ -460,50 +527,57 @@ function normalize(s){
 }
 function toKatakana(s){return s.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));}
 const TRANS={
-  'ぽいんと':['point'],'point':['ぽいんと'],
-  'ぐりーん':['green'],'green':['ぐりーん'],
-  'ぶるー':['blue'],'blue':['ぶるー'],
-  'れっど':['red'],'red':['れっど'],
+  // 色
+  'ぽいんと':['point'],'わんぽいんと':['point'],'point':['ぽいんと','わんぽいんと'],
+  'ぐりーん':['green'],'みどり':['green'],'green':['ぐりーん','みどり'],
+  'ぶるー':['blue'],'あお':['blue'],'blue':['ぶるー','あお'],
+  'れっど':['red'],'あか':['red'],'red':['れっど','あか'],
   'ぴんく':['pink'],'pink':['ぴんく'],
-  'いえろー':['yellow'],'yellow':['いえろー'],
+  'いえろー':['yellow'],'きいろ':['yellow'],'yellow':['いえろー','きいろ'],
   'おれんじ':['orange'],'orange':['おれんじ'],
-  'ぱーぷる':['purple'],'purple':['ぱーぷる'],
-  'ほわいと':['white'],'うぁいと':['white'],'white':['ほわいと','うぁいと'],
-  'ぶらっく':['black'],'black':['ぶらっく'],
+  'ぱーぷる':['purple'],'むらさき':['purple'],'purple':['ぱーぷる','むらさき'],
+  'ほわいと':['white'],'うぁいと':['white'],'しろ':['white'],'white':['ほわいと','うぁいと','しろ'],
+  'ぶらっく':['black'],'くろ':['black'],'black':['ぶらっく','くろ'],
   'ねいびー':['navy'],'navy':['ねいびー'],
   'べーじゅ':['beige'],'beige':['べーじゅ'],
-  'ぶらうん':['brown'],'brown':['ぶらうん'],
+  'ぶらうん':['brown'],'ちゃいろ':['brown'],'brown':['ぶらうん','ちゃいろ'],
   'ぐれー':['gray','grey'],'gray':['ぐれー'],'grey':['ぐれー'],
   'あいぼりー':['ivory'],'ivory':['あいぼりー'],
   'なちゅらる':['natural'],'natural':['なちゅらる'],
   'くりあ':['clear'],'clear':['くりあ'],
+  'ごーるど':['gold'],'きん':['gold'],'gold':['ごーるど','きん'],
+  'しるばー':['silver'],'ぎん':['silver'],'silver':['しるばー','ぎん'],
+  'らべんだー':['lavender'],'lavender':['らべんだー'],
+  'みんと':['mint'],'mint':['みんと'],
+  'あくあ':['aqua'],'aqua':['あくあ'],
+  'てらこった':['terracotta'],'terracotta':['てらこった'],
+  'ぼるどー':['bordeaux'],'bordeaux':['ぼるどー'],
+  'さんど':['sand'],'sand':['さんど'],
+  'もすぐりーん':['moss'],'moss':['もすぐりーん'],
+  // 画家・アーティスト
+  'ふぇるめーる':['vermeer'],'vermeer':['ふぇるめーる'],
+  'もね':['monet'],'monet':['もね'],
+  'ごっほ':['gogh','van gogh'],'gogh':['ごっほ'],
+  'るのわーる':['renoir'],'れのわーる':['renoir'],'renoir':['るのわーる','れのわーる'],
+  'まちす':['matisse'],'matisse':['まちす'],
+  'くりむと':['klimt'],'klimt':['くりむと'],
+  'みゅしゃ':['mucha'],'むーしゃ':['mucha'],'mucha':['みゅしゃ','むーしゃ'],
+  'ほくさい':['hokusai'],'hokusai':['ほくさい'],
+  'ひろしげ':['hiroshige'],'hiroshige':['ひろしげ'],
+  'せざんぬ':['cezanne'],'cezanne':['せざんぬ'],
+  'どが':['degas'],'degas':['どが'],
+  'えっしゃー':['escher'],'escher':['えっしゃー'],
+  'だびんち':['davinci','leonardo'],'davinci':['だびんち'],'leonardo':['だびんち'],
+  'らふぁえろ':['raphael'],'raphael':['らふぁえろ'],
+  'ぴかそ':['picasso'],'picasso':['ぴかそ'],
+  'かんでぃんすきー':['kandinsky'],'kandinsky':['かんでぃんすきー'],
+  'みけらんじぇろ':['michelangelo'],'michelangelo':['みけらんじぇろ'],
+  // 動物
   'ねこ':['cat'],'きゃっと':['cat'],'cat':['ねこ','きゃっと'],
   'いぬ':['dog'],'dog':['いぬ'],
   'うさぎ':['rabbit','bunny'],'rabbit':['うさぎ'],'bunny':['うさぎ'],
   'とり':['bird'],'bird':['とり'],
   'くま':['bear'],'bear':['くま'],
-  'はな':['flower'],'ふらわー':['flower'],'flower':['はな','ふらわー'],
-  'ほし':['star'],'star':['ほし'],
-  'つき':['moon'],'moon':['つき'],
-  'たいよう':['sun'],'sun':['たいよう'],
-  'はっぱ':['leaf'],'leaf':['はっぱ'],
-  'きのこ':['mushroom'],'mushroom':['きのこ'],
-  'ちょうちょ':['butterfly'],'butterfly':['ちょうちょ'],
-  'うみ':['sea','ocean'],'sea':['うみ'],'ocean':['うみ'],
-  'やま':['mountain'],'mountain':['やま'],
-  'さくら':['sakura','cherry'],'sakura':['さくら'],'cherry':['さくら'],
-  'ゆき':['snow'],'snow':['ゆき'],
-  'こーひー':['coffee'],'coffee':['こーひー'],
-  'ぼたにかる':['botanical'],'botanical':['ぼたにかる'],
-  'ちぇっく':['check'],'check':['ちぇっく'],
-  'どっと':['dot'],'dot':['どっと'],
-  'すとらいぷ':['stripe'],'stripe':['すとらいぷ'],
-  'しんぷる':['simple'],'simple':['しんぷる'],
-  'ぎふと':['gift'],'gift':['ぎふと'],
-  'かめれおん':['chameleon'],'chameleon':['かめれおん'],
-  'はっぴー':['happy'],'happy':['はっぴー'],
-  'まーぶる':['marble'],'marble':['まーぶる'],
-  'ゆにこーん':['unicorn'],'unicorn':['ゆにこーん'],
   'ふくろう':['owl'],'owl':['ふくろう'],
   'きつね':['fox'],'fox':['きつね'],
   'りす':['squirrel'],'squirrel':['りす'],
@@ -512,11 +586,80 @@ const TRANS={
   'ぞう':['elephant'],'elephant':['ぞう'],
   'ひつじ':['sheep'],'sheep':['ひつじ'],
   'くじゃく':['peacock'],'peacock':['くじゃく'],
-  'ふじ':['fuji'],'fuji':['ふじ'],
+  'たこ':['octopus'],'octopus':['たこ'],
+  'くらげ':['jellyfish'],'jellyfish':['くらげ'],
+  'ぱんだ':['panda'],'panda':['ぱんだ'],
+  'らいおん':['lion'],'lion':['らいおん'],
+  'とら':['tiger'],'tiger':['とら'],
+  'きりん':['giraffe'],'giraffe':['きりん'],
+  'こあら':['koala'],'koala':['こあら'],
+  'すずめ':['sparrow'],'sparrow':['すずめ'],
+  'つばめ':['swallow'],'swallow':['つばめ'],
+  'かもめ':['seagull'],'seagull':['かもめ'],
+  'ひよこ':['chick'],'chick':['ひよこ'],
+  'いるか':['dolphin'],'dolphin':['いるか'],
+  'くじら':['whale'],'whale':['くじら'],
+  'さかな':['fish'],'fish':['さかな'],
+  'かに':['crab'],'crab':['かに'],
+  'とんぼ':['dragonfly'],'dragonfly':['とんぼ'],
+  'ちょうちょ':['butterfly'],'butterfly':['ちょうちょ'],
+  'みつばち':['bee'],'bee':['みつばち'],
+  'かめれおん':['chameleon'],'chameleon':['かめれおん'],
+  'ゆにこーん':['unicorn'],'unicorn':['ゆにこーん'],
+  // 自然・植物
+  'はな':['flower'],'ふらわー':['flower'],'flower':['はな','ふらわー'],
+  'ほし':['star'],'star':['ほし'],
+  'つき':['moon'],'moon':['つき'],
+  'たいよう':['sun'],'sun':['たいよう'],
+  'はっぱ':['leaf'],'leaf':['はっぱ'],
+  'きのこ':['mushroom'],'mushroom':['きのこ'],
+  'うみ':['sea','ocean'],'sea':['うみ'],'ocean':['うみ'],
+  'やま':['mountain'],'mountain':['やま'],
+  'さくら':['sakura','cherry'],'sakura':['さくら'],'cherry':['さくら'],
+  'ゆき':['snow'],'snow':['ゆき'],
   'にじ':['rainbow'],'rainbow':['にじ'],
   'かさ':['umbrella'],'umbrella':['かさ'],
-  'くらげ':['jellyfish'],'jellyfish':['くらげ'],
-  'たこ':['octopus'],'octopus':['たこ'],
+  'ふじ':['fuji'],'fuji':['ふじ'],
+  'ばら':['rose'],'rose':['ばら'],
+  'ひまわり':['sunflower'],'sunflower':['ひまわり'],
+  'ちゅーりっぷ':['tulip'],'tulip':['ちゅーりっぷ'],
+  'もみじ':['maple'],'maple':['もみじ'],
+  'たんぽぽ':['dandelion'],'dandelion':['たんぽぽ'],
+  'たけ':['bamboo'],'bamboo':['たけ'],
+  'つばき':['camellia'],'camellia':['つばき'],
+  'あじさい':['hydrangea'],'hydrangea':['あじさい'],
+  'ゆり':['lily'],'lily':['ゆり'],
+  'すみれ':['violet'],'violet':['すみれ'],
+  'もも':['peach'],'peach':['もも'],
+  'いちご':['strawberry'],'strawberry':['いちご'],
+  'れもん':['lemon'],'lemon':['れもん'],
+  'りんご':['apple'],'apple':['りんご'],
+  'ぶどう':['grape'],'grape':['ぶどう'],
+  'まつ':['pine'],'pine':['まつ'],
+  // 季節
+  'はる':['spring'],'spring':['はる'],
+  'なつ':['summer'],'summer':['なつ'],
+  'あき':['autumn','fall'],'autumn':['あき'],'fall':['あき'],
+  'ふゆ':['winter'],'winter':['ふゆ'],
+  // スタイル・デザイン
+  'ぼたにかる':['botanical'],'botanical':['ぼたにかる'],
+  'ちぇっく':['check'],'check':['ちぇっく'],
+  'どっと':['dot'],'dot':['どっと'],
+  'すとらいぷ':['stripe'],'stripe':['すとらいぷ'],
+  'しんぷる':['simple'],'simple':['しんぷる'],
+  'のるでぃっく':['nordic'],'nordic':['のるでぃっく'],
+  'えすにっく':['ethnic'],'ethnic':['えすにっく'],
+  'あんてぃーく':['antique'],'antique':['あんてぃーく'],
+  'びんてーじ':['vintage'],'vintage':['びんてーじ'],
+  'れとろ':['retro'],'retro':['れとろ'],
+  'もだん':['modern'],'modern':['もだん'],
+  'くらしっく':['classic'],'classic':['くらしっく'],
+  'えれがんと':['elegant'],'elegant':['えれがんと'],
+  'まーぶる':['marble'],'marble':['まーぶる'],
+  // その他
+  'こーひー':['coffee'],'coffee':['こーひー'],
+  'ぎふと':['gift'],'ぷれぜんと':['gift'],'gift':['ぎふと','ぷれぜんと'],
+  'はっぴー':['happy'],'happy':['はっぴー'],
 };
 
 // ── Search ────────────────────────────────────────────────────────────────────
@@ -525,7 +668,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';return;}
   document.getElementById('cat-view').style.display='none';
   document.getElementById('search-view').style.display='block';
-  const qn=normalize(q), trans=TRANS[qn]||[], allTerms=[qn,...trans], results=[];
+  const qn=normalize(q), trans=[...(TRANS[qn]||[]),...getAliasTerms(qn)], allTerms=[qn,...trans], results=[];
   for(const[cat,codes] of Object.entries(aggregated)){
     const items=Object.values(codes).sort((a,b)=>sortMode==='qty'?b.qty-a.qty:b.amount-a.amount);
     items.forEach((item,i)=>{
@@ -558,9 +701,10 @@ document.getElementById('hd-search').addEventListener('input',e=>{
 
 // ── Header date ───────────────────────────────────────────────────────────────
 function updateHeaderDate() {
-  const yr=document.getElementById('f-year').value;
+  const yrFrom=document.getElementById('f-year-from').value;
+  const yrTo=document.getElementById('f-year-to').value;
   let mn='', mx='';
-  const years=yr==='all'?Object.keys(DATA.date_ranges):[yr];
+  const years=Object.keys(DATA.date_ranges).filter(y=>(!yrFrom||y>=yrFrom)&&(!yrTo||y<=yrTo));
   for(const y of years){const dr=DATA.date_ranges[y];if(!dr)continue;if(!mn||dr[0]<mn)mn=dr[0];if(!mx||dr[1]>mx)mx=dr[1];}
   if(!mx){document.getElementById('hd-date').textContent='データなし';return;}
   const fmt=d=>d.slice(0,4)+'年'+d.slice(5,7)+'月'+d.slice(8,10)+'日';
@@ -569,7 +713,7 @@ function updateHeaderDate() {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 const modal=document.getElementById('modal');
-document.getElementById('hd-update-btn').addEventListener('click',()=>modal.classList.add('show'));
+document.getElementById('hd-update-btn').addEventListener('click',()=>{renderUploadList();renderAliasList();modal.classList.add('show');});
 function closeModal(){
   modal.classList.remove('show');
   document.getElementById('dz').classList.remove('done','over');
@@ -616,6 +760,9 @@ document.getElementById('modal-run').addEventListener('click',()=>{
       for(const{buf} of pendingBufs) processAndMerge(buf, updatedYears);
       saveUploads();
       buildData();
+      // Extend 'to' year to include any newly uploaded year
+      const newLatest=Object.keys(DATA.by_store).sort().reverse()[0];
+      if(newLatest) document.getElementById('f-year-to').value=newLatest;
       applyFilter();
       closeModal();
     }catch(e){
@@ -713,13 +860,57 @@ function hl(text,q,trans=[]){
   return r;
 }
 
+// ── Custom aliases ────────────────────────────────────────────────────────────
+const ALIAS_KEY='ec_search_aliases_v1';
+let CUSTOM_ALIASES=[];
+function loadAliases(){CUSTOM_ALIASES=JSON.parse(localStorage.getItem(ALIAS_KEY)||'[]');}
+function saveAliases(){localStorage.setItem(ALIAS_KEY,JSON.stringify(CUSTOM_ALIASES));}
+function getAliasTerms(qn){
+  const extras=[];
+  for(const{a,b} of CUSTOM_ALIASES){
+    const na=normalize(a),nb=normalize(b);
+    if(qn===na) extras.push(nb);
+    else if(qn===nb) extras.push(na);
+  }
+  return extras;
+}
+function renderAliasList(){
+  const el=document.getElementById('alias-list');
+  if(!el) return;
+  if(!CUSTOM_ALIASES.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--ink4);padding:2px 0 4px">なし</div>';
+    return;
+  }
+  el.innerHTML=CUSTOM_ALIASES.map((al,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border2)">
+      <span style="font-size:12px;flex:1">${x(al.a)} ＝ ${x(al.b)}</span>
+      <button onclick="removeAlias(${i})" style="font-size:10px;color:var(--red);background:none;border:1px solid var(--border);padding:2px 8px;border-radius:4px;cursor:pointer;font-family:inherit">削除</button>
+    </div>`).join('');
+}
+function addAlias(){
+  const a=document.getElementById('alias-a').value.trim();
+  const b=document.getElementById('alias-b').value.trim();
+  if(!a||!b) return;
+  CUSTOM_ALIASES.push({a,b});
+  saveAliases();
+  renderAliasList();
+  document.getElementById('alias-a').value='';
+  document.getElementById('alias-b').value='';
+}
+function removeAlias(i){
+  CUSTOM_ALIASES.splice(i,1);
+  saveAliases();
+  renderAliasList();
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadUploads();
+loadAliases();
 buildData();
-// Default: show latest year
-const latestYear = Object.keys(DATA.by_store).sort().reverse()[0];
-if (latestYear) document.getElementById('f-year').value = latestYear;
-if (Object.keys(UPLOADS).length > 0) document.getElementById('hd-saved').classList.add('show');
+// Default: show latest year only
+const allYrs=Object.keys(DATA.by_store).sort();
+if(allYrs.length){document.getElementById('f-year-from').value=allYrs[allYrs.length-1];document.getElementById('f-year-to').value=allYrs[allYrs.length-1];}
+if(Object.keys(UPLOADS).length>0) document.getElementById('hd-saved').classList.add('show');
 applyFilter();
 </script>
 </body>
