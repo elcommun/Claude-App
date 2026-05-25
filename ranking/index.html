@@ -658,8 +658,11 @@ function applyFilter() {
   function scIdx(ci){const idx={};for(const[c,qa] of Object.entries(ci)){const sc=(DATA.products[c]||[])[2];if(!sc)continue;if(!idx[sc])idx[sc]=[0,0];idx[sc][0]+=qa[0];idx[sc][1]+=qa[1];}return idx;}
   prevBySearchCode =scIdx(prevByCode);
   prev2BySearchCode=scIdx(prev2ByCode);
-  prevYearLabel =String(toYr-1)+'年';
-  prev2YearLabel=String(toYr-2)+'年';
+  // Include month range in labels when period is not a full year
+  const _moF=parseInt(moFrom||'01'),_moT=parseInt(moTo||'12');
+  const _periodSfx=(_moF===1&&_moT===12)?'':` (${_moF}-${_moT}月)`;
+  prevYearLabel =String(toYr-1)+'年'+_periodSfx;
+  prev2YearLabel=String(toYr-2)+'年'+_periodSfx;
 
   updateHeaderDate();
   renderKPI();
@@ -1190,6 +1193,14 @@ function showCategory(cat, updateSidebar=true) {
   function scIdxLocal(ci){const idx={};for(const[c,qa] of Object.entries(ci)){const sc=(DATA.products[c]||[])[2];if(!sc)continue;if(!idx[sc])idx[sc]=[0,0];idx[sc][0]+=qa[0];idx[sc][1]+=qa[1];}return idx;}
   let localPrevBySC=prevBySearchCode, localPrev2BySC=prev2BySearchCode;
   if(isYearGroupCat(cat)){localPrevBySC=scIdxLocal(localPrevByCode);localPrev2BySC=scIdxLocal(localPrev2ByCode);}
+  // For regular categories with comparisonMode, compute category-level comparison totals
+  if(comparisonMode && !isYearGroupCat(cat)){
+    const catCodes=new Set(items.map(i=>i.code));
+    const sp=bc=>{let q=0,a=0;for(const[c,qa] of Object.entries(bc)){if(catCodes.has(c)){q+=qa[0];a+=qa[1];}}return{qty:q,amount:a};};
+    const pt=sp(localPrevByCode), p2t=sp(localPrev2ByCode);
+    if(pt.qty) prevCatTot=pt;
+    if(p2t.qty) prev2CatTot=p2t;
+  }
   document.getElementById('th-prev').textContent=prevLabel;
   document.getElementById('th-prev2').textContent=prev2Label;
 
