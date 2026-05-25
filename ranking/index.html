@@ -666,8 +666,14 @@ function applyFilter() {
   renderSidebar();
   const firstGroup=CAT_GROUPS.find(g=>Object.keys(aggregated).some(c=>g.match(c)));
   const first=firstGroup?.name||CATEGORY_ORDER.find(c=>aggregated[c])||Object.keys(aggregated)[0];
-  if(selectedCategory&&(getGroupCats(selectedCategory)||aggregated[selectedCategory])) showCategory(selectedCategory,false);
-  else if(first) showCategory(first);
+  const searchBox=document.getElementById('hd-search');
+  if(searchBox.value.trim()){
+    searchBox.dispatchEvent(new Event('input'));
+  } else if(selectedCategory&&(getGroupCats(selectedCategory)||aggregated[selectedCategory])){
+    showCategory(selectedCategory,false);
+  } else if(first){
+    showCategory(first);
+  }
 }
 
 // ── Sort / Comparison / Heatmap ───────────────────────────────────────────────
