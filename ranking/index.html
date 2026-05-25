@@ -1416,12 +1416,17 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   document.getElementById('cat-view').style.display='none';
   document.getElementById('search-view').style.display='block';
   const qn=normalize(q), trans=[...(TRANS[qn]||[]),...getAliasTerms(qn)], allTerms=[qn,...trans], results=[];
+  const _dcGroups=CAT_GROUPS.filter(g=>g.name==='手帳'||g.name==='カレンダー');
   for(const[cat,codes] of Object.entries(aggregated)){
+    const isDC=_dcGroups.some(g=>g.match(cat));
     const items=Object.values(codes).sort((a,b)=>b.qty-a.qty);
     items.forEach((item,i)=>{
       const nn=normalize(item.name),nc=normalize(item.code);
-      if(allTerms.some(t=>nn.includes(t)||nc.includes(t)))
-        results.push({...item,cat,rank:i+1});
+      // 手帳/カレンダーのみ「検索コード＋品番」の複合キーでも検索
+      const sc=isDC?((DATA.products[item.code]||[])[2]||''):'';
+      const nComp=sc?normalize(sc+item.code):'';
+      if(allTerms.some(t=>nn.includes(t)||nc.includes(t)||(nComp&&nComp.includes(t))))
+        results.push({...item,cat,rank:i+1,searchCode:sc});
     });
   }
   // Apply column sort
@@ -1447,7 +1452,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
       html+=`<tr style="cursor:pointer" onclick="document.getElementById('hd-search').value='';showCategory('${esc(r.cat)}')">
         <td><div class="rn ${r.rank<=3?'r'+r.rank:'ro'}">${ri}</div></td>
         <td><span class="ct">${x(r.cat)}</span></td>
-        <td class="cc">${x(r.code)}</td>
+        <td class="cc">${x(r.searchCode?r.searchCode+r.code:r.code)}</td>
         <td class="nc">${hl(r.name,q,trans)}</td>
         <td class="num">¥${r.price.toLocaleString()}</td>
         <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
