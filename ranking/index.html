@@ -1212,6 +1212,7 @@ function showCategory(cat, updateSidebar=true) {
   const catPct = totalQty?(t.qty/totalQty*100).toFixed(1):0;
 
   // Year-specific diary/calendar: compare against equivalent year category, not period-shifted
+  const catType = getCatType(cat);
   const _str=document.getElementById('f-store').value;
   let localPrevByCode=prevByCode, localPrev2ByCode=prev2ByCode;
   let prevLabel=prevYearLabel, prev2Label=prev2YearLabel, prevCatTot=null, prev2CatTot=null;
@@ -1266,7 +1267,6 @@ function showCategory(cat, updateSidebar=true) {
 
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
-  const catType = getCatType(cat);
   const showCmp = comparisonMode;
   document.getElementById('rank-tbl').classList.toggle('show-cmp', showCmp);
   const colspan = 7 + (showCmp ? 2 : 0);
