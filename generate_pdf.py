@@ -22,16 +22,16 @@ registerFontFamily("NotoSansJP", normal="NotoSansJP", bold="NotoSansJP-Bold",
 FONT      = "NotoSansJP"
 FONT_BOLD = "NotoSansJP-Bold"
 
-# Color palette
-C_NAVY = colors.HexColor("#1A3557")
-C_TEAL = colors.HexColor("#2E7D8C")
-C_STEEL = colors.HexColor("#4A6FA5")
-C_LIGHT_BLUE = colors.HexColor("#E8F4F8")
-C_LIGHT_GRAY = colors.HexColor("#F5F7FA")
-C_MID_GRAY = colors.HexColor("#C8D0DC")
-C_DARK_GRAY = colors.HexColor("#4A4A4A")
-C_TEXT = colors.HexColor("#2D2D2D")
-C_ACCENT = colors.HexColor("#D4E8F0")
+# Color palette — warm & calm
+C_NAVY      = colors.HexColor("#4A1E1E")   # deep wine (H2 header)
+C_TEAL      = colors.HexColor("#8B4040")   # terracotta (H3 accent, table header)
+C_STEEL     = colors.HexColor("#7A5040")   # warm brown (subtitle, notes)
+C_LIGHT_BLUE = colors.HexColor("#FDF0E6")  # warm cream (title bg, H3 bg)
+C_LIGHT_GRAY = colors.HexColor("#FAF0E8")  # warm parchment (alternate rows)
+C_MID_GRAY  = colors.HexColor("#D4B8A0")   # warm taupe (borders/grid)
+C_DARK_GRAY = colors.HexColor("#4A2C20")   # warm dark brown
+C_TEXT      = colors.HexColor("#2C1810")   # very dark warm brown (body text)
+C_ACCENT    = colors.HexColor("#C09060")   # warm gold (accent lines)
 
 W, H = A4
 MARGIN_L = 20*mm
@@ -43,7 +43,7 @@ BODY_W = W - MARGIN_L - MARGIN_R
 def make_styles():
     s = {}
     s["title"] = ParagraphStyle(
-        "title", fontName=FONT, fontSize=18, leading=26,
+        "title", fontName=FONT_BOLD, fontSize=18, leading=26,
         textColor=C_NAVY, alignment=TA_CENTER,
         spaceAfter=4, spaceBefore=0,
     )
@@ -63,26 +63,26 @@ def make_styles():
         "h3", fontName=FONT, fontSize=11, leading=17,
         textColor=C_NAVY, alignment=TA_LEFT,
         spaceBefore=7, spaceAfter=3,
-        leftIndent=2,
+        leftIndent=0,
         borderPadding=(3, 6, 3, 6),
     )
     s["body"] = ParagraphStyle(
         "body", fontName=FONT, fontSize=9, leading=16,
         textColor=C_TEXT, alignment=TA_JUSTIFY,
         spaceBefore=2, spaceAfter=4,
-        leftIndent=8, rightIndent=4,
+        leftIndent=0, rightIndent=0,
     )
     s["bullet"] = ParagraphStyle(
         "bullet", fontName=FONT, fontSize=9, leading=16,
         textColor=C_TEXT, alignment=TA_JUSTIFY,
-        spaceBefore=1, spaceAfter=2,
-        leftIndent=16, firstLineIndent=-8, rightIndent=4,
+        spaceBefore=1, spaceAfter=3,
+        leftIndent=0, firstLineIndent=0, rightIndent=0,
     )
     s["note"] = ParagraphStyle(
         "note", fontName=FONT, fontSize=8, leading=14,
         textColor=C_STEEL, alignment=TA_LEFT,
         spaceBefore=2, spaceAfter=2,
-        leftIndent=10, rightIndent=4,
+        leftIndent=0, rightIndent=0,
     )
     s["table_header"] = ParagraphStyle(
         "table_header", fontName=FONT, fontSize=9, leading=14,
@@ -122,8 +122,8 @@ def heading3_block(text, styles):
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
         ("RIGHTPADDING", (0, 0), (-1, -1), 6),
-        ("LINEAFTER", (0, 0), (0, -1), 0, colors.white),
-        ("LINEABOVE", (0, 0), (-1, 0), 2, C_TEAL),
+        ("LINEABOVE", (0, 0), (-1, 0), 2, C_ACCENT),
+        ("LINEBELOW", (0, -1), (-1, -1), 0.5, C_MID_GRAY),
     ]))
     return tbl
 
@@ -218,7 +218,7 @@ def build_pdf(output_path):
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
         ("RIGHTPADDING", (0, 0), (-1, -1), 10),
         ("LINEABOVE", (0, 0), (-1, 0), 3, C_NAVY),
-        ("LINEBELOW", (0, -1), (-1, -1), 3, C_TEAL),
+        ("LINEBELOW", (0, -1), (-1, -1), 2, C_ACCENT),
     ]))
     story.append(title_tbl)
     story.append(Spacer(1, 6*mm))
@@ -403,7 +403,7 @@ def build_pdf(output_path):
     fmt_tbl = Table(fmt_tbl_data, colWidths=col_w_fmt)
     fmt_tbl.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), C_TEAL),
-        ("BACKGROUND", (0, 3), (-1, 3), colors.HexColor("#E6F4EA")),
+        ("BACKGROUND", (0, 3), (-1, 3), colors.HexColor("#FFF0E0")),
         ("FONTNAME", (0, 0), (-1, -1), FONT),
         ("FONTSIZE", (0, 0), (-1, -1), 8.5),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -467,7 +467,7 @@ def build_pdf(output_path):
     ))
 
     story.append(Spacer(1, 4*mm))
-    story.append(HRFlowable(width=BODY_W, thickness=0.5, color=C_MID_GRAY))
+    story.append(HRFlowable(width=BODY_W, thickness=0.8, color=C_ACCENT))
     story.append(Spacer(1, 2*mm))
     story.append(Paragraph("以上", styles["subtitle"]))
 
