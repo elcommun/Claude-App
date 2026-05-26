@@ -225,8 +225,8 @@ input[type=file]{display:none}
       </div>
     </div>
     <div class="sb-tog">
-      <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty')">個数順</button>
-      <button class="sb-tbtn"   id="tog-amt" onclick="setSort('amount')">金額順</button>
+      <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty','desc')">個数順</button>
+      <button class="sb-tbtn"   id="tog-amt" onclick="setSort('amount','desc')">金額順</button>
     </div>
     <div class="sb-tog" style="margin-top:4px">
       <button class="sb-tbtn" id="tog-cmp"  onclick="toggleComparison()">前年比較</button>
@@ -248,14 +248,14 @@ input[type=file]{display:none}
       </div>
       <div class="tw"><table class="tbl" id="rank-tbl">
         <thead><tr>
-          <th style="width:50px">順位</th>
+          <th class="th-sort" onclick="setSort('qty')" style="width:50px">順位</th>
           <th class="th-sort" onclick="setSort('code')" style="min-width:94px">品番<span class="sort-ind" id="ri-code"></span></th>
           <th style="min-width:240px">商品名</th>
-          <th class="num" style="width:76px">上代</th>
-          <th class="num" style="width:76px">個数</th>
+          <th class="th-sort num" onclick="setSort('price')" style="width:76px">上代<span class="sort-ind" id="ri-price"></span></th>
+          <th class="th-sort num" onclick="setSort('qty')" style="width:76px">個数<span class="sort-ind" id="ri-qty">▼</span></th>
           <th class="num cmp-col" style="width:72px" id="th-prev">前年</th>
           <th class="num cmp-col" style="width:72px" id="th-prev2">前々年</th>
-          <th class="num" style="width:108px">合計金額</th>
+          <th class="th-sort num" onclick="setSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="ri-amount"></span></th>
           <th style="width:96px">売上比</th>
         </tr></thead>
         <tbody id="rank-tbody"></tbody>
@@ -470,7 +470,7 @@ const LS_KEY = 'ec_ranking_uploads_v2';
 let UPLOADS = {};   // {'YYYY-MM': {by_store:{}, products:{}, date_range:[]}} saved in localStorage
 let DATA    = {};   // merged view (PRELOADED + UPLOADS)
 let aggregated = {}, totalQty = 0, totalAmount = 0;
-let selectedCategory = null, sortMode = 'qty';
+let selectedCategory = null, sortMode = 'qty', sortDir = 'desc';
 let comparisonMode = false, heatmapMode = false;
 let aggPrev = {}, aggPrev2 = {}, prevByCode = {}, prev2ByCode = {};
 let prevBySearchCode = {}, prev2BySearchCode = {};
@@ -712,12 +712,24 @@ function applyFilter() {
 }
 
 // ── Sort / Comparison / Heatmap ───────────────────────────────────────────────
-function setSort(m) {
+function setSort(m, forceDir=null) {
+  if (forceDir !== null) {
+    sortDir = forceDir;
+  } else if (m === sortMode) {
+    sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortDir = (m === 'code') ? 'asc' : 'desc';
+  }
   sortMode = m;
   document.getElementById('tog-qty').className = 'sb-tbtn'+(m==='qty'?' on':'');
   document.getElementById('tog-amt').className = 'sb-tbtn'+(m==='amount'?' on':'');
-  document.getElementById('sort-lbl').textContent = m==='qty'?'個数ランキング':m==='amount'?'金額ランキング':'品番順';
-  document.getElementById('ri-code').textContent = m==='code'?'▲':'';
+  const labels = {qty:'個数ランキング', amount:'金額ランキング', code:'品番順', price:'上代順'};
+  document.getElementById('sort-lbl').textContent = labels[m] || '個数ランキング';
+  const ind = sortDir === 'desc' ? '▼' : '▲';
+  ['code','price','qty','amount'].forEach(k => {
+    const el = document.getElementById('ri-'+k);
+    if (el) el.textContent = (k === m) ? ind : '';
+  });
   renderSidebar();
   if (selectedCategory) showCategory(selectedCategory, false);
 }
@@ -1206,9 +1218,9 @@ function showCategory(cat, updateSidebar=true) {
   const combined={};
   for(const rc of realCats){for(const[code,item] of Object.entries(aggregated[rc]||{})){if(!combined[code])combined[code]={...item,qty:0,amount:0};combined[code].qty+=item.qty;combined[code].amount+=item.amount;}}
   const items=Object.values(combined);
-  items.sort((a,b)=>sortMode==='qty'?b.qty-a.qty:sortMode==='amount'?b.amount-a.amount:a.code.localeCompare(b.code));
+  items.sort((a,b)=>{const nat=sortMode==='amount'?b.amount-a.amount:sortMode==='code'?a.code.localeCompare(b.code):sortMode==='price'?b.price-a.price:b.qty-a.qty;return sortDir==='asc'?-nat:nat;});
   const t=getCatTotal(cat);
-  const topVal = items.length?(sortMode==='qty'?items[0].qty:sortMode==='amount'?items[0].amount:items.reduce((m,i)=>Math.max(m,i.qty),1)):1;
+  const topVal = items.length?(sortMode==='amount'?items.reduce((m,i)=>Math.max(m,i.amount),1):items.reduce((m,i)=>Math.max(m,i.qty),1)):1;
   const catPct = totalQty?(t.qty/totalQty*100).toFixed(1):0;
 
   // Year-specific diary/calendar: compare against equivalent year category, not period-shifted
@@ -1272,7 +1284,7 @@ function showCategory(cat, updateSidebar=true) {
   const colspan = 7 + (showCmp ? 2 : 0);
   let html='';
   function renderRow(item,rank,topV){
-    const val=sortMode==='qty'?item.qty:item.amount;
+    const val=sortMode==='amount'?item.amount:item.qty;
     const pct=topV?(val/topV*100).toFixed(1):0;
     const ri=rank===1?`<div class="rn r1">🥇</div>`:rank===2?`<div class="rn r2">🥈</div>`:rank===3?`<div class="rn r3">🥉</div>`:`<div class="rn ro">${rank}</div>`;
     function cmpCell(pqa){const pq=pqa?.[0]||0;if(!pq)return`<td class="num cmp-col" style="color:var(--ink4)">-</td>`;const diff=item.qty-pq;const pct2=Math.round(diff/pq*100);const cls=diff>=0?'prev-up':'prev-dn',arrow=diff>=0?'▲':'▼';return`<td class="num cmp-col">${pq.toLocaleString()}<br><span class="${cls}">${arrow}${Math.abs(pct2)}%</span></td>`;}
@@ -1296,7 +1308,7 @@ function showCategory(cat, updateSidebar=true) {
     for(const item of items){const f=formatFn(item);if(!groups[f])groups[f]=[];groups[f].push(item);}
     for(const fmtName of fmtOrder){
       const gi=groups[fmtName]; if(!gi?.length) continue;
-      const gTop=sortMode==='qty'?gi[0].qty:sortMode==='amount'?gi[0].amount:gi.reduce((m,i)=>Math.max(m,i.qty),1);
+      const gTop=sortMode==='amount'?gi.reduce((m,i)=>Math.max(m,i.amount),1):gi.reduce((m,i)=>Math.max(m,i.qty),1);
       html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(fmtName)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${gi.length}種)</span></td></tr>`;
       gi.forEach((item,i)=>{ html+=renderRow(item,i+1,gTop); });
     }
