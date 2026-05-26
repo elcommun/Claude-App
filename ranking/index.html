@@ -1231,20 +1231,31 @@ function showCategory(cat, updateSidebar=true) {
   if(isYearGroupCat(cat)){
     // Year-specific subcategory: build SC index from the shifted year category codes
     localPrevBySC=scIdxLocal(localPrevByCode);localPrev2BySC=scIdxLocal(localPrev2ByCode);
-  } else if(catType){
-    // Parent 手帳/カレンダー: each item's search code must be matched against the equivalent previous-year category
-    // to avoid summing multiple year-versions of the same design (e.g. DR-MC-342 + DR-MC-283 both having SC "ma-42-" in prev period)
-    localPrevBySC=buildYearEqSCIdx(aggregated,aggPrev,-1);
-    localPrev2BySC=buildYearEqSCIdx(aggregated,aggPrev2,-2);
+  }
+  // Per-item year-equivalent lookup for 手帳/カレンダー parent/sub categories.
+  // Each item belongs to exactly one year category; we look up its shifted-year equivalent
+  // to avoid incorrectly summing multiple year-versions of the same design.
+  const itemPrevQA={},itemPrev2QA={};
+  if(catType&&!isYearGroupCat(cat)){
+    const codeToYearCat={};
+    for(const rc of realCats){if(isYearGroupCat(rc)){for(const code of Object.keys(aggregated[rc]||{})){if(!codeToYearCat[code])codeToYearCat[code]=rc;}}}
+    for(const item of items){
+      const sc=(DATA.products[item.code]||[])[2];if(!sc)continue;
+      const yc=codeToYearCat[item.code];if(!yc)continue;
+      const pc=getEquivYearCat(yc,-1);
+      if(pc){let q=0,a=0;for(const[pCode,qa] of Object.entries(aggPrev[pc]||{})){if((DATA.products[pCode]||[])[2]===sc){q+=qa[0];a+=qa[1];}}itemPrevQA[item.code]=q>0?[q,a]:null;}
+      const p2c=getEquivYearCat(yc,-2);
+      if(p2c){let q=0,a=0;for(const[pCode,qa] of Object.entries(aggPrev2[p2c]||{})){if((DATA.products[pCode]||[])[2]===sc){q+=qa[0];a+=qa[1];}}itemPrev2QA[item.code]=q>0?[q,a]:null;}
+    }
   }
   // Compute category-level comparison totals for the header
   if(comparisonMode && !isYearGroupCat(cat)){
     if(catType){
-      const itemSCs=new Set(items.map(i=>(DATA.products[i.code]||[])[2]).filter(Boolean));
-      const sp=bsc=>{let q=0,a=0;for(const[sc,qa] of Object.entries(bsc)){if(itemSCs.has(sc)){q+=qa[0];a+=qa[1];}}return{qty:q,amount:a};};
-      const pt=sp(localPrevBySC), p2t=sp(localPrev2BySC);
-      if(pt.qty) prevCatTot=pt;
-      if(p2t.qty) prev2CatTot=p2t;
+      let ptq=0,pta=0,p2q=0,p2a=0;
+      for(const qa of Object.values(itemPrevQA)){if(qa){ptq+=qa[0];pta+=qa[1];}}
+      for(const qa of Object.values(itemPrev2QA)){if(qa){p2q+=qa[0];p2a+=qa[1];}}
+      if(ptq)prevCatTot={qty:ptq,amount:pta};
+      if(p2q)prev2CatTot={qty:p2q,amount:p2a};
     } else {
       const catCodes=new Set(items.map(i=>i.code));
       const sp=bc=>{let q=0,a=0;for(const[c,qa] of Object.entries(bc)){if(catCodes.has(c)){q+=qa[0];a+=qa[1];}}return{qty:q,amount:a};};
@@ -1284,7 +1295,7 @@ function showCategory(cat, updateSidebar=true) {
       <td class="nc">${x(item.name)}</td>
       <td class="num">¥${item.price.toLocaleString()}</td>
       <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
-      ${(()=>{const sc=catType&&((DATA.products[item.code]||[])[2]||'');return cmpCell(sc?localPrevBySC[sc]:localPrevByCode[item.code])+cmpCell(sc?localPrev2BySC[sc]:localPrev2ByCode[item.code]);})()}
+      ${(()=>{const sc=catType&&((DATA.products[item.code]||[])[2]||'');const pqa=sc&&(item.code in itemPrevQA)?itemPrevQA[item.code]:(sc?localPrevBySC[sc]:localPrevByCode[item.code]);const p2qa=sc&&(item.code in itemPrev2QA)?itemPrev2QA[item.code]:(sc?localPrev2BySC[sc]:localPrev2ByCode[item.code]);return cmpCell(pqa)+cmpCell(p2qa);})()}
       <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
       <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
     </tr>`;
