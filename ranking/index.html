@@ -1241,6 +1241,13 @@ function showCategory(cat, updateSidebar=true) {
   if(catType&&!isYearGroupCat(cat)){
     const codeToYearCat={};
     for(const rc of realCats){if(isYearGroupCat(rc)){for(const code of Object.keys(aggregated[rc]||{})){if(!codeToYearCat[code])codeToYearCat[code]=rc;}}}
+    // DBG
+    console.log('DBG cat='+cat+' realCats='+JSON.stringify(realCats));
+    console.log('DBG aggPrev keys='+JSON.stringify(Object.keys(aggPrev)));
+    const tgt=items.find(i=>i.code==='DR-MC-362');
+    if(tgt){const sc2=(DATA.products['DR-MC-362']||[])[2];const yc2=codeToYearCat['DR-MC-362'];const pc2=yc2?getEquivYearCat(yc2,-1):null;console.log('DBG DR-MC-362: sc='+sc2+' yc='+yc2+' pc='+pc2+' aggPrev[pc]='+JSON.stringify(aggPrev[pc2]||null));}
+    else console.log('DBG DR-MC-362 not in items');
+    // END DBG
     for(const item of items){
       const sc=(DATA.products[item.code]||[])[2];if(!sc)continue;
       const yc=codeToYearCat[item.code];if(!yc)continue;
@@ -1249,6 +1256,9 @@ function showCategory(cat, updateSidebar=true) {
       const p2c=getEquivYearCat(yc,-2);
       if(p2c){let q=0,a=0;for(const[pCode,qa] of Object.entries(aggPrev2[p2c]||{})){if((DATA.products[pCode]||[])[2]===sc){q+=qa[0];a+=qa[1];}}itemPrev2QA[item.code]=q>0?[q,a]:null;}
     }
+    console.log('DBG itemPrevQA[DR-MC-362]='+JSON.stringify(itemPrevQA['DR-MC-362']));
+  } else {
+    console.log('DBG SKIPPED: cat='+cat+' catType='+catType+' isYearGroup='+isYearGroupCat(cat));
   }
   // Compute category-level comparison totals for the header
   if(comparisonMode && !isYearGroupCat(cat)){
