@@ -1313,11 +1313,12 @@ function showCategory(cat, updateSidebar=true) {
     const fmtOrder=catType==='手帳'?[...DIARY_FORMATS.map(f=>f.name),'その他']:['卓上','壁掛け','その他'];
     const groups={};
     for(const item of items){const f=formatFn(item);if(!groups[f])groups[f]=[];groups[f].push(item);}
+    let globalRank=0;
     for(const fmtName of fmtOrder){
       const gi=groups[fmtName]; if(!gi?.length) continue;
       const gTop=sortMode==='amount'?gi.reduce((m,i)=>Math.max(m,i.amount),1):gi.reduce((m,i)=>Math.max(m,i.qty),1);
       html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(fmtName)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${gi.length}種)</span></td></tr>`;
-      gi.forEach((item,i)=>{ html+=renderRow(item,i+1,gTop); });
+      gi.forEach(item=>{ globalRank++; html+=renderRow(item,globalRank,gTop); });
     }
   } else {
     items.forEach((item,i)=>{ html+=renderRow(item,i+1,topVal); });
