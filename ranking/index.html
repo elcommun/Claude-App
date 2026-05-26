@@ -206,14 +206,10 @@ input[type=file]{display:none}
       <div>
         <div class="fl">期間</div>
         <div style="display:flex;flex-direction:column;gap:3px">
-          <div style="display:flex;gap:3px;align-items:center">
-            <select class="fsel" id="f-year-from" onchange="applyFilter()" style="flex:3"></select>
-            <select class="fsel" id="f-month-from" onchange="applyFilter()" style="flex:2"></select>
-          </div>
-          <div style="display:flex;gap:3px;align-items:center">
+          <input type="date" class="fsel" id="f-date-from" onchange="applyFilter()">
+          <div style="display:flex;align-items:center;gap:3px">
             <span style="font-size:11px;color:var(--ink4);width:14px;flex-shrink:0">〜</span>
-            <select class="fsel" id="f-year-to" onchange="applyFilter()" style="flex:3"></select>
-            <select class="fsel" id="f-month-to" onchange="applyFilter()" style="flex:2"></select>
+            <input type="date" class="fsel" id="f-date-to" onchange="applyFilter()" style="flex:1">
           </div>
         </div>
       </div>
@@ -523,9 +519,9 @@ function deleteUploadYear(year){
   buildData();
   const allYrs=Object.keys(DATA.by_store).sort();
   if(allYrs.length){
-    const fy=document.getElementById('f-year-from'),ft=document.getElementById('f-year-to');
-    if(!allYrs.includes(fy.value)) fy.value=allYrs[allYrs.length-1];
-    if(!allYrs.includes(ft.value)) ft.value=allYrs[allYrs.length-1];
+    const dfFrom=document.getElementById('f-date-from'),dfTo=document.getElementById('f-date-to');
+    if(!allYrs.includes(dfFrom.value.slice(0,4))) dfFrom.value=allYrs[allYrs.length-1]+'-01-01';
+    if(!allYrs.includes(dfTo.value.slice(0,4)))   dfTo.value  =allYrs[allYrs.length-1]+'-12-31';
   }
   applyFilter();
   renderUploadList();
@@ -538,7 +534,7 @@ function resetData() {
   UPLOADS = {};
   buildData();
   const allYrs=Object.keys(DATA.by_store).sort();
-  if(allYrs.length){document.getElementById('f-year-from').value=allYrs[allYrs.length-1];document.getElementById('f-year-to').value=allYrs[allYrs.length-1];}
+  if(allYrs.length){document.getElementById('f-date-from').value=allYrs[allYrs.length-1]+'-01-01';document.getElementById('f-date-to').value=allYrs[allYrs.length-1]+'-12-31';}
   applyFilter();
   document.getElementById('hd-saved').classList.remove('show');
   closeModal();
@@ -585,30 +581,33 @@ function buildData() {
   buildSelects();
 }
 
+// Extracts {yrFrom, moFrom, yrTo, moTo} from the date inputs (YYYY-MM-DD → YYYY / MM)
+function getFilterPeriod() {
+  const dF = document.getElementById('f-date-from').value || '';
+  const dT = document.getElementById('f-date-to').value   || '';
+  return {
+    yrFrom: dF.slice(0,4) || '',
+    moFrom: dF.slice(5,7) || '01',
+    yrTo:   dT.slice(0,4) || '',
+    moTo:   dT.slice(5,7) || '12',
+  };
+}
+
 function buildSelects() {
   const years  = Object.keys(DATA.by_store).sort();
   const storeSet = new Set();
   for (const y of years) for (const s of Object.keys(DATA.by_store[y]||{})) storeSet.add(s);
   const stores = [...storeSet].sort();
 
-  const fyFrom = document.getElementById('f-year-from');
-  const fyTo   = document.getElementById('f-year-to');
-  const curYFrom = fyFrom.value, curYTo = fyTo.value;
-  fyFrom.innerHTML = ''; fyTo.innerHTML = '';
-  for (const y of years) { fyFrom.add(new Option(y+'年', y)); fyTo.add(new Option(y+'年', y)); }
-  fyFrom.value = years.includes(curYFrom) ? curYFrom : (years[0] || '');
-  fyTo.value   = years.includes(curYTo)   ? curYTo   : (years[years.length-1] || '');
-
-  // Month selects (01〜12, static — only build once)
-  const fmFrom = document.getElementById('f-month-from');
-  const fmTo   = document.getElementById('f-month-to');
-  if (!fmFrom.options.length) {
-    for (let m = 1; m <= 12; m++) {
-      const mv = String(m).padStart(2, '0');
-      fmFrom.add(new Option(m+'月', mv));
-      fmTo.add(new Option(m+'月', mv));
-    }
-    fmFrom.value = '01'; fmTo.value = '12';
+  if (years.length) {
+    const minDate = years[0] + '-01-01';
+    const maxDate = years[years.length-1] + '-12-31';
+    const dfFrom = document.getElementById('f-date-from');
+    const dfTo   = document.getElementById('f-date-to');
+    dfFrom.min = minDate; dfFrom.max = maxDate;
+    dfTo.min   = minDate; dfTo.max   = maxDate;
+    if (!dfFrom.value || dfFrom.value < minDate || dfFrom.value > maxDate) dfFrom.value = minDate;
+    if (!dfTo.value   || dfTo.value   < minDate || dfTo.value   > maxDate) dfTo.value   = maxDate;
   }
 
   const ssel = document.getElementById('f-store');
@@ -620,10 +619,7 @@ function buildSelects() {
 
 // ── Filter & aggregate ────────────────────────────────────────────────────────
 function applyFilter() {
-  const yrFrom = document.getElementById('f-year-from').value;
-  const moFrom = document.getElementById('f-month-from').value || '01';
-  const yrTo   = document.getElementById('f-year-to').value;
-  const moTo   = document.getElementById('f-month-to').value || '12';
+  const {yrFrom, moFrom, yrTo, moTo} = getFilterPeriod();
   const str    = document.getElementById('f-store').value;
   const fromYM = yrFrom + '-' + moFrom;
   const toYM   = yrTo   + '-' + moTo;
@@ -926,10 +922,7 @@ function renderSidebar() {
   document.getElementById('sb-list').innerHTML=html;
   const ebtn=document.getElementById('export-btn');
   if(ebtn){ebtn.disabled=!exportChecks.size;ebtn.style.opacity=exportChecks.size?'1':'0.4';}
-  const yrFrom=document.getElementById('f-year-from').value;
-  const moFrom=document.getElementById('f-month-from').value||'01';
-  const yrTo=document.getElementById('f-year-to').value;
-  const moTo=document.getElementById('f-month-to').value||'12';
+  const {yrFrom,moFrom,yrTo,moTo}=getFilterPeriod();
   let period;
   if(yrFrom===yrTo) period=moFrom==='01'&&moTo==='12'?yrFrom+'年':yrFrom+'年'+moFrom+'〜'+moTo+'月';
   else period=(yrFrom&&yrTo)?yrFrom+'年'+moFrom+'月〜'+yrTo+'年'+moTo+'月':'全期間';
@@ -939,10 +932,7 @@ function renderSidebar() {
 // ── Excel export ──────────────────────────────────────────────────────────────
 async function downloadCheckedCategories(){
   if(!exportChecks.size) return;
-  const yrFrom=document.getElementById('f-year-from').value;
-  const moFrom=document.getElementById('f-month-from').value||'01';
-  const yrTo=document.getElementById('f-year-to').value;
-  const moTo=document.getElementById('f-month-to').value||'12';
+  const {yrFrom,moFrom,yrTo,moTo}=getFilterPeriod();
   const periodStr=`${yrFrom}/${moFrom}/01〜${yrTo}/${moTo}/末`;
 
   // Color palette (ARGB hex)
@@ -1526,10 +1516,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
 
 // ── Header date ───────────────────────────────────────────────────────────────
 function updateHeaderDate() {
-  const yrFrom=document.getElementById('f-year-from').value;
-  const moFrom=document.getElementById('f-month-from').value||'01';
-  const yrTo=document.getElementById('f-year-to').value;
-  const moTo=document.getElementById('f-month-to').value||'12';
+  const {yrFrom,moFrom,yrTo,moTo}=getFilterPeriod();
   const fromYM=yrFrom+'-'+moFrom, toYM=yrTo+'-'+moTo;
   const uploadedYears=new Set(Object.keys(UPLOADS).map(ym=>ym.slice(0,4)));
   let mn='',mx='';
@@ -1604,10 +1591,9 @@ document.getElementById('modal-run').addEventListener('click',()=>{
       const ymSorted=[...updatedYMs].sort();
       if(ymSorted.length){
         const firstYM=ymSorted[0], lastYM=ymSorted[ymSorted.length-1];
-        document.getElementById('f-year-from').value=firstYM.slice(0,4);
-        document.getElementById('f-month-from').value=firstYM.slice(5,7);
-        document.getElementById('f-year-to').value=lastYM.slice(0,4);
-        document.getElementById('f-month-to').value=lastYM.slice(5,7);
+        document.getElementById('f-date-from').value=firstYM+'-01';
+        const [_ly,_lm]=lastYM.split('-').map(Number);
+        document.getElementById('f-date-to').value=lastYM+'-'+String(new Date(_ly,_lm,0).getDate()).padStart(2,'0');
       }
       applyFilter();
       closeModal();
@@ -1769,10 +1755,9 @@ buildData();
 const allYrs=Object.keys(DATA.by_store).sort();
 if(allYrs.length){
   const latestYr=allYrs[allYrs.length-1];
-  document.getElementById('f-year-from').value=latestYr;
-  document.getElementById('f-year-to').value=latestYr;
+  document.getElementById('f-date-from').value=latestYr+'-01-01';
+  document.getElementById('f-date-to').value=latestYr+'-12-31';
 }
-// Month selects are populated in buildSelects (defaults: 01 / 12)
 if(Object.keys(UPLOADS).length>0) document.getElementById('hd-saved').classList.add('show');
 applyFilter();
 </script>
