@@ -1239,14 +1239,16 @@ function showCategory(cat, updateSidebar=true) {
   if(catType&&!isYearGroupCat(cat)){
     const codeToYearCat={};
     for(const rc of realCats){if(isYearGroupCat(rc)){for(const code of Object.keys(aggregated[rc]||{})){if(!codeToYearCat[code])codeToYearCat[code]=rc;}}}
+    console.log('[DBG] cat=',cat,'catType=',catType,'realCats=',realCats,'codeToYearCat keys=',Object.keys(codeToYearCat).slice(0,5));
     for(const item of items){
       const sc=(DATA.products[item.code]||[])[2];if(!sc)continue;
       const yc=codeToYearCat[item.code];if(!yc)continue;
       const pc=getEquivYearCat(yc,-1);
-      if(pc){let q=0,a=0;for(const[pCode,qa] of Object.entries(aggPrev[pc]||{})){if((DATA.products[pCode]||[])[2]===sc){q+=qa[0];a+=qa[1];}}itemPrevQA[item.code]=q>0?[q,a]:null;}
+      if(pc){let q=0,a=0;for(const[pCode,qa] of Object.entries(aggPrev[pc]||{})){if((DATA.products[pCode]||[])[2]===sc){q+=qa[0];a+=qa[1];}}itemPrevQA[item.code]=q>0?[q,a]:null;if(item.code==='DR-MC-362')console.log('[DBG] DR-MC-362: sc=',sc,'yc=',yc,'pc=',pc,'aggPrev[pc] keys=',Object.keys(aggPrev[pc]||{}).slice(0,5),'q=',q);}
       const p2c=getEquivYearCat(yc,-2);
       if(p2c){let q=0,a=0;for(const[pCode,qa] of Object.entries(aggPrev2[p2c]||{})){if((DATA.products[pCode]||[])[2]===sc){q+=qa[0];a+=qa[1];}}itemPrev2QA[item.code]=q>0?[q,a]:null;}
     }
+    console.log('[DBG] itemPrevQA=',JSON.stringify(itemPrevQA).slice(0,200));
   }
   // Compute category-level comparison totals for the header
   if(comparisonMode && !isYearGroupCat(cat)){
