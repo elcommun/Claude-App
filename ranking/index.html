@@ -434,6 +434,26 @@ function buildCodeIdxFromAgg(agg,catList){
   }
   return idx;
 }
+// Builds searchCode→[qty,amount] index by finding year-offset equivalent categories in compAgg.
+// For each year-specific category in currentAgg (e.g. "2025年 1月始まりダイアリー"),
+// finds the shifted category in compAgg (e.g. "2024年 1月始まりダイアリー" for yearOffset=-1)
+// and indexes those products by search code. This avoids mixing multiple year-versions with the same SC.
+function buildYearEqSCIdx(currentAgg,compAgg,yearOffset){
+  const idx={};
+  for(const cat of Object.keys(currentAgg)){
+    if(!isYearGroupCat(cat)) continue;
+    const eqCat=getEquivYearCat(cat,yearOffset);
+    if(!eqCat) continue;
+    const catData=compAgg[eqCat]||{};
+    for(const[code,qa] of Object.entries(catData)){
+      const sc=(DATA.products[code]||[])[2];
+      if(!sc) continue;
+      if(!idx[sc])idx[sc]=[0,0];
+      idx[sc][0]+=qa[0];idx[sc][1]+=qa[1];
+    }
+  }
+  return idx;
+}
 const CAT_ICONS={'手帳':'📔','カレンダー':'📆','手帳:1月始まり':'🗓️','手帳:4月始まり':'🌸','手帳:10月始まり':'🍂','ブックカバー':'📖','レターセット':'✉️','保冷バッグ':'🧊','ペンケース':'✏️','ブックマーク':'🔖','メッセージカード':'💌','ぽち袋・金封':'🧧','ポーチ・ケース':'👜','ノート':'📓','ステッカー・シール':'⭐','メガネケース':'👓','マスキングテープ':'📏','スタンプ':'📮','メモ':'📋','マウスパッド':'🖱️','ふせん':'📌','ポスター':'🎨','グリーティングカード':'🎴','下敷き':'📐','ボールペン':'🖊️','トートバッグ':'🛍️','時計':'⏰','ランチボックス':'🍱','キーリング':'🗝️','エコバッグ':'🌿','箸セット':'🥢','タグ':'🎟️','クリアファイル':'📂','他カバー系':'🗂️','食器':'🍽️','ハンカチクロス':'🎗️','コースター他':'☕','アウトドア':'⛺','ブランケット':'🧣','ライトスポーツ':'🪁'};
 // Large category groupings (drill-down in sidebar, below 手帳/カレンダー)
 const MACRO_GROUPS=[
@@ -1201,17 +1221,33 @@ function showCategory(cat, updateSidebar=true) {
     if(p2c){localPrev2ByCode=buildCodeIdxFromAgg(aggPrev2,[p2c]);prev2Label=p2c.match(/^\d{4}年/)?.[0]||'前々年';prev2CatTot={qty:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[1],0)};}
     else localPrev2ByCode={};
   }
-  // SearchCode indexes for 手帳・カレンダー: built from localPrevByCode if year-specific, else from global
+  // SearchCode indexes for 手帳・カレンダー items
   function scIdxLocal(ci){const idx={};for(const[c,qa] of Object.entries(ci)){const sc=(DATA.products[c]||[])[2];if(!sc)continue;if(!idx[sc])idx[sc]=[0,0];idx[sc][0]+=qa[0];idx[sc][1]+=qa[1];}return idx;}
   let localPrevBySC=prevBySearchCode, localPrev2BySC=prev2BySearchCode;
-  if(isYearGroupCat(cat)){localPrevBySC=scIdxLocal(localPrevByCode);localPrev2BySC=scIdxLocal(localPrev2ByCode);}
-  // For regular categories with comparisonMode, compute category-level comparison totals
+  if(isYearGroupCat(cat)){
+    // Year-specific subcategory: build SC index from the shifted year category codes
+    localPrevBySC=scIdxLocal(localPrevByCode);localPrev2BySC=scIdxLocal(localPrev2ByCode);
+  } else if(catType){
+    // Parent 手帳/カレンダー: each item's search code must be matched against the equivalent previous-year category
+    // to avoid summing multiple year-versions of the same design (e.g. DR-MC-342 + DR-MC-283 both having SC "ma-42-" in prev period)
+    localPrevBySC=buildYearEqSCIdx(aggregated,aggPrev,-1);
+    localPrev2BySC=buildYearEqSCIdx(aggregated,aggPrev2,-2);
+  }
+  // Compute category-level comparison totals for the header
   if(comparisonMode && !isYearGroupCat(cat)){
-    const catCodes=new Set(items.map(i=>i.code));
-    const sp=bc=>{let q=0,a=0;for(const[c,qa] of Object.entries(bc)){if(catCodes.has(c)){q+=qa[0];a+=qa[1];}}return{qty:q,amount:a};};
-    const pt=sp(localPrevByCode), p2t=sp(localPrev2ByCode);
-    if(pt.qty) prevCatTot=pt;
-    if(p2t.qty) prev2CatTot=p2t;
+    if(catType){
+      const itemSCs=new Set(items.map(i=>(DATA.products[i.code]||[])[2]).filter(Boolean));
+      const sp=bsc=>{let q=0,a=0;for(const[sc,qa] of Object.entries(bsc)){if(itemSCs.has(sc)){q+=qa[0];a+=qa[1];}}return{qty:q,amount:a};};
+      const pt=sp(localPrevBySC), p2t=sp(localPrev2BySC);
+      if(pt.qty) prevCatTot=pt;
+      if(p2t.qty) prev2CatTot=p2t;
+    } else {
+      const catCodes=new Set(items.map(i=>i.code));
+      const sp=bc=>{let q=0,a=0;for(const[c,qa] of Object.entries(bc)){if(catCodes.has(c)){q+=qa[0];a+=qa[1];}}return{qty:q,amount:a};};
+      const pt=sp(localPrevByCode), p2t=sp(localPrev2ByCode);
+      if(pt.qty) prevCatTot=pt;
+      if(p2t.qty) prev2CatTot=p2t;
+    }
   }
   document.getElementById('th-prev').textContent=prevLabel;
   document.getElementById('th-prev2').textContent=prev2Label;
