@@ -148,7 +148,7 @@ input[type=file]{display:none}
 <body>
 
 <header class="hdr">
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v45</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v46</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1238,7 +1238,7 @@ function showCategory(cat, updateSidebar=true) {
   // Each item belongs to exactly one year category; we look up its shifted-year equivalent
   // to avoid incorrectly summing multiple year-versions of the same design.
   const itemPrevQA={},itemPrev2QA={};
-  if(catType&&!isYearGroupCat(cat)){
+  if(catType){
     const codeToYearCat={};
     for(const rc of realCats){if(isYearGroupCat(rc)){for(const code of Object.keys(aggregated[rc]||{})){if(!codeToYearCat[code])codeToYearCat[code]=rc;}}}
     // Name-then-positional matching: match by trailing ASCII design name first,
@@ -1334,7 +1334,7 @@ function showCategory(cat, updateSidebar=true) {
       <td class="nc">${x(item.name)}</td>
       <td class="num">¥${item.price.toLocaleString()}</td>
       <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
-      ${(()=>{const usePosMatch=catType&&!isYearGroupCat(cat);const pqa=usePosMatch?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=usePosMatch?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
+      ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
       <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
       <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
     </tr>`;
