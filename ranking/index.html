@@ -1218,7 +1218,7 @@ function showCategory(cat, updateSidebar=true) {
   const combined={};
   for(const rc of realCats){for(const[code,item] of Object.entries(aggregated[rc]||{})){if(!combined[code])combined[code]={...item,qty:0,amount:0};combined[code].qty+=item.qty;combined[code].amount+=item.amount;}}
   const items=Object.values(combined);
-  items.sort((a,b)=>{const nat=sortMode==='amount'?b.amount-a.amount:sortMode==='code'?a.code.localeCompare(b.code):sortMode==='price'?b.price-a.price:b.qty-a.qty;return sortDir==='asc'?-nat:nat;});
+  items.sort((a,b)=>{const nat=sortMode==='amount'?b.amount-a.amount:sortMode==='code'?b.code.localeCompare(a.code):sortMode==='price'?b.price-a.price:b.qty-a.qty;return sortDir==='asc'?-nat:nat;});
   const t=getCatTotal(cat);
   const topVal = items.length?(sortMode==='amount'?items.reduce((m,i)=>Math.max(m,i.amount),1):items.reduce((m,i)=>Math.max(m,i.qty),1)):1;
   const catPct = totalQty?(t.qty/totalQty*100).toFixed(1):0;
