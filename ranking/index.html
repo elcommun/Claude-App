@@ -422,6 +422,18 @@ function buildCodeIdxForSpecificCats(catList,str){
   for(const umd of Object.values(UPLOADS)) addFrom(umd.by_store||{});
   return idx;
 }
+// Builds code→[qty,amount] index from an already period-filtered aggregation {cat:{code:[qty,amount]}}
+function buildCodeIdxFromAgg(agg,catList){
+  const idx={};
+  for(const cat of catList){
+    const codes=agg[cat]||{};
+    for(const[code,qa] of Object.entries(codes)){
+      if(!idx[code])idx[code]=[0,0];
+      idx[code][0]+=qa[0];idx[code][1]+=qa[1];
+    }
+  }
+  return idx;
+}
 const CAT_ICONS={'手帳':'📔','カレンダー':'📆','手帳:1月始まり':'🗓️','手帳:4月始まり':'🌸','手帳:10月始まり':'🍂','ブックカバー':'📖','レターセット':'✉️','保冷バッグ':'🧊','ペンケース':'✏️','ブックマーク':'🔖','メッセージカード':'💌','ぽち袋・金封':'🧧','ポーチ・ケース':'👜','ノート':'📓','ステッカー・シール':'⭐','メガネケース':'👓','マスキングテープ':'📏','スタンプ':'📮','メモ':'📋','マウスパッド':'🖱️','ふせん':'📌','ポスター':'🎨','グリーティングカード':'🎴','下敷き':'📐','ボールペン':'🖊️','トートバッグ':'🛍️','時計':'⏰','ランチボックス':'🍱','キーリング':'🗝️','エコバッグ':'🌿','箸セット':'🥢','タグ':'🎟️','クリアファイル':'📂','他カバー系':'🗂️','食器':'🍽️','ハンカチクロス':'🎗️','コースター他':'☕','アウトドア':'⛺','ブランケット':'🧣','ライトスポーツ':'🪁'};
 // Large category groupings (drill-down in sidebar, below 手帳/カレンダー)
 const MACRO_GROUPS=[
@@ -1184,9 +1196,9 @@ function showCategory(cat, updateSidebar=true) {
   let prevLabel=prevYearLabel, prev2Label=prev2YearLabel, prevCatTot=null, prev2CatTot=null;
   if(isYearGroupCat(cat)){
     const pc=getEquivYearCat(cat,-1), p2c=getEquivYearCat(cat,-2);
-    if(pc){localPrevByCode=buildCodeIdxForSpecificCats([pc],_str);prevLabel=pc.match(/^\d{4}年/)?.[0]||'前年';prevCatTot={qty:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[1],0)};}
+    if(pc){localPrevByCode=buildCodeIdxFromAgg(aggPrev,[pc]);prevLabel=pc.match(/^\d{4}年/)?.[0]||'前年';prevCatTot={qty:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[1],0)};}
     else localPrevByCode={};
-    if(p2c){localPrev2ByCode=buildCodeIdxForSpecificCats([p2c],_str);prev2Label=p2c.match(/^\d{4}年/)?.[0]||'前々年';prev2CatTot={qty:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[1],0)};}
+    if(p2c){localPrev2ByCode=buildCodeIdxFromAgg(aggPrev2,[p2c]);prev2Label=p2c.match(/^\d{4}年/)?.[0]||'前々年';prev2CatTot={qty:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[1],0)};}
     else localPrev2ByCode={};
   }
   // SearchCode indexes for 手帳・カレンダー: built from localPrevByCode if year-specific, else from global
