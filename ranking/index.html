@@ -148,7 +148,7 @@ input[type=file]{display:none}
 <body>
 
 <header class="hdr">
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v43</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v44</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1241,29 +1241,38 @@ function showCategory(cat, updateSidebar=true) {
   if(catType&&!isYearGroupCat(cat)){
     const codeToYearCat={};
     for(const rc of realCats){if(isYearGroupCat(rc)){for(const code of Object.keys(aggregated[rc]||{})){if(!codeToYearCat[code])codeToYearCat[code]=rc;}}}
-    // Positional matching: within each (sc, type-prefix, year-cat) group, sort by code and match by index.
-    // e.g. DR-MC-362 is position 0 in 2025年 ma-02- DR-MC- group → matches DR-MC-306 (position 0) in 2024年 group.
-    const posGroups={};
+    // Name-then-positional matching: match by trailing ASCII design name first,
+    // then pair remaining unmatched items positionally (sorted by code).
+    function designName(n){const m=(n||'').match(/([A-Za-z][A-Za-z0-9 &]*)\s*$/);return m?m[1].trim():'';}
+    const grps={};
     for(const item of items){
       const sc=(DATA.products[item.code]||[])[2];if(!sc)continue;
       const yc=codeToYearCat[item.code];if(!yc)continue;
       const tp=item.code.match(/^[^0-9]+/)?.[0]||'';
       const key=sc+'|'+tp+'|'+yc;
-      if(!posGroups[key])posGroups[key]=[];
-      posGroups[key].push(item.code);
+      if(!grps[key])grps[key]={sc,tp,yc,items:[]};
+      grps[key].items.push({code:item.code,dn:designName((DATA.products[item.code]||[])[0]||'')});
     }
-    for(const key of Object.keys(posGroups))posGroups[key].sort();
-    for(const item of items){
-      const sc=(DATA.products[item.code]||[])[2];if(!sc)continue;
-      itemPrevQA[item.code]=null;itemPrev2QA[item.code]=null;
-      const yc=codeToYearCat[item.code];if(!yc)continue;
-      const tp=item.code.match(/^[^0-9]+/)?.[0]||'';
-      const pos=(posGroups[sc+'|'+tp+'|'+yc]||[]).indexOf(item.code);
-      const pc=getEquivYearCat(yc,-1);
-      if(pc){const pC=Object.keys(aggPrev[pc]||{}).filter(c=>(DATA.products[c]||[])[2]===sc&&(!tp||c.startsWith(tp))).sort();const mc=pos>=0&&pos<pC.length?pC[pos]:null;const qa=mc&&aggPrev[pc][mc];itemPrevQA[item.code]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}else itemPrevQA[item.code]=null;
-      const p2c=getEquivYearCat(yc,-2);
-      if(p2c){const p2C=Object.keys(aggPrev2[p2c]||{}).filter(c=>(DATA.products[c]||[])[2]===sc&&(!tp||c.startsWith(tp))).sort();const mc=pos>=0&&pos<p2C.length?p2C[pos]:null;const qa=mc&&aggPrev2[p2c][mc];itemPrev2QA[item.code]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}else itemPrev2QA[item.code]=null;
+    for(const g of Object.values(grps)){
+      g.items.sort((a,b)=>a.code<b.code?-1:1);
+      for(const[offset,tgt,pAgg] of [[-1,itemPrevQA,aggPrev],[-2,itemPrev2QA,aggPrev2]]){
+        const prevCat=getEquivYearCat(g.yc,offset);
+        if(!prevCat){for(const{code}of g.items)tgt[code]=null;continue;}
+        const pCodes=Object.keys(pAgg[prevCat]||{}).filter(c=>(DATA.products[c]||[])[2]===g.sc&&(!g.tp||c.startsWith(g.tp))).sort();
+        if(!pCodes.length){for(const{code}of g.items)tgt[code]=null;continue;}
+        const prevDN={};
+        for(const pc of pCodes){const d=designName((DATA.products[pc]||[])[0]||'');if(!prevDN[d])prevDN[d]=[];prevDN[d].push(pc);}
+        const used=new Set(),unmatched=[];
+        for(const{code,dn}of g.items){
+          const mc=dn&&prevDN[dn]?.find(c=>!used.has(c));
+          if(mc){used.add(mc);const qa=pAgg[prevCat][mc];tgt[code]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}
+          else unmatched.push(code);
+        }
+        const leftover=pCodes.filter(c=>!used.has(c));
+        for(let i=0;i<unmatched.length;i++){const pc=leftover[i];if(pc){const qa=pAgg[prevCat][pc];tgt[unmatched[i]]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}else tgt[unmatched[i]]=null;}
+      }
     }
+    for(const item of items){const sc=(DATA.products[item.code]||[])[2];if(sc&&!(item.code in itemPrevQA)){itemPrevQA[item.code]=null;itemPrev2QA[item.code]=null;}}
   }
   // Compute category-level comparison totals for the header
   if(comparisonMode && !isYearGroupCat(cat)){
