@@ -148,7 +148,7 @@ input[type=file]{display:none}
 <body>
 
 <header class="hdr">
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v44</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v46</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1238,7 +1238,7 @@ function showCategory(cat, updateSidebar=true) {
   // Each item belongs to exactly one year category; we look up its shifted-year equivalent
   // to avoid incorrectly summing multiple year-versions of the same design.
   const itemPrevQA={},itemPrev2QA={};
-  if(catType&&!isYearGroupCat(cat)){
+  if(catType){
     const codeToYearCat={};
     for(const rc of realCats){if(isYearGroupCat(rc)){for(const code of Object.keys(aggregated[rc]||{})){if(!codeToYearCat[code])codeToYearCat[code]=rc;}}}
     // Name-then-positional matching: match by trailing ASCII design name first,
@@ -1255,21 +1255,34 @@ function showCategory(cat, updateSidebar=true) {
     }
     for(const g of Object.values(grps)){
       g.items.sort((a,b)=>a.code<b.code?-1:1);
-      for(const[offset,tgt,pAgg] of [[-1,itemPrevQA,aggPrev],[-2,itemPrev2QA,aggPrev2]]){
-        const prevCat=getEquivYearCat(g.yc,offset);
-        if(!prevCat){for(const{code}of g.items)tgt[code]=null;continue;}
-        const pCodes=Object.keys(pAgg[prevCat]||{}).filter(c=>(DATA.products[c]||[])[2]===g.sc&&(!g.tp||c.startsWith(g.tp))).sort();
-        if(!pCodes.length){for(const{code}of g.items)tgt[code]=null;continue;}
-        const prevDN={};
-        for(const pc of pCodes){const d=designName((DATA.products[pc]||[])[0]||'');if(!prevDN[d])prevDN[d]=[];prevDN[d].push(pc);}
-        const used=new Set(),unmatched=[];
-        for(const{code,dn}of g.items){
-          const mc=dn&&prevDN[dn]?.find(c=>!used.has(c));
-          if(mc){used.add(mc);const qa=pAgg[prevCat][mc];tgt[code]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}
-          else unmatched.push(code);
+      if(catType==='カレンダー'){
+        // カレンダー: sc-only matching (one product per sc per year, no color variants)
+        for(const[offset,tgt,pAgg] of [[-1,itemPrevQA,aggPrev],[-2,itemPrev2QA,aggPrev2]]){
+          const prevCat=getEquivYearCat(g.yc,offset);
+          if(!prevCat){for(const{code}of g.items)tgt[code]=null;continue;}
+          const pCodes=Object.keys(pAgg[prevCat]||{}).filter(c=>(DATA.products[c]||[])[2]===g.sc&&(!g.tp||c.startsWith(g.tp)));
+          if(!pCodes.length){for(const{code}of g.items)tgt[code]=null;continue;}
+          let tq=0,ta=0;for(const pc of pCodes){const qa=pAgg[prevCat][pc];if(qa){tq+=qa[0];ta+=qa[1];}}
+          for(const{code}of g.items)tgt[code]=tq>0?[tq,ta]:null;
         }
-        const leftover=pCodes.filter(c=>!used.has(c));
-        for(let i=0;i<unmatched.length;i++){const pc=leftover[i];if(pc){const qa=pAgg[prevCat][pc];tgt[unmatched[i]]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}else tgt[unmatched[i]]=null;}
+      } else {
+        // 手帳: name-based matching with positional fallback for leftovers
+        for(const[offset,tgt,pAgg] of [[-1,itemPrevQA,aggPrev],[-2,itemPrev2QA,aggPrev2]]){
+          const prevCat=getEquivYearCat(g.yc,offset);
+          if(!prevCat){for(const{code}of g.items)tgt[code]=null;continue;}
+          const pCodes=Object.keys(pAgg[prevCat]||{}).filter(c=>(DATA.products[c]||[])[2]===g.sc&&(!g.tp||c.startsWith(g.tp))).sort();
+          if(!pCodes.length){for(const{code}of g.items)tgt[code]=null;continue;}
+          const prevDN={};
+          for(const pc of pCodes){const d=designName((DATA.products[pc]||[])[0]||'');if(!prevDN[d])prevDN[d]=[];prevDN[d].push(pc);}
+          const used=new Set(),unmatched=[];
+          for(const{code,dn}of g.items){
+            const mc=dn&&prevDN[dn]?.find(c=>!used.has(c));
+            if(mc){used.add(mc);const qa=pAgg[prevCat][mc];tgt[code]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}
+            else unmatched.push(code);
+          }
+          const leftover=pCodes.filter(c=>!used.has(c));
+          for(let i=0;i<unmatched.length;i++){const pc=leftover[i];if(pc){const qa=pAgg[prevCat][pc];tgt[unmatched[i]]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}else tgt[unmatched[i]]=null;}
+        }
       }
     }
     for(const item of items){const sc=(DATA.products[item.code]||[])[2];if(sc&&!(item.code in itemPrevQA)){itemPrevQA[item.code]=null;itemPrev2QA[item.code]=null;}}
@@ -1321,7 +1334,7 @@ function showCategory(cat, updateSidebar=true) {
       <td class="nc">${x(item.name)}</td>
       <td class="num">¥${item.price.toLocaleString()}</td>
       <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
-      ${(()=>{const usePosMatch=catType&&!isYearGroupCat(cat);const pqa=usePosMatch?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=usePosMatch?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
+      ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
       <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
       <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
     </tr>`;
