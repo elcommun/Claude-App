@@ -12,11 +12,15 @@ from reportlab.platypus import (
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.pdfmetrics import registerFontFamily
 
-# Register Japanese font
-FONT_PATH = "/usr/share/fonts/opentype/ipafont-gothic/ipag.ttf"
-pdfmetrics.registerFont(TTFont("IPAGothic", FONT_PATH))
-FONT = "IPAGothic"
+# Noto Sans CJK JP converted to TrueType for ReportLab compatibility
+pdfmetrics.registerFont(TTFont("NotoSansJP",      "/tmp/NotoSansJP-Regular.ttf"))
+pdfmetrics.registerFont(TTFont("NotoSansJP-Bold", "/tmp/NotoSansJP-Bold.ttf"))
+registerFontFamily("NotoSansJP", normal="NotoSansJP", bold="NotoSansJP-Bold",
+                   italic="NotoSansJP", boldItalic="NotoSansJP-Bold")
+FONT      = "NotoSansJP"
+FONT_BOLD = "NotoSansJP-Bold"
 
 # Color palette
 C_NAVY = colors.HexColor("#1A3557")
