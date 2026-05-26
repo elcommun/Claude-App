@@ -1515,10 +1515,11 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   if(!results.length){
     html=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
   }else{
-    for(const r of results){
-      const ri=r.rank===1?'🥇':r.rank===2?'🥈':r.rank===3?'🥉':r.rank;
+    results.forEach((r,idx)=>{
+      const rank=idx+1;
+      const ri=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
       html+=`<tr style="cursor:pointer" onclick="document.getElementById('hd-search').value='';showCategory('${esc(r.cat)}')">
-        <td><div class="rn ${r.rank<=3?'r'+r.rank:'ro'}">${ri}</div></td>
+        <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
         <td><span class="ct">${x(r.cat)}</span></td>
         <td class="cc">${x(r.searchCode?r.searchCode+r.code:r.code)}</td>
         <td class="nc">${hl(r.name,q,trans)}</td>
@@ -1526,7 +1527,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
         <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
         <td class="num" style="${heatBg(r.amount,maxAmtS).slice(1)}">¥${r.amount.toLocaleString()}</td>
       </tr>`;
-    }
+    });
   }
   document.getElementById('search-tbody').innerHTML=html;
 });
