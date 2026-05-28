@@ -174,7 +174,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v48</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v49</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1366,14 +1366,16 @@ function showCategory(cat, updateSidebar=true) {
       <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
     </tr>`;
   }
+  // Rank always reflects qty (or amount) order regardless of sort mode
+  const rankBase=[...items].sort((a,b)=>sortMode==='amount'?b.amount-a.amount:b.qty-a.qty);
+  const rankMap={};rankBase.forEach((item,i)=>rankMap[item.code]=i+1);
   if (!items.length) {
     html=`<tr><td colspan="${colspan}"><div class="empty"><div class="empty-icon">📭</div>データがありません</div></td></tr>`;
-  } else if (catType) {
+  } else if (catType && sortMode!=='code' && sortMode!=='price') {
     const formatFn=catType==='手帳'?(item=>getDiaryFormat(item.code)):(item=>getCalendarFormat(item.code,item.name));
     const fmtOrder=catType==='手帳'?[...DIARY_FORMATS.map(f=>f.name),'その他']:['卓上','壁掛け','その他'];
     const groups={};
     for(const item of items){const f=formatFn(item);if(!groups[f])groups[f]=[];groups[f].push(item);}
-    const rankMap={};items.forEach((item,i)=>rankMap[item.code]=i+1);
     for(const fmtName of fmtOrder){
       const gi=groups[fmtName]; if(!gi?.length) continue;
       const gTop=sortMode==='amount'?gi.reduce((m,i)=>Math.max(m,i.amount),1):gi.reduce((m,i)=>Math.max(m,i.qty),1);
@@ -1381,7 +1383,7 @@ function showCategory(cat, updateSidebar=true) {
       gi.forEach(item=>{ html+=renderRow(item,rankMap[item.code],gTop); });
     }
   } else {
-    items.forEach((item,i)=>{ html+=renderRow(item,i+1,topVal); });
+    items.forEach(item=>{ html+=renderRow(item,rankMap[item.code],topVal); });
   }
   document.getElementById('rank-tbody').innerHTML=html;
 }
