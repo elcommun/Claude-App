@@ -143,12 +143,38 @@ input[type=file]{display:none}
 .alias-eq{font-size:12px;color:var(--ink4);flex-shrink:0}
 .alias-abtn{height:28px;padding:0 12px;border:none;background:var(--ink);color:#fff;border-radius:5px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;transition:background .15s}
 .alias-abtn:hover{background:#2c2622}
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+.hd-menu{display:none;background:none;border:none;color:rgba(255,255,255,.8);font-size:22px;cursor:pointer;padding:2px 8px;line-height:1;flex-shrink:0;margin-right:2px}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:155}
+.sb-overlay.open{display:block}
+@media(max-width:900px){.hd-date{display:none}}
+@media(max-width:768px){
+  :root{--hh:52px}
+  .hd-menu{display:block}
+  .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:160;box-shadow:4px 0 24px rgba(0,0,0,.18)}
+  .sb.open{transform:translateX(0)}
+  .main{margin-left:0;padding:16px 14px 60px}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .nc{max-width:160px}
+  .bb{width:56px}
+  #hd-search{width:130px}
+  .hd-btn{padding:5px 9px;font-size:10px}
+  .hd-saved{display:none!important}
+}
+@media(max-width:480px){
+  #hd-search{width:100px;font-size:11px}
+  .hd-btn{display:none}
+  .kpi-row{grid-template-columns:repeat(2,1fr);gap:7px}
+  .cat-name{font-size:17px}
+}
 </style>
 </head>
 <body>
 
 <header class="hdr">
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v46</span></div></div>
+  <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v47</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -196,6 +222,7 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<div class="sb-overlay" id="sb-overlay"></div>
 <div class="layout">
   <aside class="sb">
     <div class="sb-hd">
@@ -1812,6 +1839,15 @@ if(allYrs.length){
 }
 if(Object.keys(UPLOADS).length>0) document.getElementById('hd-saved').classList.add('show');
 applyFilter();
+// Mobile sidebar drawer
+(function(){
+  const sbEl=document.querySelector('.sb'),ovEl=document.getElementById('sb-overlay'),mnEl=document.getElementById('hd-menu');
+  function openSb(){sbEl.classList.add('open');ovEl.classList.add('open');}
+  function closeSb(){sbEl.classList.remove('open');ovEl.classList.remove('open');}
+  mnEl?.addEventListener('click',openSb);
+  ovEl?.addEventListener('click',closeSb);
+  document.getElementById('sb-list')?.addEventListener('click',()=>{if(window.innerWidth<=768)closeSb();});
+})();
 </script>
 </body>
 </html>
