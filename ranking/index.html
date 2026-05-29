@@ -147,6 +147,9 @@ input[type=file]{display:none}
 .hd-menu{display:none;background:none;border:none;color:rgba(255,255,255,.8);font-size:22px;cursor:pointer;padding:2px 8px;line-height:1;flex-shrink:0;margin-right:2px}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:155}
 .sb-overlay.open{display:block}
+.sb-resize{width:5px;cursor:col-resize;position:fixed;top:var(--hh);bottom:0;left:var(--sb);z-index:170;transition:background .15s}
+.sb-resize:hover,.sb-resize.dragging{background:var(--gold);opacity:.45}
+@media(max-width:768px){.sb-resize{display:none}}
 @media(max-width:900px){.hd-date{display:none}}
 @media(max-width:768px){
   :root{--hh:52px}
@@ -174,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v48</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v51</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -223,6 +226,7 @@ input[type=file]{display:none}
 </div>
 
 <div class="sb-overlay" id="sb-overlay"></div>
+<div class="sb-resize" id="sb-resize"></div>
 <div class="layout">
   <aside class="sb">
     <div class="sb-hd">
@@ -699,7 +703,7 @@ function applyFilter() {
     const a={}, ulYrs=new Set(Object.keys(UPLOADS).map(ym=>ym.slice(0,4)));
     const yF=fYM.slice(0,4), yT=tYM.slice(0,4);
     function mg(bs){const sts=str==='all'?Object.keys(bs):[str];for(const s of sts){const bc=bs[s];if(!bc)continue;for(const[rc,cd] of Object.entries(bc)){for(const[rawCode,qa] of Object.entries(cd)){const code=CODE_REMAP[rawCode]||rawCode;if(CODE_SKIP_PREFIXES.some(p=>code.startsWith(p)))continue;const cat=getCodeCat(code)||mapCategory(rc);if(!a[cat])a[cat]={};if(!a[cat][code])a[cat][code]=[0,0];a[cat][code][0]+=qa[0];a[cat][code][1]+=qa[1];}}}}
-    for(const yr of Object.keys(PRELOADED.by_store)){if(ulYrs.has(yr)||yr<yF||yr>yT)continue;mg(PRELOADED.by_store[yr]);}
+    for(const yr of Object.keys(PRELOADED.by_store)){if(ulYrs.has(yr)||yr<yF||yr>yT)continue;if(fYM>yr+'-01'||tYM<yr+'-12')continue;mg(PRELOADED.by_store[yr]);}
     for(const[ym,umd] of Object.entries(UPLOADS)){if(ym<fYM||ym>tYM)continue;mg(umd.by_store||{});}
     return a;
   }
@@ -1366,14 +1370,16 @@ function showCategory(cat, updateSidebar=true) {
       <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
     </tr>`;
   }
+  // Rank always reflects qty (or amount) order regardless of sort mode
+  const rankBase=[...items].sort((a,b)=>sortMode==='amount'?b.amount-a.amount:b.qty-a.qty);
+  const rankMap={};rankBase.forEach((item,i)=>rankMap[item.code]=i+1);
   if (!items.length) {
     html=`<tr><td colspan="${colspan}"><div class="empty"><div class="empty-icon">📭</div>データがありません</div></td></tr>`;
-  } else if (catType) {
+  } else if (catType && sortMode!=='code' && sortMode!=='price') {
     const formatFn=catType==='手帳'?(item=>getDiaryFormat(item.code)):(item=>getCalendarFormat(item.code,item.name));
     const fmtOrder=catType==='手帳'?[...DIARY_FORMATS.map(f=>f.name),'その他']:['卓上','壁掛け','その他'];
     const groups={};
     for(const item of items){const f=formatFn(item);if(!groups[f])groups[f]=[];groups[f].push(item);}
-    const rankMap={};items.forEach((item,i)=>rankMap[item.code]=i+1);
     for(const fmtName of fmtOrder){
       const gi=groups[fmtName]; if(!gi?.length) continue;
       const gTop=sortMode==='amount'?gi.reduce((m,i)=>Math.max(m,i.amount),1):gi.reduce((m,i)=>Math.max(m,i.qty),1);
@@ -1381,7 +1387,7 @@ function showCategory(cat, updateSidebar=true) {
       gi.forEach(item=>{ html+=renderRow(item,rankMap[item.code],gTop); });
     }
   } else {
-    items.forEach((item,i)=>{ html+=renderRow(item,i+1,topVal); });
+    items.forEach(item=>{ html+=renderRow(item,rankMap[item.code],topVal); });
   }
   document.getElementById('rank-tbody').innerHTML=html;
 }
@@ -1847,6 +1853,30 @@ applyFilter();
   mnEl?.addEventListener('click',openSb);
   ovEl?.addEventListener('click',closeSb);
   document.getElementById('sb-list')?.addEventListener('click',()=>{if(window.innerWidth<=768)closeSb();});
+})();
+// Sidebar resize handle (desktop only)
+(function(){
+  const MIN=140,MAX=480;
+  const handle=document.getElementById('sb-resize');
+  if(!handle)return;
+  function applyW(w){
+    w=Math.max(MIN,Math.min(MAX,w));
+    document.documentElement.style.setProperty('--sb',w+'px');
+    handle.style.left=w+'px';
+    localStorage.setItem('sb-width',w);
+  }
+  const saved=parseInt(localStorage.getItem('sb-width'));
+  if(saved&&saved>=MIN&&saved<=MAX)applyW(saved);
+  handle.addEventListener('mousedown',e=>{
+    if(window.innerWidth<=768)return;
+    e.preventDefault();
+    handle.classList.add('dragging');
+    const startX=e.clientX,startW=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb'))||220;
+    function onMove(e){applyW(startW+(e.clientX-startX));}
+    function onUp(){handle.classList.remove('dragging');document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);}
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
 })();
 </script>
 </body>
