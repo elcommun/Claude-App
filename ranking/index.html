@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v51</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v52</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -703,7 +703,7 @@ function applyFilter() {
     const a={}, ulYrs=new Set(Object.keys(UPLOADS).map(ym=>ym.slice(0,4)));
     const yF=fYM.slice(0,4), yT=tYM.slice(0,4);
     function mg(bs){const sts=str==='all'?Object.keys(bs):[str];for(const s of sts){const bc=bs[s];if(!bc)continue;for(const[rc,cd] of Object.entries(bc)){for(const[rawCode,qa] of Object.entries(cd)){const code=CODE_REMAP[rawCode]||rawCode;if(CODE_SKIP_PREFIXES.some(p=>code.startsWith(p)))continue;const cat=getCodeCat(code)||mapCategory(rc);if(!a[cat])a[cat]={};if(!a[cat][code])a[cat][code]=[0,0];a[cat][code][0]+=qa[0];a[cat][code][1]+=qa[1];}}}}
-    for(const yr of Object.keys(PRELOADED.by_store)){if(ulYrs.has(yr)||yr<yF||yr>yT)continue;if(fYM>yr+'-01'||tYM<yr+'-12')continue;mg(PRELOADED.by_store[yr]);}
+    for(const yr of Object.keys(PRELOADED.by_store)){if(ulYrs.has(yr)||yr<yF||yr>yT)continue;mg(PRELOADED.by_store[yr]);}
     for(const[ym,umd] of Object.entries(UPLOADS)){if(ym<fYM||ym>tYM)continue;mg(umd.by_store||{});}
     return a;
   }
