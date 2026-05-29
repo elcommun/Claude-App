@@ -147,6 +147,9 @@ input[type=file]{display:none}
 .hd-menu{display:none;background:none;border:none;color:rgba(255,255,255,.8);font-size:22px;cursor:pointer;padding:2px 8px;line-height:1;flex-shrink:0;margin-right:2px}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:155}
 .sb-overlay.open{display:block}
+.sb-resize{width:5px;cursor:col-resize;position:fixed;top:var(--hh);bottom:0;left:var(--sb);z-index:170;transition:background .15s}
+.sb-resize:hover,.sb-resize.dragging{background:var(--gold);opacity:.45}
+@media(max-width:768px){.sb-resize{display:none}}
 @media(max-width:900px){.hd-date{display:none}}
 @media(max-width:768px){
   :root{--hh:52px}
@@ -174,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v49</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v50</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -223,6 +226,7 @@ input[type=file]{display:none}
 </div>
 
 <div class="sb-overlay" id="sb-overlay"></div>
+<div class="sb-resize" id="sb-resize"></div>
 <div class="layout">
   <aside class="sb">
     <div class="sb-hd">
@@ -1849,6 +1853,30 @@ applyFilter();
   mnEl?.addEventListener('click',openSb);
   ovEl?.addEventListener('click',closeSb);
   document.getElementById('sb-list')?.addEventListener('click',()=>{if(window.innerWidth<=768)closeSb();});
+})();
+// Sidebar resize handle (desktop only)
+(function(){
+  const MIN=140,MAX=480;
+  const handle=document.getElementById('sb-resize');
+  if(!handle)return;
+  function applyW(w){
+    w=Math.max(MIN,Math.min(MAX,w));
+    document.documentElement.style.setProperty('--sb',w+'px');
+    handle.style.left=w+'px';
+    localStorage.setItem('sb-width',w);
+  }
+  const saved=parseInt(localStorage.getItem('sb-width'));
+  if(saved&&saved>=MIN&&saved<=MAX)applyW(saved);
+  handle.addEventListener('mousedown',e=>{
+    if(window.innerWidth<=768)return;
+    e.preventDefault();
+    handle.classList.add('dragging');
+    const startX=e.clientX,startW=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb'))||220;
+    function onMove(e){applyW(startW+(e.clientX-startX));}
+    function onUp(){handle.classList.remove('dragging');document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);}
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
 })();
 </script>
 </body>
