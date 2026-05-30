@@ -1010,8 +1010,9 @@ async function downloadCheckedCategories(){
         const gi=grp[fmt]; if(!gi?.length) continue;
         const lg=[...gi].sort((a,b)=>a.code.localeCompare(b.code));
         const rg=[...gi].sort((a,b)=>b.qty-a.qty);
+        const rankMap={}; rg.forEach((item,idx)=>{rankMap[item.code]=idx+1;});
         diaryRows.push({t:'h',fmt,n:gi.length});
-        for(let j=0;j<lg.length;j++) diaryRows.push({t:'r',li:lg[j],ri:rg[j],rank:j+1,lidx:j+1});
+        for(let j=0;j<lg.length;j++) diaryRows.push({t:'r',li:lg[j],ri:rg[j],rank:j+1,lidx:rankMap[lg[j].code]});
       }
       leftItems=[];
     } else {
@@ -1076,9 +1077,9 @@ async function downloadCheckedCategories(){
         const cell=ws.getCell(3,c+1);
         cell.value=lHdrs[c];
         cell.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
-        cell.fill=fill(C.NAV);
+        cell.fill=fill(C.GRN);
         cell.alignment={vertical:'middle',horizontal:'center'};
-        cell.border=medAll;
+        cell.border=thinAll;
       }
     }
     // Right-side header label
@@ -1178,7 +1179,7 @@ async function downloadCheckedCategories(){
             const cell=ws.getCell(ri,c+1);
             cell.value=lHdrs[c];
             cell.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
-            cell.fill=fill(C.GRN); cell.alignment={vertical:'middle',horizontal:'center'}; cell.border=medAll;
+            cell.fill=fill(C.GRN); cell.alignment={vertical:'middle',horizontal:'center'}; cell.border=thinAll;
           }
         }
       } else if(isDiary&&i>=4){
