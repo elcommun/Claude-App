@@ -1313,18 +1313,23 @@ async function downloadCheckedCategories(){
     ws.views=[{state:'frozen',ySplit:7,topLeftCell:'A8',activeCell:'A8'}];
   }
 
+  const exportCatArr=[...exportChecks];
+  // Determine parent group name for filename
+  let parentName='';
+  for(const g of CAT_GROUPS){if(exportCatArr.some(c=>isYearGroupCat(c)&&g.match(c))){parentName=g.name;break;}}
+  if(!parentName){for(const mg of MACRO_GROUPS){if(exportCatArr.some(c=>mg.cats.includes(c))){parentName=mg.name;break;}}}
+  if(!parentName) parentName=exportCatArr.length===1?exportCatArr[0]:'EC';
+  const safeName=parentName.replace(/[\\/:*?"<>|]/g,'_');
+  // Date range in YYYYMMDD format
   const dateFrom=`${yrFrom}${moFrom.padStart(2,'0')}01`;
   const lastDay=new Date(parseInt(yrTo),parseInt(moTo),0).getDate();
   const dateTo=`${yrTo}${moTo.padStart(2,'0')}${String(lastDay).padStart(2,'0')}`;
-  const cats=[...exportChecks];
-  const catPrefix=cats.length===1?cats[0]:'EC';
-  const safePrefix=catPrefix.replace(/[\\/:*?"<>|]/g,'_');
 
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=`${safePrefix}販売数（EC全体）${dateFrom}-${dateTo}.xlsx`;
+  a.href=url; a.download=`EC販売数（${safeName}）${dateFrom}-${dateTo}.xlsx`;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
 }
