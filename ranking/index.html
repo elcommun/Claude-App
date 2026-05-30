@@ -1000,7 +1000,12 @@ async function downloadCheckedCategories(){
   const wb=new ExcelJS.Workbook();
   wb.creator='EC販売ランキング'; wb.created=new Date();
 
-  for(const catName of exportChecks){
+  const exportCatList=[...exportChecks].sort((a,b)=>{
+    const aY=isYearGroupCat(a), bY=isYearGroupCat(b);
+    if(!aY||!bY) return 0;
+    return parseInt(b.match(/^(\d{4})/)[1])-parseInt(a.match(/^(\d{4})/)[1]);
+  });
+  for(const catName of exportCatList){
     const realCats=getGroupCats(catName)||[catName];
     const combined={};
     for(const rc of realCats){
