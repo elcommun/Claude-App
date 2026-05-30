@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v53</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v54</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1385,7 +1385,8 @@ function showCategory(cat, updateSidebar=true) {
       const gi=groups[fmtName]; if(!gi?.length) continue;
       const gTop=sortMode==='amount'?gi.reduce((m,i)=>Math.max(m,i.amount),1):gi.reduce((m,i)=>Math.max(m,i.qty),1);
       html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(fmtName)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${gi.length}種)</span></td></tr>`;
-      gi.forEach(item=>{ html+=renderRow(item,rankMap[item.code],gTop); });
+      if(catType==='手帳'){gi.forEach((item,i)=>{ html+=renderRow(item,i+1,gTop); });}
+      else{gi.forEach(item=>{ html+=renderRow(item,rankMap[item.code],gTop); });}
     }
   } else {
     items.forEach(item=>{ html+=renderRow(item,rankMap[item.code],topVal); });
