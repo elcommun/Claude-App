@@ -931,7 +931,7 @@ function renderSidebar() {
           }
         }
       } else {
-        for(const c of matchingCats.sort()) html+=itemHtml(c,1);
+        for(const c of matchingCats.sort().reverse()) html+=itemHtml(c,1);
       }
     }
   }
