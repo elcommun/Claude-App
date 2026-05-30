@@ -1316,7 +1316,7 @@ async function downloadCheckedCategories(){
   const exportCatArr=[...exportChecks];
   // Determine parent group name for filename
   let parentName='';
-  for(const g of CAT_GROUPS){if(exportCatArr.some(c=>isYearGroupCat(c)&&g.match(c))){parentName=g.name;break;}}
+  for(const g of CAT_GROUPS){if(exportCatArr.some(c=>g.match(c))){parentName=g.name;break;}}
   if(!parentName){for(const mg of MACRO_GROUPS){if(exportCatArr.some(c=>mg.cats.includes(c))){parentName=mg.name;break;}}}
   if(!parentName) parentName=exportCatArr.length===1?exportCatArr[0]:'EC';
   const safeName=parentName.replace(/[\\/:*?"<>|]/g,'_');
