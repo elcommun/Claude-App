@@ -821,9 +821,22 @@ function toggleCheck(cat){
   // If a MACRO_GROUP header is toggled, also toggle all its sub-categories
   const mg=MACRO_GROUPS.find(m=>m.name===cat);
   if(mg){for(const c of mg.cats){if(nowOn)exportChecks.add(c);else exportChecks.delete(c);}}
-  // If a CAT_GROUP header (手帳/カレンダー) is toggled, also toggle its season subs
+  // If a CAT_GROUP header (手帳/カレンダー) is toggled, also toggle its season subs (and their leaves)
   const cg=CAT_GROUPS.find(g=>g.name===cat);
-  if(cg&&cg.subs.length){for(const s of cg.subs){const k=cg.name+':'+s.name;if(nowOn)exportChecks.add(k);else exportChecks.delete(k);}}
+  if(cg){
+    const leafCats=Object.keys(aggregated).filter(c=>cg.match(c));
+    for(const c of leafCats){if(nowOn)exportChecks.add(c);else exportChecks.delete(c);}
+    if(cg.subs.length){for(const s of cg.subs){const k=cg.name+':'+s.name;if(nowOn)exportChecks.add(k);else exportChecks.delete(k);}}
+  }
+  // If a CAT_GROUP sub-key (手帳:4月始まり etc.) is toggled, also toggle its leaf year categories
+  for(const g of CAT_GROUPS){
+    for(const s of g.subs){
+      if(g.name+':'+s.name===cat){
+        const leafCats=Object.keys(aggregated).filter(c=>g.match(c)&&s.match(c));
+        for(const c of leafCats){if(nowOn)exportChecks.add(c);else exportChecks.delete(c);}
+      }
+    }
+  }
   const btn=document.getElementById('export-btn');
   if(btn){btn.disabled=!exportChecks.size;btn.style.opacity=exportChecks.size?'1':'0.4';}
   renderSidebar();
@@ -918,7 +931,7 @@ function renderSidebar() {
           }
         }
       } else {
-        for(const c of matchingCats.sort()) html+=itemHtml(c,1);
+        for(const c of matchingCats.sort().reverse()) html+=itemHtml(c,1);
       }
     }
   }
