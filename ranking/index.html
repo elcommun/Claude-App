@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v58</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v59</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1038,11 +1038,11 @@ async function downloadCheckedCategories(){
     const sheetName=catName.substring(0,31).replace(/[[\]*?:/\\]/g,'_');
     const ws=wb.addWorksheet(sheetName);
 
-    // Column widths: A B  C  D  E  F  G  H  I  J   K   L  M   N
+    // Column widths: A  B   C   D  E  F  G  H  I  J   K   L  M  N
     ws.columns=[
-      {width:5},{width:15},{width:32},{width:8},{width:8},{width:13},
+      {width:5},{width:14},{width:26},{width:8},{width:8},{width:11},
       {width:2},{width:2},
-      {width:8},{width:12},{width:28},{width:9},{width:12},{width:9},
+      {width:5},{width:14},{width:26},{width:8},{width:8},{width:11},
     ];
 
     // ── Row 1: Title ──────────────────────────────────────────────────────
@@ -1067,7 +1067,7 @@ async function downloadCheckedCategories(){
       // 手帳: left = カテゴリー集計 section label (column headers move to i=3 row)
       ws.mergeCells(3,1,3,6);
       const lhc=ws.getCell(3,1);
-      lhc.value=`今期  ×  ${catPrevYrLbl}  比較`;
+      lhc.value=`品番順 / 今期  ×  ${catPrevYrLbl}  比較`;
       lhc.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
       lhc.fill=fill(C.NAV); lhc.alignment={vertical:'middle',horizontal:'center'};
     } else {
@@ -1084,9 +1084,9 @@ async function downloadCheckedCategories(){
     // Right-side header label
     ws.mergeCells(3,9,3,14); // I3:N3
     const r3right=ws.getCell(3,9);
-    r3right.value=isDiary?`今期  ×  ${catPrev2YrLbl}  比較 / ランキング`:'サマリー & ランキング';
+    r3right.value=isDiary?`ランキング順 / 今期  ×  ${catPrev2YrLbl}  比較`:'サマリー & ランキング';
     r3right.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
-    r3right.fill=fill(C.NAVD);
+    r3right.fill=fill(C.NAV);
     r3right.alignment={vertical:'middle',horizontal:'center'};
     r3right.border=medAll;
 
@@ -1234,7 +1234,7 @@ async function downloadCheckedCategories(){
             ws.mergeCells(ri,12,ri,13);
             const hp2=ws.getCell(ri,12);
             hp2.value=catPrev2YrLbl; hp2.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
-            hp2.fill=fill('FF4B5D6C'); hp2.alignment={horizontal:'center',vertical:'middle'}; hp2.border=thinAll;
+            hp2.fill=fill('FF1E5F8C'); hp2.alignment={horizontal:'center',vertical:'middle'}; hp2.border=thinAll;
             ws.getCell(ri,14).fill=fill(C.NAV); ws.getCell(ri,14).border=thinAll;
           }
         } else {
@@ -1271,11 +1271,11 @@ async function downloadCheckedCategories(){
             ws.mergeCells(ri,12,ri,13);
             const p2q=ws.getCell(ri,12);
             p2q.value=catPrev2T.qty; p2q.numFmt='#,##0'; p2q.font={size:11,name:'Yu Gothic'};
-            p2q.fill=fill('FFE8EFF5'); p2q.alignment={horizontal:'right',vertical:'middle'}; p2q.border=thinAll;
+            p2q.fill=fill('FFDAEAF7'); p2q.alignment={horizontal:'right',vertical:'middle'}; p2q.border=thinAll;
             const r2=ratioOf(totalQtyCat,catPrev2T.qty);
             const p2r=ws.getCell(ri,14);
             p2r.value=ratioStr(r2); p2r.font={bold:true,size:10,color:{argb:ratioArgb(r2)},name:'Yu Gothic'};
-            p2r.fill=fill('FFE8EFF5'); p2r.alignment={horizontal:'center',vertical:'middle'}; p2r.border=thinAll;
+            p2r.fill=fill('FFDAEAF7'); p2r.alignment={horizontal:'center',vertical:'middle'}; p2r.border=thinAll;
           }
         } else {
           const nc=ws.getCell(ri,10);
@@ -1317,11 +1317,11 @@ async function downloadCheckedCategories(){
             ws.mergeCells(ri,12,ri,13);
             const p2a=ws.getCell(ri,12);
             p2a.value=catPrev2T.amount; p2a.numFmt='#,##0'; p2a.font={size:11,name:'Yu Gothic'};
-            p2a.fill=fill('FFE8EFF5'); p2a.alignment={horizontal:'right',vertical:'middle'}; p2a.border=thinAll;
+            p2a.fill=fill('FFDAEAF7'); p2a.alignment={horizontal:'right',vertical:'middle'}; p2a.border=thinAll;
             const r2=ratioOf(totalAmtCat,catPrev2T.amount);
             const p2ar=ws.getCell(ri,14);
             p2ar.value=ratioStr(r2); p2ar.font={bold:true,size:10,color:{argb:ratioArgb(r2)},name:'Yu Gothic'};
-            p2ar.fill=fill('FFE8EFF5'); p2ar.alignment={horizontal:'center',vertical:'middle'}; p2ar.border=thinAll;
+            p2ar.fill=fill('FFDAEAF7'); p2ar.alignment={horizontal:'center',vertical:'middle'}; p2ar.border=thinAll;
           }
         } else {
           const nc=ws.getCell(ri,10);
