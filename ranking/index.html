@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v61</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v62</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1107,6 +1107,8 @@ async function downloadCheckedCategories(){
       const ri=i+4;
       const isStripe=(i%2===1);
       const lBg=isStripe?C.STR:C.WHT;
+      const p2Bg=hasPrev2?'FF1E5F8C':C.NAV;
+      const p2ValBg=hasPrev2?'FFDAEAF7':C.GLD;
 
       // Row heights
       const dr=isDiary?diaryRows[i-4]:null;
@@ -1219,8 +1221,6 @@ async function downloadCheckedCategories(){
         const hLbl=ws.getCell(ri,9);
         hLbl.fill=fill(C.NAV); hLbl.border=thinAll;
 
-        const p2Bg=hasPrev2?'FF1E5F8C':C.NAV;
-        const p2ValBg=hasPrev2?'FFDAEAF7':C.GLD;
         if(isDiary){
           // Diary: right shows prev2 only — all cells always rendered
           ws.mergeCells(ri,10,ri,11);
