@@ -1319,19 +1319,17 @@ async function downloadCheckedCategories(){
   for(const g of CAT_GROUPS){if(exportCatArr.some(c=>isYearGroupCat(c)&&g.match(c))){parentName=g.name;break;}}
   if(!parentName){for(const mg of MACRO_GROUPS){if(exportCatArr.some(c=>mg.cats.includes(c))){parentName=mg.name;break;}}}
   if(!parentName) parentName=exportCatArr.length===1?exportCatArr[0]:'EC';
-  // Year range from exported year-group cats, or filter period
-  const ygCats=exportCatArr.filter(c=>isYearGroupCat(c));
-  let yearRange;
-  if(ygCats.length>=2){const yrs=ygCats.map(c=>parseInt(c.match(/^(\d{4})/)[1]));yearRange=`${Math.min(...yrs)}-${Math.max(...yrs)}`;}
-  else if(ygCats.length===1){yearRange=ygCats[0].match(/^(\d{4})/)[1];}
-  else{yearRange=yrFrom===yrTo?yrFrom:`${yrFrom}-${yrTo}`;}
   const safeName=parentName.replace(/[\\/:*?"<>|]/g,'_');
+  // Date range in YYYYMMDD format
+  const dateFrom=`${yrFrom}${moFrom.padStart(2,'0')}01`;
+  const lastDay=new Date(parseInt(yrTo),parseInt(moTo),0).getDate();
+  const dateTo=`${yrTo}${moTo.padStart(2,'0')}${String(lastDay).padStart(2,'0')}`;
 
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=`EC販売数 ${safeName} ${yearRange}.xlsx`;
+  a.href=url; a.download=`EC販売数（${safeName}）${dateFrom}-${dateTo}.xlsx`;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
 }
