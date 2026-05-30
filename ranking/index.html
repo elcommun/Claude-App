@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v62</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v63</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1069,7 +1069,7 @@ async function downloadCheckedCategories(){
       const lhc=ws.getCell(3,1);
       lhc.value=`品番順 / 今期  ×  ${catPrevYrLbl}  比較`;
       lhc.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
-      lhc.fill=fill(C.NAV); lhc.alignment={vertical:'middle',horizontal:'center'}; lhc.border=medAll;
+      lhc.fill=fill(C.NAV); lhc.alignment={vertical:'middle',horizontal:'center'}; lhc.border=thinAll;
     } else {
       const lHdrs=['順位','品番','品名','上代','個数','合計金額'];
       for(let c=0;c<6;c++){
@@ -1088,7 +1088,7 @@ async function downloadCheckedCategories(){
     r3right.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
     r3right.fill=fill(C.NAV);
     r3right.alignment={vertical:'middle',horizontal:'center'};
-    r3right.border=medAll;
+    r3right.border=thinAll;
 
     // ── Helpers for YoY ratio ────────────────────────────────────────────
     const ratioOf=(a,b)=>b>0?Math.round(a/b*100):null;
