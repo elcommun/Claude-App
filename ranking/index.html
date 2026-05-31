@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v68</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v71</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1986,6 +1986,24 @@ applyFilter();
     document.addEventListener('mousemove',onMove);
     document.addEventListener('mouseup',onUp);
   });
+})();
+// Auto-update: fetch fresh page and reload if a newer version is deployed
+(function(){
+  const curVer=parseInt(document.querySelector('.hd-sub span')?.textContent?.replace('v','')||'0');
+  fetch(location.pathname+'?_v='+Date.now(),{cache:'no-store'})
+    .then(r=>r.text())
+    .then(html=>{
+      const m=html.match(/>v(\d+)<\/span>/);
+      if(!m) return;
+      const freshVer=parseInt(m[1]);
+      if(freshVer<=curVer) return;
+      // Guard against reload loops if the navigation still serves cached HTML
+      const guardKey='ecRankReloadedTo';
+      if(parseInt(sessionStorage.getItem(guardKey)||'0')>=freshVer) return;
+      sessionStorage.setItem(guardKey,String(freshVer));
+      // Navigate to a cache-busted URL so the browser/CDN must serve fresh HTML
+      location.replace(location.pathname+'?_v='+Date.now());
+    }).catch(()=>{});
 })();
 </script>
 </body>
