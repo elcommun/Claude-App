@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v71</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v72</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1006,7 +1006,13 @@ async function downloadCheckedCategories(){
   const exportCatList=[...exportChecks].sort((a,b)=>{
     const aY=isYearGroupCat(a), bY=isYearGroupCat(b);
     if(!aY||!bY) return 0;
-    return parseInt(b.match(/^(\d{4})/)[1])-parseInt(a.match(/^(\d{4})/)[1]);
+    const aYr=parseInt(a.match(/^(\d{4})/)[1]);
+    const bYr=parseInt(b.match(/^(\d{4})/)[1]);
+    if(aYr!==bYr) return bYr-aYr;
+    // Same year: sort by start month descending (e.g. 4月→1月, then prev year 10月)
+    const moA=(a.match(/(\d+)月始まり/)||[0,0])[1]*1;
+    const moB=(b.match(/(\d+)月始まり/)||[0,0])[1]*1;
+    return moB-moA;
   });
   for(const catName of exportCatList){
     const realCats=getGroupCats(catName)||[catName];
