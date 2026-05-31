@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v66</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v67</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1326,7 +1326,9 @@ async function downloadCheckedCategories(){
   const lastDay=new Date(parseInt(yrTo),parseInt(moTo),0).getDate();
   const dateTo=`${yrTo}${moTo.padStart(2,'0')}${String(lastDay).padStart(2,'0')}`;
   const finalFilename=`EC販売数（${safeName}）${dateFrom}-${dateTo}.xlsx`;
-  console.log('[v66] filename —',finalFilename,'parentName:',parentName,'exportCatArr:',exportCatArr);
+  console.log('[v67] filename —',finalFilename,'parentName:',parentName,'exportCatArr:',exportCatArr);
+  // DEBUG: show filename in dialog so user can confirm without dev tools
+  alert(`[v67 デバッグ]\nファイル名: ${finalFilename}\nカテゴリ: ${exportCatArr.join(', ')}\nparentName: ${parentName}`);
 
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
