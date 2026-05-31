@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v65</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v66</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -983,6 +983,7 @@ function renderSidebar() {
 async function downloadCheckedCategories(){
   if(!exportChecks.size) return;
   const {yrFrom,moFrom,yrTo,moTo}=getFilterPeriod();
+  console.log('[v66] download start — exportChecks:',[...exportChecks],'period:',yrFrom,moFrom,'〜',yrTo,moTo);
   const periodStr=`${yrFrom}/${moFrom}/01〜${yrTo}/${moTo}/末`;
 
   // Color palette (ARGB hex)
@@ -1324,12 +1325,14 @@ async function downloadCheckedCategories(){
   const dateFrom=`${yrFrom}${moFrom.padStart(2,'0')}01`;
   const lastDay=new Date(parseInt(yrTo),parseInt(moTo),0).getDate();
   const dateTo=`${yrTo}${moTo.padStart(2,'0')}${String(lastDay).padStart(2,'0')}`;
+  const finalFilename=`EC販売数（${safeName}）${dateFrom}-${dateTo}.xlsx`;
+  console.log('[v66] filename —',finalFilename,'parentName:',parentName,'exportCatArr:',exportCatArr);
 
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download=`EC販売数（${safeName}）${dateFrom}-${dateTo}.xlsx`;
+  a.href=url; a.download=finalFilename;
   document.body.appendChild(a); a.click();
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
 }
