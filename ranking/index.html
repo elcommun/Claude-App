@@ -177,7 +177,7 @@ input[type=file]{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v68</span></div></div>
+  <div><div class="hd-logo">EC 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v69</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -982,6 +982,19 @@ function renderSidebar() {
 // ── Excel export ──────────────────────────────────────────────────────────────
 async function downloadCheckedCategories(){
   if(!exportChecks.size) return;
+  const btn=document.getElementById('export-btn');
+  btn.disabled=true; btn.textContent='⏳ 生成中...';
+  try{ await _doDownload(); }
+  catch(e){ console.error(e); }
+  finally{
+    // Reset only if not in "tap-to-download" state
+    if(btn.textContent==='⏳ 生成中...'){
+      btn.textContent='📥 選択してExcelダウンロード';
+      btn.disabled=!exportChecks.size;
+    }
+  }
+}
+async function _doDownload(){
   const {yrFrom,moFrom,yrTo,moTo}=getFilterPeriod();
   const periodStr=`${yrFrom}/${moFrom}/01〜${yrTo}/${moTo}/末`;
 
@@ -1329,10 +1342,21 @@ async function downloadCheckedCategories(){
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=finalFilename;
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+
+  const btn=document.getElementById('export-btn');
+  // iOS Safari ignores a.download after await (user gesture lost).
+  // Show a "tap to download" button the user taps directly — that IS a user gesture.
+  btn.textContent='📥 ダウンロード（タップ）';
+  btn.disabled=false;
+  btn.onclick=function(){
+    const a=document.createElement('a');
+    a.href=url; a.download=finalFilename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    btn.textContent='📥 選択してExcelダウンロード';
+    btn.disabled=!exportChecks.size;
+    btn.onclick=()=>downloadCheckedCategories();
+  };
 }
 
 // ── Category view ─────────────────────────────────────────────────────────────
