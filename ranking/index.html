@@ -293,7 +293,7 @@ input[type=file]{display:none}
       <div class="tw"><table class="tbl" id="search-tbl">
         <thead><tr>
           <th class="th-sort" onclick="setSearchSort('rank')" style="width:50px">順位<span class="sort-ind" id="si-rank">▼</span></th>
-          <th style="min-width:106px">カテゴリ</th>
+          <th class="th-sort" onclick="setSearchSort('cat')" style="min-width:106px">カテゴリ<span class="sort-ind" id="si-cat"></span></th>
           <th class="th-sort" onclick="setSearchSort('code')" style="min-width:94px">品番<span class="sort-ind" id="si-code"></span></th>
           <th class="th-sort" onclick="setSearchSort('name')" style="min-width:240px">商品名<span class="sort-ind" id="si-name"></span></th>
           <th class="num" style="width:76px">上代</th>
@@ -790,8 +790,8 @@ function heatBg(val, maxVal) {
 }
 function setSearchSort(col) {
   if (searchSortCol === col) searchSortDir = searchSortDir === 'asc' ? 'desc' : 'asc';
-  else { searchSortCol = col; searchSortDir = (col === 'code' || col === 'name') ? 'asc' : 'desc'; }
-  ['rank','code','name','qty','amount'].forEach(c => {
+  else { searchSortCol = col; searchSortDir = (col === 'code' || col === 'name' || col === 'cat') ? 'asc' : 'desc'; }
+  ['rank','cat','code','name','qty','amount'].forEach(c => {
     const el = document.getElementById('si-'+c);
     if (el) el.textContent = searchSortCol===c ? (searchSortDir==='asc'?'▲':'▼') : '';
   });
@@ -1701,6 +1701,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
     else if(searchSortCol==='amount'){va=a.amount;vb=b.amount;}
     else if(searchSortCol==='code'){va=a.code;vb=b.code;}
     else if(searchSortCol==='name'){va=a.name;vb=b.name;}
+    else if(searchSortCol==='cat'){va=a.cat;vb=b.cat;}
     else{va=a.qty;vb=b.qty;}
     if(typeof va==='string') return searchSortDir==='asc'?va.localeCompare(vb,'ja'):vb.localeCompare(va,'ja');
     return searchSortDir==='asc'?va-vb:vb-va;
