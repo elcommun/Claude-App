@@ -1688,6 +1688,8 @@ document.getElementById('hd-search').addEventListener('input',e=>{
         results.push({...item,cat,rank:i+1,searchCode:sc});
     });
   }
+  // Assign qty-based rank before column sort so rank stays linked to item
+  [...results].sort((a,b)=>b.qty-a.qty).forEach((r,i)=>{r.qtyRank=i+1;});
   // Apply column sort
   results.sort((a,b)=>{
     let va,vb;
@@ -1707,7 +1709,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
     html=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
   }else{
     results.forEach((r,idx)=>{
-      const rank=idx+1;
+      const rank=r.qtyRank;
       const ri=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
       html+=`<tr style="cursor:pointer" onclick="document.getElementById('hd-search').value='';showCategory('${esc(r.cat)}')">
         <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
