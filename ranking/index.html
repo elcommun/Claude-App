@@ -510,7 +510,7 @@ const MACRO_GROUPS=[
 ];
 const LS_KEY = 'ec_ranking_uploads_v2';
 const LS_KEY_SO = 'ec_stockout_v1';
-let STOCKOUT = {};
+let STOCKOUT = {"DR-MC-420":"4/下","DR-MC-425":"3/下","DR-MC-432":"4/上","DR-MG-582":"4/上","DR-MG-583":"3/上","DR-MG-584":"4/上","DR-MG-586":"5/上","DR-MG-587":"3/中","DR-MG-588":"4/中","DR-MG-589":"4/中","DR-MG-590":"5/中","DR-MG-592":"4/上","DR-MH-579":"4/上","DR-MH-580":"3/下","DR-WB-498":"4/中","DR-WK-735":"3/上","DR-WK-738":"4/上","XDR-MH-592":"5/中"};
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let UPLOADS = {};   // {'YYYY-MM': {by_store:{}, products:{}, date_range:[]}} saved in localStorage
@@ -538,10 +538,10 @@ function saveUploads() {
     alert('ブラウザのストレージ容量が不足しています。古いデータを削除してください。');
   }
 }
-function loadStockout(){try{const s=localStorage.getItem(LS_KEY_SO);if(s)STOCKOUT=JSON.parse(s);}catch(e){STOCKOUT={};}}
+function loadStockout(){try{const s=localStorage.getItem(LS_KEY_SO);if(s)Object.assign(STOCKOUT,JSON.parse(s));}catch(e){}}
 function saveStockout(){try{localStorage.setItem(LS_KEY_SO,JSON.stringify(STOCKOUT));}catch(e){alert('ストレージ容量が不足しています。');}}
 function renderStockoutList(){const el=document.getElementById('so-list');if(!el)return;const n=Object.keys(STOCKOUT).length;el.textContent=n?n+'件の欠品データが登録されています':'欠品データなし';}
-function clearStockout(){if(!confirm('欠品データをすべて削除しますか？'))return;STOCKOUT={};localStorage.removeItem(LS_KEY_SO);renderStockoutList();if(selectedCategory)showCategory(selectedCategory,false);}
+function clearStockout(){if(!confirm('欠品データをすべて削除しますか？'))return;localStorage.removeItem(LS_KEY_SO);STOCKOUT={"DR-MC-420":"4/下","DR-MC-425":"3/下","DR-MC-432":"4/上","DR-MG-582":"4/上","DR-MG-583":"3/上","DR-MG-584":"4/上","DR-MG-586":"5/上","DR-MG-587":"3/中","DR-MG-588":"4/中","DR-MG-589":"4/中","DR-MG-590":"5/中","DR-MG-592":"4/上","DR-MH-579":"4/上","DR-MH-580":"3/下","DR-WB-498":"4/中","DR-WK-735":"3/上","DR-WK-738":"4/上","XDR-MH-592":"5/中"};renderStockoutList();if(selectedCategory)showCategory(selectedCategory,false);}
 function renderUploadList() {
   const ul=document.getElementById('upload-list');
   if(!ul) return;
