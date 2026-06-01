@@ -113,6 +113,7 @@ input[type=file]{display:none}
 .tbl th{background:var(--ink);color:rgba(255,255,255,.6);padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid rgba(255,255,255,.06);white-space:nowrap}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
+.so-col{display:none}.show-so .so-col{display:table-cell}
 .prev-up{color:#2a8a3e;font-size:10px;white-space:nowrap}.prev-dn{color:#c0392b;font-size:10px;white-space:nowrap}
 .fmt-hdr td{background:var(--paper2);font-weight:600;font-size:11px;color:var(--ink3);padding:5px 10px;letter-spacing:.03em;border-bottom:1px solid var(--line)}
 .tbl th:last-child{border-right:none}
@@ -207,6 +208,18 @@ input[type=file]{display:none}
       <div class="dz-files" id="dz-files"></div>
       <input type="file" id="dz-input" accept=".xlsx,.xls" multiple>
     </div>
+    <details class="alias-panel" id="so-panel">
+      <summary>📦 欠品データ（手帳・カレンダー）</summary>
+      <div id="so-list" style="margin:4px 0 6px;font-size:11px;color:var(--ink3)">欠品データなし</div>
+      <div class="dz" id="dz-so" style="margin-bottom:6px">
+        <div class="dz-icon">📋</div>
+        <div class="dz-lbl">欠品Excelを選択 / ドロップ</div>
+        <div class="dz-hint">品番・欠品日の2列形式 .xlsx</div>
+        <div class="dz-files" id="dz-so-files"></div>
+        <input type="file" id="dz-so-input" accept=".xlsx,.xls">
+      </div>
+      <button class="modal-reset" onclick="clearStockout()">欠品データをクリア</button>
+    </details>
     <details class="alias-panel">
       <summary>🔍 検索エイリアス設定（カスタム検索ルール）</summary>
       <div id="alias-list" style="margin:6px 0"></div>
@@ -284,6 +297,7 @@ input[type=file]{display:none}
           <th class="num cmp-col" style="width:72px" id="th-prev2">前々年</th>
           <th class="th-sort num" onclick="setSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="ri-amount"></span></th>
           <th style="width:96px">売上比</th>
+          <th class="so-col" style="width:64px">欠品日</th>
         </tr></thead>
         <tbody id="rank-tbody"></tbody>
       </table></div>
@@ -495,6 +509,8 @@ const MACRO_GROUPS=[
   {name:'グッズ',icon:'🎁',cats:[]},
 ];
 const LS_KEY = 'ec_ranking_uploads_v2';
+const LS_KEY_SO = 'ec_stockout_v1';
+let STOCKOUT = {};
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let UPLOADS = {};   // {'YYYY-MM': {by_store:{}, products:{}, date_range:[]}} saved in localStorage
@@ -522,6 +538,10 @@ function saveUploads() {
     alert('ブラウザのストレージ容量が不足しています。古いデータを削除してください。');
   }
 }
+function loadStockout(){try{const s=localStorage.getItem(LS_KEY_SO);if(s)STOCKOUT=JSON.parse(s);}catch(e){STOCKOUT={};}}
+function saveStockout(){try{localStorage.setItem(LS_KEY_SO,JSON.stringify(STOCKOUT));}catch(e){alert('ストレージ容量が不足しています。');}}
+function renderStockoutList(){const el=document.getElementById('so-list');if(!el)return;const n=Object.keys(STOCKOUT).length;el.textContent=n?n+'件の欠品データが登録されています':'欠品データなし';}
+function clearStockout(){if(!confirm('欠品データをすべて削除しますか？'))return;STOCKOUT={};localStorage.removeItem(LS_KEY_SO);renderStockoutList();if(selectedCategory)showCategory(selectedCategory,false);}
 function renderUploadList() {
   const ul=document.getElementById('upload-list');
   if(!ul) return;
@@ -1474,8 +1494,10 @@ function showCategory(cat, updateSidebar=true) {
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
   const showCmp = comparisonMode;
+  const showSo = !!catType;
   document.getElementById('rank-tbl').classList.toggle('show-cmp', showCmp);
-  const colspan = 7 + (showCmp ? 2 : 0);
+  document.getElementById('rank-tbl').classList.toggle('show-so', showSo);
+  const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0);
   let html='';
   function renderRow(item,rank,topV){
     const val=sortMode==='amount'?item.amount:item.qty;
@@ -1491,6 +1513,7 @@ function showCategory(cat, updateSidebar=true) {
       ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
       <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
       <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
+      <td class="so-col" style="text-align:center${catType&&STOCKOUT[item.code]?';background:rgba(255,140,0,.13);color:#b06000;font-weight:600':''}">${catType?STOCKOUT[item.code]||'':''}</td>
     </tr>`;
   }
   // Rank always reflects qty (or amount) order regardless of sort mode
@@ -1756,7 +1779,7 @@ function updateHeaderDate() {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 const modal=document.getElementById('modal');
-document.getElementById('hd-update-btn').addEventListener('click',()=>{renderUploadList();renderAliasList();modal.classList.add('show');});
+document.getElementById('hd-update-btn').addEventListener('click',()=>{renderUploadList();renderAliasList();renderStockoutList();modal.classList.add('show');});
 function closeModal(){
   modal.classList.remove('show');
   document.getElementById('dz').classList.remove('done','over');
@@ -1963,7 +1986,34 @@ function removeAlias(i){
   renderAliasList();
 }
 
+function processStockout(buf){
+  const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+  let count=0;
+  for(const row of rows){
+    if(!row||!row[0]||!row[1])continue;
+    const code=String(row[0]).trim(), date=String(row[1]).trim();
+    if(!code||code==='品番'||!date||date==='欠品日')continue;
+    STOCKOUT[code]=date;count++;
+  }
+  return count;
+}
+const dzSo=document.getElementById('dz-so'),dzSoInput=document.getElementById('dz-so-input');
+dzSo.addEventListener('click',()=>dzSoInput.click());
+dzSo.addEventListener('dragover',e=>{e.preventDefault();dzSo.classList.add('over');});
+dzSo.addEventListener('dragleave',()=>dzSo.classList.remove('over'));
+dzSo.addEventListener('drop',e=>{e.preventDefault();dzSo.classList.remove('over');if(e.dataTransfer.files[0])handleStockoutFile(e.dataTransfer.files[0]);});
+dzSoInput.addEventListener('change',e=>{if(e.target.files[0])handleStockoutFile(e.target.files[0]);e.target.value='';});
+function handleStockoutFile(file){
+  document.getElementById('dz-so-files').innerHTML=`<div class="dz-fi">${file.name}</div>`;
+  const r=new FileReader();
+  r.onload=ev=>{try{processStockout(ev.target.result);saveStockout();renderStockoutList();dzSo.classList.add('done');if(selectedCategory)showCategory(selectedCategory,false);}catch(err){alert('ファイルの読み込みに失敗しました: '+err.message);}};
+  r.readAsArrayBuffer(file);
+}
+
 // ── Boot ──────────────────────────────────────────────────────────────────────
+loadStockout();
 loadUploads();
 loadAliases();
 buildData();
