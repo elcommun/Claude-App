@@ -1507,7 +1507,11 @@ function showCategory(cat, updateSidebar=true) {
       const gi=groups[fmtName]; if(!gi?.length) continue;
       const gTop=sortMode==='amount'?gi.reduce((m,i)=>Math.max(m,i.amount),1):gi.reduce((m,i)=>Math.max(m,i.qty),1);
       html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(fmtName)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${gi.length}種)</span></td></tr>`;
-      if(catType==='手帳'){gi.forEach((item,i)=>{ html+=renderRow(item,i+1,gTop); });}
+      if(catType==='手帳'){
+        const gRanked=[...gi].sort((a,b)=>sortMode==='amount'?b.amount-a.amount:b.qty-a.qty);
+        const gRankMap={};gRanked.forEach((item,idx)=>{gRankMap[item.code]=idx+1;});
+        gi.forEach(item=>{ html+=renderRow(item,gRankMap[item.code],gTop); });
+      }
       else{gi.forEach(item=>{ html+=renderRow(item,rankMap[item.code],gTop); });}
     }
   } else {
