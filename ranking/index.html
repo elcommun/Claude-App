@@ -1714,7 +1714,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
       html+=`<tr style="cursor:pointer" onclick="document.getElementById('hd-search').value='';showCategory('${esc(r.cat)}')">
         <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
         <td><span class="ct">${x(r.cat)}</span></td>
-        <td class="cc">${x(r.searchCode?r.searchCode+r.code:r.code)}</td>
+        <td class="cc">${x(r.code)}</td>
         <td class="nc">${hl(r.name,q,trans)}</td>
         <td class="num">¥${r.price.toLocaleString()}</td>
         <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
