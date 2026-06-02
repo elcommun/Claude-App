@@ -2027,10 +2027,10 @@ loadStockout();
 loadUploads();
 loadAliases();
 buildData();
-// Default: fixed start 2021-02-19, end = latest date in data
+// Default: start 2017-01-01, end = latest date in data
 const allYrs=Object.keys(DATA.by_store).sort();
 if(allYrs.length){
-  document.getElementById('f-date-from').value='2021-02-19';
+  document.getElementById('f-date-from').value='2017-01-01';
   let latestDate='';
   for(const dr of Object.values(DATA.date_ranges||{})){
     if(dr&&dr[1]>latestDate) latestDate=dr[1];
