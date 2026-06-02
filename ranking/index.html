@@ -113,7 +113,7 @@ input[type=file]{display:none}
 .tbl th{background:var(--ink);color:rgba(255,255,255,.6);padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid rgba(255,255,255,.06);white-space:nowrap}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
-.so-col{display:none}.show-so .so-col{display:table-cell}
+.so-col{display:none}.show-so .so-col{display:table-cell;white-space:nowrap;font-size:11px}
 .prev-up{color:#2a8a3e;font-size:10px;white-space:nowrap}.prev-dn{color:#c0392b;font-size:10px;white-space:nowrap}
 .fmt-hdr td{background:var(--paper2);font-weight:600;font-size:11px;color:var(--ink3);padding:5px 10px;letter-spacing:.03em;border-bottom:1px solid var(--line)}
 .tbl th:last-child{border-right:none}
@@ -297,7 +297,7 @@ input[type=file]{display:none}
           <th class="num cmp-col" style="width:72px" id="th-prev2">前々年</th>
           <th class="th-sort num" onclick="setSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="ri-amount"></span></th>
           <th style="width:96px">売上比</th>
-          <th class="so-col" style="width:64px">欠品日</th>
+          <th class="so-col" style="width:76px">欠品日</th>
         </tr></thead>
         <tbody id="rank-tbody"></tbody>
       </table></div>
