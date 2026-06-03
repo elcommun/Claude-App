@@ -1306,8 +1306,8 @@ function showCategory(cat, updateSidebar=true) {
   if(catType){
     const codeToYearCat={};
     for(const rc of realCats){if(isYearGroupCat(rc)){for(const code of Object.keys(aggregated[rc]||{})){if(!codeToYearCat[code])codeToYearCat[code]=rc;}}}
-    // Name-then-positional matching: match by trailing ASCII design name first,
-    // then pair remaining unmatched items positionally (sorted by code).
+    // Name-based matching: match by trailing ASCII design name (partial/contains).
+    // No positional fallback — new designs with no prior-year equivalent show null.
     function designName(n){const m=(n||'').match(/([A-Za-z][A-Za-z0-9 &]*)\s*$/);return m?m[1].trim():'';}
     const grps={};
     for(const item of items){
@@ -1331,7 +1331,9 @@ function showCategory(cat, updateSidebar=true) {
           for(const{code}of g.items)tgt[code]=tq>0?[tq,ta]:null;
         }
       } else {
-        // 手帳: name-based matching with positional fallback for leftovers
+        // 手帳: name-based partial matching only — no positional fallback.
+        // If no name match found (new design with no prior-year equivalent), show null (—).
+        function dnMatch(a,b){if(!a||!b)return false;const al=a.toLowerCase(),bl=b.toLowerCase();return al===bl||al.includes(bl)||bl.includes(al);}
         for(const[offset,tgt,pAgg] of [[-1,itemPrevQA,aggPrev],[-2,itemPrev2QA,aggPrev2]]){
           const prevCat=getEquivYearCat(g.yc,offset);
           if(!prevCat){for(const{code}of g.items)tgt[code]=null;continue;}
@@ -1339,14 +1341,14 @@ function showCategory(cat, updateSidebar=true) {
           if(!pCodes.length){for(const{code}of g.items)tgt[code]=null;continue;}
           const prevDN={};
           for(const pc of pCodes){const d=designName((DATA.products[pc]||[])[0]||'');if(!prevDN[d])prevDN[d]=[];prevDN[d].push(pc);}
-          const used=new Set(),unmatched=[];
+          const used=new Set();
           for(const{code,dn}of g.items){
-            const mc=dn&&prevDN[dn]?.find(c=>!used.has(c));
+            // exact match first, then partial match
+            let mc=dn&&prevDN[dn]?.find(c=>!used.has(c));
+            if(!mc&&dn){for(const[d,cs]of Object.entries(prevDN)){if(dnMatch(dn,d)){mc=cs.find(c=>!used.has(c));if(mc)break;}}}
             if(mc){used.add(mc);const qa=pAgg[prevCat][mc];tgt[code]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}
-            else unmatched.push(code);
+            else tgt[code]=null;
           }
-          const leftover=pCodes.filter(c=>!used.has(c));
-          for(let i=0;i<unmatched.length;i++){const pc=leftover[i];if(pc){const qa=pAgg[prevCat][pc];tgt[unmatched[i]]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}else tgt[unmatched[i]]=null;}
         }
       }
     }
