@@ -1747,10 +1747,11 @@ function removeAlias(i){
     if(!t){tip.style.display='none';return;}
     tip.textContent=t.dataset.tip;
     tip.style.display='block';
-    const tw=tip.offsetWidth;
+    const tw=tip.offsetWidth,th=tip.offsetHeight;
     const left=e.clientX+14+tw>window.innerWidth ? e.clientX-tw-8 : e.clientX+14;
+    const top=e.clientY-th-10<0 ? e.clientY+18 : e.clientY-th-10;
     tip.style.left=left+'px';
-    tip.style.top=(e.clientY+18)+'px';
+    tip.style.top=top+'px';
   });
 })();
 
