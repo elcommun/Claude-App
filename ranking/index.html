@@ -371,6 +371,19 @@ const CAT_GROUPS=[
   ]},
   {name:'カレンダー',icon:'📆',match:c=>/カレンダー/.test(c),subs:[]},
 ];
+// Natural sort comparator: splits strings into alpha/numeric segments
+// so "CLB-111" < "CLB-1103" instead of lexicographic "CLB-111" > "CLB-1103"
+function codeCompare(a,b){
+  const re=/(\d+)|(\D+)/g;
+  const pa=a.match(re)||[], pb=b.match(re)||[];
+  for(let i=0;i<Math.max(pa.length,pb.length);i++){
+    const sa=pa[i]||'', sb=pb[i]||'';
+    const na=+sa, nb=+sb;
+    if(!isNaN(na)&&!isNaN(nb)){if(na!==nb)return na-nb;}
+    else{const c=sa.localeCompare(sb,'ja');if(c!==0)return c;}
+  }
+  return 0;
+}
 function mapCategory(cat){
   // Normalize full-width spaces → half-width so PRELOADED ("2024年　4月...") and
   // UPLOADS ("2024年 4月...") produce the same category key for year-equivalent lookup.
@@ -987,14 +1000,14 @@ async function downloadCheckedCategories(){
       for(const item of allItems){const f=getDiaryFormat(item.code);if(!grp[f])grp[f]=[];grp[f].push(item);}
       for(const fmt of fmtOrder){
         const gi=grp[fmt]; if(!gi?.length) continue;
-        const lg=[...gi].sort((a,b)=>a.code.localeCompare(b.code));
+        const lg=[...gi].sort((a,b)=>codeCompare(a.code,b.code));
         const rg=[...gi].sort((a,b)=>b.qty-a.qty);
         const rankMap={}; rg.forEach((item,idx)=>{rankMap[item.code]=idx+1;});
         diaryRows.push({t:'h',fmt,n:gi.length});
         for(let j=0;j<lg.length;j++) diaryRows.push({t:'r',li:lg[j],ri:rg[j],rank:j+1,lidx:rankMap[lg[j].code]});
       }
     } else {
-      const lg=[...allItems].sort((a,b)=>a.code.localeCompare(b.code));
+      const lg=[...allItems].sort((a,b)=>codeCompare(a.code,b.code));
       const rg=[...allItems].sort((a,b)=>b.qty-a.qty);
       const rankMap={}; rg.forEach((item,idx)=>{rankMap[item.code]=idx+1;});
       for(let j=0;j<lg.length;j++) diaryRows.push({t:'r',li:lg[j],ri:rg[j],rank:j+1,lidx:rankMap[lg[j].code]});
@@ -1316,7 +1329,7 @@ function showCategory(cat, updateSidebar=true) {
   const combined={};
   for(const rc of realCats){for(const[code,item] of Object.entries(aggregated[rc]||{})){if(!combined[code])combined[code]={...item,qty:0,amount:0};combined[code].qty+=item.qty;combined[code].amount+=item.amount;}}
   const items=Object.values(combined);
-  items.sort((a,b)=>{const nat=sortMode==='amount'?b.amount-a.amount:sortMode==='code'?b.code.localeCompare(a.code):sortMode==='price'?b.price-a.price:b.qty-a.qty;return sortDir==='asc'?-nat:nat;});
+  items.sort((a,b)=>{const nat=sortMode==='amount'?b.amount-a.amount:sortMode==='code'?codeCompare(a.code,b.code):sortMode==='price'?b.price-a.price:b.qty-a.qty;return sortDir==='asc'?-nat:nat;});
   const t=getCatTotal(cat);
   const topVal = items.length?(sortMode==='amount'?items.reduce((m,i)=>Math.max(m,i.amount),1):items.reduce((m,i)=>Math.max(m,i.qty),1)):1;
   const catPct = totalQty?(t.qty/totalQty*100).toFixed(1):0;
@@ -1360,7 +1373,7 @@ function showCategory(cat, updateSidebar=true) {
       grps[key].items.push({code:item.code,dn:designName((DATA.products[item.code]||[])[0]||'')});
     }
     for(const g of Object.values(grps)){
-      g.items.sort((a,b)=>a.code<b.code?-1:1);
+      g.items.sort((a,b)=>codeCompare(a.code,b.code));
       if(catType==='カレンダー'){
         // カレンダー: sc-only matching (one product per sc per year, no color variants)
         for(const[offset,tgt,pAgg] of [[-1,itemPrevQA,aggPrev],[-2,itemPrev2QA,aggPrev2]]){
@@ -1665,7 +1678,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
     else if(searchSortCol==='name'){va=a.name;vb=b.name;}
     else if(searchSortCol==='cat'){va=a.cat;vb=b.cat;}
     else{va=a.qty;vb=b.qty;}
-    if(typeof va==='string') return searchSortDir==='asc'?va.localeCompare(vb,'ja'):vb.localeCompare(va,'ja');
+    if(typeof va==='string'){const c=searchSortCol==='code'?codeCompare(va,vb):va.localeCompare(vb,'ja');return searchSortDir==='asc'?c:-c;}
     return searchSortDir==='asc'?va-vb:vb-va;
   });
   document.getElementById('search-title').innerHTML=`🔍 "${x(q)}" <span style="font-size:14px;font-weight:400;color:var(--ink3);margin-left:6px">${results.length}件</span>`;
