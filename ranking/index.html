@@ -229,15 +229,11 @@ input[type=file]{display:none}
     </div>
     <div class="modal-sec">
       <div class="modal-sec-lbl">🖼 商品画像（手帳・カレンダー）</div>
-      <div id="img-list" style="margin:2px 0 5px;font-size:11px;color:var(--ink3)">画像なし</div>
-      <div class="dz" id="dz-img">
-        <div class="dz-icon">🖼</div>
-        <div class="dz-lbl">画像ファイルを選択 / ドロップ</div>
-        <div class="dz-hint">ファイル名=品番（DR_MC_416.jpg など）、複数可・自動圧縮</div>
-        <div class="dz-files" id="dz-img-files"></div>
-        <input type="file" id="dz-img-input" accept="image/*" multiple>
+      <div style="font-size:11px;color:var(--ink3);line-height:1.7">
+        画像は <code style="background:var(--paper2);padding:1px 4px;border-radius:3px;font-size:10px">ranking/images/</code> フォルダから自動読み込みされます。<br>
+        ファイル名は品番のハイフンをアンダースコアに変換してください。<br>
+        <span style="color:var(--ink4)">例: DR-MC-416 → DR_MC_416.jpg（.jpg .png 対応）</span>
       </div>
-      <button class="modal-reset" onclick="clearImages()">画像データをクリア</button>
     </div>
     <details class="alias-panel">
       <summary>🔍 検索エイリアス設定（カスタム検索ルール）</summary>
@@ -561,12 +557,6 @@ function saveUploads() {
 }
 function loadStockout(){try{const s=localStorage.getItem(LS_KEY_SO);if(s)Object.assign(STOCKOUT,JSON.parse(s));}catch(e){}}
 function saveStockout(){try{localStorage.setItem(LS_KEY_SO,JSON.stringify(STOCKOUT));}catch(e){alert('ストレージ容量が不足しています。');}}
-const LS_KEY_IMG='ec_images_v1';
-let IMAGES={};
-function loadImages(){try{const s=localStorage.getItem(LS_KEY_IMG);if(s)IMAGES=JSON.parse(s);}catch(e){}}
-function saveImages(){try{localStorage.setItem(LS_KEY_IMG,JSON.stringify(IMAGES));}catch(e){alert('ストレージ容量が不足しています。画像数を減らしてください。');}}
-function renderImageList(){const el=document.getElementById('img-list');if(!el)return;const n=Object.keys(IMAGES).length;el.textContent=n?n+'件の画像が登録されています':'画像なし';}
-function clearImages(){if(!confirm('画像データをすべて削除しますか？'))return;localStorage.removeItem(LS_KEY_IMG);IMAGES={};renderImageList();if(selectedCategory)showCategory(selectedCategory,false);}
 function openLightbox(src){document.getElementById('img-lb-img').src=src;document.getElementById('img-lb').classList.add('open');}
 function closeLightbox(){document.getElementById('img-lb').classList.remove('open');document.getElementById('img-lb-img').src='';}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
@@ -1546,7 +1536,8 @@ function showCategory(cat, updateSidebar=true) {
     const pct=topV?(val/topV*100).toFixed(1):0;
     const ri=rank===1?`<div class="rn r1">🥇</div>`:rank===2?`<div class="rn r2">🥈</div>`:rank===3?`<div class="rn r3">🥉</div>`:`<div class="rn ro">${rank}</div>`;
     function cmpCell(pqa){const pq=pqa?.[0]||0;if(!pq)return`<td class="num cmp-col" style="color:var(--ink4)">-</td>`;const diff=item.qty-pq;const pct2=Math.round(diff/pq*100);const cls=diff>=0?'prev-up':'prev-dn',arrow=diff>=0?'▲':'▼';return`<td class="num cmp-col">${pq.toLocaleString()}<br><span class="${cls}">${arrow}${Math.abs(pct2)}%</span></td>`;}
-    const thumb=IMAGES[item.code]?`<img class="prod-thumb" src="${IMAGES[item.code]}" onclick="openLightbox(this.src)" loading="lazy">`:'';
+    const fn=item.code.replace(/-/g,'_');
+    const thumb=`<img class="prod-thumb" src="images/${fn}.jpg" onerror="this.src='images/${fn}.png';this.onerror=function(){this.style.display='none'}" onclick="if(this.naturalWidth>0)openLightbox(this.src)" loading="lazy">`;
     return`<tr>
       <td>${ri}</td>
       <td class="cc">${x(item.code)}</td>
@@ -1823,7 +1814,7 @@ function updateHeaderDate() {
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 const modal=document.getElementById('modal');
-document.getElementById('hd-update-btn').addEventListener('click',()=>{renderUploadList();renderAliasList();renderStockoutList();renderImageList();modal.classList.add('show');});
+document.getElementById('hd-update-btn').addEventListener('click',()=>{renderUploadList();renderAliasList();renderStockoutList();modal.classList.add('show');});
 function closeModal(){
   modal.classList.remove('show');
   document.getElementById('dz').classList.remove('done','over');
@@ -2056,39 +2047,9 @@ function handleStockoutFile(file){
   r.readAsArrayBuffer(file);
 }
 
-// ── Image upload ─────────────────────────────────────────────────────────────
-const dzImg=document.getElementById('dz-img');
-const dzImgInput=document.getElementById('dz-img-input');
-dzImg.addEventListener('click',()=>dzImgInput.click());
-dzImg.addEventListener('dragover',e=>{e.preventDefault();dzImg.classList.add('over');});
-dzImg.addEventListener('dragleave',()=>dzImg.classList.remove('over'));
-dzImg.addEventListener('drop',e=>{e.preventDefault();dzImg.classList.remove('over');handleImageFiles(e.dataTransfer.files);});
-dzImgInput.addEventListener('change',e=>{handleImageFiles(e.target.files);e.target.value='';});
-function compressImage(dataUrl,maxW=420,maxH=600,quality=0.80){return new Promise(resolve=>{const img=new Image();img.onload=()=>{let w=img.width,h=img.height;const r=Math.min(maxW/w,maxH/h,1);w=Math.round(w*r);h=Math.round(h*r);const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);resolve(cv.toDataURL('image/jpeg',quality));};img.src=dataUrl;});}
-function handleImageFiles(files){
-  const arr=[...files].filter(f=>f.type.startsWith('image/'));
-  if(!arr.length)return;
-  const filesEl=document.getElementById('dz-img-files');
-  let done=0;
-  arr.forEach(f=>{
-    const reader=new FileReader();
-    reader.onload=async ev=>{
-      const code=f.name.replace(/\.[^.]+$/,'').replace(/_/g,'-');
-      IMAGES[code]=await compressImage(ev.target.result);
-      done++;
-      if(done===arr.length){
-        saveImages();renderImageList();
-        filesEl.innerHTML=`<div class="dz-fi">${done}件の画像を登録しました（圧縮済み）</div>`;
-        if(selectedCategory)showCategory(selectedCategory,false);
-      }
-    };
-    reader.readAsDataURL(f);
-  });
-}
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadStockout();
-loadImages();
 loadUploads();
 loadAliases();
 buildData();
