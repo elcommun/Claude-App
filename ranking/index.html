@@ -321,8 +321,8 @@ const CAT_MAP={
   'シール・ステッカー':'ステッカー・シール',
   'カード':'グリーティングカード',
   '輸入カード':'グリーティングカード',
-  '他':'ブックカバー',          // PBC-ブックカバーが大半
-  '別注':'ブックカバー',          // XEC-EC限定ブックカバー
+  '他':'その他',
+  '別注':'その他',
   '他紙製品':'マスキングテープ',   // マスキングテープ+メモパッド混在、MT多数
   'デスクトップ':'マウスパッド',    // MPD-マウスパッドが大半
   'ステーショナリー':'ペンケース',  // FC-フィッシュケース（ペンケース）
@@ -387,7 +387,19 @@ const CODE_PREFIX_TO_CAT=[
   {prefix:'TWH-',cat:'ハンカチクロス'},
   {prefix:'GB-',cat:'ステッカー・シール'},
   {prefix:'MPD-',cat:'ステーショナリー'},
-  {prefix:'TCL-6',cat:'ブローチ'},{prefix:'TCL-7',cat:'ブローチ'},{prefix:'MM-09',cat:'ブローチ'},
+  {prefix:'TCL-',cat:'ブローチ'},{prefix:'MM-09',cat:'ブローチ'},
+  {prefix:'BMK-',cat:'ブックマーク'},
+  {prefix:'GLC-',cat:'メガネケース'},
+  {prefix:'KC-',cat:'キーリング'},{prefix:'SKE-',cat:'キーリング'},
+  {prefix:'KIN-',cat:'コースター他'},
+  {prefix:'MSJ-',cat:'メッセージカード'},
+  {prefix:'SJK-',cat:'下敷き'},
+  {prefix:'SLV-7',cat:'食器'},{prefix:'SLV-8',cat:'食器'},
+  {prefix:'SLV-9',cat:'ブローチ'},{prefix:'SLV-6',cat:'ポーチ・ケース'},
+  {prefix:'SLV-5',cat:'ペンケース'},{prefix:'SLV-3',cat:'マスキングテープ'},
+  {prefix:'SLV-4',cat:'ステーショナリー'},
+  {prefix:'STP-',cat:'スタンプ'},{prefix:'ALA-3',cat:'スタンプ'},
+  {prefix:'MB-',cat:'その他'},
 ];
 // Rename old/broken codes to correct codes
 const CODE_REMAP={'WCL-017WCL-018':'WCL-018','B6-1J7F-DA1E':'CPC-004'};
