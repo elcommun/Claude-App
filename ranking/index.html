@@ -416,7 +416,8 @@ const CODE_PREFIX_TO_CAT=[
   {prefix:'ECL-',cat:'ポスター'},{prefix:'LLN-',cat:'ポスター'},
   // ランチバッグ: 4桁コード（LNC-10xx等）は3桁ルール(LNC-1→箸セット)より先に
   {prefix:'LNC-100',cat:'ランチバッグ'},{prefix:'LNC-110',cat:'ランチバッグ'},
-  {prefix:'LNC-130',cat:'ランチバッグ'},{prefix:'LNC-140',cat:'ランチバッグ'},
+  {prefix:'LNC-120',cat:'ランチバッグ'},{prefix:'LNC-130',cat:'ランチバッグ'},
+  {prefix:'LNC-140',cat:'ランチバッグ'},
   {prefix:'LNC-150',cat:'ランチバッグ'},{prefix:'LNC-160',cat:'ランチバッグ'},
   {prefix:'LNC-170',cat:'ランチバッグ'},
   {prefix:'LNC-3',cat:'ランチバッグ'},{prefix:'LNC-5',cat:'ランチバッグ'},
@@ -441,7 +442,7 @@ const CODE_PREFIX_TO_CAT=[
 // Rename old/broken codes to correct codes
 const CODE_REMAP={'WCL-017WCL-018':'WCL-018','B6-1J7F-DA1E':'CPC-004'};
 // Category for remapped codes (assigned explicitly)
-const CODE_REMAP_CAT={'WCL-018':'ペンケース','CPC-004':'時計','WPK-101':'その他'};
+const CODE_REMAP_CAT={'WCL-018':'ペンケース','CPC-004':'時計','WPK-101':'その他','LNC-130':'箸セット'};
 // Code prefixes to exclude (non-EC products)
 const CODE_SKIP_PREFIXES=['SLW-','DR-MM-'];
 // Returns overridden category for a code by prefix/remap, or null
