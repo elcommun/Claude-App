@@ -116,6 +116,7 @@ input[type=file]{display:none}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
 .so-col{display:none}.show-so .so-col{display:table-cell;white-space:nowrap;font-size:11px}
+#so-tip{position:fixed;display:none;background:#333;color:#fff;font-size:11px;padding:5px 9px;border-radius:5px;pointer-events:none;z-index:9999;max-width:220px;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .img-col{display:none}.show-img .img-col{display:table-cell;text-align:center;padding:5px 8px;vertical-align:middle}
 .prod-thumb{width:34px;height:46px;object-fit:cover;border-radius:3px;cursor:zoom-in;display:block;margin:auto;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 #img-lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
@@ -224,6 +225,7 @@ input[type=file]{display:none}
   </div>
 </div>
 
+<div id="so-tip"></div>
 <div id="img-lb" onclick="closeLightbox()"><img id="img-lb-img" src="" onclick="event.stopPropagation()"></div>
 <div class="sb-overlay" id="sb-overlay"></div>
 <div class="sb-resize" id="sb-resize"></div>
@@ -1414,7 +1416,7 @@ function showCategory(cat, updateSidebar=true) {
       ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
       <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
       <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
-      <td class="so-col" style="text-align:center${catType&&STOCKOUT[item.code]?';background:rgba(255,140,0,.13);color:#b06000;font-weight:600':''}">${catType?(STOCKOUT_REASON[item.code]?`<span class="so-reason" title="${x(STOCKOUT_REASON[item.code])}" onclick="alert('${esc(STOCKOUT_REASON[item.code])}')" style="cursor:help;text-decoration:underline dotted">${x(STOCKOUT[item.code]||'')}</span>`:x(STOCKOUT[item.code]||'')):''}</td>
+      <td class="so-col" style="text-align:center${catType&&STOCKOUT[item.code]?';background:rgba(255,140,0,.13);color:#b06000;font-weight:600':''}">${catType?(STOCKOUT_REASON[item.code]?`<span class="so-reason" data-tip="${x(STOCKOUT_REASON[item.code])}" style="cursor:help;text-decoration:underline dotted">${x(STOCKOUT[item.code]||'')}</span>`:x(STOCKOUT[item.code]||'')):''}</td>
     </tr>`;
   }
   // Rank always reflects qty (or amount) order regardless of sort mode
@@ -1736,6 +1738,26 @@ function removeAlias(i){
   renderAliasList();
 }
 
+
+// ── Custom tooltip for STOCKOUT_REASON ───────────────────────────────────────
+(function(){
+  const tip=document.getElementById('so-tip');
+  document.addEventListener('mouseover',e=>{
+    const t=e.target.closest('[data-tip]');
+    if(!t)return;
+    tip.textContent=t.dataset.tip;
+    tip.style.display='block';
+  });
+  document.addEventListener('mousemove',e=>{
+    if(tip.style.display==='none')return;
+    const x=e.clientX,y=e.clientY;
+    tip.style.left=(x+12)+'px';
+    tip.style.top=(y-tip.offsetHeight-6)+'px';
+  });
+  document.addEventListener('mouseout',e=>{
+    if(e.target.closest('[data-tip]'))tip.style.display='none';
+  });
+})();
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadAliases();
