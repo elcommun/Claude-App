@@ -1531,7 +1531,7 @@ function showCategory(cat, updateSidebar=true) {
   const rankMap={};rankBase.forEach((item,i)=>rankMap[item.code]=i+1);
   if (!items.length) {
     html=`<tr><td colspan="${colspan}"><div class="empty"><div class="empty-icon">📭</div>データがありません</div></td></tr>`;
-  } else if (catType && sortMode!=='code' && sortMode!=='price') {
+  } else if (catType && sortMode!=='price') {
     const formatFn=catType==='手帳'?(item=>getDiaryFormat(item.code)):(item=>getCalendarFormat(item.code,item.name));
     const fmtOrder=catType==='手帳'?[...DIARY_FORMATS.map(f=>f.name),'その他']:['卓上','壁掛け','その他'];
     const groups={};
