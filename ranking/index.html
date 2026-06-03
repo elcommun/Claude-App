@@ -1742,20 +1742,13 @@ function removeAlias(i){
 // ── Custom tooltip for STOCKOUT_REASON ───────────────────────────────────────
 (function(){
   const tip=document.getElementById('so-tip');
-  document.addEventListener('mouseover',e=>{
+  document.addEventListener('mousemove',e=>{
     const t=e.target.closest('[data-tip]');
-    if(!t)return;
+    if(!t){tip.style.display='none';return;}
     tip.textContent=t.dataset.tip;
     tip.style.display='block';
-  });
-  document.addEventListener('mousemove',e=>{
-    if(tip.style.display==='none')return;
-    const x=e.clientX,y=e.clientY;
-    tip.style.left=(x+12)+'px';
-    tip.style.top=(y-tip.offsetHeight-6)+'px';
-  });
-  document.addEventListener('mouseout',e=>{
-    if(e.target.closest('[data-tip]'))tip.style.display='none';
+    tip.style.left=(e.clientX+14)+'px';
+    tip.style.top=(e.clientY+18)+'px';
   });
 })();
 
