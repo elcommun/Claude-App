@@ -160,6 +160,7 @@ input[type=file]{display:none}
 .sb-resize{width:5px;cursor:col-resize;position:fixed;top:var(--hh);bottom:0;left:var(--sb);z-index:170;transition:background .15s}
 .sb-resize:hover,.sb-resize.dragging{background:var(--gold);opacity:.45}
 @media(max-width:768px){.sb-resize{display:none}}
+@media(max-width:900px) and (orientation:portrait){.sb-resize{display:none}}
 @media(max-width:900px){.hd-date{display:none}}
 @media(max-width:768px){
   :root{--hh:52px}
@@ -174,6 +175,12 @@ input[type=file]{display:none}
   #hd-search{width:130px}
   .hd-btn{padding:5px 9px;font-size:10px}
   .hd-saved{display:none!important}
+}
+@media(min-width:769px) and (max-width:900px) and (orientation:portrait){
+  .hd-menu{display:block}
+  .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:160;box-shadow:4px 0 24px rgba(0,0,0,.18)}
+  .sb.open{transform:translateX(0)}
+  .main{margin-left:0;padding:16px 20px 60px}
 }
 @media(max-width:480px){
   #hd-search{width:100px;font-size:11px}
@@ -1873,11 +1880,19 @@ applyFilter();
 // Mobile sidebar drawer
 (function(){
   const sbEl=document.querySelector('.sb'),ovEl=document.getElementById('sb-overlay'),mnEl=document.getElementById('hd-menu');
+  function isDrawerMode(){
+    return window.innerWidth<=768 ||
+      (window.innerWidth<=900 && window.matchMedia('(orientation:portrait)').matches);
+  }
   function openSb(){sbEl.classList.add('open');ovEl.classList.add('open');}
   function closeSb(){sbEl.classList.remove('open');ovEl.classList.remove('open');}
   mnEl?.addEventListener('click',openSb);
   ovEl?.addEventListener('click',closeSb);
-  document.getElementById('sb-list')?.addEventListener('click',()=>{if(window.innerWidth<=768)closeSb();});
+  document.getElementById('sb-list')?.addEventListener('click',()=>{if(isDrawerMode())closeSb();});
+  // 横向きになったらドロワーを閉じてオーバーレイを消す
+  window.matchMedia('(orientation:portrait)').addEventListener('change',e=>{
+    if(!e.matches)closeSb();
+  });
 })();
 // Sidebar resize handle (desktop only)
 (function(){
@@ -1893,7 +1908,7 @@ applyFilter();
   const saved=parseInt(localStorage.getItem('sb-width'));
   if(saved&&saved>=MIN&&saved<=MAX)applyW(saved);
   handle.addEventListener('mousedown',e=>{
-    if(window.innerWidth<=768)return;
+    if(window.innerWidth<=768||(window.innerWidth<=900&&window.matchMedia('(orientation:portrait)').matches))return;
     e.preventDefault();
     handle.classList.add('dragging');
     const startX=e.clientX,startW=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb'))||220;
