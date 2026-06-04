@@ -449,9 +449,14 @@ const CODE_PREFIX_TO_CAT=[
   {prefix:'EBA-',cat:'エコバッグ'}, // EBA-1xx~4xx エコバッグ系
   {prefix:'GRA-1',cat:'箸セット'},{prefix:'GRA-2',cat:'食器'},
   {prefix:'GRA-3',cat:'ランチバッグ'},
-  {prefix:'CTM-',cat:'ブックカバー'},
-  {prefix:'KTL-',cat:'ブックカバー'},
-  {prefix:'PBC-',cat:'ブックカバー'},
+  // CTM- (COTOMO): 商品名で判断 — ノート/ログノートはノート、カバー系はブックカバー、ポーチはポーチ・ケース、ペンケースはペンケース
+  {prefix:'CTM-01',cat:'ブックカバー'},  // CTM-011~018 ツインカバー
+  {prefix:'CTM-02',cat:'ブックカバー'},  // CTM-021~028 ポケット付きカバー
+  {prefix:'CTM-03',cat:'ポーチ・ケース'}, // CTM-031~038 マルチポーチ
+  {prefix:'CTM-04',cat:'ペンケース'},    // CTM-041~048 ペンケース
+  {prefix:'CTM-',cat:'ノート'},          // CTM-00x/1xx/2xx/3xx B6ノート・ログノート
+  {prefix:'KTL-',cat:'他カバー系'},      // KOTELO ティッシュ/ロールペーパー/アンブレラカバー
+  {prefix:'PBC-',cat:'ブックカバー'},    // Point ブックカバー (全品番確認済み)
   {prefix:'BP-',cat:'ボールペン'},
   {prefix:'TAG-',cat:'ギフトタグ'},
 ];
