@@ -413,6 +413,19 @@ const CODE_PREFIX_TO_CAT=[
   {prefix:'SLV-9',cat:'ブローチ'},
   {prefix:'STP-',cat:'スタンプ'},{prefix:'ALA-3',cat:'スタンプ'},
   {prefix:'MB-',cat:'その他'},
+  {prefix:'FC-',cat:'ポーチ・ケース'},
+  {prefix:'APT-',cat:'ポーチ・ケース'},
+  {prefix:'CTB-',cat:'トートバッグ'},
+  {prefix:'LMN-',cat:'ポーチ・ケース'},
+  {prefix:'PLO-',cat:'ポーチ・ケース'},
+  {prefix:'PMN-',cat:'ポーチ・ケース'},
+  {prefix:'RGL-',cat:'ポーチ・ケース'},
+  {prefix:'SCC-',cat:'ポーチ・ケース'},
+  {prefix:'STM-',cat:'トートバッグ'},
+  {prefix:'SVT-2',cat:'ポーチ・ケース'},
+  {prefix:'TCL-1',cat:'ポーチ・ケース'},{prefix:'TCL-5',cat:'ポーチ・ケース'},
+  {prefix:'TRS-1',cat:'ポーチ・ケース'},{prefix:'TRS-3',cat:'ポーチ・ケース'},
+  {prefix:'TRS-',cat:'トートバッグ'},
   {prefix:'ECL-',cat:'ポスター'},{prefix:'LLN-',cat:'ポスター'},
   // ランチバッグ: 4桁コード（LNC-10xx等）は3桁ルール(LNC-1→箸セット)より先に
   {prefix:'LNC-100',cat:'ランチバッグ'},{prefix:'LNC-110',cat:'ランチバッグ'},
@@ -773,7 +786,7 @@ function getCatTotal(cat) {
   const items=Object.values(aggregated[cat]||{});
   return{qty:items.reduce((s,i)=>s+i.qty,0),amount:items.reduce((s,i)=>s+i.amount,0)};
 }
-let expandedGroups=new Set(['手帳','カレンダー']);
+let expandedGroups=new Set(['手帳']);
 let expandedSubs=new Set();
 let expandedMacros=new Set();
 let exportChecks=new Set();
