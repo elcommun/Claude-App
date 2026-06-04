@@ -201,8 +201,59 @@ input[type=file]{display:none}
   .cat-name{font-size:17px}
 }
 </style>
+<style>
+#login-overlay{position:fixed;inset:0;background:#1c1917;z-index:9999;display:flex;align-items:center;justify-content:center}
+#login-overlay.hidden{display:none}
+.login-box{background:#fff;border-radius:14px;padding:40px 36px;width:320px;max-width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.4)}
+.login-logo{font-size:13px;font-weight:700;letter-spacing:.08em;color:#4a7c59;text-align:center;margin-bottom:4px}
+.login-title{font-size:11px;color:#888;text-align:center;margin-bottom:28px;letter-spacing:.05em}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-size:11px;font-weight:600;color:#555;margin-bottom:5px;letter-spacing:.04em}
+.login-field input{width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:7px;padding:10px 12px;font-size:14px;outline:none;transition:border-color .2s}
+.login-field input:focus{border-color:#4a7c59}
+.login-btn{width:100%;padding:11px;background:#4a7c59;color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;transition:background .2s}
+.login-btn:hover{background:#3a6349}
+.login-err{color:#c0392b;font-size:12px;text-align:center;margin-top:12px;min-height:16px}
+</style>
 </head>
 <body>
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">EL COMMUN</div>
+    <div class="login-title">EC事業部 販売データ</div>
+    <div class="login-field">
+      <label>ID</label>
+      <input type="text" id="login-id" autocomplete="username" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="login-field">
+      <label>パスワード</label>
+      <input type="password" id="login-pw" autocomplete="current-password">
+    </div>
+    <button class="login-btn" onclick="doLogin()">ログイン</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+<script>
+(function(){
+  if(sessionStorage.getItem('ec_auth')==='1'){
+    document.getElementById('login-overlay').classList.add('hidden');
+  }
+  document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  document.getElementById('login-id').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+})();
+function doLogin(){
+  const id=document.getElementById('login-id').value.trim();
+  const pw=document.getElementById('login-pw').value;
+  if(id==='elcommun'&&pw==='ec0299'){
+    sessionStorage.setItem('ec_auth','1');
+    document.getElementById('login-overlay').classList.add('hidden');
+  } else {
+    document.getElementById('login-err').textContent='IDまたはパスワードが正しくありません';
+    document.getElementById('login-pw').value='';
+    document.getElementById('login-pw').focus();
+  }
+}
+</script>
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
