@@ -1901,9 +1901,13 @@ applyFilter();
   mnEl?.addEventListener('click',openSb);
   ovEl?.addEventListener('click',closeSb);
   document.getElementById('sb-list')?.addEventListener('click',()=>{if(isDrawerMode())closeSb();});
-  // 横向きになったらドロワーを閉じてオーバーレイを消す
+  // 横向きになったらトランジションを一時停止してドロワーを閉じる
   window.matchMedia('(orientation:portrait)').addEventListener('change',e=>{
-    if(!e.matches)closeSb();
+    if(!e.matches){
+      sbEl.style.transition='none';
+      closeSb();
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{sbEl.style.transition='';}));
+    }
   });
 })();
 // Sidebar resize handle (desktop only)
