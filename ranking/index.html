@@ -185,18 +185,19 @@ input[type=file]{display:none}
   .cat-stats{font-size:11px;gap:8px}
   .fmt-hdr td{font-size:10px;padding:4px 8px}
   .kpi-row{grid-template-columns:repeat(2,1fr);gap:8px}
-  /* テーブルをiPad縦持ち幅に収める */
-  .tbl{font-size:12px}
-  .tbl thead tr th:nth-child(1){width:40px!important}
-  .tbl thead tr th:nth-child(2){min-width:76px!important}
-  .tbl thead tr th:nth-child(3){min-width:200px!important;max-width:none!important}
-  .tbl thead tr th:nth-child(5){width:58px!important}
-  .tbl thead tr th:nth-child(6){width:58px!important}
-  .tbl thead tr th:nth-child(9){width:80px!important}
-  #th-share{width:38px!important}
-  #th-so{width:1px!important;padding-left:4px!important;padding-right:4px!important}
+  /* table-layout:fixed で列幅を強制確定 */
+  .tbl{table-layout:fixed;width:100%;font-size:12px}
+  .tbl thead tr th:nth-child(1){width:38px}
+  .tbl thead tr th:nth-child(2){width:84px}
+  .tbl thead tr th:nth-child(3){width:auto}
+  .tbl thead tr th:nth-child(5){width:56px}
+  .tbl thead tr th:nth-child(6){width:56px}
+  .tbl thead tr th:nth-child(9){width:78px}
+  #th-share{width:36px}
+  #th-so{width:36px;padding-left:4px;padding-right:4px}
   .show-so .so-col{padding-left:4px!important;padding-right:4px!important}
-  .nc{max-width:none}
+  .nc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:none}
+  .tbl td{overflow:hidden}
 }
 @media(max-width:480px){
   #hd-search{width:100px;font-size:11px}
