@@ -116,6 +116,7 @@ input[type=file]{display:none}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
 .so-col{display:none}.show-so .so-col{display:table-cell;white-space:nowrap;font-size:11px}
+.so-val{white-space:nowrap;display:inline-block}
 #so-tip{position:fixed;display:none;background:#333;color:#fff;font-size:12px;padding:5px 10px;border-radius:5px;pointer-events:none;z-index:9999;white-space:nowrap;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .img-col{display:none}.show-img .img-col{display:table-cell;text-align:center;padding:5px 8px;vertical-align:middle}
 .prod-thumb{width:34px;height:46px;object-fit:cover;border-radius:3px;cursor:zoom-in;display:block;margin:auto;box-shadow:0 1px 3px rgba(0,0,0,.2)}
@@ -190,6 +191,7 @@ input[type=file]{display:none}
   .bb{width:36px}
   #th-so{padding-left:4px!important;padding-right:4px!important}
   .show-so .so-col{padding-left:4px!important;padding-right:4px!important}
+  .so-val{width:30px;overflow:hidden;text-overflow:ellipsis}
   .nc{max-width:none}
 }
 @media(max-width:480px){
@@ -1555,7 +1557,7 @@ function showCategory(cat, updateSidebar=true) {
       ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
       <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
       <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
-      <td class="so-col" style="text-align:center${catType&&STOCKOUT[item.code]?';background:rgba(255,140,0,.13);color:#b06000;font-weight:600':''}">${catType?(STOCKOUT_REASON[item.code]?`<span class="so-reason" data-tip="${x(STOCKOUT_REASON[item.code])}" style="cursor:help;text-decoration:underline dotted">${x(STOCKOUT[item.code]||'')}</span>`:x(STOCKOUT[item.code]||'')):''}</td>
+      <td class="so-col" style="text-align:center${catType&&STOCKOUT[item.code]?';background:rgba(255,140,0,.13);color:#b06000;font-weight:600':''}"><div class="so-val">${catType?(STOCKOUT_REASON[item.code]?`<span class="so-reason" data-tip="${x(STOCKOUT_REASON[item.code])}" style="cursor:help;text-decoration:underline dotted">${x(STOCKOUT[item.code]||'')}</span>`:x(STOCKOUT[item.code]||'')):''}</div></td>
     </tr>`;
   }
   // Rank always reflects qty (or amount) order regardless of sort mode
