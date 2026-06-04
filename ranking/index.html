@@ -115,8 +115,7 @@ input[type=file]{display:none}
 .tbl th{background:var(--ink);color:rgba(255,255,255,.6);padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid rgba(255,255,255,.06);white-space:nowrap}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
-.so-col{display:none}.show-so .so-col{display:table-cell;white-space:nowrap;font-size:11px;padding-left:6px!important;padding-right:6px!important}
-.tbl thead .so-col{width:1px!important}
+.so-col{display:none}.show-so .so-col{display:table-cell;white-space:nowrap;font-size:11px}
 #so-tip{position:fixed;display:none;background:#333;color:#fff;font-size:12px;padding:5px 10px;border-radius:5px;pointer-events:none;z-index:9999;white-space:nowrap;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .img-col{display:none}.show-img .img-col{display:table-cell;text-align:center;padding:5px 8px;vertical-align:middle}
 .prod-thumb{width:34px;height:46px;object-fit:cover;border-radius:3px;cursor:zoom-in;display:block;margin:auto;box-shadow:0 1px 3px rgba(0,0,0,.2)}
@@ -190,14 +189,14 @@ input[type=file]{display:none}
   .tbl{font-size:12px}
   .tbl thead tr th:nth-child(1){width:40px!important}
   .tbl thead tr th:nth-child(2){min-width:76px!important}
-  .tbl thead tr th:nth-child(3){min-width:180px!important}
+  .tbl thead tr th:nth-child(3){min-width:200px!important;max-width:none!important}
   .tbl thead tr th:nth-child(5){width:58px!important}
   .tbl thead tr th:nth-child(6){width:58px!important}
   .tbl thead tr th:nth-child(9){width:80px!important}
-  .tbl thead tr th:nth-child(10){width:48px!important}
-  .tbl thead tr th:nth-child(11){width:1px!important;white-space:nowrap;padding-left:5px!important;padding-right:5px!important}
-  .show-so .so-col{padding-left:5px!important;padding-right:5px!important}
-  .nc{max-width:180px}
+  #th-share{width:38px!important}
+  #th-so{width:1px!important;padding-left:4px!important;padding-right:4px!important}
+  .show-so .so-col{padding-left:4px!important;padding-right:4px!important}
+  .nc{max-width:none}
 }
 @media(max-width:480px){
   #hd-search{width:100px;font-size:11px}
@@ -363,8 +362,8 @@ function doLogin(){
           <th class="num cmp-col" style="width:72px" id="th-prev">前年</th>
           <th class="num cmp-col" style="width:72px" id="th-prev2">前々年</th>
           <th class="th-sort num" onclick="setSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="ri-amount"></span></th>
-          <th style="width:96px">売上比</th>
-          <th class="so-col" style="width:76px">欠品日</th>
+          <th style="width:96px" id="th-share">売上比</th>
+          <th class="so-col" id="th-so" style="width:1px;padding-left:6px;padding-right:6px">欠品日</th>
         </tr></thead>
         <tbody id="rank-tbody"></tbody>
       </table></div>
