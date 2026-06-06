@@ -204,6 +204,21 @@ body.narrow-portrait .ct{font-size:9px;padding:1px 4px;margin-right:3px}
   .hd-btn{padding:5px 9px;font-size:10px}
   .hd-saved{display:none!important}
 }
+/* スマホ縦（≤480px）: 上代・合計金額を隠して商品画像・個数・欠品日を収める */
+@media(max-width:480px){
+  .price-col{display:none}
+  .amount-col{display:none}
+  .nc{max-width:90px}
+  .tbl{font-size:10px}
+  .tbl th{padding:6px 4px;font-size:9px;letter-spacing:0}
+  .tbl td{padding:5px 4px}
+  .img-col{width:44px!important;padding:3px 4px!important}
+  .prod-thumb{max-width:36px;max-height:36px}
+  .so-val{width:36px}
+  #th-so,.show-so .so-col{padding-left:2px!important;padding-right:2px!important}
+  .ct{font-size:8px;padding:1px 3px;margin-right:2px}
+  .rn{width:22px;height:22px;font-size:9px}
+}
 @media(min-width:769px) and (max-width:900px) and (orientation:portrait){
   .hd-menu{display:block}
   .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:160;box-shadow:4px 0 24px rgba(0,0,0,.18)}
@@ -386,11 +401,11 @@ function doLogin(){
           <th class="th-sort" onclick="setSort('code')" style="min-width:94px">品番<span class="sort-ind" id="ri-code"></span></th>
           <th style="min-width:240px">商品名</th>
           <th class="img-col" style="width:56px">商品画像</th>
-          <th class="th-sort num" onclick="setSort('price')" style="width:76px">上代<span class="sort-ind" id="ri-price"></span></th>
+          <th class="th-sort num price-col" onclick="setSort('price')" style="width:76px">上代<span class="sort-ind" id="ri-price"></span></th>
           <th class="th-sort num" onclick="setSort('qty')" style="width:76px">個数<span class="sort-ind" id="ri-qty">▼</span></th>
           <th class="num cmp-col" style="width:72px" id="th-prev">前年</th>
           <th class="num cmp-col" style="width:72px" id="th-prev2">前々年</th>
-          <th class="th-sort num" onclick="setSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="ri-amount"></span></th>
+          <th class="th-sort num amount-col" onclick="setSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="ri-amount"></span></th>
           <th class="share-col" style="width:96px" id="th-share">売上比</th>
           <th class="so-col" id="th-so" style="width:1px;padding-left:6px;padding-right:6px">欠品日</th>
         </tr></thead>
@@ -1634,10 +1649,10 @@ function showCategory(cat, updateSidebar=true) {
       <td class="cc">${x(item.code)}</td>
       <td class="nc">${x(item.name)}</td>
       <td class="img-col">${catType?thumb:''}</td>
-      <td class="num">¥${item.price.toLocaleString()}</td>
+      <td class="num price-col">¥${item.price.toLocaleString()}</td>
       <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
       ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
-      <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
+      <td class="num amount-col" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
       <td class="share-col"><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
       <td class="so-col" style="text-align:center${catType&&STOCKOUT[item.code]?';background:rgba(255,140,0,.13);color:#b06000;font-weight:600':''}"><div class="so-val">${catType?(STOCKOUT_REASON[item.code]?`<span class="so-reason" data-tip="${x(STOCKOUT_REASON[item.code])}" style="cursor:help;text-decoration:underline dotted">${x(STOCKOUT[item.code]||'')}</span>`:x(STOCKOUT[item.code]||'')):''}</div></td>
     </tr>`;
