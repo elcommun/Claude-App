@@ -343,6 +343,7 @@ function doLogin(){
             <span style="font-size:11px;color:var(--ink4);width:14px;flex-shrink:0">〜</span>
             <input type="date" class="fsel" id="f-date-to" onchange="applyFilter()" style="flex:1">
           </div>
+          <button onclick="setFullPeriod()" style="margin-top:2px;padding:3px 6px;font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--ink3);cursor:pointer;text-align:center;line-height:1.4">全期間</button>
         </div>
       </div>
       <div>
@@ -2061,15 +2062,37 @@ function removeAlias(i){
 // ── Boot ──────────────────────────────────────────────────────────────────────
 loadAliases();
 buildData();
-// Default: start 2017-01-01, end = latest date in data
-const allYrs=Object.keys(DATA.by_store).sort();
-if(allYrs.length){
-  document.getElementById('f-date-from').value='2017-01-01';
-  let latestDate='';
+// Compute earliest/latest from date_ranges
+(function(){
+  let earliest='',latest='';
   for(const dr of Object.values(DATA.date_ranges||{})){
-    if(dr&&dr[1]>latestDate) latestDate=dr[1];
+    if(!dr)continue;
+    if(!earliest||dr[0]<earliest)earliest=dr[0];
+    if(!latest  ||dr[1]>latest  )latest  =dr[1];
   }
-  document.getElementById('f-date-to').value=latestDate||allYrs[allYrs.length-1]+'-12-31';
+  const allYrs=Object.keys(DATA.by_store).sort();
+  if(!latest&&allYrs.length) latest=allYrs[allYrs.length-1]+'-12-31';
+  if(!earliest&&allYrs.length) earliest=allYrs[0]+'-01-01';
+  // Store for setFullPeriod
+  window._periodEarliest=earliest;
+  window._periodLatest=latest;
+  // Default: latest-1year+1day → latest
+  let fromDate=earliest;
+  if(latest){
+    const d=new Date(latest);
+    d.setFullYear(d.getFullYear()-1);
+    d.setDate(d.getDate()+1);
+    const yf=d.getFullYear(),mf=String(d.getMonth()+1).padStart(2,'0'),df=String(d.getDate()).padStart(2,'0');
+    fromDate=`${yf}-${mf}-${df}`;
+    if(earliest&&fromDate<earliest)fromDate=earliest;
+  }
+  document.getElementById('f-date-from').value=fromDate;
+  document.getElementById('f-date-to').value=latest;
+})();
+function setFullPeriod(){
+  document.getElementById('f-date-from').value=window._periodEarliest||'';
+  document.getElementById('f-date-to').value=window._periodLatest||'';
+  applyFilter();
 }
 applyFilter();
 // Mobile sidebar drawer
