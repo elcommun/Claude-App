@@ -926,6 +926,25 @@ function toggleCheck(cat){
   if(btn){btn.disabled=!exportChecks.size;btn.style.opacity=exportChecks.size?'1':'0.4';}
   renderSidebar();
 }
+// 配下の最下層に1つでもチェックがあるか調べる（親チェックボックスをオレンジにするため）
+function hasCheckedLeaf(cat){
+  const cg=CAT_GROUPS.find(g=>g.name===cat);
+  if(cg){
+    const leaves=Object.keys(aggregated).filter(c=>cg.match(c));
+    return leaves.some(c=>exportChecks.has(c));
+  }
+  for(const g of CAT_GROUPS){
+    for(const s of g.subs){
+      if(g.name+':'+s.name===cat){
+        const leaves=Object.keys(aggregated).filter(c=>g.match(c)&&s.match(c));
+        return leaves.some(c=>exportChecks.has(c));
+      }
+    }
+  }
+  const mg=MACRO_GROUPS.find(m=>m.name===cat);
+  if(mg) return mg.cats.some(c=>exportChecks.has(c));
+  return false;
+}
 function renderSidebar() {
   // Collect all real categories (excluding diary/calendar which go into groups)
   const groupMatchAny=c=>CAT_GROUPS.some(g=>g.match(c));
@@ -980,8 +999,9 @@ function renderSidebar() {
     const badge=sortMode==='qty'?t.qty.toLocaleString()+'個':'¥'+Math.round(t.amount/10000)+'万';
     const act=g.name===selectedCategory?' active':'';
     const gChkd=exportChecks.has(g.name)?'checked':'';
+    const gAcc=hasCheckedLeaf(g.name)?'#e07000':'#4a7c59';
     html+=`<div class="sbi${act}" onclick="showCategory('${esc(g.name)}')" data-cat="${esc(g.name)}" style="font-weight:600">
-      <input type="checkbox" ${gChkd} onclick="event.stopPropagation();toggleCheck('${esc(g.name)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:#4a7c59">
+      <input type="checkbox" ${gChkd} onclick="event.stopPropagation();toggleCheck('${esc(g.name)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:${gAcc}">
       <span style="font-size:13px">${g.icon}</span>
       <span class="sbi-name">${x(g.name)}</span>
       <span class="sbi-badge">${badge}</span>
@@ -1003,8 +1023,9 @@ function renderSidebar() {
           const subExp=expandedSubs.has(subKey);
           const subChev=subExp?'▼':'▶';
           const skChkd=exportChecks.has(subKey)?'checked':'';
+          const skAcc=hasCheckedLeaf(subKey)?'#e07000':'#4a7c59';
           html+=`<div class="sbi${subAct}" style="padding-left:22px;font-size:12px" onclick="showCategory('${esc(subKey)}')" data-cat="${esc(subKey)}">
-            <input type="checkbox" ${skChkd} onclick="event.stopPropagation();toggleCheck('${esc(subKey)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:#4a7c59">
+            <input type="checkbox" ${skChkd} onclick="event.stopPropagation();toggleCheck('${esc(subKey)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:${skAcc}">
             <span style="font-size:11px">${s.icon}</span>
             <span class="sbi-name">${x(s.name)}</span>
             <span class="sbi-badge">${subBadge}</span>
@@ -1033,8 +1054,9 @@ function renderSidebar() {
     const badge=sortMode==='qty'?t.qty.toLocaleString()+'個':'¥'+Math.round(t.amount/10000)+'万';
     const act=mg.name===selectedCategory?' active':'';
     const mgChkd=exportChecks.has(mg.name)?'checked':'';
+    const mgAcc=hasCheckedLeaf(mg.name)?'#e07000':'#4a7c59';
     html+=`<div class="sbi${act}" onclick="showCategory('${esc(mg.name)}')" data-cat="${esc(mg.name)}" style="font-weight:600">
-      <input type="checkbox" ${mgChkd} onclick="event.stopPropagation();toggleCheck('${esc(mg.name)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:#4a7c59">
+      <input type="checkbox" ${mgChkd} onclick="event.stopPropagation();toggleCheck('${esc(mg.name)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:${mgAcc}">
       <span style="font-size:13px">${mg.icon}</span>
       <span class="sbi-name">${x(mg.name)}</span>
       <span class="sbi-badge">${badge}</span>
