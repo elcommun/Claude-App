@@ -166,25 +166,25 @@ input[type=file]{display:none}
 @media(max-width:900px){.hd-date{display:none}}
 @media(max-width:768px) and (orientation:portrait){
   /* 売上比を隠し、各列を詰めてスクロール無しで欠品日まで表示 */
-  .tbl{table-layout:fixed;font-size:11px;width:100%}
   .share-col{display:none}
   .main{overflow-x:hidden}
   .tw{overflow-x:hidden!important}
+  .tbl{font-size:11px}
   .tbl th{padding:8px 5px;font-size:9px;letter-spacing:0}
   .tbl td{padding:7px 5px}
-  .nc{max-width:none;white-space:normal;word-break:break-word}
+  .nc{max-width:none}
   #th-so,.show-so .so-col{padding-left:3px!important;padding-right:3px!important}
   .so-val{width:44px}
   .ct{font-size:9px;padding:1px 4px;margin-right:3px}
 }
 /* JSクラスによる即時切り替え（iOS回転対応） */
-body.narrow-portrait .tbl{table-layout:fixed;font-size:11px;width:100%}
 body.narrow-portrait .share-col{display:none}
 body.narrow-portrait .main{overflow-x:hidden}
 body.narrow-portrait .tw{overflow-x:hidden!important}
+body.narrow-portrait .tbl{font-size:11px}
 body.narrow-portrait .tbl th{padding:8px 5px;font-size:9px;letter-spacing:0}
 body.narrow-portrait .tbl td{padding:7px 5px}
-body.narrow-portrait .nc{max-width:none;white-space:normal;word-break:break-word}
+body.narrow-portrait .nc{max-width:none}
 body.narrow-portrait #th-so,body.narrow-portrait .show-so .so-col{padding-left:3px!important;padding-right:3px!important}
 body.narrow-portrait .so-val{width:44px}
 body.narrow-portrait .ct{font-size:9px;padding:1px 4px;margin-right:3px}
@@ -198,6 +198,7 @@ body.narrow-portrait .ct{font-size:9px;padding:1px 4px;margin-right:3px}
   .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .nc{max-width:160px}
   .bb{width:56px}
+  .share-col{display:none}
   #hd-search{width:130px}
   .hd-btn{padding:5px 9px;font-size:10px}
   .hd-saved{display:none!important}
@@ -2042,9 +2043,9 @@ applyFilter();
     }
   });
   // iOS回転対応: resizeイベント（viewportが確定後に発火）でbodyクラスを即時切り替え
+  // ≤768px は縦横共通で narrow-portrait スタイルを適用（回転時に変化なし＝即時）
   function updateNarrowPortrait(){
-    const narrow = window.innerWidth <= 768 && window.matchMedia('(orientation:portrait)').matches;
-    document.body.classList.toggle('narrow-portrait', narrow);
+    document.body.classList.toggle('narrow-portrait', window.innerWidth <= 768);
   }
   updateNarrowPortrait();
   window.addEventListener('resize', updateNarrowPortrait);
