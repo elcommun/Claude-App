@@ -2030,7 +2030,17 @@ applyFilter();
       closeSb();
       requestAnimationFrame(()=>requestAnimationFrame(()=>{sbEl.style.transition='';}));
     }
-    // 回転時にテーブルを即座に再描画（列数・列幅をレイアウトに合わせる）
+    // ブラウザのレイアウト更新後に再描画（innerWidthが確定してから）
+    requestAnimationFrame(()=>{
+      const searchActive=document.getElementById('search-view').style.display!=='none';
+      if(selectedCategory && !searchActive) showCategory(selectedCategory,false);
+    });
+  });
+  // iOS は orientationchange 後に resize でサイズが確定する場合があるため補完
+  let _lastW=window.innerWidth;
+  window.addEventListener('resize',()=>{
+    if(window.innerWidth===_lastW)return;
+    _lastW=window.innerWidth;
     const searchActive=document.getElementById('search-view').style.display!=='none';
     if(selectedCategory && !searchActive) showCategory(selectedCategory,false);
   });
