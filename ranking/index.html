@@ -207,7 +207,10 @@ body.narrow-portrait .ct{font-size:9px;padding:1px 4px;margin-right:3px}
 /* スマホ縦（≤480px）: 上代・合計金額を隠して商品画像・個数・欠品日を収める */
 @media(max-width:480px){
   .show-img .price-col{display:none}
+  .show-img .share-col{display:none}
   .amount-col{display:none}
+  /* 手帳・カレンダー以外は売上比を表示（1200pxルール上書き） */
+  #rank-tbl:not(.show-img) .share-col{display:table-cell}
   .tw{overflow-x:hidden}
   .name-col{min-width:0!important}
   .code-col{min-width:0!important}
