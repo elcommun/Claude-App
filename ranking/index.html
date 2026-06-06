@@ -2084,6 +2084,21 @@ applyFilter();
   mnEl?.addEventListener('click',openSb);
   ovEl?.addEventListener('click',closeSb);
   document.getElementById('sb-list')?.addEventListener('click',()=>{if(isDrawerMode())closeSb();});
+  // 画面左端から右へスワイプでサイドメニューを開く（ドロワーモード時）
+  (function(){
+    let sx=0,sy=0,tracking=false;
+    document.addEventListener('touchstart',e=>{
+      if(!isDrawerMode()||sbEl.classList.contains('open'))return;
+      const t=e.touches[0];
+      if(t.clientX<=24){sx=t.clientX;sy=t.clientY;tracking=true;}
+    },{passive:true});
+    document.addEventListener('touchmove',e=>{
+      if(!tracking)return;
+      const t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
+      if(dx>50&&Math.abs(dx)>Math.abs(dy)){openSb();tracking=false;}
+    },{passive:true});
+    document.addEventListener('touchend',()=>{tracking=false;},{passive:true});
+  })();
   // 横向きになったらトランジションを一時停止してドロワーを閉じる
   window.matchMedia('(orientation:portrait)').addEventListener('change',e=>{
     if(!e.matches){
