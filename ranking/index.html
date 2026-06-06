@@ -1961,18 +1961,33 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   if(!results.length){
     html=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
   }else{
-    results.forEach((r,idx)=>{
-      const rank=r.qtyRank;
-      const ri=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
-      html+=`<tr style="cursor:pointer" onclick="document.getElementById('hd-search').value='';showCategory('${esc(r.cat)}')">
-        <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
-        <td><span class="ct">${x(r.cat)}</span></td>
-        <td class="cc">${x(r.code)}</td>
-        <td class="nc">${hl(r.name,q,trans)}</td>
-        <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
-        <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
-        <td class="num s-amount-col" style="${heatBg(r.amount,maxAmtS).slice(1)}">¥${r.amount.toLocaleString()}</td>
-      </tr>`;
+    // カテゴリ別にグループ化し、カテゴリ合計qty降順で並べる
+    const catMap=new Map();
+    results.forEach(r=>{
+      if(!catMap.has(r.cat))catMap.set(r.cat,{items:[],totalQty:0});
+      const g=catMap.get(r.cat);
+      g.items.push(r);
+      g.totalQty+=r.qty;
+    });
+    const cats=[...catMap.entries()].sort((a,b)=>b[1].totalQty-a[1].totalQty);
+    cats.forEach(([cat,g])=>{
+      // カテゴリ内を個数降順でランキング付け
+      g.items.sort((a,b)=>b.qty-a.qty);
+      const colspan=7;
+      html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(cat)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${g.items.length}種 / ${g.totalQty.toLocaleString()}個)</span></td></tr>`;
+      g.items.forEach((r,i)=>{
+        const rank=i+1;
+        const ri=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
+        html+=`<tr style="cursor:pointer" onclick="document.getElementById('hd-search').value='';showCategory('${esc(r.cat)}')">
+          <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
+          <td><span class="ct">${x(r.cat)}</span></td>
+          <td class="cc">${x(r.code)}</td>
+          <td class="nc">${hl(r.name,q,trans)}</td>
+          <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
+          <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
+          <td class="num s-amount-col" style="${heatBg(r.amount,maxAmtS).slice(1)}">¥${r.amount.toLocaleString()}</td>
+        </tr>`;
+      });
     });
   }
   document.getElementById('search-tbody').innerHTML=html;
