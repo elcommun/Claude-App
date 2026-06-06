@@ -1552,8 +1552,7 @@ function showCategory(cat, updateSidebar=true) {
   document.getElementById('rank-tbl').classList.toggle('show-cmp', showCmp);
   document.getElementById('rank-tbl').classList.toggle('show-so', showSo);
   document.getElementById('rank-tbl').classList.toggle('show-img', showImg);
-  const isNarrowPortrait = window.innerWidth <= 768 && window.matchMedia('(orientation:portrait)').matches;
-  const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0) - (isNarrowPortrait ? 1 : 0);
+  const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0);
   let html='';
   function renderRow(item,rank,topV){
     const val=sortMode==='amount'?item.amount:item.qty;
@@ -2030,19 +2029,6 @@ applyFilter();
       closeSb();
       requestAnimationFrame(()=>requestAnimationFrame(()=>{sbEl.style.transition='';}));
     }
-    // ブラウザのレイアウト更新後に再描画（innerWidthが確定してから）
-    requestAnimationFrame(()=>{
-      const searchActive=document.getElementById('search-view').style.display!=='none';
-      if(selectedCategory && !searchActive) showCategory(selectedCategory,false);
-    });
-  });
-  // iOS は orientationchange 後に resize でサイズが確定する場合があるため補完
-  let _lastW=window.innerWidth;
-  window.addEventListener('resize',()=>{
-    if(window.innerWidth===_lastW)return;
-    _lastW=window.innerWidth;
-    const searchActive=document.getElementById('search-view').style.display!=='none';
-    if(selectedCategory && !searchActive) showCategory(selectedCategory,false);
   });
 })();
 // Sidebar resize handle (desktop only)
