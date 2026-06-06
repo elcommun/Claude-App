@@ -208,10 +208,14 @@ body.narrow-portrait .ct{font-size:9px;padding:1px 4px;margin-right:3px}
 @media(max-width:480px){
   .price-col{display:none}
   .amount-col{display:none}
-  .nc{max-width:90px}
+  .tw{overflow-x:hidden}
+  .name-col{min-width:0!important}
+  .code-col{min-width:0!important}
+  .nc{max-width:84px}
+  .cc{font-size:9px}
   .tbl{font-size:10px}
-  .tbl th{padding:6px 4px;font-size:9px;letter-spacing:0}
-  .tbl td{padding:5px 4px}
+  .tbl th{padding:6px 3px;font-size:9px;letter-spacing:0}
+  .tbl td{padding:5px 3px}
   .img-col{width:44px!important;padding:3px 4px!important}
   .prod-thumb{max-width:36px;max-height:36px}
   .so-val{width:36px}
@@ -398,8 +402,8 @@ function doLogin(){
       <div class="tw"><table class="tbl" id="rank-tbl">
         <thead><tr>
           <th class="th-sort" onclick="setSort('qty')" style="width:50px">順位</th>
-          <th class="th-sort" onclick="setSort('code')" style="min-width:94px">品番<span class="sort-ind" id="ri-code"></span></th>
-          <th style="min-width:240px">商品名</th>
+          <th class="th-sort code-col" onclick="setSort('code')" style="min-width:94px">品番<span class="sort-ind" id="ri-code"></span></th>
+          <th class="name-col" style="min-width:240px">商品名</th>
           <th class="img-col" style="width:56px">商品画像</th>
           <th class="th-sort num price-col" onclick="setSort('price')" style="width:76px">上代<span class="sort-ind" id="ri-price"></span></th>
           <th class="th-sort num" onclick="setSort('qty')" style="width:76px">個数<span class="sort-ind" id="ri-qty">▼</span></th>
