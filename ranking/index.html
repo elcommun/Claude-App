@@ -210,6 +210,9 @@ body.narrow-portrait .ct{font-size:9px;padding:1px 4px;margin-right:3px}
   .amount-col{display:none}
   /* 手帳・カレンダー以外は合計金額を表示 */
   #rank-tbl:not(.show-img) .amount-col{display:table-cell}
+  /* 検索結果: 上代・合計金額を隠して個数まで収める */
+  .s-price-col{display:none}
+  .s-amount-col{display:none}
   .tw{overflow-x:hidden}
   .name-col{min-width:0!important}
   .code-col{min-width:0!important}
@@ -425,10 +428,10 @@ function doLogin(){
           <th class="th-sort" onclick="setSearchSort('rank')" style="width:50px">順位<span class="sort-ind" id="si-rank">▼</span></th>
           <th class="th-sort" onclick="setSearchSort('cat')" style="min-width:106px">カテゴリ<span class="sort-ind" id="si-cat"></span></th>
           <th class="th-sort" onclick="setSearchSort('code')" style="min-width:94px">品番<span class="sort-ind" id="si-code"></span></th>
-          <th class="th-sort" onclick="setSearchSort('name')" style="min-width:240px">商品名<span class="sort-ind" id="si-name"></span></th>
-          <th class="num" style="width:76px">上代</th>
+          <th class="th-sort name-col" onclick="setSearchSort('name')" style="min-width:240px">商品名<span class="sort-ind" id="si-name"></span></th>
+          <th class="num s-price-col" style="width:76px">上代</th>
           <th class="th-sort num" onclick="setSearchSort('qty')" style="width:76px">個数<span class="sort-ind" id="si-qty"></span></th>
-          <th class="th-sort num" onclick="setSearchSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="si-amount"></span></th>
+          <th class="th-sort num s-amount-col" onclick="setSearchSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="si-amount"></span></th>
         </tr></thead>
         <tbody id="search-tbody"></tbody>
       </table></div>
@@ -1947,9 +1950,9 @@ document.getElementById('hd-search').addEventListener('input',e=>{
         <td><span class="ct">${x(r.cat)}</span></td>
         <td class="cc">${x(r.code)}</td>
         <td class="nc">${hl(r.name,q,trans)}</td>
-        <td class="num">¥${r.price.toLocaleString()}</td>
+        <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
         <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
-        <td class="num" style="${heatBg(r.amount,maxAmtS).slice(1)}">¥${r.amount.toLocaleString()}</td>
+        <td class="num s-amount-col" style="${heatBg(r.amount,maxAmtS).slice(1)}">¥${r.amount.toLocaleString()}</td>
       </tr>`;
     });
   }
