@@ -457,6 +457,10 @@ const CAT_MAP={
   '他紙製品＆他':'その他',
   '未分類':'その他',
   '別注（仕入れ）':'その他',
+  'グリーティングカード':'メッセージカード',
+  'ハンカチ・タオル':'ハンカチクロス',
+  'ハンカチ':'ハンカチクロス',
+  'タオル':'ハンカチクロス',
 };
 // Groups that appear pinned at top of sidebar with expandable sub-categories
 const CAT_GROUPS=[
@@ -555,11 +559,23 @@ const CODE_PREFIX_TO_CAT=[
   {prefix:'PBC-',cat:'ブックカバー'},    // Point ブックカバー (全品番確認済み)
   {prefix:'BP-',cat:'ボールペン'},
   {prefix:'TAG-',cat:'ギフトタグ'},
+  // EC限定ブックカバー
+  {prefix:'XEC-',cat:'ブックカバー'},
+  // 時計 (DCL=デスクアラーム, WCL=ウォールクロック; WCL-018のみCODE_REMAP_CATで上書き済)
+  {prefix:'DCL-',cat:'時計'},{prefix:'WCL-',cat:'時計'},
+  // グリーティングカード系
+  {prefix:'GC-',cat:'メッセージカード'},
+  // ALA- (Ah la la): ALA-3xxはスタンプ(上で定義済み)、ALA-0xx/1xx/2xxはメッセージカード
+  {prefix:'ALA-0',cat:'メッセージカード'},{prefix:'ALA-1',cat:'メッセージカード'},{prefix:'ALA-2',cat:'メッセージカード'},
+  // ゴムボール・おもちゃ
+  {prefix:'RBB-',cat:'ライトスポーツ'},{prefix:'PGB-',cat:'ライトスポーツ'},
+  // スマイルシリーズ: ポーチはポーチ・ケース、それ以外はその他
+  {prefix:'SM-0',cat:'ポーチ・ケース'},
 ];
 // Rename old/broken codes to correct codes
 const CODE_REMAP={'WCL-017WCL-018':'WCL-018','B6-1J7F-DA1E':'CPC-004'};
 // Category for remapped codes (assigned explicitly)
-const CODE_REMAP_CAT={'WCL-018':'ペンケース','CPC-004':'時計','WPK-101':'その他','LNC-130':'箸セット'};
+const CODE_REMAP_CAT={'WCL-018':'ペンケース','CPC-004':'時計','WPK-101':'その他','LNC-130':'箸セット','SM-05':'その他','SM-03':'ポーチ・ケース','MUS-014':'コースター他','MUS-016':'コースター他','XEC-004':'2022年10月始まりダイアリー','XEC-005':'2022年10月始まりダイアリー','XEC-006':'2022年10月始まりダイアリー'};
 // Code prefixes to exclude (non-EC products)
 const CODE_SKIP_PREFIXES=['SLW-','DR-MM-'];
 // Returns overridden category for a code by prefix/remap, or null
