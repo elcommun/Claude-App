@@ -343,7 +343,12 @@ function doLogin(){
             <span style="font-size:11px;color:var(--ink4);width:14px;flex-shrink:0">〜</span>
             <input type="date" class="fsel" id="f-date-to" onchange="applyFilter()" style="flex:1">
           </div>
-          <button onclick="setFullPeriod()" style="margin-top:2px;padding:3px 6px;font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--ink3);cursor:pointer;text-align:center;line-height:1.4">全期間</button>
+          <div style="display:flex;gap:3px;margin-top:2px">
+            <button onclick="setYearsPeriod(1)" style="flex:1;padding:3px 4px;font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--ink3);cursor:pointer;line-height:1.4">1年</button>
+            <button onclick="setYearsPeriod(2)" style="flex:1;padding:3px 4px;font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--ink3);cursor:pointer;line-height:1.4">2年</button>
+            <button onclick="setYearsPeriod(3)" style="flex:1;padding:3px 4px;font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--ink3);cursor:pointer;line-height:1.4">3年</button>
+            <button onclick="setFullPeriod()" style="flex:1;padding:3px 4px;font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--ink3);cursor:pointer;line-height:1.4">全期間</button>
+          </div>
         </div>
       </div>
       <div>
@@ -2092,6 +2097,19 @@ buildData();
 function setFullPeriod(){
   document.getElementById('f-date-from').value=window._periodEarliest||'';
   document.getElementById('f-date-to').value=window._periodLatest||'';
+  applyFilter();
+}
+function setYearsPeriod(n){
+  const latest=window._periodLatest||'';
+  if(!latest)return;
+  const d=new Date(latest);
+  d.setFullYear(d.getFullYear()-n);
+  d.setDate(d.getDate()+1);
+  const yf=d.getFullYear(),mf=String(d.getMonth()+1).padStart(2,'0'),df=String(d.getDate()).padStart(2,'0');
+  let fromDate=`${yf}-${mf}-${df}`;
+  if(window._periodEarliest&&fromDate<window._periodEarliest)fromDate=window._periodEarliest;
+  document.getElementById('f-date-from').value=fromDate;
+  document.getElementById('f-date-to').value=latest;
   applyFilter();
 }
 applyFilter();
