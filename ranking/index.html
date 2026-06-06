@@ -177,6 +177,17 @@ input[type=file]{display:none}
   .so-val{width:44px}
   .ct{font-size:9px;padding:1px 4px;margin-right:3px}
 }
+/* JSクラスによる即時切り替え（iOS回転対応） */
+body.narrow-portrait .share-col{display:none}
+body.narrow-portrait .main{overflow-x:hidden}
+body.narrow-portrait .tw{overflow-x:hidden!important}
+body.narrow-portrait .tbl{font-size:11px}
+body.narrow-portrait .tbl th{padding:8px 5px;font-size:9px;letter-spacing:0}
+body.narrow-portrait .tbl td{padding:7px 5px}
+body.narrow-portrait .nc{max-width:none}
+body.narrow-portrait #th-so,body.narrow-portrait .show-so .so-col{padding-left:3px!important;padding-right:3px!important}
+body.narrow-portrait .so-val{width:44px}
+body.narrow-portrait .ct{font-size:9px;padding:1px 4px;margin-right:3px}
 @media(max-width:768px){
   :root{--hh:52px}
   .hd-menu{display:block}
@@ -2030,6 +2041,13 @@ applyFilter();
       requestAnimationFrame(()=>requestAnimationFrame(()=>{sbEl.style.transition='';}));
     }
   });
+  // iOS回転対応: resizeイベント（viewportが確定後に発火）でbodyクラスを即時切り替え
+  function updateNarrowPortrait(){
+    const narrow = window.innerWidth <= 768 && window.matchMedia('(orientation:portrait)').matches;
+    document.body.classList.toggle('narrow-portrait', narrow);
+  }
+  updateNarrowPortrait();
+  window.addEventListener('resize', updateNarrowPortrait);
 })();
 // Sidebar resize handle (desktop only)
 (function(){
