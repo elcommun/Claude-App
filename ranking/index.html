@@ -1611,8 +1611,8 @@ function normalize(s){
   for(let i=0;i<n.length;i++){const c=n[i],nx=n[i+1];if(nx==='ﾞ'){const fw=HW_FW[c]||c;r+=DAKUTEN[fw]||fw;i++;}else if(nx==='ﾟ'){const fw=HW_FW[c]||c;r+=HANDAKUTEN[fw]||fw;i++;}else r+=HW_FW[c]||c;}
   r=r.replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
   r=r.replace(/[Ａ-Ｚａ-ｚ０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
-  // アクセント記号（ àáâ èéê 等）を除去して英字に統一
-  r=r.normalize('NFD').replace(/[̀-ͯ]/g,'');
+  // アクセント記号（ àáâ èéê 等）とカタカナ結合濁点(U+3099/309A)を除去して統一
+  r=r.normalize('NFD').replace(/[̀-゙゚ͯ]/g,'');
   return r.toLowerCase();
 }
 function toKatakana(s){return s.replace(/[ぁ-ゖ]/g,c=>String.fromCharCode(c.charCodeAt(0)+0x60));}
