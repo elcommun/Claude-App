@@ -116,6 +116,7 @@ input[type=file]{display:none}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
 .so-col{display:none}.show-so .so-col{display:table-cell;white-space:nowrap;font-size:11px;padding-left:5px!important;padding-right:5px!important}
+.share-col{}
 .so-val{white-space:nowrap;display:inline-block;width:44px;overflow:hidden;text-overflow:ellipsis}
 #so-tip{position:fixed;display:none;background:#333;color:#fff;font-size:12px;padding:5px 10px;border-radius:5px;pointer-events:none;z-index:9999;white-space:nowrap;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .img-col{display:none}.show-img .img-col{display:table-cell;text-align:center;padding:5px 8px;vertical-align:middle}
@@ -163,6 +164,9 @@ input[type=file]{display:none}
 @media(max-width:768px){.sb-resize{display:none}}
 @media(max-width:900px) and (orientation:portrait){.sb-resize{display:none}}
 @media(max-width:900px){.hd-date{display:none}}
+@media(max-width:768px) and (orientation:portrait){
+  .share-col{display:none}
+}
 @media(max-width:768px){
   :root{--hh:52px}
   .hd-menu{display:block}
@@ -358,7 +362,7 @@ function doLogin(){
           <th class="num cmp-col" style="width:72px" id="th-prev">前年</th>
           <th class="num cmp-col" style="width:72px" id="th-prev2">前々年</th>
           <th class="th-sort num" onclick="setSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="ri-amount"></span></th>
-          <th style="width:96px" id="th-share">売上比</th>
+          <th class="share-col" style="width:96px" id="th-share">売上比</th>
           <th class="so-col" id="th-so" style="width:1px;padding-left:6px;padding-right:6px">欠品日</th>
         </tr></thead>
         <tbody id="rank-tbody"></tbody>
@@ -1538,7 +1542,8 @@ function showCategory(cat, updateSidebar=true) {
   document.getElementById('rank-tbl').classList.toggle('show-cmp', showCmp);
   document.getElementById('rank-tbl').classList.toggle('show-so', showSo);
   document.getElementById('rank-tbl').classList.toggle('show-img', showImg);
-  const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0);
+  const isNarrowPortrait = window.innerWidth <= 768 && window.matchMedia('(orientation:portrait)').matches;
+  const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0) - (isNarrowPortrait ? 1 : 0);
   let html='';
   function renderRow(item,rank,topV){
     const val=sortMode==='amount'?item.amount:item.qty;
@@ -1556,7 +1561,7 @@ function showCategory(cat, updateSidebar=true) {
       <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
       ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
       <td class="num" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
-      <td><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
+      <td class="share-col"><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
       <td class="so-col" style="text-align:center${catType&&STOCKOUT[item.code]?';background:rgba(255,140,0,.13);color:#b06000;font-weight:600':''}"><div class="so-val">${catType?(STOCKOUT_REASON[item.code]?`<span class="so-reason" data-tip="${x(STOCKOUT_REASON[item.code])}" style="cursor:help;text-decoration:underline dotted">${x(STOCKOUT[item.code]||'')}</span>`:x(STOCKOUT[item.code]||'')):''}</div></td>
     </tr>`;
   }
@@ -1737,6 +1742,11 @@ const TRANS={
   'てちょう':['だいありー'],'だいありー':['てちょう'],
   'にちき':['だいありー','てちょう'],'ぷらんなー':['だいありー','てちょう'],
   'かれんだー':['calendar'],'calendar':['かれんだー'],
+  // ブランド・作家名
+  'すゔぁんと':['svant'],'svant':['すゔぁんと'],
+  'ことも':['cotomo'],'cotomo':['ことも'],
+  'まつおみゆき':['miyuki matsuo','miyukimatsuo'],'miyuki matsuo':['まつおみゆき'],'miyukimatsuo':['まつおみゆき'],
+  'あらら':['ah la la','ahlala'],'ah la la':['あらら'],'ahlala':['あらら'],
 };
 
 // ── Search ────────────────────────────────────────────────────────────────────
