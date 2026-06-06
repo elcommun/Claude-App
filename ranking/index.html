@@ -213,6 +213,9 @@ body.narrow-portrait .ct{font-size:9px;padding:1px 4px;margin-right:3px}
   /* 検索結果: 上代・合計金額を隠して個数まで収める */
   .s-price-col{display:none}
   .s-amount-col{display:none}
+  /* カテゴリ名が長い場合は折り返して個数を確保 */
+  .cat-col{min-width:0!important;width:84px}
+  #search-tbl .ct{white-space:normal;word-break:break-word;line-height:1.3}
   .tw{overflow-x:hidden}
   .name-col{min-width:0!important}
   .code-col{min-width:0!important}
@@ -426,7 +429,7 @@ function doLogin(){
       <div class="tw"><table class="tbl" id="search-tbl">
         <thead><tr>
           <th class="th-sort" onclick="setSearchSort('rank')" style="width:50px">順位<span class="sort-ind" id="si-rank">▼</span></th>
-          <th class="th-sort" onclick="setSearchSort('cat')" style="min-width:106px">カテゴリ<span class="sort-ind" id="si-cat"></span></th>
+          <th class="th-sort cat-col" onclick="setSearchSort('cat')" style="min-width:106px">カテゴリ<span class="sort-ind" id="si-cat"></span></th>
           <th class="th-sort" onclick="setSearchSort('code')" style="min-width:94px">品番<span class="sort-ind" id="si-code"></span></th>
           <th class="th-sort name-col" onclick="setSearchSort('name')" style="min-width:240px">商品名<span class="sort-ind" id="si-name"></span></th>
           <th class="num s-price-col" style="width:76px">上代</th>
