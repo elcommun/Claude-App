@@ -1909,6 +1909,13 @@ const TRANS={
   'しるうぁん':['sylvan'],'sylvan':['しるうぁん'],
   'とぅるす':['trousse'],'trousse':['とぅるす'],
 };
+// normalize() は濁点・半濁点を除去するため、辞書のキー・値も同じ正規化で
+// インデックス化しておかないと日本語の同義語が一致しない
+const TRANS_N={};
+for(const[k,v] of Object.entries(TRANS)){
+  const nk=normalize(k);
+  (TRANS_N[nk]=TRANS_N[nk]||[]).push(...v.map(normalize));
+}
 
 // ── Search ────────────────────────────────────────────────────────────────────
 document.getElementById('hd-search').addEventListener('keydown',e=>{if(e.key==='Enter')e.target.blur();});
@@ -1917,7 +1924,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';return;}
   document.getElementById('cat-view').style.display='none';
   document.getElementById('search-view').style.display='block';
-  const qn=normalize(q), trans=[...(TRANS[qn]||[]),...getAliasTerms(qn)], allTerms=[qn,...trans], results=[];
+  const qn=normalize(q), trans=[...(TRANS_N[qn]||[]),...getAliasTerms(qn)], allTerms=[qn,...trans], results=[];
   const _dcGroups=CAT_GROUPS.filter(g=>g.name==='手帳'||g.name==='カレンダー');
   for(const[cat,codes] of Object.entries(aggregated)){
     const isDC=_dcGroups.some(g=>g.match(cat));
