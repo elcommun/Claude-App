@@ -2043,9 +2043,9 @@ applyFilter();
     }
   });
   // iOS回転対応: resizeイベント（viewportが確定後に発火）でbodyクラスを即時切り替え
-  // ≤768px は縦横共通で narrow-portrait スタイルを適用（回転時に変化なし＝即時）
+  // ≤1024px（iPad mini 縦768/横1024）は縦横共通で narrow スタイルを適用（回転時に変化なし＝即時）
   function updateNarrowPortrait(){
-    document.body.classList.toggle('narrow-portrait', window.innerWidth <= 768);
+    document.body.classList.toggle('narrow-portrait', window.innerWidth <= 1024);
   }
   updateNarrowPortrait();
   window.addEventListener('resize', updateNarrowPortrait);
