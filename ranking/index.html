@@ -125,7 +125,7 @@ input[type=file]{display:none}
 #img-prev{display:none;position:fixed;pointer-events:none;z-index:9998;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.45);background:#fff;max-width:30vw;max-height:36vh;object-fit:contain}
 #img-lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
 #img-lb.open{display:flex}
-#img-lb-img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);cursor:default}
+#img-lb-img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);cursor:zoom-out}
 .prev-up{color:#2a8a3e;font-size:10px;white-space:nowrap}.prev-dn{color:#c0392b;font-size:10px;white-space:nowrap}
 .fmt-hdr td{background:var(--paper2);font-weight:600;font-size:11px;color:var(--ink3);padding:5px 10px;letter-spacing:.03em;border-bottom:1px solid var(--line)}
 .tbl th:last-child{border-right:none}
@@ -344,7 +344,7 @@ function doLogin(){
 
 <div id="so-tip"></div>
 <img id="img-prev" src="" alt="">
-<div id="img-lb" onclick="closeLightbox()"><img id="img-lb-img" src="" onclick="event.stopPropagation()"></div>
+<div id="img-lb" onclick="closeLightbox()"><img id="img-lb-img" src=""></div>
 <div class="sb-overlay" id="sb-overlay"></div>
 <div class="sb-resize" id="sb-resize"></div>
 <div class="layout">
