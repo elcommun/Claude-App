@@ -1934,7 +1934,11 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';return;}
   document.getElementById('cat-view').style.display='none';
   document.getElementById('search-view').style.display='block';
-  const qn=normalize(q), trans=[...(TRANS_N[qn]||[]),...getAliasTerms(qn)], allTerms=[qn,...trans], results=[];
+  const qn=normalize(q);
+  // 静的辞書(TRANS_N)は完全一致＋部分一致（入力が登録キーの一部）で相方語を取得
+  const transStatic=[...(TRANS_N[qn]||[])];
+  if(qn.length>=2){for(const k in TRANS_N){if(k!==qn&&k.includes(qn))transStatic.push(...TRANS_N[k]);}}
+  const trans=[...transStatic,...getAliasTerms(qn)], allTerms=[...new Set([qn,...trans])], results=[];
   const _dcGroups=CAT_GROUPS.filter(g=>g.name==='手帳'||g.name==='カレンダー');
   for(const[cat,codes] of Object.entries(aggregated)){
     const isDC=_dcGroups.some(g=>g.match(cat));
