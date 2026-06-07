@@ -2060,10 +2060,12 @@ function loadAliases(){CUSTOM_ALIASES=JSON.parse(localStorage.getItem(ALIAS_KEY)
 function saveAliases(){localStorage.setItem(ALIAS_KEY,JSON.stringify(CUSTOM_ALIASES));}
 function getAliasTerms(qn){
   const extras=[];
+  if(!qn)return extras;
   for(const{a,b} of CUSTOM_ALIASES){
     const na=normalize(a),nb=normalize(b);
-    if(qn===na) extras.push(nb);
-    else if(qn===nb) extras.push(na);
+    // 完全一致または部分一致（入力が登録語の一部）で相方の語を検索対象に加える
+    if(qn===na||na.includes(qn)) extras.push(nb);
+    if(qn===nb||nb.includes(qn)) extras.push(na);
   }
   return extras;
 }
