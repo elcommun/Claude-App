@@ -115,6 +115,9 @@ input[type=file]{display:none}
 .tbl th{background:var(--ink);color:rgba(255,255,255,.6);padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid rgba(255,255,255,.06);white-space:nowrap}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
+/* 検索テーブルの前年比較列: 幅に余裕のあるデバイス(iPad Pro 11"縦 834px〜)でのみ表示 */
+.s-cmp-col{display:none}
+@media(min-width:834px){#search-tbl.show-cmp .s-cmp-col{display:table-cell}}
 .so-col{display:none}.show-so .so-col{display:table-cell;white-space:nowrap;font-size:11px;padding-left:5px!important;padding-right:5px!important}
 .share-col{}
 @media(max-width:1200px){.share-col{display:none}}
@@ -439,6 +442,8 @@ function doLogin(){
           <th class="th-sort name-col" onclick="setSearchSort('name')" style="min-width:240px">商品名<span class="sort-ind" id="si-name"></span></th>
           <th class="num s-price-col" style="width:76px">上代</th>
           <th class="th-sort num" onclick="setSearchSort('qty')" style="width:76px">個数<span class="sort-ind" id="si-qty"></span></th>
+          <th class="num s-cmp-col" style="width:72px">前年</th>
+          <th class="num s-cmp-col" style="width:72px">前々年</th>
           <th class="th-sort num s-amount-col" onclick="setSearchSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="si-amount"></span></th>
         </tr></thead>
         <tbody id="search-tbody"></tbody>
@@ -912,6 +917,10 @@ function toggleComparison() {
   comparisonMode = !comparisonMode;
   document.getElementById('tog-cmp').classList.toggle('on', comparisonMode);
   applyFilter();
+  // 検索結果表示中なら検索も再描画して比較列を反映
+  if (document.getElementById('search-view').style.display !== 'none') {
+    document.getElementById('hd-search').dispatchEvent(new Event('input'));
+  }
 }
 function toggleHeatmap() {
   heatmapMode = !heatmapMode;
@@ -1956,9 +1965,21 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   document.getElementById('search-title').innerHTML=`🔍 "${x(q)}" <span style="font-size:14px;font-weight:400;color:var(--ink3);margin-left:6px">${results.length}件</span>`;
   const maxQtyS=results.reduce((m,r)=>Math.max(m,r.qty),1);
   const maxAmtS=results.reduce((m,r)=>Math.max(m,r.amount),1);
+  // 前年比較列: 期間を1年・2年ずらしたコード索引で前年/前々年の個数を取得
+  document.getElementById('search-tbl').classList.toggle('show-cmp', comparisonMode);
+  function cmpCellS(code,curQty){
+    const qa=prevByCode[code], p2=prev2ByCode[code];
+    function cell(pqa){
+      const pq=pqa?.[0]||0;
+      if(!pq)return`<td class="num s-cmp-col" style="color:var(--ink4)">-</td>`;
+      const diff=curQty-pq,pct=Math.round(diff/pq*100),cls=diff>=0?'prev-up':'prev-dn',arrow=diff>=0?'▲':'▼';
+      return`<td class="num s-cmp-col">${pq.toLocaleString()}<br><span class="${cls}">${arrow}${Math.abs(pct)}%</span></td>`;
+    }
+    return cell(qa)+cell(p2);
+  }
   let html='';
   if(!results.length){
-    html=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
+    html=`<tr><td colspan="9"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
   }else{
     // カテゴリ別にグループ化し、カテゴリ合計qty降順で並べる
     const catMap=new Map();
@@ -1972,7 +1993,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
     cats.forEach(([cat,g])=>{
       // カテゴリ内を個数降順でランキング付け
       g.items.sort((a,b)=>b.qty-a.qty);
-      const colspan=7;
+      const colspan=9;
       html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(cat)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${g.items.length}種 / ${g.totalQty.toLocaleString()}個)</span></td></tr>`;
       g.items.forEach((r,i)=>{
         const rank=i+1;
@@ -1984,6 +2005,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
           <td class="nc">${hl(r.name,q,trans)}</td>
           <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
           <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
+          ${cmpCellS(r.code,r.qty)}
           <td class="num s-amount-col" style="${heatBg(r.amount,maxAmtS).slice(1)}">¥${r.amount.toLocaleString()}</td>
         </tr>`;
       });
