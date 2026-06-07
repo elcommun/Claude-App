@@ -1928,7 +1928,7 @@ for(const[k,v] of Object.entries(TRANS)){
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
-document.getElementById('hd-search').addEventListener('keydown',e=>{if(e.key==='Enter')e.target.blur();});
+document.getElementById('hd-search').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229)e.target.blur();});
 document.getElementById('hd-search').addEventListener('input',e=>{
   const q=e.target.value.trim();
   if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';return;}
