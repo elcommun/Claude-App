@@ -1993,14 +1993,30 @@ document.getElementById('hd-search').addEventListener('input',e=>{
       g.items.push(r);
       g.totalQty+=r.qty;
     });
-    const cats=[...catMap.entries()].sort((a,b)=>b[1].totalQty-a[1].totalQty);
+    const cats=[...catMap.entries()].sort((a,b)=>{
+      if(searchSortCol==='cat'){const c=a[0].localeCompare(b[0],'ja');return searchSortDir==='asc'?c:-c;}
+      return b[1].totalQty-a[1].totalQty;
+    });
     cats.forEach(([cat,g])=>{
-      // カテゴリ内を個数降順でランキング付け
-      g.items.sort((a,b)=>b.qty-a.qty);
+      // カテゴリ内の個数順位を先に確定（表示順とは独立）
+      const byQty=[...g.items].sort((a,b)=>b.qty-a.qty);
+      const rankOf=new Map(byQty.map((r,i)=>[r,i+1]));
+      // 表示順はユーザーが選択した列ソートに従う
+      g.items.sort((a,b)=>{
+        let va,vb;
+        if(searchSortCol==='qty'||searchSortCol==='rank'){va=a.qty;vb=b.qty;}
+        else if(searchSortCol==='amount'){va=a.amount;vb=b.amount;}
+        else if(searchSortCol==='code'){va=a.code;vb=b.code;}
+        else if(searchSortCol==='name'){va=a.name;vb=b.name;}
+        else if(searchSortCol==='cat'){va=a.qty;vb=b.qty;}
+        else{va=a.qty;vb=b.qty;}
+        if(typeof va==='string'){const c=searchSortCol==='code'?codeCompare(va,vb):va.localeCompare(vb,'ja');return searchSortDir==='asc'?c:-c;}
+        return searchSortDir==='asc'?va-vb:vb-va;
+      });
       const colspan=9;
       html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(cat)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${g.items.length}種 / ${g.totalQty.toLocaleString()}個)</span></td></tr>`;
-      g.items.forEach((r,i)=>{
-        const rank=i+1;
+      g.items.forEach(r=>{
+        const rank=rankOf.get(r);
         const ri=rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
         html+=`<tr style="cursor:pointer" onclick="document.getElementById('hd-search').value='';showCategory('${esc(r.cat)}')">
           <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
