@@ -319,7 +319,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="resetToInitialState()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v75</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v75</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2195,39 +2195,6 @@ buildData();
   document.getElementById('f-date-from').value=fromDate;
   document.getElementById('f-date-to').value=latest;
 })();
-function setDefaultPeriod(){
-  const earliest=window._periodEarliest||'',latest=window._periodLatest||'';
-  let fromDate=earliest;
-  if(latest){
-    const d=new Date(latest);
-    d.setFullYear(d.getFullYear()-1);
-    d.setDate(d.getDate()+1);
-    const yf=d.getFullYear(),mf=String(d.getMonth()+1).padStart(2,'0'),df=String(d.getDate()).padStart(2,'0');
-    fromDate=`${yf}-${mf}-${df}`;
-    if(earliest&&fromDate<earliest)fromDate=earliest;
-  }
-  document.getElementById('f-date-from').value=fromDate;
-  document.getElementById('f-date-to').value=latest;
-  applyFilter();
-}
-function resetToInitialState(){
-  document.getElementById('hd-search').value='';
-  document.getElementById('search-view').style.display='none';
-  document.getElementById('cat-view').style.display='block';
-  setDefaultPeriod();
-  sortMode='qty'; sortDir='desc';
-  document.getElementById('tog-qty').className='sb-tbtn on';
-  document.getElementById('tog-amt').className='sb-tbtn';
-  document.getElementById('sort-lbl').textContent='個数ランキング';
-  ['code','price','qty','amount'].forEach(k=>{const el=document.getElementById('ri-'+k);if(el)el.textContent=(k==='qty')?'▼':'';});
-  selectedCategory=null;
-  const firstGroup=CAT_GROUPS.find(g=>Object.keys(aggregated).some(c=>g.match(c)));
-  const first=firstGroup?.name||CATEGORY_ORDER.find(c=>aggregated[c])||Object.keys(aggregated)[0];
-  if(first) showCategory(first);
-  document.querySelector('.sb')?.classList.remove('open');
-  document.getElementById('sb-overlay')?.classList.remove('open');
-  window.scrollTo({top:0,behavior:'smooth'});
-}
 function setFullPeriod(){
   document.getElementById('f-date-from').value=window._periodEarliest||'';
   document.getElementById('f-date-to').value=window._periodLatest||'';
