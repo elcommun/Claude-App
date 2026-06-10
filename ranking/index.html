@@ -2310,6 +2310,56 @@ function removeAlias(i){
     if(!e.target.closest('.prod-thumb'))return;
     hideTimer=setTimeout(()=>{prev.style.display='none';},80);
   });
+  // ── タッチ操作: サムネを押したまま下にスライドすると拡大プレビューを表示 ──
+  let touchActive=false, touchDragging=false, suppressClick=false, startX=0, startY=0;
+  function showPreviewFor(img,touchX,touchY){
+    prev.src=img.src;
+    prev.style.display='block';
+    const pw=prev.naturalWidth||img.naturalWidth||200;
+    const ph=prev.naturalHeight||img.naturalHeight||280;
+    const scale=Math.min(window.innerWidth*0.3/pw, window.innerHeight*0.36/ph, 1);
+    const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
+    prev.style.width=dw+'px'; prev.style.height=dh+'px';
+    const r=img.getBoundingClientRect();
+    let left=r.right+8;
+    if(left+dw>window.innerWidth-8) left=r.left-dw-8;
+    left=Math.max(8,left);
+    let top=r.top+r.height/2-dh/2;
+    top=Math.max(8,Math.min(top, window.innerHeight-dh-8));
+    prev.style.left=left+'px'; prev.style.top=top+'px';
+  }
+  document.addEventListener('touchstart',e=>{
+    const img=e.target.closest('.prod-thumb');
+    if(!img||!img.naturalWidth)return;
+    touchActive=true; touchDragging=false;
+    const t=e.touches[0];
+    startX=t.clientX; startY=t.clientY;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!touchActive)return;
+    const t=e.touches[0];
+    if(!touchDragging){
+      const dx=t.clientX-startX, dy=t.clientY-startY;
+      if(Math.abs(dy)<10||Math.abs(dy)<Math.abs(dx))return;
+      touchDragging=true;
+    }
+    e.preventDefault();
+    const el=document.elementFromPoint(t.clientX,t.clientY);
+    const img=el&&el.closest('.prod-thumb');
+    if(img&&img.naturalWidth){
+      showPreviewFor(img,t.clientX,t.clientY);
+    }else{
+      prev.style.display='none';
+    }
+  },{passive:false});
+  document.addEventListener('touchend',()=>{
+    if(touchDragging){suppressClick=true;setTimeout(()=>{suppressClick=false;},300);}
+    touchActive=false; touchDragging=false;
+    prev.style.display='none';
+  });
+  document.addEventListener('click',e=>{
+    if(suppressClick&&e.target.closest('.prod-thumb')){e.preventDefault();e.stopPropagation();}
+  },true);
 })();
 
 // ── Custom tooltip for STOCKOUT_REASON ───────────────────────────────────────
