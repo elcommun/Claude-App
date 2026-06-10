@@ -2324,7 +2324,7 @@ function removeAlias(i){
     let left=r.right+8;
     if(left+dw>window.innerWidth-8) left=r.left-dw-8;
     left=Math.max(8,left);
-    let top=r.top+r.height/2-dh/2;
+    let top=r.bottom-dh;
     top=Math.max(8,Math.min(top, window.innerHeight-dh-8));
     prev.style.left=left+'px'; prev.style.top=top+'px';
   }
