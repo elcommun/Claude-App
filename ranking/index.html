@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v79</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v80</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2346,7 +2346,7 @@ function removeAlias(i){
     const gap=20;
     let left=r.right+gap, side='left';
     if(left+dw>window.innerWidth-8){left=r.left-dw-gap;side='right';}
-    setPos(left,r.bottom-dh-PAD,dw,dh,side,touchY);
+    setPos(left,touchY-20,dw,dh,side,touchY);
   }
   document.addEventListener('touchstart',e=>{
     const img=e.target.closest('.prod-thumb');
