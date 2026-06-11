@@ -2325,7 +2325,7 @@ function removeAlias(i){
     const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
     prev.style.width=dw+'px'; prev.style.height=dh+'px';
     const r=img.getBoundingClientRect();
-    let left=touchX+80;
+    let left=touchX+60;
     if(left+dw>window.innerWidth-8) left=r.left-dw-8;
     left=Math.max(8,left);
     let top=touchY-dh/2;
