@@ -2322,10 +2322,10 @@ function removeAlias(i){
     const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
     prev.style.width=dw+'px'; prev.style.height=dh+'px';
     const r=img.getBoundingClientRect();
-    let left=r.right+44;
+    let left=touchX+24;
     if(left+dw>window.innerWidth-8) left=r.left-dw-8;
     left=Math.max(8,left);
-    let top=r.bottom-dh;
+    let top=touchY-dh/2;
     top=Math.max(8,Math.min(top, window.innerHeight-dh-8));
     prev.style.left=left+'px'; prev.style.top=top+'px';
   }
