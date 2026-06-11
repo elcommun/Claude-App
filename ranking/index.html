@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v81</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v82</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2380,6 +2380,15 @@ function removeAlias(i){
   document.addEventListener('click',e=>{
     if(suppressClick&&e.target.closest('.prod-thumb')){e.preventDefault();e.stopPropagation();}
   },true);
+  // 画面回転・リサイズ時はプレビューを閉じて状態をリセット（位置崩れ防止）
+  window.addEventListener('orientationchange',()=>{
+    touchActive=false; touchDragging=false;
+    wrap.style.display='none';
+  });
+  window.addEventListener('resize',()=>{
+    touchActive=false; touchDragging=false;
+    wrap.style.display='none';
+  });
 })();
 
 // ── Custom tooltip for STOCKOUT_REASON ───────────────────────────────────────
