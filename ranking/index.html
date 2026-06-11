@@ -2301,7 +2301,14 @@ function removeAlias(i){
     const ww=dw+PAD*2, wh=dh+PAD*2;
     wrap.style.width=ww+'px'; wrap.style.height=wh+'px';
     left=Math.max(8,Math.min(left-PAD,window.innerWidth-ww-8));
-    top=Math.max(8,Math.min(top-PAD,window.innerHeight-wh-8));
+    if(pointY!=null){
+      // 吹き出しの先端（矢印）が指の位置に来るよう、矢印からの距離を基準に上端を決める
+      const arrowOffset=Math.min(30,wh/2);
+      top=pointY-arrowOffset;
+    }else{
+      top=top-PAD;
+    }
+    top=Math.max(8,Math.min(top,window.innerHeight-wh-8));
     wrap.style.left=left+'px'; wrap.style.top=top+'px';
     wrap.classList.toggle('side-left',side==='left');
     wrap.classList.toggle('side-right',side==='right');
