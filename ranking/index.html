@@ -2339,7 +2339,7 @@ function removeAlias(i){
     const r=img.getBoundingClientRect();
     let left=touchX+60, side='left';
     if(left+dw>window.innerWidth-8){left=r.left-dw-8;side='right';}
-    setPos(left,touchY-dh/2,dw,dh,side);
+    setPos(left,r.bottom-dh-PAD,dw,dh,side);
   }
   document.addEventListener('touchstart',e=>{
     const img=e.target.closest('.prod-thumb');
