@@ -129,7 +129,11 @@ input[type=file]{display:none}
 #so-tip{position:fixed;display:none;background:#333;color:#fff;font-size:12px;padding:5px 10px;border-radius:5px;pointer-events:none;z-index:9999;white-space:nowrap;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .img-col{display:none}.show-img .img-col{display:table-cell;text-align:center;padding:5px 8px;vertical-align:middle}
 .prod-thumb{width:34px;height:46px;object-fit:cover;border-radius:3px;cursor:zoom-in;display:block;margin:auto;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-#img-prev{display:none;position:fixed;pointer-events:none;z-index:9998;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.45);background:#fff;max-width:30vw;max-height:36vh;object-fit:contain}
+#img-prev-wrap{display:none;position:fixed;pointer-events:none;z-index:9998}
+#img-prev{display:block;width:100%;height:100%;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.45);background:#fff;max-width:30vw;max-height:36vh;object-fit:contain}
+#img-prev-arrow{position:absolute;top:50%;width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent}
+#img-prev-wrap.side-left #img-prev-arrow{left:-9px;transform:translateY(-50%);border-right:10px solid #fff}
+#img-prev-wrap.side-right #img-prev-arrow{right:-9px;transform:translateY(-50%);border-left:10px solid #fff}
 #img-lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
 #img-lb.open{display:flex}
 #img-lb-img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);cursor:zoom-out}
@@ -363,7 +367,7 @@ function doLogin(){
 </div>
 
 <div id="so-tip"></div>
-<img id="img-prev" src="" alt="">
+<div id="img-prev-wrap"><div id="img-prev-arrow"></div><img id="img-prev" src="" alt=""></div>
 <div id="img-lb" onclick="closeLightbox()"><img id="img-lb-img" src=""></div>
 <div class="sb-overlay" id="sb-overlay"></div>
 <div class="sb-resize" id="sb-resize"></div>
@@ -2288,49 +2292,52 @@ function removeAlias(i){
 
 // ── Image hover preview ───────────────────────────────────────────────────────
 (function(){
+  const wrap=document.getElementById('img-prev-wrap');
   const prev=document.getElementById('img-prev');
   let hideTimer=null;
+  function setPos(left,top,dw,dh,side){
+    wrap.style.width=dw+'px'; wrap.style.height=dh+'px';
+    left=Math.max(8,Math.min(left,window.innerWidth-dw-8));
+    top=Math.max(8,Math.min(top,window.innerHeight-dh-8));
+    wrap.style.left=left+'px'; wrap.style.top=top+'px';
+    wrap.classList.toggle('side-left',side==='left');
+    wrap.classList.toggle('side-right',side==='right');
+  }
   document.addEventListener('mouseover',e=>{
     const img=e.target.closest('.prod-thumb');
     if(!img||!img.naturalWidth)return;
     clearTimeout(hideTimer);
     prev.src=img.src;
-    prev.style.display='block';
+    wrap.style.display='block';
   });
   document.addEventListener('mousemove',e=>{
-    if(prev.style.display==='none')return;
-    if(!e.target.closest('.prod-thumb')){prev.style.display='none';return;}
+    if(wrap.style.display==='none')return;
+    if(!e.target.closest('.prod-thumb')){wrap.style.display='none';return;}
     const pw=prev.naturalWidth||prev.offsetWidth||200;
     const ph=prev.naturalHeight||prev.offsetHeight||280;
     const scale=Math.min(window.innerWidth*0.3/pw, window.innerHeight*0.36/ph, 1);
     const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
-    prev.style.width=dw+'px'; prev.style.height=dh+'px';
-    let left=e.clientX+32, top=e.clientY-dh/2;
-    if(left+dw>window.innerWidth-8) left=e.clientX-dw-24;
-    top=Math.max(8,Math.min(top, window.innerHeight-dh-8));
-    prev.style.left=left+'px'; prev.style.top=top+'px';
+    let left=e.clientX+32, side='left';
+    if(left+dw>window.innerWidth-8){left=e.clientX-dw-24;side='right';}
+    setPos(left,e.clientY-dh/2,dw,dh,side);
   });
   document.addEventListener('mouseout',e=>{
     if(!e.target.closest('.prod-thumb'))return;
-    hideTimer=setTimeout(()=>{prev.style.display='none';},80);
+    hideTimer=setTimeout(()=>{wrap.style.display='none';},80);
   });
   // ── タッチ操作: サムネを押したまま下にスライドすると拡大プレビューを表示 ──
   let touchActive=false, touchDragging=false, suppressClick=false, startX=0, startY=0;
   function showPreviewFor(img,touchX,touchY){
     prev.src=img.src;
-    prev.style.display='block';
+    wrap.style.display='block';
     const pw=prev.naturalWidth||img.naturalWidth||200;
     const ph=prev.naturalHeight||img.naturalHeight||280;
     const scale=Math.min(window.innerWidth*0.3/pw, window.innerHeight*0.36/ph, 1);
     const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
-    prev.style.width=dw+'px'; prev.style.height=dh+'px';
     const r=img.getBoundingClientRect();
-    let left=touchX+60;
-    if(left+dw>window.innerWidth-8) left=r.left-dw-8;
-    left=Math.max(8,left);
-    let top=touchY-dh/2;
-    top=Math.max(8,Math.min(top, window.innerHeight-dh-8));
-    prev.style.left=left+'px'; prev.style.top=top+'px';
+    let left=touchX+60, side='left';
+    if(left+dw>window.innerWidth-8){left=r.left-dw-8;side='right';}
+    setPos(left,touchY-dh/2,dw,dh,side);
   }
   document.addEventListener('touchstart',e=>{
     const img=e.target.closest('.prod-thumb');
@@ -2353,13 +2360,13 @@ function removeAlias(i){
     if(img&&img.naturalWidth){
       showPreviewFor(img,t.clientX,t.clientY);
     }else{
-      prev.style.display='none';
+      wrap.style.display='none';
     }
   },{passive:false});
   document.addEventListener('touchend',()=>{
     if(touchDragging){suppressClick=true;setTimeout(()=>{suppressClick=false;},300);}
     touchActive=false; touchDragging=false;
-    prev.style.display='none';
+    wrap.style.display='none';
   });
   document.addEventListener('click',e=>{
     if(suppressClick&&e.target.closest('.prod-thumb')){e.preventDefault();e.stopPropagation();}
