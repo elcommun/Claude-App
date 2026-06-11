@@ -2334,7 +2334,8 @@ function removeAlias(i){
     wrap.style.display='block';
     const pw=prev.naturalWidth||img.naturalWidth||200;
     const ph=prev.naturalHeight||img.naturalHeight||280;
-    const scale=Math.min(window.innerWidth*0.3/pw, window.innerHeight*0.36/ph, 1);
+    const heightRatio=window.innerWidth<=600?0.22:0.36;
+    const scale=Math.min(window.innerWidth*0.3/pw, window.innerHeight*heightRatio/ph, 1);
     const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
     const r=img.getBoundingClientRect();
     let left=touchX+60, side='left';
