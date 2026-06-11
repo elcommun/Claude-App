@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v75</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v77</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2301,14 +2301,7 @@ function removeAlias(i){
     const ww=dw+PAD*2, wh=dh+PAD*2;
     wrap.style.width=ww+'px'; wrap.style.height=wh+'px';
     left=Math.max(8,Math.min(left-PAD,window.innerWidth-ww-8));
-    if(pointY!=null){
-      // 吹き出しの先端（矢印）が指の位置に来るよう、矢印からの距離を基準に上端を決める
-      const arrowOffset=Math.min(30,wh/2);
-      top=pointY-arrowOffset;
-    }else{
-      top=top-PAD;
-    }
-    top=Math.max(8,Math.min(top,window.innerHeight-wh-8));
+    top=Math.max(8,Math.min(top-PAD,window.innerHeight-wh-8));
     wrap.style.left=left+'px'; wrap.style.top=top+'px';
     wrap.classList.toggle('side-left',side==='left');
     wrap.classList.toggle('side-right',side==='right');
@@ -2352,7 +2345,7 @@ function removeAlias(i){
     const r=img.getBoundingClientRect();
     let left=touchX+60, side='left';
     if(left+dw>window.innerWidth-8){left=r.left-dw-8;side='right';}
-    setPos(left,touchY-dh/2,dw,dh,side,touchY);
+    setPos(left,r.bottom-dh,dw,dh,side,touchY);
   }
   document.addEventListener('touchstart',e=>{
     const img=e.target.closest('.prod-thumb');
