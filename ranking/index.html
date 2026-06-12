@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v82</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v83</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2337,8 +2337,8 @@ function removeAlias(i){
   function showPreviewFor(img,touchX,touchY){
     prev.src=img.src;
     wrap.style.display='block';
-    const pw=prev.naturalWidth||img.naturalWidth||200;
-    const ph=prev.naturalHeight||img.naturalHeight||280;
+    const pw=img.naturalWidth||200;
+    const ph=img.naturalHeight||280;
     const heightRatio=window.innerWidth<=600?0.22:0.36;
     const scale=Math.min(window.innerWidth*0.3/pw, window.innerHeight*heightRatio/ph, 1);
     const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
