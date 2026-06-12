@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v83</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v84</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2303,6 +2303,13 @@ function removeAlias(i){
     left=Math.max(8,Math.min(left-PAD,window.innerWidth-ww-8));
     top=Math.max(8,Math.min(top-PAD,window.innerHeight-wh-8));
     wrap.style.left=left+'px'; wrap.style.top=top+'px';
+    // iOS standalone縦画面では fixed座標とタッチ座標がステータスバー分ずれるため、
+    // 実際の表示位置を測定してずれを補正する
+    const wr=wrap.getBoundingClientRect();
+    if(Math.abs(wr.left-left)>1||Math.abs(wr.top-top)>1){
+      wrap.style.left=(left+(left-wr.left))+'px';
+      wrap.style.top=(top+(top-wr.top))+'px';
+    }
     wrap.classList.toggle('side-left',side==='left');
     wrap.classList.toggle('side-right',side==='right');
     if(pointY!=null){
