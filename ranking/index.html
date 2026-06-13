@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v89</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v90</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2353,8 +2353,11 @@ function removeAlias(i){
     wrap.style.display='block';
     const pw=img.naturalWidth||200;
     const ph=img.naturalHeight||280;
-    const heightRatio=window.innerWidth<=600?0.22:0.36;
-    const scale=Math.min(window.innerWidth*0.3/pw, window.innerHeight*heightRatio/ph, 1);
+    const isSmall=window.innerWidth<=600;
+    const widthRatio=isSmall?0.3:0.4;
+    const heightRatio=isSmall?0.22:0.5;
+    const maxScale=isSmall?1:2.5;
+    const scale=Math.min(window.innerWidth*widthRatio/pw, window.innerHeight*heightRatio/ph, maxScale);
     const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
     const r=img.getBoundingClientRect();
     const gap=40;
