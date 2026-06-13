@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v88</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v89</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1936,6 +1936,7 @@ for(const[k,v] of Object.entries(TRANS)){
 }
 // 同義語グループ（複数語が相互に同義）。各語を正規化し、グループ内の他の語を相方として登録
 const TRANS_GROUPS=[
+  ['手帳','ダイアリー','diary'],
   ['CLOCK','クロック'],
   ['LAURIER','ローリエ'],
   ['SORTIR','ソルティール'],
