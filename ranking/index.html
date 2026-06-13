@@ -336,7 +336,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v105</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v106</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -764,6 +764,7 @@ let comparisonMode = false, heatmapMode = false;
 let aggPrev = {}, aggPrev2 = {}, prevByCode = {}, prev2ByCode = {};
 let prevBySearchCode = {}, prev2BySearchCode = {};
 let prevYearLabel = '前年', prev2YearLabel = '前々年';
+let prevPeriodStr = '', prev2PeriodStr = '', prevPeriodFull = '', prev2PeriodFull = '';
 let searchSortCol = 'rank', searchSortDir = 'desc';
 
 function openLightbox(src){document.getElementById('img-lb-img').src=src;document.getElementById('img-lb').classList.add('open');}
@@ -889,11 +890,14 @@ function applyFilter() {
   function scIdx(ci){const idx={};for(const[c,qa] of Object.entries(ci)){const sc=(DATA.products[c]||[])[2];if(!sc)continue;if(!idx[sc])idx[sc]=[0,0];idx[sc][0]+=qa[0];idx[sc][1]+=qa[1];}return idx;}
   prevBySearchCode =scIdx(prevByCode);
   prev2BySearchCode=scIdx(prev2ByCode);
-  // Include month range in labels when period is not a full year
-  const _moF=parseInt(moFrom||'01'),_moT=parseInt(moTo||'12');
-  const _periodSfx=(_moF===1&&_moT===12)?'':` (${_moF}-${_moT}月)`;
-  prevYearLabel =String(toYr-1)+'年'+_periodSfx;
-  prev2YearLabel=String(toYr-2)+'年'+_periodSfx;
+  const fmtYM=(ym)=>{const[y,m]=ym.split('-');return y.slice(2)+'/'+parseInt(m);};
+  const fmtYMFull=(ym)=>{const[y,m]=ym.split('-');return y+'年'+parseInt(m)+'月';};
+  prevYearLabel ='前期';
+  prev2YearLabel='前々期';
+  prevPeriodStr =fmtYM(mkFrom(1))+'〜'+fmtYM(mkTo(1));
+  prev2PeriodStr=fmtYM(mkFrom(2))+'〜'+fmtYM(mkTo(2));
+  prevPeriodFull =fmtYMFull(mkFrom(1))+'〜'+fmtYMFull(mkTo(1));
+  prev2PeriodFull=fmtYMFull(mkFrom(2))+'〜'+fmtYMFull(mkTo(2));
 
   updateHeaderDate();
   renderSidebar();
@@ -1565,9 +1569,9 @@ function showCategory(cat, updateSidebar=true) {
   let prevLabel=prevYearLabel, prev2Label=prev2YearLabel, prevCatTot=null, prev2CatTot=null;
   if(isYearGroupCat(cat)){
     const pc=getEquivYearCat(cat,-1), p2c=getEquivYearCat(cat,-2);
-    if(pc){localPrevByCode=buildCodeIdxFromAgg(aggPrev,[pc]);prevLabel=pc.match(/^\d{4}年/)?.[0]||'前年';prevCatTot={qty:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[1],0)};}
+    if(pc){localPrevByCode=buildCodeIdxFromAgg(aggPrev,[pc]);prevLabel=pc.match(/^\d{4}年/)?.[0]||prevYearLabel;prevCatTot={qty:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[1],0)};}
     else localPrevByCode={};
-    if(p2c){localPrev2ByCode=buildCodeIdxFromAgg(aggPrev2,[p2c]);prev2Label=p2c.match(/^\d{4}年/)?.[0]||'前々年';prev2CatTot={qty:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[1],0)};}
+    if(p2c){localPrev2ByCode=buildCodeIdxFromAgg(aggPrev2,[p2c]);prev2Label=p2c.match(/^\d{4}年/)?.[0]||prev2YearLabel;prev2CatTot={qty:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[1],0)};}
     else localPrev2ByCode={};
   }
   // SearchCode indexes for 手帳・カレンダー items
@@ -1648,12 +1652,16 @@ function showCategory(cat, updateSidebar=true) {
       if(p2t.qty) prev2CatTot=p2t;
     }
   }
+  const prevSfx =prevLabel ===prevYearLabel ?`(${prevPeriodStr})` :'';
+  const prev2Sfx=prev2Label===prev2YearLabel?`(${prev2PeriodStr})`:'';
   document.getElementById('th-prev').textContent=prevLabel;
+  document.getElementById('th-prev').title=prevLabel===prevYearLabel?prevPeriodFull:'';
   document.getElementById('th-prev2').textContent=prev2Label;
+  document.getElementById('th-prev2').title=prev2Label===prev2YearLabel?prev2PeriodFull:'';
 
   let cmpSt='';
-  if(prevCatTot){const d=prevCatTot.qty?Math.round((t.qty-prevCatTot.qty)/prevCatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prevLabel} <b>${prevCatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
-  if(prev2CatTot){const d=prev2CatTot.qty?Math.round((t.qty-prev2CatTot.qty)/prev2CatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prev2Label} <b>${prev2CatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
+  if(prevCatTot){const d=prevCatTot.qty?Math.round((t.qty-prevCatTot.qty)/prevCatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prevLabel}${prevSfx} <b>${prevCatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
+  if(prev2CatTot){const d=prev2CatTot.qty?Math.round((t.qty-prev2CatTot.qty)/prev2CatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prev2Label}${prev2Sfx} <b>${prev2CatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
 
   document.getElementById('cat-name').textContent=(CAT_ICONS[cat]||'📦')+' '+cat;
   document.getElementById('cat-stats').innerHTML=cmpSt;
@@ -2228,18 +2236,11 @@ document.getElementById('hd-search').addEventListener('input',e=>{
 
 // ── Header date ───────────────────────────────────────────────────────────────
 function updateHeaderDate() {
-  const {yrFrom,moFrom,yrTo,moTo}=getFilterPeriod();
-  const fromYM=yrFrom+'-'+moFrom, toYM=yrTo+'-'+moTo;
-  let mn='',mx='';
-  // PRELOADED years in range
-  for(const[year,dr] of Object.entries(PRELOADED.date_ranges||{})){
-    if(year<yrFrom||year>yrTo)continue;
-    if(!dr)continue;
-    if(!mn||dr[0]<mn)mn=dr[0];if(!mx||dr[1]>mx)mx=dr[1];
-  }
-  if(!mx){document.getElementById('hd-date').textContent='データなし';return;}
+  const dF=document.getElementById('f-date-from').value||'';
+  const dT=document.getElementById('f-date-to').value||'';
+  if(!dF||!dT){document.getElementById('hd-date').textContent='データなし';return;}
   const fmt=d=>d.slice(0,4)+'年'+d.slice(5,7)+'月'+d.slice(8,10)+'日';
-  document.getElementById('hd-date').innerHTML=`${fmt(mn)} 〜 <b>${fmt(mx)} 分まで更新</b>`;
+  document.getElementById('hd-date').innerHTML=`${fmt(dF)} 〜 <b>${fmt(dT)}</b>`;
 }
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
