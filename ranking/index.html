@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v90</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v91</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2361,8 +2361,10 @@ function removeAlias(i){
     const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
     const r=img.getBoundingClientRect();
     const gap=40;
-    let left=r.right+gap, side='left';
-    if(left+dw>window.innerWidth-8){left=r.left-dw-gap;side='right';}
+    // サムネが画面の左半分にあれば右側、右半分にあれば左側に表示（画像サイズに依らず位置を統一）
+    let left,side;
+    if(r.left+r.width/2<window.innerWidth/2){left=r.right+gap;side='left';}
+    else{left=r.left-dw-gap;side='right';}
     setPos(left,r.bottom-dh,dw,dh,side,touchY);
   }
   document.addEventListener('touchstart',e=>{
