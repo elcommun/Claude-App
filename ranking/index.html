@@ -118,6 +118,7 @@ input[type=file]{display:none}
 .tbl thead{position:sticky;top:0;z-index:10}
 .tbl th{background:var(--ink);color:rgba(255,255,255,.6);padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid rgba(255,255,255,.06);white-space:nowrap}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
+.tbl th.num{text-align:right}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
 /* 検索テーブルの前年比較列: 幅に余裕のあるデバイス(iPad Pro 11"縦 834px〜)でのみ表示 */
 .s-cmp-col{display:none}
@@ -332,7 +333,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v100</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v101</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
