@@ -336,7 +336,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v106</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v107</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1567,11 +1567,12 @@ function showCategory(cat, updateSidebar=true) {
   const _str=document.getElementById('f-store').value;
   let localPrevByCode=prevByCode, localPrev2ByCode=prev2ByCode;
   let prevLabel=prevYearLabel, prev2Label=prev2YearLabel, prevCatTot=null, prev2CatTot=null;
+  let prevEdition='', prev2Edition='';
   if(isYearGroupCat(cat)){
     const pc=getEquivYearCat(cat,-1), p2c=getEquivYearCat(cat,-2);
-    if(pc){localPrevByCode=buildCodeIdxFromAgg(aggPrev,[pc]);prevLabel=pc.match(/^\d{4}年/)?.[0]||prevYearLabel;prevCatTot={qty:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[1],0)};}
+    if(pc){localPrevByCode=buildCodeIdxFromAgg(aggPrev,[pc]);prevEdition=pc.match(/^\d{4}年/)?.[0]||'';prevCatTot={qty:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrevByCode).reduce((s,qa)=>s+qa[1],0)};}
     else localPrevByCode={};
-    if(p2c){localPrev2ByCode=buildCodeIdxFromAgg(aggPrev2,[p2c]);prev2Label=p2c.match(/^\d{4}年/)?.[0]||prev2YearLabel;prev2CatTot={qty:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[1],0)};}
+    if(p2c){localPrev2ByCode=buildCodeIdxFromAgg(aggPrev2,[p2c]);prev2Edition=p2c.match(/^\d{4}年/)?.[0]||'';prev2CatTot={qty:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[0],0),amount:Object.values(localPrev2ByCode).reduce((s,qa)=>s+qa[1],0)};}
     else localPrev2ByCode={};
   }
   // SearchCode indexes for 手帳・カレンダー items
@@ -1652,12 +1653,12 @@ function showCategory(cat, updateSidebar=true) {
       if(p2t.qty) prev2CatTot=p2t;
     }
   }
-  const prevSfx =prevLabel ===prevYearLabel ?`(${prevPeriodStr})` :'';
-  const prev2Sfx=prev2Label===prev2YearLabel?`(${prev2PeriodStr})`:'';
+  const prevSfx =prevEdition ?`(${prevEdition}版)` :`(${prevPeriodStr})`;
+  const prev2Sfx=prev2Edition?`(${prev2Edition}版)`:`(${prev2PeriodStr})`;
   document.getElementById('th-prev').textContent=prevLabel;
-  document.getElementById('th-prev').title=prevLabel===prevYearLabel?prevPeriodFull:'';
+  document.getElementById('th-prev').title=prevEdition?`${prevEdition}版`:prevPeriodFull;
   document.getElementById('th-prev2').textContent=prev2Label;
-  document.getElementById('th-prev2').title=prev2Label===prev2YearLabel?prev2PeriodFull:'';
+  document.getElementById('th-prev2').title=prev2Edition?`${prev2Edition}版`:prev2PeriodFull;
 
   let cmpSt='';
   if(prevCatTot){const d=prevCatTot.qty?Math.round((t.qty-prevCatTot.qty)/prevCatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prevLabel}${prevSfx} <b>${prevCatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
