@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v86</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v87</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2105,11 +2105,17 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';return;}
   document.getElementById('cat-view').style.display='none';
   document.getElementById('search-view').style.display='block';
-  const qn=normalize(q);
-  // 静的辞書(TRANS_N)は完全一致＋部分一致（入力が登録キーの一部）で相方語を取得
-  const transStatic=[...(TRANS_N[qn]||[])];
-  if(qn.length>=2){for(const k in TRANS_N){if(k!==qn&&k.includes(qn))transStatic.push(...TRANS_N[k]);}}
-  const trans=[...transStatic,...getAliasTerms(qn)], allTerms=[...new Set([qn,...trans])], results=[];
+  // スペース区切りで複数キーワードのAND検索に対応
+  const words=q.split(/[\s　]+/).filter(Boolean);
+  const wordData=words.map(w=>{
+    const wn=normalize(w);
+    // 静的辞書(TRANS_N)は完全一致＋部分一致（入力が登録キーの一部）で相方語を取得
+    const transStatic=[...(TRANS_N[wn]||[])];
+    if(wn.length>=2){for(const k in TRANS_N){if(k!==wn&&k.includes(wn))transStatic.push(...TRANS_N[k]);}}
+    const trans=[...transStatic,...getAliasTerms(wn)];
+    return {wn,trans,allTerms:[...new Set([wn,...trans])]};
+  });
+  const trans=[...new Set(wordData.flatMap(w=>w.trans))], results=[];
   const _dcGroups=CAT_GROUPS.filter(g=>g.name==='手帳'||g.name==='カレンダー');
   for(const[cat,codes] of Object.entries(aggregated)){
     const isDC=_dcGroups.some(g=>g.match(cat));
@@ -2119,7 +2125,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
       // 手帳/カレンダーのみ「検索コード＋品番」の複合キーでも検索
       const sc=isDC?((DATA.products[item.code]||[])[2]||''):'';
       const nComp=sc?normalize(sc+item.code):'';
-      if(allTerms.some(t=>nn.includes(t)||nc.includes(t)||(nComp&&nComp.includes(t))))
+      if(wordData.every(({allTerms})=>allTerms.some(t=>nn.includes(t)||nc.includes(t)||(nComp&&nComp.includes(t)))))
         results.push({...item,cat,rank:i+1,searchCode:sc});
     });
   }
@@ -2193,7 +2199,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
           <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
           <td><span class="ct">${x(r.cat)}</span></td>
           <td class="cc">${x(r.code)}</td>
-          <td class="nc">${hl(r.name,q,trans)}</td>
+          <td class="nc">${hl(r.name,words,trans)}</td>
           <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
           <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
           ${cmpCellS(r.code,r.qty)}
@@ -2234,9 +2240,9 @@ modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function x(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function esc(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
-function hl(text,q,trans=[]){
+function hl(text,words,trans=[]){
   let r=x(text);
-  const terms=[q,...trans.map(t=>toKatakana(t)),...trans].filter(Boolean);
+  const terms=[...(Array.isArray(words)?words:[words]),...trans.map(t=>toKatakana(t)),...trans].filter(Boolean);
   for(const t of[...new Set(terms)]){
     const e=t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
     try{r=r.replace(new RegExp(`(${e})`,'gi'),'<mark style="background:#f5efe4;color:#7a5c1e;font-weight:700">$1</mark>');}catch(_){}
