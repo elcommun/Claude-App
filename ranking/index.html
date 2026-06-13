@@ -327,7 +327,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v92</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v93</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -454,6 +454,7 @@ function doLogin(){
           <th class="num s-cmp-col" style="width:72px">前年</th>
           <th class="num s-cmp-col" style="width:72px">前々年</th>
           <th class="th-sort num s-amount-col" onclick="setSearchSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="si-amount"></span></th>
+          <th class="so-col" id="th-so-s" style="width:1px;padding-left:6px;padding-right:6px">欠品日</th>
         </tr></thead>
         <tbody id="search-tbody"></tbody>
       </table></div>
@@ -2152,6 +2153,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   document.getElementById('search-tbl').classList.toggle('show-cmp', comparisonMode);
   const anyDC=results.some(r=>_dcGroups.some(g=>g.match(r.cat)));
   document.getElementById('search-tbl').classList.toggle('show-img', anyDC);
+  document.getElementById('search-tbl').classList.toggle('show-so', anyDC);
   function cmpCellS(code,curQty){
     const qa=prevByCode[code], p2=prev2ByCode[code];
     function cell(pqa){
@@ -2164,7 +2166,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   }
   let html='';
   if(!results.length){
-    html=`<tr><td colspan="${anyDC?10:9}"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
+    html=`<tr><td colspan="${anyDC?11:9}"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
   }else{
     // カテゴリ別にグループ化し、カテゴリ合計qty降順で並べる
     const catMap=new Map();
@@ -2194,7 +2196,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
         if(typeof va==='string'){const c=searchSortCol==='code'?codeCompare(va,vb):va.localeCompare(vb,'ja');return searchSortDir==='asc'?c:-c;}
         return searchSortDir==='asc'?va-vb:vb-va;
       });
-      const colspan=anyDC?10:9;
+      const colspan=anyDC?11:9;
       const isDC=_dcGroups.some(g2=>g2.match(cat));
       html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(cat)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${g.items.length}種 / ${g.totalQty.toLocaleString()}個)</span></td></tr>`;
       g.items.forEach(r=>{
@@ -2212,6 +2214,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
           <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
           ${cmpCellS(r.code,r.qty)}
           <td class="num s-amount-col" style="${heatBg(r.amount,maxAmtS).slice(1)}">¥${r.amount.toLocaleString()}</td>
+          <td class="so-col" style="text-align:center${isDC&&STOCKOUT[r.code]?';background:rgba(255,140,0,.13);color:#b06000;font-weight:600':''}"><div class="so-val">${isDC?(STOCKOUT_REASON[r.code]?`<span class="so-reason" data-tip="${x(STOCKOUT_REASON[r.code])}" style="cursor:help;text-decoration:underline dotted">${x(STOCKOUT[r.code]||'')}</span>`:x(STOCKOUT[r.code]||'')):''}</div></td>
         </tr>`;
       });
     });
