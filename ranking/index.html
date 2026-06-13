@@ -92,6 +92,7 @@ input[type=file]{display:none}
 .sbi-badge{font-size:10px;font-weight:700;color:var(--ink4);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
 .sbi.active .sbi-badge{color:var(--gold)}
 .sbi-bar{position:absolute;bottom:0;left:17px;right:14px;height:2px;background:var(--border2);border-radius:1px}
+.sbi-chev{display:flex;align-items:center;justify-content:center;width:28px;height:28px;margin:-9px -8px -9px 0;font-size:10px;color:var(--ink4);cursor:pointer;flex-shrink:0}
 .sbi-bar-fill{height:100%;background:var(--gold);border-radius:1px;opacity:.5;transition:width .3s}
 .sb-flt{padding:9px 11px;border-bottom:1px solid var(--border2);display:flex;flex-direction:column;gap:7px}
 .fl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink4);margin-bottom:3px}
@@ -335,7 +336,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v102</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v103</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1083,7 +1084,7 @@ function renderSidebar() {
       <span style="font-size:13px">${g.icon}</span>
       <span class="sbi-name">${x(g.name)}</span>
       <span class="sbi-badge">${badge}</span>
-      <span onclick="event.stopPropagation();toggleGroup('${esc(g.name)}')" style="font-size:10px;color:var(--ink4);padding:0 4px;cursor:pointer">${chevron}</span>
+      <span class="sbi-chev" onclick="event.stopPropagation();toggleGroup('${esc(g.name)}')">${chevron}</span>
       <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
     if(expanded){
@@ -1140,7 +1141,7 @@ function renderSidebar() {
       <span style="font-size:13px">${mg.icon}</span>
       <span class="sbi-name">${x(mg.name)}</span>
       <span class="sbi-badge">${badge}</span>
-      <span onclick="event.stopPropagation();toggleMacro('${esc(mg.name)}')" style="font-size:10px;color:var(--ink4);padding:0 4px;cursor:pointer">${chev}</span>
+      <span class="sbi-chev" onclick="event.stopPropagation();toggleMacro('${esc(mg.name)}')">${chev}</span>
       <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
     if(expanded){
