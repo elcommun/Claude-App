@@ -332,7 +332,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v99</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v100</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1652,11 +1652,7 @@ function showCategory(cat, updateSidebar=true) {
   if(prev2CatTot){const d=prev2CatTot.qty?Math.round((t.qty-prev2CatTot.qty)/prev2CatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prev2Label} <b>${prev2CatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
 
   document.getElementById('cat-name').textContent=(CAT_ICONS[cat]||'📦')+' '+cat;
-  document.getElementById('cat-stats').innerHTML=`
-    <span class="cs"><b>${t.qty.toLocaleString()}</b> 個</span>
-    <span class="cs"><b>¥${t.amount.toLocaleString()}</b></span>
-    <span class="cs">全体の <b>${catPct}%</b></span>
-    <span class="cs">SKU <b>${items.length}</b>種</span>${cmpSt}`;
+  document.getElementById('cat-stats').innerHTML=cmpSt;
 
   document.getElementById('kpi-row').innerHTML = [
     ['個数',         t.qty.toLocaleString()+' 個'],
