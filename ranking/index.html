@@ -119,6 +119,8 @@ input[type=file]{display:none}
 .tbl th{background:var(--ink);color:rgba(255,255,255,.6);padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:left;border-right:1px solid rgba(255,255,255,.06);white-space:nowrap}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:rgba(255,255,255,.9)}.sort-ind{margin-left:3px;font-size:9px;opacity:.8}
 .tbl th.num{text-align:right}
+.tbl th.qty-col,.tbl td.qty-col{text-align:center}
+.tbl th.so-col{text-align:center}
 .cmp-col{display:none}.show-cmp .cmp-col{display:table-cell}
 /* 検索テーブルの前年比較列: 幅に余裕のあるデバイス(iPad Pro 11"縦 834px〜)でのみ表示 */
 .s-cmp-col{display:none}
@@ -333,7 +335,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v101</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v102</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -436,7 +438,7 @@ function doLogin(){
           <th class="name-col" style="min-width:240px">商品名</th>
           <th class="img-col" style="width:56px">商品画像</th>
           <th class="th-sort num price-col" onclick="setSort('price')" style="width:76px">上代<span class="sort-ind" id="ri-price"></span></th>
-          <th class="th-sort num" onclick="setSort('qty')" style="width:76px">個数<span class="sort-ind" id="ri-qty">▼</span></th>
+          <th class="th-sort num qty-col" onclick="setSort('qty')" style="width:76px">個数<span class="sort-ind" id="ri-qty">▼</span></th>
           <th class="num cmp-col" style="width:72px" id="th-prev">前年</th>
           <th class="num cmp-col" style="width:72px" id="th-prev2">前々年</th>
           <th class="th-sort num amount-col" onclick="setSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="ri-amount"></span></th>
@@ -456,7 +458,7 @@ function doLogin(){
           <th class="th-sort name-col" onclick="setSearchSort('name')" style="min-width:240px">商品名<span class="sort-ind" id="si-name"></span></th>
           <th class="img-col" style="width:56px">商品画像</th>
           <th class="num s-price-col" style="width:76px">上代</th>
-          <th class="th-sort num" onclick="setSearchSort('qty')" style="width:76px">個数<span class="sort-ind" id="si-qty"></span></th>
+          <th class="th-sort num qty-col" onclick="setSearchSort('qty')" style="width:76px">個数<span class="sort-ind" id="si-qty"></span></th>
           <th class="num s-cmp-col" style="width:72px">前年</th>
           <th class="num s-cmp-col" style="width:72px">前々年</th>
           <th class="th-sort num s-amount-col" onclick="setSearchSort('amount')" style="width:108px">合計金額<span class="sort-ind" id="si-amount"></span></th>
@@ -1685,7 +1687,7 @@ function showCategory(cat, updateSidebar=true) {
       <td class="nc">${x(item.name)}</td>
       <td class="img-col">${catType?thumb:''}</td>
       <td class="num price-col">¥${item.price.toLocaleString()}</td>
-      <td class="num" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
+      <td class="num qty-col" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
       ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
       <td class="num amount-col" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
       <td class="share-col"><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
@@ -2212,7 +2214,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
           <td class="nc">${hl(r.name,words,trans)}</td>
           <td class="img-col">${isDC?thumb:''}</td>
           <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
-          <td class="num" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
+          <td class="num qty-col" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
           ${cmpCellS(r.code,r.qty)}
           <td class="num s-amount-col" style="${heatBg(r.amount,maxAmtS).slice(1)}">¥${r.amount.toLocaleString()}</td>
           <td class="so-col" style="text-align:center${isDC&&STOCKOUT[r.code]?';background:rgba(255,140,0,.13);color:#b06000;font-weight:600':''}"><div class="so-val">${isDC?(STOCKOUT_REASON[r.code]?`<span class="so-reason" data-tip="${x(STOCKOUT_REASON[r.code])}" style="cursor:help;text-decoration:underline dotted">${x(STOCKOUT[r.code]||'')}</span>`:x(STOCKOUT[r.code]||'')):''}</div></td>
