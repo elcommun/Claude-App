@@ -332,7 +332,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v98</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v99</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -892,7 +892,6 @@ function applyFilter() {
   prev2YearLabel=String(toYr-2)+'年'+_periodSfx;
 
   updateHeaderDate();
-  renderKPI();
   renderSidebar();
   const firstGroup=CAT_GROUPS.find(g=>Object.keys(aggregated).some(c=>g.match(c)));
   const first=firstGroup?.name||CATEGORY_ORDER.find(c=>aggregated[c])||Object.keys(aggregated)[0];
@@ -956,18 +955,6 @@ function setSearchSort(col) {
     if (el) el.textContent = searchSortCol===c ? (searchSortDir==='asc'?'▲':'▼') : '';
   });
   document.getElementById('hd-search').dispatchEvent(new Event('input'));
-}
-
-// ── KPI ───────────────────────────────────────────────────────────────────────
-function renderKPI() {
-  const skus = new Set(Object.values(aggregated).flatMap(c=>Object.keys(c))).size;
-  const catCnt = Object.keys(aggregated).filter(c=>c!=='未分類').length;
-  document.getElementById('kpi-row').innerHTML = [
-    ['合計販売数',       totalQty.toLocaleString()+' 個'],
-    ['合計金額（税抜）',  '¥'+totalAmount.toLocaleString()],
-    ['SKU 種類',         skus.toLocaleString()+' 種'],
-    ['カテゴリ数',        catCnt+' カテゴリ'],
-  ].map(([l,v])=>`<div class="kpi"><div class="kpi-v">${v}</div><div class="kpi-l">${l}</div></div>`).join('');
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -1170,7 +1157,9 @@ function renderSidebar() {
   let period;
   if(yrFrom===yrTo) period=moFrom==='01'&&moTo==='12'?yrFrom+'年':yrFrom+'年'+moFrom+'〜'+moTo+'月';
   else period=(yrFrom&&yrTo)?yrFrom+'年'+moFrom+'月〜'+yrTo+'年'+moTo+'月':'全期間';
-  document.getElementById('sb-total').innerHTML=`<b>${period}</b>&nbsp; ${totalQty.toLocaleString()}個 / ¥${totalAmount.toLocaleString()}`;
+  const skus = new Set(Object.values(aggregated).flatMap(c=>Object.keys(c))).size;
+  const catCnt = Object.keys(aggregated).filter(c=>c!=='未分類').length;
+  document.getElementById('sb-total').innerHTML=`<b>${period}</b>&nbsp; ${totalQty.toLocaleString()}個 / ¥${totalAmount.toLocaleString()}<br>SKU ${skus.toLocaleString()}種 / ${catCnt}カテゴリ`;
 }
 
 // ── Excel export ──────────────────────────────────────────────────────────────
@@ -1551,6 +1540,7 @@ function showCategory(cat, updateSidebar=true) {
   document.getElementById('hd-search').value = '';
   document.getElementById('search-view').style.display = 'none';
   document.getElementById('cat-view').style.display   = 'block';
+  document.getElementById('kpi-row').style.display    = 'grid';
   if (updateSidebar)
     document.querySelectorAll('.sbi').forEach(el=>el.classList.toggle('active',el.dataset.cat===cat));
 
@@ -1667,6 +1657,13 @@ function showCategory(cat, updateSidebar=true) {
     <span class="cs"><b>¥${t.amount.toLocaleString()}</b></span>
     <span class="cs">全体の <b>${catPct}%</b></span>
     <span class="cs">SKU <b>${items.length}</b>種</span>${cmpSt}`;
+
+  document.getElementById('kpi-row').innerHTML = [
+    ['個数',         t.qty.toLocaleString()+' 個'],
+    ['税抜金額',      '¥'+t.amount.toLocaleString()],
+    ['全体の割合',    catPct+'%'],
+    ['SKU 数',       items.length+' 種'],
+  ].map(([l,v])=>`<div class="kpi"><div class="kpi-v">${v}</div><div class="kpi-l">${l}</div></div>`).join('');
 
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
@@ -2111,9 +2108,10 @@ for(const g of TRANS_GROUPS){
 document.getElementById('hd-search').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229)e.target.blur();});
 document.getElementById('hd-search').addEventListener('input',e=>{
   const q=e.target.value.trim();
-  if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';return;}
+  if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';document.getElementById('kpi-row').style.display='grid';return;}
   document.getElementById('cat-view').style.display='none';
   document.getElementById('search-view').style.display='block';
+  document.getElementById('kpi-row').style.display='none';
   // スペース区切りで複数キーワードのAND検索に対応
   const words=q.split(/[\s　]+/).filter(Boolean);
   const wordData=words.map(w=>{
