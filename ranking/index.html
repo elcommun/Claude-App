@@ -188,6 +188,8 @@ input[type=file]{display:none}
   #th-so,.show-so .so-col{padding-left:3px!important;padding-right:3px!important}
   .so-val{width:44px}
   .ct{font-size:9px;padding:1px 4px;margin-right:3px}
+  /* 検索結果テーブルは列数が多く詰め切れないため横スクロールを許可 */
+  #search-view .tw{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
 }
 /* JSクラスによる即時切り替え（iOS回転対応） */
 body.narrow-portrait .share-col{display:none}
@@ -200,6 +202,7 @@ body.narrow-portrait .nc{max-width:none}
 body.narrow-portrait #th-so,body.narrow-portrait .show-so .so-col{padding-left:3px!important;padding-right:3px!important}
 body.narrow-portrait .so-val{width:44px}
 body.narrow-portrait .ct{font-size:9px;padding:1px 4px;margin-right:3px}
+body.narrow-portrait #search-view .tw{overflow-x:auto!important;-webkit-overflow-scrolling:touch}
 @media(max-width:768px){
   :root{--hh:52px}
   .hd-menu{display:block}
@@ -327,7 +330,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v93</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v94</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
