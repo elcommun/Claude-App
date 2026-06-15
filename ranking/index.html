@@ -336,7 +336,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v109</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v110</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2355,9 +2355,9 @@ function removeAlias(i){
     const ph=prev.naturalHeight||prev.offsetHeight||280;
     const scale=Math.min(window.innerWidth*0.3/pw, window.innerHeight*0.36/ph, 1);
     const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
-    let left=e.clientX+32, side='left';
-    if(left+dw>window.innerWidth-8){left=e.clientX-dw-24;side='right';}
-    setPos(left,e.clientY-dh/2,dw,dh,side,e.clientY);
+    let left=e.clientX+32;
+    if(left+dw>window.innerWidth-8)left=window.innerWidth-8-dw;
+    setPos(left,e.clientY-dh/2,dw,dh,'left',e.clientY);
   });
   document.addEventListener('mouseout',e=>{
     if(!e.target.closest('.prod-thumb'))return;
