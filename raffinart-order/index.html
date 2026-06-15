@@ -252,6 +252,8 @@
     let s = raw
       .replace(/^【Raffinart】/g, '')                          // 先頭タグ削除
       .replace(/\(apj-[^)]*\)?/g, '')                        // 商品コード削除
+      .replace(/[\(（]rft-[^\)）]*[\)）]?/gi, '')              // rft-品番削除
+      .replace(/（額縁内寸）/g, '')                            // 額縁内寸表記削除
       .replace(/＼P\d+倍＋クーポン／/g, '')                    // クーポン削除
       .replace(/<br \/?>/g, '')                               // <br />タグ削除
       .replace(/額縁／ポスターフレーム\/全7色！/g, '')           // フレーム説明削除
@@ -372,9 +374,13 @@
       // グリッドライン非表示
       ws.views = [{ showGridLines: false }];
 
+      // A列幅：商品名の長さに合わせて調整
+      const strWidth = s => [...String(s)].reduce((w, ch) => w + (/[^\x00-\xff]/.test(ch) ? 2 : 1), 0);
+      const nameColWidth = Math.max(45, ...convertedData.map(r => strWidth(r['商品名']) + 4));
+
       // 列幅設定
       ws.columns = [
-        { width: 45 }, // A: 商品名
+        { width: nameColWidth }, // A: 商品名
         { width: 30 }, // B: 項目・選択肢
         { width: 6  }, // C: 個数
         { width: 16 }, // D: 氏名
@@ -427,25 +433,20 @@
       r5.height = 17;
       r5.getCell(1).font = font();
 
-      // Row 6: 配送料に関するお願い
-      const r6 = ws.addRow(['●入り日記には「配送料」は記載されない様、宜しくお願い致します。']);
+      // Row 6: 送り状連絡依頼（挨拶文と同じくくり）
+      const r6 = ws.addRow(['発送後は送り状番号をメールにてご連絡いただけますと幸いです。']);
       r6.height = 17;
-      r6.getCell(1).font = font({ bold: true });
+      r6.getCell(1).font = font();
 
-      // Row 7: 送り状連絡依頼
-      const r7 = ws.addRow(['●商品発送後に荷物の送り状番号をメールにてご連絡願います。']);
+      // Row 7: お願い事項
+      const r7 = ws.addRow(['＊配送料は記載しないでください　＊お届け日指定が空欄の注文は 日時の指定は不要です']);
       r7.height = 17;
-      r7.getCell(1).font = font();
+      r7.getCell(1).font = font({ bold: true });
 
-      // Row 8: お届け日指定の注意
-      const r8 = ws.addRow(['●お届け日指定が空白の注文は日時指定をしないで下さい。']);
-      r8.height = 17;
-      r8.getCell(1).font = font({ bold: true });
-
-      // Row 9: 空行
+      // Row 8: 空行
       ws.addRow([]).height = 8;
 
-      // Row 10: 列ヘッダー（薄グレー背景、下線のみ）
+      // Row 9: 列ヘッダー（薄グレー背景、下線のみ）
       const HEADERS = ['商品名', '項目・選択肢', '個数', '氏名', '郵便番号', '都道府県', '都市区', '町以降', '電話番号', 'お届け日指定', 'お届け時間帯'];
       const hRow = ws.addRow(HEADERS);
       hRow.height = 20;
