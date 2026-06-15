@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raffinart発注書作成 | EL COMMUN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<style>
+  /* === EL COMMUN UI デザインシステム === */
+  :root {
+    --primary:#E85D26;--primary-light:#FFF3EE;--primary-dark:#C4461B;
+    --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+    --gray-400:#9CA3AF;--gray-600:#4B5563;--gray-800:#1F2937;
+    --green:#10B981;--green-light:#ECFDF5;
+    --red:#EF4444;--red-light:#FEF2F2;
+    --yellow-light:#FFFBEB;--blue-light:#EFF6FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Hiragino Sans','Noto Sans JP','Meiryo',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh;}
+
+  header{background:white;border-bottom:3px solid var(--primary);padding:16px 32px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .logo{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;}
+  header h1{font-size:18px;font-weight:700;}
+  header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
+
+  .container{max-width:1200px;margin:0 auto;padding:32px 16px;}
+
+  .info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.6;}
+  .info-box strong{color:#78350F;}
+  .rule-box{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:8px;padding:12px 16px;font-size:12px;color:#1E40AF;line-height:2;}
+
+  .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
+  .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
+  .step.rule{background:var(--gray-600);font-size:11px;}
+  .card-header h2{font-size:15px;font-weight:700;}
+  .sub{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .card-body{padding:20px;}
+
+  .upload-zone{border:2px dashed var(--gray-200);border-radius:10px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--primary);background:var(--primary-light);}
+  .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{font-size:36px;margin-bottom:10px;}
+  .upload-zone p{font-size:14px;color:var(--gray-600);margin-bottom:4px;}
+  .upload-zone small{font-size:12px;color:var(--gray-400);}
+
+  .file-status{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;}
+  .file-status.ok{background:var(--green-light);color:#065F46;}
+  .file-status.err{background:var(--red-light);color:#991B1B;}
+
+  .primary-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .primary-btn:hover:not(:disabled){background:var(--primary-dark);}
+  .primary-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+
+  .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 32px;background:var(--green);color:white;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s;}
+  .dl-btn:hover{background:#059669;}
+  .dl-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+
+  .tab-bar{display:flex;gap:8px;margin-bottom:16px;}
+  .tab-btn{padding:6px 14px;border-radius:6px;font-size:12px;border:1px solid var(--gray-200);background:var(--gray-50);cursor:pointer;font-weight:600;color:var(--gray-600);transition:all .15s;}
+  .tab-btn.active{background:var(--primary);color:white;border-color:var(--primary);}
+  .tab-btn:disabled{opacity:.4;cursor:not-allowed;}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+
+  .table-wrapper{overflow-x:auto;max-height:520px;border:1px solid var(--gray-200);border-radius:10px;}
+  .data-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .data-table thead th{background:var(--gray-100);padding:10px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200);position:sticky;top:0;white-space:nowrap;z-index:10;}
+  .data-table td{padding:9px 12px;border-bottom:1px solid var(--gray-200);white-space:pre-wrap;max-width:280px;}
+  .data-table tr:last-child td{border-bottom:none;}
+  .data-table tr:hover td{background:var(--gray-50);}
+  .data-table tr:nth-child(even) td{background:#FAFBFC;}
+  .data-table tr:nth-child(even):hover td{background:var(--gray-50);}
+  .td-note{background:#FFFBEB !important;}
+
+  .log-box{margin-top:16px;background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;max-height:320px;overflow-y:auto;display:none;}
+  .log-box.show{display:block;}
+  .log-ok{color:#6EE7B7;}.log-warn{color:#FCD34D;}.log-err{color:#FCA5A5;}.log-info{color:#93C5FD;}
+  .log-sep{color:#4B5563;border-top:1px solid #374151;margin:4px 0;}
+
+  .result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:24px;margin-top:20px;text-align:center;}
+  .result-section.show{display:block;}
+  .result-section h3{color:#065F46;font-size:16px;margin-bottom:16px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px;}
+  .stat{background:white;border-radius:8px;padding:14px;text-align:center;border:1px solid var(--gray-200);}
+  .stat .num{font-size:24px;font-weight:800;color:var(--primary);}
+  .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">RF</div>
+  <div><h1>Raffinart発注書作成 <span>EL COMMUN</span></h1></div>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    <strong>処理概要：</strong>GoQSystem等からエクスポートしたCSVを読み込み、Raffinart形式の発注書（Excel）に変換・ダウンロードします。対象商品：商品名が【Raffinart】から始まるもの（それ以外はスキップされます）。
+  </div>
+
+  <!-- Step 1: ファイルアップロード -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">1</div>
+      <h2>CSVファイルを選択 <span class="sub">Shift-JIS / UTF-8 対応</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="csvFile" accept=".csv">
+        <div class="upload-icon">📂</div>
+        <p>CSVファイルをドロップ</p>
+        <small>またはクリックして選択</small>
+      </div>
+      <div id="fileStatus"></div>
+    </div>
+  </div>
+
+  <!-- Step 2: 変換ルール確認 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step rule">変換</div>
+      <h2>変換ルール</h2>
+    </div>
+    <div class="card-body">
+      <div class="rule-box">
+        📌 <strong>商品名</strong>：先頭の【Raffinart】・商品コード(apj-)・クーポン表記・&lt;br /&gt;タグ・【受注生産】【発送までに 約7-10営業日】【「Raffinart」以外の商品と同送不可】・額縁/フレーム説明文・「ゴールド シルバー」等を削除。「フレームセット」以降・｜（全角/半角縦棒）以降も削除<br>
+        📌 <strong>項目・選択肢</strong>：複数行テキストの1行目のみ抽出。「ダークブルー」→「ブルー」に自動変換。「【「Raffinart」以外の商品と同送不可】:○了解の上ご購入」の記述を削除<br>
+        📌 <strong>備考欄</strong>：Excelには出力されません（プレビューのみ表示）<br>
+        📌 <strong>対象外商品</strong>：商品名が【Raffinart】から始まらないものはスキップされます
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: 変換実行 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">2</div>
+      <h2>変換実行</h2>
+    </div>
+    <div class="card-body">
+      <button class="primary-btn" id="convertBtn" disabled onclick="doConvert()">
+        🔄 変換実行
+      </button>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- Step 4: プレビュー -->
+  <div class="card" id="previewCard" style="display:none;">
+    <div class="card-header">
+      <div class="step">3</div>
+      <h2>プレビュー確認</h2>
+    </div>
+    <div class="card-body">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab(this,'tabSource')">📄 変換前データ</button>
+        <button class="tab-btn" id="tabConvertedBtn" onclick="switchTab(this,'tabConverted')" disabled>📋 変換後データ</button>
+      </div>
+      <div class="tab-content active" id="tabSource">
+        <div class="table-wrapper"><table class="data-table" id="sourceTable"></table></div>
+      </div>
+      <div class="tab-content" id="tabConverted">
+        <div class="table-wrapper"><table class="data-table" id="convertedTable"></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="result-section" id="resultSection">
+    <h3>✅ 変換完了！Excelファイルをダウンロードしてください</h3>
+    <button class="dl-btn" onclick="doDownload()">⬇️ Excelファイルをダウンロード</button>
+    <div class="stats-grid" id="statsGrid"></div>
+  </div>
+
+</div>
+
+<script>
+  let csvData = null;
+  let convertedData = null;
+
+  // ---- ドラッグ&ドロップ ----
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.csv')) loadFile(file);
+    else setStatus('err', 'CSVファイルのみ対応しています');
+  });
+
+  document.getElementById('csvFile').addEventListener('change', e => {
+    if (e.target.files[0]) loadFile(e.target.files[0]);
+  });
+
+  function setStatus(type, msg) {
+    document.getElementById('fileStatus').innerHTML =
+      `<div class="file-status ${type}">${msg}</div>`;
+  }
+
+  function loadFile(file) {
+    setStatus('ok', `📂 ${file.name} を読み込み中...`);
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const text = decodeShiftJIS(e.target.result);
+        csvData = parseCSV(text);
+        if (csvData.length < 2) { setStatus('err', 'データが含まれていません'); return; }
+        setStatus('ok', `✅ 読み込み完了：${file.name}（${csvData.length - 1} 件）`);
+        document.getElementById('convertBtn').disabled = false;
+        document.getElementById('previewCard').style.display = '';
+        renderSource();
+      } catch (err) {
+        setStatus('err', 'ファイルの読み込みに失敗しました：' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ---- CSV パース ----
+  function decodeShiftJIS(buf) {
+    try { return new TextDecoder('shift-jis').decode(buf); }
+    catch { return new TextDecoder('utf-8').decode(buf); }
+  }
+
+  function parseCSV(text) {
+    const rows = [];
+    let row = [], cell = '', q = false, i = 0;
+    while (i < text.length) {
+      const c = text[i], n = text[i+1];
+      if (c === '"') { if (q && n === '"') { cell += '"'; i += 2; continue; } q = !q; i++; continue; }
+      if (!q) {
+        if (c === ',') { row.push(cell); cell = ''; i++; continue; }
+        if (c === '\n' || (c === '\r' && n === '\n')) {
+          row.push(cell);
+          if (row.some(x => x.trim())) rows.push(row);
+          row = []; cell = ''; i += (c === '\r') ? 2 : 1; continue;
+        }
+      }
+      cell += c; i++;
+    }
+    if (cell || row.length) { row.push(cell); if (row.some(x => x.trim())) rows.push(row); }
+    return rows;
+  }
+
+  // ===== 商品名変換 =====
+  function processProductName(raw) {
+    if (!raw) return '';
+    let s = raw
+      .replace(/^【Raffinart】/g, '')                          // 先頭タグ削除
+      .replace(/\(apj-[^)]*\)?/g, '')                        // 商品コード削除
+      .replace(/＼P\d+倍＋クーポン／/g, '')                    // クーポン削除
+      .replace(/<br \/?>/g, '')                               // <br />タグ削除
+      .replace(/額縁／ポスターフレーム\/全7色！/g, '')           // フレーム説明削除
+      .replace(/額縁／ポスターフレーム\/全2色！/g, '')           // フレーム説明削除
+      .replace(/木製額縁／木製ポスターフレーム\/全5色！/g, '')    // 木製フレーム説明削除
+      .replace(/木製額縁／木製ポスターフレーム\/全2色！/g, '')    // 木製フレーム説明削除
+      .replace(/額縁／フレーム\/写真/g, '')                     // フレーム説明削除
+      .replace(/ゴールド シルバー/g, '')                         // カラー説明削除
+      .replace(/【受注生産】/g, '')                             // 受注生産タグ削除
+      .replace(/【発送までに 約7-10営業日】/g, '')               // 発送日タグ削除
+      .replace(/【「Raffinart」以外の商品と同送不可】/g, '')      // 同送不可タグ削除
+      .trim();
+
+    // 「フレームセット」以降を削除（フレームセット自体も含めて削除）
+    const fsIdx = s.indexOf('フレームセット');
+    if (fsIdx !== -1) s = s.substring(0, fsIdx).trim();
+
+    // 「｜」「|」以降を削除（全角・半角縦棒）
+    const barIdx = s.search(/[｜|]/);
+    if (barIdx !== -1) s = s.substring(0, barIdx).trim();
+
+    return s;
+  }
+
+  // ===== 項目・選択肢変換 =====
+  function processOptions(raw) {
+    if (!raw) return '';
+    // 複数行の1行目のみ
+    let line = raw.split(/\r?\n/)[0].trim();
+
+    // 【】内リード部分は削除（サイズや発送までに、等）
+    line = line.split(/【|発送までに/)[0].trim();
+
+    // 接頭ラベル除去
+    for (const prefix of ['デザイン:', 'フレームカラー=', 'カラー:']) {
+      if (line.startsWith(prefix)) { line = line.slice(prefix.length).trim(); break; }
+    }
+
+    // ダークブルー → ブルー
+    if (line === 'ダークブルー') line = 'ブルー';
+
+    // 同送不可フレーズ削除
+    line = line.replace(/【「Raffinart」以外の商品と同送不可】:○了解の上ご購入/g, '').trim();
+    // 末尾の区切り文字クリーンアップ
+    line = line.replace(/[、,，]+$/, '').trim();
+
+    return line;
+  }
+
+  // ---- 実行 ----
+  function doConvert() {
+    if (!csvData) return;
+    const logBox = document.getElementById('logBox');
+    logBox.innerHTML = '';
+    log('🔄 変換を開始します...', 'log-info');
+    log('──────────────────────────────', 'log-sep');
+
+    try {
+      convertedData = [];
+      let skipped = 0;
+      for (let i = 1; i < csvData.length; i++) {
+        const r = csvData[i];
+        if (!r || r.every(c => !c?.trim())) { log(`⚠️ 行 ${i}：空行のためスキップ`, 'log-warn'); continue; }
+
+        const rawName = r[0] || '';
+        if (!rawName.startsWith('【Raffinart】')) {
+          skipped++;
+          log(`⚠️ 行 ${i}：対象外のためスキップ：${rawName.slice(0, 30)}`, 'log-warn');
+          continue;
+        }
+
+        convertedData.push({
+          '商品名': processProductName(rawName),
+          '項目・選択肢': processOptions(r[1] || ''),
+          '個数': r[2] || '',
+          '氏名': r[3] || '',
+          '郵便番号': r[4] || '',
+          '都道府県': r[5] || '',
+          '都市区': r[6] || '',
+          '町以降': r[7] || '',
+          '電話番号': r[8] || '',
+          'お届け日指定': r[9] || '',
+          'お届け時間帯': r[10] || '',
+          '備考(プレビュー用)': r[11] || ''
+        });
+        log(`✅ 行 ${i}：${processProductName(rawName).slice(0, 30) || '（商品名なし）'}`, 'log-ok');
+      }
+
+      log('──────────────────────────────', 'log-sep');
+      log(`✅ 変換完了：${convertedData.length} 件 / スキップ：${skipped} 件`, 'log-ok');
+
+      document.getElementById('tabConvertedBtn').disabled = false;
+      renderConverted();
+      switchTab(document.getElementById('tabConvertedBtn'), 'tabConverted');
+
+      document.getElementById('statsGrid').innerHTML = `
+        <div class="stat"><div class="num">${csvData.length - 1}</div><div class="label">元データ件数</div></div>
+        <div class="stat"><div class="num">${convertedData.length}</div><div class="label">変換後件数</div></div>
+        <div class="stat"><div class="num">${skipped}</div><div class="label">スキップ件数</div></div>
+      `;
+      document.getElementById('resultSection').classList.add('show');
+      document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (err) {
+      log('❌ エラー：' + err.message, 'log-err');
+    }
+  }
+
+  // ---- ダウンロード ----
+  async function doDownload() {
+    if (!convertedData || typeof ExcelJS === 'undefined') return;
+    try {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}年${String(today.getMonth()+1).padStart(2,'0')}月${String(today.getDate()).padStart(2,'0')}日`;
+
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet('Raffinart発注書');
+
+      // グリッドライン非表示
+      ws.views = [{ showGridLines: false }];
+
+      // 列幅設定
+      ws.columns = [
+        { width: 45 }, // A: 商品名
+        { width: 30 }, // B: 項目・選択肢
+        { width: 6  }, // C: 個数
+        { width: 16 }, // D: 氏名
+        { width: 12 }, // E: 郵便番号
+        { width: 10 }, // F: 都道府県
+        { width: 18 }, // G: 都市区
+        { width: 52 }, // H: 町以降
+        { width: 16 }, // I: 電話番号
+        { width: 16 }, // J: お届け日指定
+        { width: 18 }, // K: お届け時間帯
+      ];
+
+      const COLS = 11;
+
+      const font = (opts = {}) => ({ name: 'Meiryo', size: 10, ...opts });
+      const bdr = (s, argb = 'FF000000') => ({ style: s, color: { argb } });
+
+      // Row 1: 見出し「Raffinart 御中」（下線のみ）
+      const r1 = ws.addRow(['Raffinart 御中', `発注日：${dateStr}`]);
+      r1.height = 28;
+      r1.getCell(1).font = font({ bold: true, size: 14 });
+      r1.getCell(1).border = { bottom: bdr('medium') };
+      r1.getCell(2).font = font({ size: 10 });
+      r1.getCell(2).alignment = { horizontal: 'right', vertical: 'bottom' };
+      r1.getCell(2).border = { bottom: bdr('medium') };
+
+      // Row 2: 空行
+      ws.addRow([]).height = 8;
+
+      // Row 3: 発注者
+      const r3 = ws.addRow(['発注者：有限会社 EL COMMUN　担当：小栗']);
+      r3.height = 17;
+      r3.getCell(1).font = font({ bold: true });
+
+      // Row 4: 住所
+      const r4 = ws.addRow(['〒468-0007 愛知県名古屋市天白区植田本町2丁目1006番地']);
+      r4.height = 17;
+      r4.getCell(1).font = font({ color: { argb: 'FF444444' } });
+
+      // Row 4b: TEL/FAX
+      const r4b = ws.addRow(['TEL：052-807-0299　FAX：052-685-5116']);
+      r4b.height = 17;
+      r4b.getCell(1).font = font({ color: { argb: 'FF444444' } });
+
+      // 空行（区切り）
+      ws.addRow([]).height = 6;
+
+      // Row 5: 挨拶文
+      const r5 = ws.addRow(['お手数をおかけ致しますが、下記の直送手配を宜しくお願い申し上げます。']);
+      r5.height = 17;
+      r5.getCell(1).font = font();
+
+      // Row 6: 配送料に関するお願い
+      const r6 = ws.addRow(['●入り日記には「配送料」は記載されない様、宜しくお願い致します。']);
+      r6.height = 17;
+      r6.getCell(1).font = font({ bold: true });
+
+      // Row 7: 送り状連絡依頼
+      const r7 = ws.addRow(['●商品発送後に荷物の送り状番号をメールにてご連絡願います。']);
+      r7.height = 17;
+      r7.getCell(1).font = font();
+
+      // Row 8: お届け日指定の注意
+      const r8 = ws.addRow(['●お届け日指定が空白の注文は日時指定をしないで下さい。']);
+      r8.height = 17;
+      r8.getCell(1).font = font({ bold: true });
+
+      // Row 9: 空行
+      ws.addRow([]).height = 8;
+
+      // Row 10: 列ヘッダー（薄グレー背景、下線のみ）
+      const HEADERS = ['商品名', '項目・選択肢', '個数', '氏名', '郵便番号', '都道府県', '都市区', '町以降', '電話番号', 'お届け日指定', 'お届け時間帯'];
+      const hRow = ws.addRow(HEADERS);
+      hRow.height = 20;
+      for (let c = 1; c <= COLS; c++) {
+        const cell = hRow.getCell(c);
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3F4F6' } };
+        cell.font = font({ bold: true });
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = { bottom: bdr('medium') };
+      }
+
+      // データ行（下線のみ）
+      convertedData.forEach((r, idx) => {
+        const dataRow = ws.addRow([
+          r['商品名'], r['項目・選択肢'], r['個数'], r['氏名'],
+          r['郵便番号'], r['都道府県'], r['都市区'], r['町以降'],
+          r['電話番号'], r['お届け日指定'], r['お届け時間帯']
+        ]);
+        dataRow.height = 18;
+        const isLast = idx === convertedData.length - 1;
+        for (let c = 1; c <= COLS; c++) {
+          const cell = dataRow.getCell(c);
+          cell.font = font();
+          cell.border = { bottom: bdr(isLast ? 'medium' : 'thin', isLast ? 'FF000000' : 'FFCCCCCC') };
+          cell.alignment = { vertical: 'middle' };
+        }
+        dataRow.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+        dataRow.getCell(1).alignment = { vertical: 'middle', wrapText: true };
+      });
+
+      // ── 出力 ──────────────────────────────────────
+      const ymd = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+      const fname = `Raffinart発注書_${ymd}.xlsx`;
+      const buffer = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: fname });
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      alert('❌ ダウンロードエラー：' + err.message);
+    }
+  }
+
+  // ---- テーブル描画 ----
+  function renderSource() {
+    const t = document.getElementById('sourceTable');
+    const heads = csvData[0].map(h => `<th>${esc(h)}</th>`).join('');
+    const rows = csvData.slice(1).map(r =>
+      `<tr>${r.map(c => `<td>${esc(c)}</td>`).join('')}</tr>`
+    ).join('');
+    t.innerHTML = `<thead><tr>${heads}</tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  function renderConverted() {
+    const headers = ['商品名','項目・選択肢','個数','氏名','郵便番号','都道府県','都市区','町以降','電話番号','お届け日指定','お届け時間帯','備考(プレビュー用)'];
+    const t = document.getElementById('convertedTable');
+    const heads = headers.map(h => `<th>${h}</th>`).join('');
+    const rows = convertedData.map(r =>
+      `<tr>${headers.map(h =>
+        `<td${h === '備考(プレビュー用)' ? ' class="td-note"' : ''}>${esc(r[h] || '')}</td>`
+      ).join('')}</tr>`
+    ).join('');
+    t.innerHTML = `<thead><tr>${heads}</tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  // ---- タブ切り替え ----
+  function switchTab(btn, name) {
+    document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+    document.getElementById(name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ---- ログ ----
+  function log(msg, cls = '') {
+    const box = document.getElementById('logBox');
+    box.classList.add('show');
+    box.innerHTML += `<div class="${cls}">${msg}</div>`;
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // ---- ユーティリティ ----
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+</script>
+</body>
+</html>
