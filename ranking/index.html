@@ -336,7 +336,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v110</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v111</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2105,6 +2105,22 @@ const TRANS_GROUPS=[
   ['なつ','夏','summer','サマー'],
   ['あき','秋','autumn','オータム'],
   ['ふゆ','冬','winter','ウィンター'],
+  // 色名（英語・ひらがな・カタカナ・漢字）
+  ['white','しろ','白','ホワイト'],
+  ['black','くろ','黒','ブラック'],
+  ['red','あか','赤','レッド'],
+  ['blue','あお','青','ブルー'],
+  ['green','みどり','緑','グリーン'],
+  ['yellow','きいろ','黄色','イエロー'],
+  ['pink','ピンク','桃色','momoiro'],
+  ['purple','むらさき','紫','パープル'],
+  ['orange','オレンジ','橙','橙色'],
+  ['brown','ちゃいろ','茶色','ブラウン'],
+  ['gray','grey','グレー','灰色','はいいろ'],
+  ['gold','きん','金','ゴールド'],
+  ['silver','ぎん','銀','シルバー'],
+  ['navy','紺','こん','ネイビー'],
+  ['beige','ベージュ'],
 ];
 for(const g of TRANS_GROUPS){
   const ng=g.map(normalize);
