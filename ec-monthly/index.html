@@ -392,6 +392,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 24px 28px;
+    margin-bottom: 20px;
   }
   .info-title {
     font-size: 0.82rem;
@@ -431,6 +432,67 @@
     stroke-width: 2.5;
     stroke-linecap: round;
     stroke-linejoin: round;
+  }
+
+  /* ── ステップリスト ── */
+  .step-list { list-style: none; display: flex; flex-direction: column; gap: 0; }
+  .step-list li {
+    display: flex; align-items: flex-start; gap: 14px;
+    font-size: 0.85rem;
+    color: var(--text2);
+    padding: 10px 0;
+    position: relative;
+  }
+  .step-list li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 13px;
+    top: 34px;
+    bottom: -4px;
+    width: 1px;
+    background: var(--border);
+  }
+  .step-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent-dim);
+    border: 1px solid rgba(124,58,237,0.20);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent2);
+    font-family: var(--mono);
+  }
+  [data-theme="dark"] .step-num {
+    border-color: rgba(139,92,246,0.20);
+  }
+  .step-text { padding-top: 3px; line-height: 1.5; }
+  .step-text strong { color: var(--text); font-weight: 600; }
+  .step-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 10px;
+    padding: 7px 14px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(124,58,237,0.18);
+    border-radius: 8px;
+    color: var(--accent2);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .step-link:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .step-link svg {
+    width: 14px; height: 14px;
+    stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   }
 
   /* ── フッター ── */
@@ -577,6 +639,23 @@
         <tbody id="emptyTbody"></tbody>
       </table>
     </div>
+  </div>
+
+  <!-- データのダウンロード方法 -->
+  <div class="info-section">
+    <div class="info-title">
+      <svg class="info-title-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      データのダウンロード方法
+    </div>
+    <ol class="step-list">
+      <li><span class="step-num">1</span><span class="step-text"><a href="https://order.goqsystem.com/goq21/index_beta.php?stat=12&page=1" target="_blank" rel="noopener" class="step-link"><svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>GoQ System 受注管理を開く</a></span></li>
+      <li><span class="step-num">2</span><span class="step-text"><strong>「全て」</strong>のタブを選択する</span></li>
+      <li><span class="step-num">3</span><span class="step-text"><strong>「絞込みパネル」</strong>のプルダウンで<strong>「出荷日」</strong>を選択し、期間を指定して<strong>「絞り込む」</strong>ボタンを押す</span></li>
+      <li><span class="step-num">4</span><span class="step-text"><strong>「処理パネル」</strong>内の<strong>「CSVの出力」</strong>を開く</span></li>
+      <li><span class="step-num">5</span><span class="step-text"><strong>「全ての受注」</strong>にチェックを入れる</span></li>
+      <li><span class="step-num">6</span><span class="step-text"><strong>「その他データ」</strong>のプルダウンから<strong>「CSV」</strong>を選ぶ</span></li>
+      <li><span class="step-num">7</span><span class="step-text"><strong>「出力」</strong>ボタンを押してダウンロード</span></li>
+    </ol>
   </div>
 
   <!-- 処理内容 -->
