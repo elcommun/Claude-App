@@ -10,6 +10,45 @@
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
   :root {
+    --bg: #f8f9fc;
+    --bg2: #f1f3f8;
+    --surface: rgba(255,255,255,0.75);
+    --surface-hover: rgba(255,255,255,0.90);
+    --border: rgba(0,0,0,0.08);
+    --border-hover: rgba(0,0,0,0.14);
+    --accent: #7c3aed;
+    --accent2: #6d28d9;
+    --accent-glow: rgba(124,58,237,0.20);
+    --accent-dim: rgba(124,58,237,0.06);
+    --green: #059669;
+    --green-dim: rgba(5,150,105,0.08);
+    --green-border: rgba(5,150,105,0.20);
+    --amber: #b45309;
+    --amber-dim: rgba(180,83,9,0.06);
+    --amber-border: rgba(180,83,9,0.18);
+    --red: #dc2626;
+    --red-dim: rgba(220,38,38,0.06);
+    --red-border: rgba(220,38,38,0.18);
+    --blue: #2563eb;
+    --blue-dim: rgba(37,99,235,0.06);
+    --blue-border: rgba(37,99,235,0.18);
+    --text: #1e293b;
+    --text2: #64748b;
+    --text3: #94a3b8;
+    --glow1: rgba(124,58,237,0.06);
+    --glow2: rgba(37,99,235,0.04);
+    --table-bg: rgba(255,255,255,0.6);
+    --table-row-hover: rgba(0,0,0,0.02);
+    --table-border: rgba(0,0,0,0.04);
+    --spinner-track: rgba(255,255,255,0.35);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --radius-xs: 6px;
+    --font: 'Inter', 'Noto Sans JP', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  [data-theme="dark"] {
     --bg: #0f0f11;
     --bg2: #18181b;
     --surface: rgba(255,255,255,0.04);
@@ -35,11 +74,12 @@
     --text: #fafafa;
     --text2: #a1a1aa;
     --text3: #52525b;
-    --radius: 16px;
-    --radius-sm: 10px;
-    --radius-xs: 6px;
-    --font: 'Inter', 'Noto Sans JP', sans-serif;
-    --mono: 'JetBrains Mono', monospace;
+    --glow1: rgba(139,92,246,0.08);
+    --glow2: rgba(96,165,250,0.05);
+    --table-bg: rgba(0,0,0,0.2);
+    --table-row-hover: rgba(255,255,255,0.03);
+    --table-border: rgba(255,255,255,0.04);
+    --spinner-track: rgba(255,255,255,0.2);
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -61,7 +101,7 @@
     left: -20%;
     width: 80%;
     height: 80%;
-    background: radial-gradient(ellipse, rgba(139,92,246,0.08) 0%, transparent 70%);
+    background: radial-gradient(ellipse, var(--glow1) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -72,7 +112,7 @@
     right: -20%;
     width: 70%;
     height: 70%;
-    background: radial-gradient(ellipse, rgba(96,165,250,0.05) 0%, transparent 70%);
+    background: radial-gradient(ellipse, var(--glow2) 0%, transparent 70%);
     pointer-events: none;
     z-index: 0;
   }
@@ -155,7 +195,7 @@
   }
   .dropzone.drag-over {
     border-color: var(--accent);
-    background: rgba(139,92,246,0.12);
+    background: var(--accent-dim);
     border-style: solid;
     box-shadow: 0 0 0 4px var(--accent-glow), inset 0 0 40px rgba(139,92,246,0.05);
     transform: scale(1.01);
@@ -165,7 +205,7 @@
   }
   .dz-icon {
     width: 56px; height: 56px;
-    background: rgba(255,255,255,0.05);
+    background: var(--accent-dim);
     border: 1px solid var(--border);
     border-radius: 14px;
     display: inline-flex; align-items: center; justify-content: center;
@@ -203,7 +243,7 @@
     font-size: 0.78rem;
     font-weight: 500;
     font-family: var(--mono);
-    background: rgba(255,255,255,0.04);
+    background: var(--surface);
     border: 1px solid var(--border);
     color: var(--text3);
     transition: all 0.3s;
@@ -314,7 +354,7 @@
     overflow-y: auto;
     border: 1px solid var(--amber-border);
     border-radius: 8px;
-    background: rgba(0,0,0,0.2);
+    background: var(--table-bg);
   }
   .table-wrap::-webkit-scrollbar { width: 4px; }
   .table-wrap::-webkit-scrollbar-track { background: transparent; }
@@ -339,12 +379,12 @@
   td {
     padding: 9px 12px;
     color: var(--text2);
-    border-bottom: 1px solid rgba(255,255,255,0.04);
+    border-bottom: 1px solid var(--table-border);
     font-family: var(--mono);
     font-size: 0.75rem;
   }
   tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: rgba(255,255,255,0.03); }
+  tbody tr:hover { background: var(--table-row-hover); }
 
   /* ── 処理内容カード ── */
   .info-section {
@@ -406,7 +446,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinner {
     width: 18px; height: 18px;
-    border: 2px solid rgba(255,255,255,0.2);
+    border: 2px solid var(--spinner-track);
     border-top-color: #fff;
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
@@ -425,6 +465,54 @@
     animation: shimmer 1.5s ease infinite;
   }
 
+  /* ── テーマトグル ── */
+  .theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .theme-toggle:hover {
+    border-color: var(--border-hover);
+    background: var(--surface-hover);
+    transform: scale(1.05);
+  }
+  .theme-toggle svg {
+    width: 20px; height: 20px;
+    stroke: var(--text2);
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: stroke 0.3s;
+  }
+  .theme-toggle:hover svg { stroke: var(--text); }
+  .theme-toggle .icon-sun { display: none; }
+  .theme-toggle .icon-moon { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  [data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+  /* ── トランジション ── */
+  body, body::before, body::after,
+  .card, .dropzone, .dz-icon, .info-section, .file-status,
+  .btn-convert, .theme-toggle, .footer, .header h1, .header p,
+  .header-badge, .checklist li, .check-icon, .empty-section,
+  .table-wrap, thead tr, th, td {
+    transition-property: background, color, border-color, box-shadow, stroke;
+    transition-duration: 0.35s;
+    transition-timing-function: cubic-bezier(0.4,0,0.2,1);
+  }
+
   /* ── レスポンシブ ── */
   @media (max-width: 600px) {
     .wrapper { padding: 24px 14px 48px; }
@@ -437,6 +525,10 @@
 </style>
 </head>
 <body>
+<button class="theme-toggle" id="themeToggle" aria-label="テーマ切替">
+  <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+  <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+</button>
 <div class="wrapper">
 
   <!-- ヘッダー -->
@@ -523,6 +615,24 @@ const emptyCount = document.getElementById('emptyCount');
 const emptyTbody = document.getElementById('emptyTbody');
 
 let csvFile = null;
+
+// ─────────────────────────────────────────────
+// テーマ切り替え
+// ─────────────────────────────────────────────
+const themeToggle = document.getElementById('themeToggle');
+const saved = localStorage.getItem('ec_monthly_theme');
+if (saved === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+
+themeToggle.addEventListener('click', () => {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('ec_monthly_theme', 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('ec_monthly_theme', 'dark');
+  }
+});
 
 // ─────────────────────────────────────────────
 // ファイル選択

@@ -154,3 +154,21 @@ const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0);
 - STOCKOUT の `clearStockout()` 関数もHTMLにハードコードされた値を使う。STOCKOUTを更新したら `clearStockout()` も同じ値に更新する必要がある
 - ExcelのinlineStr形式（`<is><t>...</t></is>`）は通常のshared strings形式と別処理が必要
 - `loadImages()` は削除済み（画像はlocalStorageではなくGitリポジトリから自動読み込み）
+
+---
+
+## UIデザインスキル（社内ツール共通）
+
+新しい社内ツールを作成する際は、以下のデザインパターンを適用すること（`ec-monthly/index.html` が参考実装）。
+
+### デザイン仕様
+- **フォント**: Inter + Noto Sans JP（本文）、JetBrains Mono（コード・データ）
+- **カラー**: アクセントにパープル系（`#7c3aed` ライト / `#8b5cf6` ダーク）
+- **レイアウト**: 中央寄せ max-width 720px、カードベース、グラスモーフィズム（backdrop-filter blur）
+- **背景**: 微妙なグラデーショングロウエフェクト（radial-gradient, 疑似要素）
+- **ライト/ダークモード**: デフォルトはライト（白背景）。右上にトグルボタン（月/太陽アイコン）。`data-theme="dark"` 属性で切り替え。選択は `localStorage` に保存
+- **アニメーション**: ホバー時のスケール・グロウ、メッセージのフェードイン（cubic-bezier(0.4,0,0.2,1)）
+- **ボタン**: アクセントカラー背景 + グロウシャドウ、hover時に translateY(-1px)
+- **ドロップゾーン**: ダッシュボーダー、ドラッグオーバー時にソリッド化 + グロウ
+- **バッジ**: 999px border-radius のピル型、accent-dim背景
+- **レスポンシブ**: 600px以下でパディング・フォントサイズ調整
