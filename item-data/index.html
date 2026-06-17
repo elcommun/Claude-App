@@ -172,6 +172,49 @@
     .dz-file::before { content: '✓'; font-size: 11px; }
     input[type=file] { display: none; }
 
+    /* ══ GoQ Instructions ════════════════════════════════════════════════════ */
+    .goq-instructions {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 22px;
+      margin-bottom: 28px;
+    }
+    .goq-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .goq-icon { font-size: 18px; }
+    .goq-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .goq-steps {
+      margin: 0;
+      padding-left: 22px;
+      list-style: decimal;
+    }
+    .goq-steps li {
+      font-size: 12.5px;
+      color: var(--ink-2);
+      line-height: 1.7;
+    }
+    .goq-steps a {
+      color: var(--gold);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .goq-steps a:hover {
+      text-decoration: underline;
+    }
+    .goq-steps b {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
     /* ══ Run button ══════════════════════════════════════════════════════════ */
     .run-row {
       display: flex;
@@ -510,6 +553,23 @@
       <input type="file" id="f-product" accept=".xlsx,.xls">
       <div class="dz-file" id="n-product" style="display:none"></div>
     </div>
+  </div>
+
+  <!-- GoQ System CSV Download Instructions -->
+  <div class="goq-instructions">
+    <div class="goq-header">
+      <span class="goq-icon">📥</span>
+      <span class="goq-title">販売データCSVのダウンロード方法</span>
+    </div>
+    <ol class="goq-steps">
+      <li><a href="https://order.goqsystem.com/goq21/index_beta.php?stat=12&page=1" target="_blank" rel="noopener noreferrer">GoQ System</a> にログインし「受注管理」を開く</li>
+      <li>「<b>全て</b>」のタブを選択する</li>
+      <li>ダウンロードしたい<b>期間</b>を選択する</li>
+      <li>「処理パネル」内の「<b>CSVの出力</b>」を開く</li>
+      <li>「<b>全ての受注</b>」にチェックを入れる</li>
+      <li>「その他データ」のプルダウンから「<b>CSV</b>」を選ぶ</li>
+      <li>「<b>出力</b>」ボタンを押してダウンロード</li>
+    </ol>
   </div>
 
   <!-- Run -->
