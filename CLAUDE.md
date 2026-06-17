@@ -161,6 +161,7 @@ const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0);
 - `KRT-`（Kerata）→ デスクトップ（マウスパッドではない）
 - `SVT-`（suvanto Book Cover）→ ブックカバー
 - `PNT-`（PEANUTS NEON LIGHT）→ ネオンライト
+- `MPD-`（マウスパッド）→ マウスパッド（※ステーショナリーではなく必ずマウスパッドに分類）
 - 商品名に「Book Cover」を含む → ブックカバー
 
 ### 販売データの取り込みルール
