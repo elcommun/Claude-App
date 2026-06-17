@@ -336,7 +336,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v116</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v117</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -852,9 +852,18 @@ function applyFilter() {
     }
   }
 
+  // 旧月次データ(YYYY-MM-01)はその月全体をカバーする扱い
+  function inRange(dk, from, to) {
+    if (dk.endsWith('-01')) {
+      const ym = dk.slice(0, 7);
+      return ym + '-31' >= from && ym + '-01' <= to;
+    }
+    return dk >= from && dk <= to;
+  }
+
   // PRELOADED dates in range
   for (const [dk, bs] of Object.entries(PRELOADED.by_store)) {
-    if (dk < dateFrom || dk > dateTo) continue;
+    if (!inRange(dk, dateFrom, dateTo)) continue;
     mergeByStore(bs);
   }
 
@@ -866,7 +875,7 @@ function applyFilter() {
     const a={};
     function mg(bs){const sts=str==='all'?Object.keys(bs):[str];for(const s of sts){const bc=bs[s];if(!bc)continue;for(const[rc,cd] of Object.entries(bc)){for(const[rawCode,qa] of Object.entries(cd)){const code=CODE_REMAP[rawCode]||rawCode;if(CODE_SKIP_PREFIXES.some(p=>code.startsWith(p)))continue;const cat=getCodeCat(code)||mapCategory(rc);if(!a[cat])a[cat]={};if(!a[cat][code])a[cat][code]=[0,0];a[cat][code][0]+=qa[0];a[cat][code][1]+=qa[1];}}}}
     for(const[dk,bs] of Object.entries(PRELOADED.by_store)){
-      if(dk<fD||dk>tD) continue;
+      if(!inRange(dk,fD,tD)) continue;
       mg(bs);
     }
     return a;
