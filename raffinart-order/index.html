@@ -325,9 +325,13 @@
           continue;
         }
 
+        const rftMatch = rawName.match(/[\(（](rft-([^\)）]*))[\)）]/i);
+        const rftCode = rftMatch ? rftMatch[2] : '';
+        const options = processOptions(r[1] || '');
+
         convertedData.push({
           '商品名': processProductName(rawName),
-          '項目・選択肢': processOptions(r[1] || ''),
+          '項目・選択肢': options || rftCode,
           '個数': r[2] || '',
           '氏名': r[3] || '',
           '郵便番号': r[4] || '',
