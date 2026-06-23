@@ -598,7 +598,6 @@
       <input class="f-input" type="text" id="f-text" placeholder="商品名・商品番号で検索…">
       <div class="f-spacer"></div>
       <span class="f-count" id="f-count"></span>
-      <button class="btn-export" onclick="doExport()">CSV 出力</button>
       <button class="btn-export btn-export-xl" onclick="doExportXLSX()">XLSX 出力</button>
     </div>
 
@@ -1426,12 +1425,21 @@ function doExport() {
 }
 
 // ── XLSX export ──────────────────────────────────────────────────────────────
+function xlsxFilename(data) {
+  const dates = data.map(r => r.date).filter(Boolean).sort();
+  if (!dates.length) return 'EC販売データ.xlsx';
+  const [fy, fm, fd] = dates[0].split('-');
+  const [ty, tm, td] = dates[dates.length - 1].split('-');
+  const range = fy === ty
+    ? `${+fm}月${+fd}日〜${+tm}月${+td}日`
+    : `${fy}年${+fm}月${+fd}日〜${ty}年${+tm}月${+td}日`;
+  return `${fy}年EC販売データ（${range}）.xlsx`;
+}
 function doExportXLSX() {
   const data = sorted(filtered());
   const rows = [['販売日', '大分類', '中分類', '小分類', '商品名', '商品番号', '税抜単価', '数量', '小計（税抜）', '店舗', '検索コード', 'マスター一致']];
   data.forEach(r => rows.push([r.date, r.cat1, r.cat2, r.cat3, r.name, r.code, r.price, r.qty, r.price * r.qty, r.store, r.searchCode || '', r.matched ? '○' : '×']));
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  // 列幅の自動設定
   ws['!cols'] = [
     { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 20 },
     { wch: 40 }, { wch: 14 }, { wch: 10 }, { wch: 6 },
@@ -1439,7 +1447,7 @@ function doExportXLSX() {
   ];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '販売明細');
-  XLSX.writeFile(wb, '販売明細_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+  XLSX.writeFile(wb, xlsxFilename(data));
 }
 
 // ── Reset ────────────────────────────────────────────────────────────────────
