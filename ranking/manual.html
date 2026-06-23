@@ -46,20 +46,27 @@ a:hover{text-decoration:underline}
 
 /* UI mock */
 .ui-mock{background:#f8f6f4;border:1px solid #e0dbd5;border-radius:8px;padding:14px 18px;margin:12px 0;font-size:13px}
-.ui-mock .label{display:inline-block;background:#2d2926;color:#fff;border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;margin-right:6px}
-.ui-mock .btn{display:inline-block;background:#E85D26;color:#fff;border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;margin:2px 4px}
-.ui-mock .btn-g{display:inline-block;background:#4a7c59;color:#fff;border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;margin:2px 4px}
-.ui-mock .btn-s{display:inline-block;background:#fff;border:1px solid #ccc;color:#555;border-radius:5px;padding:3px 10px;font-size:12px;margin:2px 4px}
+.ui-mock .chip{display:inline-block;background:#2d2926;color:#fff;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:700;margin-right:6px}
+.ui-mock .btn{display:inline-block;background:#E85D26;color:#fff;border-radius:5px;padding:4px 12px;font-size:12px;font-weight:700;margin:2px 3px;cursor:default}
+.ui-mock .btn-s{display:inline-block;background:#fff;border:1px solid #ccc;color:#555;border-radius:5px;padding:4px 12px;font-size:12px;margin:2px 3px}
 .ui-mock .field{display:inline-block;border:1px solid #ccc;border-radius:5px;padding:3px 10px;font-size:12px;background:#fff;color:#888;margin:2px 4px}
 
 /* Table demo */
 .tbl-demo{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
-.tbl-demo th{background:#f0ece8;padding:7px 10px;text-align:left;font-weight:700;color:#5a4540;border:1px solid #e0dbd5}
-.tbl-demo td{padding:7px 10px;border:1px solid #e0dbd5;color:#4a4542}
+.tbl-demo th{background:#f0ece8;padding:7px 10px;text-align:center;font-weight:700;color:#5a4540;border:1px solid #e0dbd5}
+.tbl-demo th.left{text-align:left}
+.tbl-demo td{padding:7px 10px;border:1px solid #e0dbd5;color:#4a4542;vertical-align:middle}
 .tbl-demo tr:nth-child(even) td{background:#faf9f7}
-.rank-badge{display:inline-block;width:22px;height:22px;background:#E85D26;color:#fff;border-radius:50%;text-align:center;line-height:22px;font-weight:700;font-size:11px}
-.rank-2{background:#888}
-.rank-3{background:#a07040}
+.rn{display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff}
+.rn.r1{background:#E85D26}
+.rn.r2{background:#888}
+.rn.r3{background:#a07040}
+.rn.ro{background:transparent;color:#666;font-size:13px}
+.so-badge{display:inline-block;background:#c0392b;color:#fff;font-weight:700;border-radius:3px;padding:1px 5px;font-size:11px}
+.heat-hi{background:#E85D26;color:#fff;font-weight:700;text-align:center}
+.heat-md{background:#f5a070;color:#fff;font-weight:700;text-align:center}
+.heat-lo{background:#fbd4be;font-weight:700;text-align:center}
+.heat-vl{background:#fef0e8;text-align:center}
 
 /* Step list */
 .step-list{counter-reset:step;list-style:none;padding:0}
@@ -81,6 +88,14 @@ kbd{background:#f0ece8;border:1px solid #ccc;border-radius:4px;padding:1px 6px;f
 
 /* Footer */
 footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
+
+/* Sidebar mock */
+.sb-mock-lbl{font-size:10px;font-weight:700;color:#888;margin-bottom:5px;margin-top:10px;letter-spacing:.05em}
+.sb-mock-lbl:first-child{margin-top:0}
+.sb-mock-date{display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:11px}
+.sb-mock-qbtns{display:flex;gap:3px;margin-bottom:2px}
+.sb-mock-qbtn{border:1px solid #ccc;border-radius:4px;padding:2px 7px;font-size:11px;background:#fff;color:#555}
+.sb-mock-qbtn.on{background:#E85D26;border-color:#E85D26;color:#fff;font-weight:700}
 </style>
 </head>
 <body>
@@ -101,7 +116,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
   <!-- 目次 -->
   <div class="toc">
-    <h2>📋 目次</h2>
+    <h2>目次</h2>
     <ol>
       <li><a href="#login">ログイン</a></li>
       <li><a href="#layout">画面の見かた</a></li>
@@ -109,7 +124,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><a href="#store">店舗で絞り込む</a></li>
       <li><a href="#category">カテゴリを選ぶ</a></li>
       <li><a href="#sort">並び順を変える</a></li>
-      <li><a href="#compare">前年比較を見る</a></li>
+      <li><a href="#compare">前期比較を見る</a></li>
       <li><a href="#heatmap">ヒートマップ表示</a></li>
       <li><a href="#search">商品を検索する</a></li>
       <li><a href="#image">商品画像を見る</a></li>
@@ -129,7 +144,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <ul class="step-list">
       <li><span class="txt"><strong>ID</strong> を入力します</span></li>
       <li><span class="txt"><strong>パスワード</strong> を入力します</span></li>
-      <li><span class="txt"><span class="btn-g" style="display:inline-block;background:#4a7c59;color:#fff;border-radius:5px;padding:2px 10px;font-size:12px;font-weight:700">ログイン</span> ボタンを押すか、<kbd>Enter</kbd> キーを押します</span></li>
+      <li><span class="txt"><span style="display:inline-block;background:#4a7c59;color:#fff;border-radius:5px;padding:2px 10px;font-size:12px;font-weight:700">ログイン</span> ボタンを押すか、<kbd>Enter</kbd> キーを押します</span></li>
     </ul>
     <div class="tip">
       <strong>💡 パスワードを保存しましょう</strong><br>
@@ -149,40 +164,104 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     </div>
     <p>ログイン後の画面は大きく3つのエリアに分かれています。</p>
 
-    <div class="ui-mock" style="padding:20px">
-      <div style="display:grid;grid-template-rows:44px 1fr;grid-template-columns:220px 1fr;gap:0;border:1px solid #ccc;border-radius:6px;overflow:hidden;font-size:12px">
-        <div style="grid-column:1/-1;background:#2d2926;color:#fff;display:flex;align-items:center;padding:0 12px;gap:12px;height:44px">
-          <span style="font-size:16px">☰</span>
-          <span style="font-weight:700;font-size:13px">EC事業部 販売データ</span>
-          <span style="margin-left:auto;background:rgba(255,255,255,.15);border-radius:5px;padding:4px 10px;font-size:11px">🔍 商品名・品番で検索…</span>
-          <span style="background:rgba(255,255,255,.15);border-radius:5px;padding:4px 8px;font-size:11px">⚙️</span>
-        </div>
-        <div style="background:#faf9f7;border-right:1px solid #ddd;padding:10px 12px;font-size:11px;color:#666">
-          <div style="font-weight:700;color:#E85D26;margin-bottom:6px">📅 販売期間</div>
-          <div style="background:#fff;border:1px solid #ddd;border-radius:4px;padding:4px 8px;margin-bottom:4px">2025/06/24</div>
-          <div style="background:#fff;border:1px solid #ddd;border-radius:4px;padding:4px 8px;margin-bottom:8px">2026/06/23</div>
-          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
-            <span style="background:#eee;border-radius:4px;padding:2px 6px">1年</span>
-            <span style="background:#eee;border-radius:4px;padding:2px 6px">2年</span>
-            <span style="background:#eee;border-radius:4px;padding:2px 6px">全期間</span>
+    <div class="ui-mock" style="padding:16px">
+      <div style="border:1px solid #ccc;border-radius:6px;overflow:hidden;font-size:11px">
+        <!-- Header -->
+        <div style="background:#2d2926;color:#fff;display:flex;align-items:center;padding:0 12px;gap:10px;height:44px">
+          <span style="font-size:15px;opacity:.7">☰</span>
+          <div>
+            <div style="font-weight:700;font-size:12px;line-height:1.2">EC事業部 販売データ</div>
+            <div style="font-size:9px;opacity:.4">EL COMMUN</div>
           </div>
-          <div style="font-weight:700;color:#E85D26;margin-bottom:6px">🏪 店舗</div>
-          <div style="background:#fff;border:1px solid #ddd;border-radius:4px;padding:4px 8px;margin-bottom:12px">すべての店舗 ▾</div>
-          <div style="font-weight:700;color:#E85D26;margin-bottom:6px">📊 カテゴリ</div>
-          <div style="color:#888;font-size:10px">手帳 / カレンダー<br>ステーショナリー<br>ランチ関係 …</div>
+          <span style="margin-left:auto;background:rgba(255,255,255,.15);border-radius:5px;padding:4px 10px;font-size:10px">🔍 商品名・品番で検索…</span>
+          <span style="background:rgba(255,255,255,.15);border-radius:5px;padding:4px 8px;font-size:10px">■ 使い方</span>
+          <span style="background:rgba(255,255,255,.15);border-radius:5px;padding:4px 8px;font-size:10px">⚙️ 設定</span>
         </div>
-        <div style="padding:12px;font-size:11px">
-          <div style="font-weight:700;margin-bottom:8px;color:#E85D26">手帳 &gt; 2026年度版 4月始まり コンパクト</div>
-          <table style="width:100%;border-collapse:collapse;font-size:11px">
-            <tr style="background:#f0ece8">
-              <th style="padding:4px 6px;text-align:left">順位</th><th style="padding:4px 6px;text-align:left">品番</th><th style="padding:4px 6px;text-align:left">商品名</th><th style="padding:4px 6px;text-align:right">個数</th><th style="padding:4px 6px;text-align:right">金額</th>
-            </tr>
-            <tr><td style="padding:4px 6px"><span style="display:inline-block;width:20px;height:20px;background:#E85D26;color:#fff;border-radius:50%;text-align:center;line-height:20px;font-weight:700;font-size:10px">1</span></td><td style="padding:4px 6px;color:#E85D26">DR-MC-418</td><td style="padding:4px 6px">Jardin Picnic</td><td style="padding:4px 6px;text-align:right">246</td><td style="padding:4px 6px;text-align:right">¥221,400</td></tr>
-            <tr style="background:#faf9f7"><td style="padding:4px 6px">2</td><td style="padding:4px 6px;color:#E85D26">DR-MC-417</td><td style="padding:4px 6px">Jardin Fleurir</td><td style="padding:4px 6px;text-align:right">214</td><td style="padding:4px 6px;text-align:right">¥205,728</td></tr>
-          </table>
+        <!-- Body -->
+        <div style="display:grid;grid-template-columns:180px 1fr">
+          <!-- Sidebar -->
+          <div style="background:#faf9f7;border-right:1px solid #e0dbd5;padding:10px 12px">
+            <div style="font-size:9px;color:#999;margin-bottom:6px">2025年06月24日〜2026年06月23日<br>80,960個 ／ ¥105,682,497<br>SKU 2,366種 ／ 44カテゴリ</div>
+            <div class="sb-mock-lbl">販売期間</div>
+            <div class="sb-mock-date"><span style="background:#2d2926;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:700">開始日</span><span style="border:1px solid #ccc;border-radius:4px;padding:1px 6px;background:#fff;font-size:10px">2025/06/24</span></div>
+            <div class="sb-mock-date"><span style="background:#2d2926;color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:700">終了日</span><span style="border:1px solid #ccc;border-radius:4px;padding:1px 6px;background:#fff;font-size:10px">2026/06/23</span></div>
+            <div class="sb-mock-qbtns" style="margin-top:5px">
+              <span class="sb-mock-qbtn on">1年</span>
+              <span class="sb-mock-qbtn">2年</span>
+              <span class="sb-mock-qbtn">3年</span>
+              <span class="sb-mock-qbtn">全期間</span>
+            </div>
+            <div class="sb-mock-lbl" style="margin-top:8px">店舗</div>
+            <select style="width:100%;border:1px solid #ccc;border-radius:4px;padding:2px 5px;font-size:10px;background:#fff;margin-bottom:8px"><option>すべての店舗</option></select>
+            <div style="display:flex;gap:4px;margin-bottom:6px">
+              <span style="flex:1;text-align:center;background:#E85D26;color:#fff;border-radius:4px;padding:3px 0;font-size:10px;font-weight:700">個数順</span>
+              <span style="flex:1;text-align:center;border:1px solid #ccc;border-radius:4px;padding:3px 0;font-size:10px;background:#fff">金額順</span>
+            </div>
+            <div style="display:flex;gap:4px;margin-bottom:8px">
+              <span style="flex:1;text-align:center;border:1px solid #ccc;border-radius:4px;padding:3px 0;font-size:10px;background:#fff">前年比較</span>
+              <span style="flex:1;text-align:center;border:1px solid #ccc;border-radius:4px;padding:3px 0;font-size:10px;background:#fff">ヒートマップ</span>
+            </div>
+            <div style="font-size:10px;color:#666">
+              <div style="display:flex;align-items:center;gap:4px;padding:3px 0;font-weight:700;color:#E85D26">📒 手帳 <span style="color:#E85D26;font-size:9px">34,784個</span></div>
+              <div style="padding:2px 0 2px 12px;color:#888">▶ 1月始まり</div>
+              <div style="padding:2px 0 2px 12px;color:#888">▶ 4月始まり</div>
+              <div style="display:flex;align-items:center;gap:4px;padding:3px 0;font-weight:700">📅 カレンダー</div>
+              <div style="display:flex;align-items:center;gap:4px;padding:3px 0;font-weight:700">✏️ ステーショナリー…</div>
+            </div>
+          </div>
+          <!-- Main -->
+          <div style="padding:10px 12px">
+            <div style="font-weight:700;font-size:11px;color:#E85D26;margin-bottom:6px">手帳 &gt; 新書判 コンパクトマンスリー（73種）</div>
+            <table style="width:100%;border-collapse:collapse;font-size:10px">
+              <tr style="background:#f0ece8">
+                <th style="padding:3px 5px;text-align:center;border:1px solid #e0dbd5">順位</th>
+                <th style="padding:3px 5px;text-align:center;border:1px solid #e0dbd5">品番</th>
+                <th style="padding:3px 5px;text-align:center;border:1px solid #e0dbd5">商品名</th>
+                <th style="padding:3px 5px;text-align:center;border:1px solid #e0dbd5">画像</th>
+                <th style="padding:3px 5px;text-align:center;border:1px solid #e0dbd5">上代</th>
+                <th style="padding:3px 5px;text-align:center;border:1px solid #e0dbd5">個数</th>
+                <th style="padding:3px 5px;text-align:center;border:1px solid #e0dbd5">合計金額</th>
+                <th style="padding:3px 5px;text-align:center;border:1px solid #e0dbd5">売上比</th>
+                <th style="padding:3px 5px;text-align:center;border:1px solid #e0dbd5">欠品日</th>
+              </tr>
+              <tr>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="display:inline-flex;width:18px;height:18px;background:#E85D26;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:9px">1</span></td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;color:#E85D26">DR-MC-401</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5">Break Time Pony</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="background:#ddd;display:inline-block;width:20px;height:26px;border-radius:2px"></span></td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center">¥980</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center;color:#E85D26;font-weight:700">281</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:right">¥275,380</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5"><span style="display:inline-block;background:#E85D26;height:6px;width:32px;border-radius:2px"></span></td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"></td>
+              </tr>
+              <tr style="background:#faf9f7">
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="display:inline-flex;width:18px;height:18px;background:#888;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:9px">2</span></td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;color:#E85D26">DR-MC-405</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5">Minimini Pony</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="background:#ddd;display:inline-block;width:20px;height:26px;border-radius:2px"></span></td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center">¥980</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center;font-weight:700">270</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:right">¥264,600</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5"><span style="display:inline-block;background:#f5a070;height:6px;width:28px;border-radius:2px"></span></td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="background:#c0392b;color:#fff;font-weight:700;border-radius:3px;padding:1px 4px;font-size:9px">1/上</span></td>
+              </tr>
+              <tr>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="display:inline-flex;width:18px;height:18px;background:#a07040;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:9px">3</span></td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;color:#E85D26">DR-MC-417</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5">Jardin Fleurir</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="background:#ddd;display:inline-block;width:20px;height:26px;border-radius:2px"></span></td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center">¥900</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center;font-weight:700">246</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:right">¥221,400</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5"><span style="display:inline-block;background:#fbd4be;height:6px;width:22px;border-radius:2px"></span></td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="background:#c0392b;color:#fff;font-weight:700;border-radius:3px;padding:1px 4px;font-size:9px">5/下</span></td>
+              </tr>
+            </table>
+          </div>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:220px 1fr;margin-top:6px;gap:0;font-size:11px;color:#888;text-align:center">
+      <div style="display:grid;grid-template-columns:180px 1fr;margin-top:5px;font-size:11px;color:#888;text-align:center">
         <div>← サイドバー（絞り込み・カテゴリ）</div>
         <div>メインエリア（ランキング表）→</div>
       </div>
@@ -190,7 +269,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
     <h3>各エリアの役割</h3>
     <ul>
-      <li><strong>ヘッダー（上部）</strong>：検索ボックス・設定ボタン・データ期間が表示されます</li>
+      <li><strong>ヘッダー（上部）</strong>：検索ボックス・「使い方」・「設定」ボタンが表示されます</li>
       <li><strong>サイドバー（左）</strong>：販売期間・店舗・ソート順・カテゴリを選択します</li>
       <li><strong>メインエリア（右）</strong>：選んだカテゴリの商品ランキングが表示されます</li>
     </ul>
@@ -210,12 +289,12 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
     <h3>日付を手動で入力する</h3>
     <div class="ui-mock">
-      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:6px">📅 販売期間</div>
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:8px">販売期間</div>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-        <span class="label">開始日</span><span class="field">2025/06/01</span>
+        <span class="chip">開始日</span><span class="field">2025/06/24</span>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
-        <span class="label">終了日</span><span class="field">2026/06/23</span>
+        <span class="chip">終了日</span><span class="field">2026/06/23</span>
       </div>
     </div>
     <p>日付欄をタップ/クリックするとカレンダーが表示されます。日付を選ぶと自動でランキングが更新されます。</p>
@@ -223,10 +302,10 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <h3>クイックボタンで素早く選ぶ</h3>
     <div class="ui-mock">
       <span class="btn">1年</span><span class="btn-s">2年</span><span class="btn-s">3年</span><span class="btn-s">全期間</span>
-      <span style="font-size:11px;color:#888;margin-left:8px">※ 押したボタンがオレンジ色になります</span>
+      <div style="font-size:11px;color:#888;margin-top:6px">※ 押したボタンがオレンジ色になります（デフォルトは「1年」）</div>
     </div>
     <ul>
-      <li><span class="tag tag-o">1年</span> 最新データから過去1年間</li>
+      <li><span class="tag tag-o">1年</span> 最新データから過去1年間（デフォルト）</li>
       <li><span class="tag tag-o">2年</span> 最新データから過去2年間</li>
       <li><span class="tag tag-o">3年</span> 最新データから過去3年間</li>
       <li><span class="tag">全期間</span> すべてのデータ（2021年〜）</li>
@@ -242,16 +321,13 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <p>サイドバーの <strong>「店舗」</strong> プルダウンから、特定の店舗だけのデータを見ることができます。</p>
 
     <div class="ui-mock">
-      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:6px">🏪 店舗</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <span class="label">店舗</span>
-        <select style="border:1px solid #ccc;border-radius:5px;padding:3px 8px;font-size:12px;background:#fff">
-          <option>すべての店舗</option>
-          <option>EL COMMUN 楽天市場店</option>
-          <option>EL COMMUN Amazon店</option>
-          <option>EL COMMUN Yahoo!店</option>
-        </select>
-      </div>
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:6px">店舗</div>
+      <select style="border:1px solid #ccc;border-radius:5px;padding:4px 10px;font-size:12px;background:#fff;width:220px">
+        <option>すべての店舗</option>
+        <option>EL COMMUN 楽天市場店</option>
+        <option>EL COMMUN Amazon店</option>
+        <option>EL COMMUN Yahoo!店</option>
+      </select>
     </div>
     <ul>
       <li>「すべての店舗」を選ぶと全店舗の合計が表示されます</li>
@@ -269,24 +345,33 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
     <h3>カテゴリの構造</h3>
     <div class="ui-mock" style="font-size:13px">
-      <div style="margin:4px 0">📚 <strong>手帳</strong> <span style="color:#999;font-size:11px">（クリックで展開）</span></div>
-      <div style="margin:4px 0 4px 18px">▶ 2026年度版 4月始まり コンパクトマンスリー</div>
-      <div style="margin:4px 0 4px 18px">▶ 2026年度版 4月始まり ウィークリー</div>
-      <div style="margin:4px 0">📅 <strong>カレンダー</strong></div>
-      <div style="margin:4px 0">✏️ <strong>ステーショナリー</strong></div>
-      <div style="margin:4px 0 4px 18px">▶ ペンケース</div>
-      <div style="margin:4px 0 4px 18px">▶ マウスパッド</div>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-weight:700;color:#E85D26">
+        <input type="checkbox" style="margin:0"> 📒 手帳 <span style="font-size:11px;font-weight:400;color:#E85D26">34,784個</span>
+      </div>
+      <div style="padding:3px 0 3px 22px;color:#666;font-size:12px">▶ 1月始まり　14,371個</div>
+      <div style="padding:3px 0 3px 22px;color:#666;font-size:12px">▶ 4月始まり　10,191個</div>
+      <div style="padding:3px 0 3px 22px;color:#666;font-size:12px">▶ 10月始まり　10,222個</div>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-weight:700">
+        <input type="checkbox" style="margin:0"> 📅 カレンダー <span style="font-size:11px;font-weight:400;color:#666">8,015個</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;font-weight:700">
+        <input type="checkbox" style="margin:0"> ✏️ ステーショナリー <span style="font-size:11px;font-weight:400;color:#666">29,121個</span>
+      </div>
+      <div style="padding:3px 0 3px 22px;color:#666;font-size:12px">▶ ペンケース</div>
+      <div style="padding:3px 0 3px 22px;color:#666;font-size:12px">▶ マウスパッド</div>
     </div>
 
     <ul>
       <li>グループ名（手帳・カレンダーなど）をクリックすると <strong>サブカテゴリが展開</strong> されます</li>
       <li>サブカテゴリをクリックすると右側にそのカテゴリの <strong>商品ランキング</strong> が表示されます</li>
+      <li>チェックボックスにチェックを入れると <strong>Excelダウンロード</strong> の対象になります</li>
     </ul>
 
     <h3>サイドバーの統計情報</h3>
     <p>カテゴリ一覧の上に、選択期間全体の合計が表示されます。</p>
     <div class="ui-mock" style="font-size:12px;color:#555">
-      合計 <strong style="color:#E85D26">5,234個</strong> ／ ¥12,345,000 ｜ SKU <strong>456</strong>種 ／ <strong>12</strong>カテゴリ
+      2025年06月24日〜2026年06月23日<br>
+      <strong style="color:#2d2926">80,960個</strong> ／ ¥105,682,497　SKU <strong>2,366</strong>種 ／ <strong>44</strong>カテゴリ
     </div>
   </div>
 
@@ -300,6 +385,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
     <div class="ui-mock">
       <span class="btn">個数順</span><span class="btn-s">金額順</span>
+      <div style="font-size:11px;color:#888;margin-top:6px">※ 押したボタンがオレンジ色になります</div>
     </div>
     <ul>
       <li><span class="tag tag-o">個数順</span> 販売個数が多い順にランキング（デフォルト）</li>
@@ -308,44 +394,46 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
     <div class="note">
       <strong>ℹ️ 列ヘッダーでもソートできます</strong><br>
-      ランキング表の「品番」「商品名」「上代」「個数」「金額」などの列ヘッダーをクリックすると、その列で昇順/降順に並べ替えられます。
+      ランキング表の「品番」「商品名」「上代」「個数」「合計金額」などの列ヘッダーをクリックすると、その列で昇順/降順に並べ替えられます。
     </div>
   </div>
 
-  <!-- 7. 前年比較 -->
+  <!-- 7. 前期比較 -->
   <div class="section" id="compare">
     <div class="section-hdr">
       <div class="step-badge">7</div>
-      <h2>前年比較を見る</h2>
+      <h2>前期比較を見る</h2>
     </div>
-    <p>サイドバーの <strong>「前年比較」</strong> をオンにすると、前年同期間の販売数と比較できます。</p>
+    <p>サイドバーの <strong>「前年比較」</strong> をオンにすると、前期・前々期の販売数と変化率が一緒に表示されます。</p>
 
     <div class="ui-mock">
-      <span class="btn">前年比較 ON</span>
+      <span class="btn">前年比較 ON</span><span class="btn-s">前年比較 OFF</span>
     </div>
 
     <table class="tbl-demo">
       <tr>
-        <th>順位</th><th>品番</th><th>商品名</th><th>個数</th><th style="color:#4a7cc9">前年</th><th>金額</th>
+        <th>順位</th><th class="left">品番</th><th class="left">商品名</th><th>個数</th><th>前期</th><th>前々期</th><th>合計金額</th>
       </tr>
       <tr>
-        <td><span class="rank-badge">1</span></td>
-        <td style="color:#E85D26">DR-MC-418</td>
-        <td>Jardin Picnic</td>
-        <td><strong>246</strong></td>
-        <td style="color:#4a7cc9">198</td>
-        <td>¥221,400</td>
+        <td style="text-align:center"><span class="rn r1">1</span></td>
+        <td style="color:#E85D26">DR-MC-401</td>
+        <td>Break Time Pony</td>
+        <td style="text-align:center;font-weight:700;color:#E85D26">281</td>
+        <td style="text-align:center">243<br><span style="color:#2a8a3e;font-size:11px">▲15%</span></td>
+        <td style="text-align:center">198<br><span style="color:#2a8a3e;font-size:11px">▲42%</span></td>
+        <td style="text-align:right">¥275,380</td>
       </tr>
       <tr>
-        <td><span class="rank-badge rank-2">2</span></td>
+        <td style="text-align:center"><span class="rn r2">2</span></td>
         <td style="color:#E85D26">DR-MC-417</td>
         <td>Jardin Fleurir</td>
-        <td><strong>214</strong></td>
-        <td style="color:#4a7cc9">241</td>
-        <td>¥205,728</td>
+        <td style="text-align:center;font-weight:700">246</td>
+        <td style="text-align:center">271<br><span style="color:#c0392b;font-size:11px">▼9%</span></td>
+        <td style="text-align:center">-</td>
+        <td style="text-align:right">¥221,400</td>
       </tr>
     </table>
-    <p style="font-size:13px;color:#888">青色の「前年」列に前年同期間の販売数が表示されます。</p>
+    <p style="font-size:13px;color:#888">「前期」「前々期」列に販売数と前期比（▲増加 ／ ▼減少）が表示されます。</p>
   </div>
 
   <!-- 8. ヒートマップ -->
@@ -357,17 +445,17 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <p>サイドバーの <strong>「ヒートマップ」</strong> をオンにすると、販売数に応じてセルの背景色が変わります。</p>
 
     <div class="ui-mock">
-      <span class="btn">🌡️ ヒートマップ ON</span>
+      <span class="btn">ヒートマップ ON</span><span class="btn-s">ヒートマップ OFF</span>
     </div>
 
     <table class="tbl-demo">
-      <tr><th>商品名</th><th>個数</th></tr>
-      <tr><td>Jardin Picnic</td><td style="background:#E85D26;color:#fff;font-weight:700">246</td></tr>
-      <tr><td>Jardin Fleurir</td><td style="background:#f5a070;color:#fff;font-weight:700">214</td></tr>
-      <tr><td>Trocadero</td><td style="background:#fbd4be;font-weight:700">124</td></tr>
-      <tr><td>Trio Tamago</td><td style="background:#fef0e8">89</td></tr>
+      <tr><th class="left">商品名</th><th>個数</th><th>合計金額</th></tr>
+      <tr><td>Break Time Pony</td><td class="heat-hi">281</td><td style="text-align:right">¥275,380</td></tr>
+      <tr><td>Minimini Pony</td><td class="heat-md">270</td><td style="text-align:right">¥264,600</td></tr>
+      <tr><td>Jardin Fleurir</td><td class="heat-lo">246</td><td style="text-align:right">¥221,400</td></tr>
+      <tr><td>Minuit Navy</td><td class="heat-vl">221</td><td style="text-align:right">¥216,580</td></tr>
     </table>
-    <p style="font-size:13px;color:#888">色が濃い（オレンジ/赤）ほど売上が多く、薄い色ほど少ないことを表します。</p>
+    <p style="font-size:13px;color:#888">色が濃い（オレンジ）ほど売上が多く、薄い色ほど少ないことを表します。</p>
   </div>
 
   <!-- 9. 検索 -->
@@ -376,10 +464,10 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <div class="step-badge">9</div>
       <h2>商品を検索する</h2>
     </div>
-    <p>画面右上の検索ボックスに商品名・品番・キーワードを入力すると、全カテゴリから一括検索できます。</p>
+    <p>画面上部の検索ボックスに商品名・品番・キーワードを入力すると、全カテゴリから一括検索できます。</p>
 
     <div class="ui-mock">
-      <span style="background:#2d2926;color:#fff;border-radius:5px;padding:4px 12px;font-size:12px">🔍 商品名・品番で検索…</span>
+      <span style="background:rgba(255,255,255,.15);border:1px solid #555;border-radius:5px;padding:5px 14px;font-size:12px;color:#888;display:inline-block">🔍 商品名・品番で検索…</span>
     </div>
 
     <h3>検索できるもの</h3>
@@ -405,10 +493,18 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <div class="step-badge">10</div>
       <h2>商品画像を見る</h2>
     </div>
-    <p>手帳・カレンダーの商品には画像が表示されます。</p>
+    <p>手帳・カレンダーのランキング表には <strong>「商品画像」</strong> 列が表示され、サムネイル画像が確認できます。</p>
 
     <h3>サムネイル（一覧内の小さな画像）</h3>
-    <p>ランキング表の右端に小さなサムネイル画像が表示されます。</p>
+    <table class="tbl-demo" style="max-width:400px">
+      <tr><th>品番</th><th class="left">商品名</th><th>商品画像</th><th>個数</th></tr>
+      <tr>
+        <td style="color:#E85D26">DR-MC-418</td>
+        <td>Jardin Picnic</td>
+        <td style="text-align:center"><span style="display:inline-block;width:28px;height:36px;background:#d4e8c4;border-radius:3px;border:1px solid #ccc"></span></td>
+        <td style="text-align:center;font-weight:700">246</td>
+      </tr>
+    </table>
 
     <h3>拡大表示（ライトボックス）</h3>
     <ul class="step-list">
@@ -416,6 +512,10 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><span class="txt">画像が大きく拡大表示されます</span></li>
       <li><span class="txt">画像の外側をタップ/クリックすると閉じます</span></li>
     </ul>
+    <div class="note">
+      <strong>ℹ️ 画像が表示されない場合</strong><br>
+      現在画像が登録されているのは手帳（DR-MC-###）とカレンダーの一部です。その他カテゴリの商品には画像がありません。
+    </div>
   </div>
 
   <!-- 11. 欠品情報 -->
@@ -424,19 +524,41 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <div class="step-badge">11</div>
       <h2>欠品情報を確認する</h2>
     </div>
-    <p>手帳・カレンダーのランキング表には <strong>「欠品日」</strong> 列が表示されます。</p>
+    <p>手帳・カレンダーのランキング表には <strong>「欠品日」</strong> 列が表示されます。欠品予定がある商品は赤いバッジで表示されます。</p>
 
     <table class="tbl-demo">
-      <tr><th>品番</th><th>商品名</th><th>個数</th><th style="color:#c0392b">欠品日</th></tr>
-      <tr><td style="color:#E85D26">DR-MC-418</td><td>Jardin Picnic</td><td>246</td><td><span style="background:#fff;color:#c0392b;font-weight:700;border-radius:3px;padding:0 2px">5/下</span></td></tr>
-      <tr><td style="color:#E85D26">DR-MC-417</td><td>Jardin Fleurir</td><td>214</td><td></td></tr>
-      <tr><td style="color:#E85D26">CAL-034</td><td>（カレンダー）</td><td>89</td><td><span style="background:#fff;color:#c0392b;font-weight:700;border-radius:3px;padding:0 2px">12/下</span></td></tr>
+      <tr><th>順位</th><th class="left">品番</th><th class="left">商品名</th><th>個数</th><th>欠品日</th></tr>
+      <tr>
+        <td style="text-align:center"><span class="rn r1">1</span></td>
+        <td style="color:#E85D26">DR-MC-401</td><td>Break Time Pony</td>
+        <td style="text-align:center;font-weight:700;color:#E85D26">281</td>
+        <td style="text-align:center"></td>
+      </tr>
+      <tr>
+        <td style="text-align:center"><span class="rn r2">2</span></td>
+        <td style="color:#E85D26">DR-MC-405</td><td>Minimini Pony</td>
+        <td style="text-align:center;font-weight:700">270</td>
+        <td style="text-align:center"><span class="so-badge">1/上</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:center"><span class="rn r3">3</span></td>
+        <td style="color:#E85D26">DR-MC-417</td><td>Jardin Fleurir</td>
+        <td style="text-align:center;font-weight:700">246</td>
+        <td style="text-align:center"><span class="so-badge">5/下</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:center"><span class="rn ro">9</span></td>
+        <td style="color:#E85D26">DR-MC-385</td><td>Bird &amp; Flower White</td>
+        <td style="text-align:center;font-weight:700">157</td>
+        <td style="text-align:center"><span class="so-badge">11/下</span></td>
+      </tr>
     </table>
 
     <h3>表示の読み方</h3>
     <ul>
+      <li>「<strong>1/上</strong>」→ 1月上旬に欠品予定</li>
       <li>「<strong>5/下</strong>」→ 5月下旬に欠品予定</li>
-      <li>「<strong>12/中</strong>」→ 12月中旬に欠品予定</li>
+      <li>「<strong>11/下</strong>」→ 11月下旬に欠品予定</li>
       <li>「<strong>上/中/下</strong>」はそれぞれ月の上旬・中旬・下旬を意味します</li>
       <li>空欄の場合は欠品情報なし（在庫あり）</li>
     </ul>
@@ -452,9 +574,13 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
     <ul class="step-list">
       <li><span class="txt">サイドバーのカテゴリ一覧で、ダウンロードしたいカテゴリの <strong>チェックボックス</strong> にチェックを入れます</span></li>
-      <li><span class="txt">カテゴリ一覧の下部にある <strong>「📥 選択してExcelダウンロード」</strong> ボタンをクリックします</span></li>
+      <li><span class="txt">サイドバー下部の <strong>「選択してExcelダウンロード」</strong> ボタンをクリックします</span></li>
       <li><span class="txt">Excelファイルが自動でダウンロードされます</span></li>
     </ul>
+
+    <div class="ui-mock" style="text-align:center">
+      <span style="display:inline-block;background:#4a7c59;color:#fff;border-radius:6px;padding:6px 18px;font-size:13px;font-weight:700">選択してExcelダウンロード</span>
+    </div>
 
     <h3>Excelファイルの内容</h3>
     <ul>
@@ -463,7 +589,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     </ul>
     <div class="note">
       <strong>ℹ️ 前年比較オンの場合</strong><br>
-      「前年比較」をオンにした状態でダウンロードすると、Excelにも前年の数値が含まれます。
+      「前年比較」をオンにした状態でダウンロードすると、Excelにも前期・前々期の数値が含まれます。
     </div>
   </div>
 
@@ -476,15 +602,15 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <p>「この言葉で検索したときに、この言葉もヒットしてほしい」というカスタムルールを登録できます。</p>
 
     <ul class="step-list">
-      <li><span class="txt">ヘッダー右端の <strong>⚙️</strong> ボタンをクリックします</span></li>
+      <li><span class="txt">ヘッダー右端の <strong>⚙️ 設定</strong> ボタンをクリックします</span></li>
       <li><span class="txt">「検索エイリアス設定」セクションで <strong>「検索語」</strong>（例：フェルメール）と <strong>「一致語」</strong>（例：Vermeer）を入力します</span></li>
       <li><span class="txt"><strong>「追加」</strong> ボタンをクリックすると登録されます</span></li>
     </ul>
 
     <div class="ui-mock">
-      <span class="label">検索語</span><span class="field">フェルメール</span>
+      <span class="chip">検索語</span><span class="field">フェルメール</span>
       &nbsp;⇔&nbsp;
-      <span class="label">一致語</span><span class="field">Vermeer</span>
+      <span class="chip">一致語</span><span class="field">Vermeer</span>
       <span class="btn" style="margin-left:8px">追加</span>
     </div>
 
@@ -513,13 +639,13 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
     <hr class="div">
 
-    <h3>前年比較の数字が表示されない商品がある</h3>
-    <p>前年に販売実績がない商品は前年欄が空欄になります。新商品や販売終了商品がこれに該当します。</p>
+    <h3>前期比較の数字が表示されない商品がある</h3>
+    <p>前期に販売実績がない商品は前期欄が「-」になります。新商品や販売終了商品がこれに該当します。</p>
 
     <hr class="div">
 
     <h3>画像が表示されない商品がある</h3>
-    <p>現在画像が登録されているのは手帳（DR-MC-416〜434）とカレンダーの一部のみです。その他カテゴリの商品には画像がありません。</p>
+    <p>現在画像が登録されているのは手帳（DR-MC-###）とカレンダーの一部のみです。その他カテゴリの商品には画像がありません。</p>
   </div>
 
 </div>
