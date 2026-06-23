@@ -11,10 +11,10 @@ a{color:#E85D26;text-decoration:none}
 a:hover{text-decoration:underline}
 
 /* Header */
-.hdr{background:#fff;border-bottom:3px solid #E85D26;padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.hdr-logo{font-size:13px;font-weight:800;letter-spacing:.08em;color:#E85D26}
-.hdr-title{font-size:16px;font-weight:700;color:#2d2926}
-.hdr-sub{font-size:11px;color:#999;margin-left:auto}
+.hdr{background:#2d2926;padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.hdr-logo{font-size:13px;font-weight:800;letter-spacing:.08em;color:#fff}
+.hdr-title{font-size:16px;font-weight:700;color:rgba(255,255,255,.7)}
+.hdr-sub{font-size:11px;color:rgba(255,255,255,.4);margin-left:auto}
 
 /* Layout */
 .wrap{max-width:860px;margin:0 auto;padding:32px 20px 80px}
@@ -177,7 +177,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
             <tr style="background:#f0ece8">
               <th style="padding:4px 6px;text-align:left">順位</th><th style="padding:4px 6px;text-align:left">品番</th><th style="padding:4px 6px;text-align:left">商品名</th><th style="padding:4px 6px;text-align:right">個数</th><th style="padding:4px 6px;text-align:right">金額</th>
             </tr>
-            <tr><td style="padding:4px 6px">🥇1</td><td style="padding:4px 6px;color:#E85D26">DR-MC-418</td><td style="padding:4px 6px">Jardin Picnic</td><td style="padding:4px 6px;text-align:right">246</td><td style="padding:4px 6px;text-align:right">¥221,400</td></tr>
+            <tr><td style="padding:4px 6px"><span style="display:inline-block;width:20px;height:20px;background:#E85D26;color:#fff;border-radius:50%;text-align:center;line-height:20px;font-weight:700;font-size:10px">1</span></td><td style="padding:4px 6px;color:#E85D26">DR-MC-418</td><td style="padding:4px 6px">Jardin Picnic</td><td style="padding:4px 6px;text-align:right">246</td><td style="padding:4px 6px;text-align:right">¥221,400</td></tr>
             <tr style="background:#faf9f7"><td style="padding:4px 6px">2</td><td style="padding:4px 6px;color:#E85D26">DR-MC-417</td><td style="padding:4px 6px">Jardin Fleurir</td><td style="padding:4px 6px;text-align:right">214</td><td style="padding:4px 6px;text-align:right">¥205,728</td></tr>
           </table>
         </div>
@@ -210,13 +210,20 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
     <h3>日付を手動で入力する</h3>
     <div class="ui-mock">
-      <span class="label">開始日</span><span class="field">2025/06/01</span>&nbsp;〜&nbsp;<span class="label">終了日</span><span class="field">2026/06/23</span>
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:6px">📅 販売期間</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        <span class="label">開始日</span><span class="field">2025/06/01</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="label">終了日</span><span class="field">2026/06/23</span>
+      </div>
     </div>
     <p>日付欄をタップ/クリックするとカレンダーが表示されます。日付を選ぶと自動でランキングが更新されます。</p>
 
     <h3>クイックボタンで素早く選ぶ</h3>
     <div class="ui-mock">
-      <span class="btn">1年</span><span class="btn">2年</span><span class="btn">3年</span><span class="btn-s">全期間</span>
+      <span class="btn">1年</span><span class="btn-s">2年</span><span class="btn-s">3年</span><span class="btn-s">全期間</span>
+      <span style="font-size:11px;color:#888;margin-left:8px">※ 押したボタンがオレンジ色になります</span>
     </div>
     <ul>
       <li><span class="tag tag-o">1年</span> 最新データから過去1年間</li>
@@ -235,13 +242,16 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <p>サイドバーの <strong>「店舗」</strong> プルダウンから、特定の店舗だけのデータを見ることができます。</p>
 
     <div class="ui-mock">
-      <span class="label">店舗</span>
-      <select style="border:1px solid #ccc;border-radius:5px;padding:3px 8px;font-size:12px;background:#fff">
-        <option>すべての店舗</option>
-        <option>EL COMMUN 楽天市場店</option>
-        <option>EL COMMUN Amazon店</option>
-        <option>EL COMMUN Yahoo!店</option>
-      </select>
+      <div style="font-size:11px;font-weight:700;color:#666;margin-bottom:6px">🏪 店舗</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="label">店舗</span>
+        <select style="border:1px solid #ccc;border-radius:5px;padding:3px 8px;font-size:12px;background:#fff">
+          <option>すべての店舗</option>
+          <option>EL COMMUN 楽天市場店</option>
+          <option>EL COMMUN Amazon店</option>
+          <option>EL COMMUN Yahoo!店</option>
+        </select>
+      </div>
     </div>
     <ul>
       <li>「すべての店舗」を選ぶと全店舗の合計が表示されます</li>
@@ -418,9 +428,9 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
     <table class="tbl-demo">
       <tr><th>品番</th><th>商品名</th><th>個数</th><th style="color:#c0392b">欠品日</th></tr>
-      <tr><td style="color:#E85D26">DR-MC-418</td><td>Jardin Picnic</td><td>246</td><td style="color:#c0392b">5/下</td></tr>
+      <tr><td style="color:#E85D26">DR-MC-418</td><td>Jardin Picnic</td><td>246</td><td><span style="background:#fff;color:#c0392b;font-weight:700;border-radius:3px;padding:0 2px">5/下</span></td></tr>
       <tr><td style="color:#E85D26">DR-MC-417</td><td>Jardin Fleurir</td><td>214</td><td></td></tr>
-      <tr><td style="color:#E85D26">CAL-034</td><td>（カレンダー）</td><td>89</td><td style="color:#c0392b">12/下</td></tr>
+      <tr><td style="color:#E85D26">CAL-034</td><td>（カレンダー）</td><td>89</td><td><span style="background:#fff;color:#c0392b;font-weight:700;border-radius:3px;padding:0 2px">12/下</span></td></tr>
     </table>
 
     <h3>表示の読み方</h3>
