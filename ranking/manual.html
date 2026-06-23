@@ -93,8 +93,8 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 .sb-mock-lbl{font-size:10px;font-weight:700;color:#888;margin-bottom:5px;margin-top:10px;letter-spacing:.05em}
 .sb-mock-lbl:first-child{margin-top:0}
 .sb-mock-date{display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:11px}
-.sb-mock-qbtns{display:flex;gap:3px;margin-bottom:2px}
-.sb-mock-qbtn{border:1px solid #ccc;border-radius:4px;padding:2px 7px;font-size:11px;background:#fff;color:#555}
+.sb-mock-qbtns{display:flex;gap:2px;margin-bottom:2px;flex-wrap:nowrap}
+.sb-mock-qbtn{border:1px solid #ccc;border-radius:4px;padding:2px 5px;font-size:9px;background:#fff;color:#555;white-space:nowrap}
 .sb-mock-qbtn.on{background:#E85D26;border-color:#E85D26;color:#fff;font-weight:700}
 </style>
 </head>
@@ -226,7 +226,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
               </tr>
               <tr>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="display:inline-flex;width:18px;height:18px;background:#E85D26;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:9px">1</span></td>
-                <td style="padding:3px 5px;border:1px solid #e0dbd5;color:#E85D26">DR-MC-401</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5">DR-MC-401</td>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5">Break Time Pony</td>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="background:#ddd;display:inline-block;width:20px;height:26px;border-radius:2px"></span></td>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center">¥980</td>
@@ -237,7 +237,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
               </tr>
               <tr style="background:#faf9f7">
                 <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="display:inline-flex;width:18px;height:18px;background:#888;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:9px">2</span></td>
-                <td style="padding:3px 5px;border:1px solid #e0dbd5;color:#E85D26">DR-MC-405</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5">DR-MC-405</td>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5">Minimini Pony</td>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="background:#ddd;display:inline-block;width:20px;height:26px;border-radius:2px"></span></td>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center">¥980</td>
@@ -248,7 +248,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
               </tr>
               <tr>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="display:inline-flex;width:18px;height:18px;background:#a07040;color:#fff;border-radius:50%;align-items:center;justify-content:center;font-weight:700;font-size:9px">3</span></td>
-                <td style="padding:3px 5px;border:1px solid #e0dbd5;color:#E85D26">DR-MC-417</td>
+                <td style="padding:3px 5px;border:1px solid #e0dbd5">DR-MC-417</td>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5">Jardin Fleurir</td>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center"><span style="background:#ddd;display:inline-block;width:20px;height:26px;border-radius:2px"></span></td>
                 <td style="padding:3px 5px;border:1px solid #e0dbd5;text-align:center">¥900</td>
@@ -416,7 +416,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       </tr>
       <tr>
         <td style="text-align:center"><span class="rn r1">1</span></td>
-        <td style="color:#E85D26">DR-MC-401</td>
+        <td>DR-MC-401</td>
         <td>Break Time Pony</td>
         <td style="text-align:center;font-weight:700;color:#E85D26">281</td>
         <td style="text-align:center">243<br><span style="color:#2a8a3e;font-size:11px">▲15%</span></td>
@@ -425,7 +425,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       </tr>
       <tr>
         <td style="text-align:center"><span class="rn r2">2</span></td>
-        <td style="color:#E85D26">DR-MC-417</td>
+        <td>DR-MC-417</td>
         <td>Jardin Fleurir</td>
         <td style="text-align:center;font-weight:700">246</td>
         <td style="text-align:center">271<br><span style="color:#c0392b;font-size:11px">▼9%</span></td>
@@ -445,7 +445,8 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <p>サイドバーの <strong>「ヒートマップ」</strong> をオンにすると、販売数に応じてセルの背景色が変わります。</p>
 
     <div class="ui-mock">
-      <span class="btn">ヒートマップ ON</span><span class="btn-s">ヒートマップ OFF</span>
+      <span class="btn">ヒートマップ</span><span class="btn-s">ヒートマップ</span>
+      <div style="font-size:11px;color:#888;margin-top:6px">※ ボタンがオレンジ色のときON、グレーのときOFF</div>
     </div>
 
     <table class="tbl-demo">
@@ -499,7 +500,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <table class="tbl-demo" style="max-width:400px">
       <tr><th>品番</th><th class="left">商品名</th><th>商品画像</th><th>個数</th></tr>
       <tr>
-        <td style="color:#E85D26">DR-MC-418</td>
+        <td>DR-MC-418</td>
         <td>Jardin Picnic</td>
         <td style="text-align:center"><span style="display:inline-block;width:28px;height:36px;background:#d4e8c4;border-radius:3px;border:1px solid #ccc"></span></td>
         <td style="text-align:center;font-weight:700">246</td>
@@ -530,25 +531,25 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <tr><th>順位</th><th class="left">品番</th><th class="left">商品名</th><th>個数</th><th>欠品日</th></tr>
       <tr>
         <td style="text-align:center"><span class="rn r1">1</span></td>
-        <td style="color:#E85D26">DR-MC-401</td><td>Break Time Pony</td>
+        <td>DR-MC-401</td><td>Break Time Pony</td>
         <td style="text-align:center;font-weight:700;color:#E85D26">281</td>
         <td style="text-align:center"></td>
       </tr>
       <tr>
         <td style="text-align:center"><span class="rn r2">2</span></td>
-        <td style="color:#E85D26">DR-MC-405</td><td>Minimini Pony</td>
+        <td>DR-MC-405</td><td>Minimini Pony</td>
         <td style="text-align:center;font-weight:700">270</td>
         <td style="text-align:center"><span class="so-badge">1/上</span></td>
       </tr>
       <tr>
         <td style="text-align:center"><span class="rn r3">3</span></td>
-        <td style="color:#E85D26">DR-MC-417</td><td>Jardin Fleurir</td>
+        <td>DR-MC-417</td><td>Jardin Fleurir</td>
         <td style="text-align:center;font-weight:700">246</td>
         <td style="text-align:center"><span class="so-badge">5/下</span></td>
       </tr>
       <tr>
         <td style="text-align:center"><span class="rn ro">9</span></td>
-        <td style="color:#E85D26">DR-MC-385</td><td>Bird &amp; Flower White</td>
+        <td>DR-MC-385</td><td>Bird &amp; Flower White</td>
         <td style="text-align:center;font-weight:700">157</td>
         <td style="text-align:center"><span class="so-badge">11/下</span></td>
       </tr>
