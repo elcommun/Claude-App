@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EC販売ランキング｜使い方マニュアル</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Noto Sans JP',Meiryo,sans-serif;background:#f5f4f2;color:#2d2926;line-height:1.7;font-size:15px}
+a{color:#E85D26;text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Header */
+.hdr{background:#fff;border-bottom:3px solid #E85D26;padding:0 24px;display:flex;align-items:center;gap:16px;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.hdr-logo{font-size:13px;font-weight:800;letter-spacing:.08em;color:#E85D26}
+.hdr-title{font-size:16px;font-weight:700;color:#2d2926}
+.hdr-sub{font-size:11px;color:#999;margin-left:auto}
+
+/* Layout */
+.wrap{max-width:860px;margin:0 auto;padding:32px 20px 80px}
+
+/* TOC */
+.toc{background:#fff;border-radius:10px;border:1px solid #e8e4df;padding:24px 28px;margin-bottom:36px}
+.toc h2{font-size:14px;font-weight:700;color:#E85D26;margin-bottom:14px;letter-spacing:.04em}
+.toc ol{padding-left:20px}
+.toc li{margin-bottom:6px;font-size:13px}
+.toc a{color:#2d2926}
+.toc a:hover{color:#E85D26}
+
+/* Section */
+.section{background:#fff;border-radius:10px;border:1px solid #e8e4df;padding:28px 32px;margin-bottom:24px}
+.section-hdr{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f0ece8}
+.step-badge{width:32px;height:32px;background:#E85D26;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0}
+.section h2{font-size:17px;font-weight:700;color:#2d2926}
+.section h3{font-size:14px;font-weight:700;color:#E85D26;margin:20px 0 8px;display:flex;align-items:center;gap:6px}
+.section h3::before{content:'▶';font-size:10px}
+.section p{margin-bottom:10px;font-size:14px;color:#4a4542}
+.section ul,.section ol{padding-left:20px;margin-bottom:12px}
+.section li{font-size:14px;color:#4a4542;margin-bottom:5px}
+
+/* Tip / Note */
+.tip{background:#fff8f2;border-left:4px solid #E85D26;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:13px;color:#5a4540}
+.tip strong{color:#E85D26}
+.note{background:#f0f5ff;border-left:4px solid #4a7cc9;border-radius:0 8px 8px 0;padding:12px 16px;margin:14px 0;font-size:13px;color:#2a3a5a}
+.note strong{color:#4a7cc9}
+
+/* UI mock */
+.ui-mock{background:#f8f6f4;border:1px solid #e0dbd5;border-radius:8px;padding:14px 18px;margin:12px 0;font-size:13px}
+.ui-mock .label{display:inline-block;background:#2d2926;color:#fff;border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;margin-right:6px}
+.ui-mock .btn{display:inline-block;background:#E85D26;color:#fff;border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;margin:2px 4px}
+.ui-mock .btn-g{display:inline-block;background:#4a7c59;color:#fff;border-radius:5px;padding:3px 10px;font-size:12px;font-weight:700;margin:2px 4px}
+.ui-mock .btn-s{display:inline-block;background:#fff;border:1px solid #ccc;color:#555;border-radius:5px;padding:3px 10px;font-size:12px;margin:2px 4px}
+.ui-mock .field{display:inline-block;border:1px solid #ccc;border-radius:5px;padding:3px 10px;font-size:12px;background:#fff;color:#888;margin:2px 4px}
+
+/* Table demo */
+.tbl-demo{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
+.tbl-demo th{background:#f0ece8;padding:7px 10px;text-align:left;font-weight:700;color:#5a4540;border:1px solid #e0dbd5}
+.tbl-demo td{padding:7px 10px;border:1px solid #e0dbd5;color:#4a4542}
+.tbl-demo tr:nth-child(even) td{background:#faf9f7}
+.rank-badge{display:inline-block;width:22px;height:22px;background:#E85D26;color:#fff;border-radius:50%;text-align:center;line-height:22px;font-weight:700;font-size:11px}
+.rank-2{background:#888}
+.rank-3{background:#a07040}
+
+/* Step list */
+.step-list{counter-reset:step;list-style:none;padding:0}
+.step-list li{counter-increment:step;display:flex;gap:14px;margin-bottom:16px;align-items:flex-start}
+.step-list li::before{content:counter(step);min-width:26px;height:26px;background:#E85D26;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;margin-top:1px}
+.step-list li .txt{font-size:14px;color:#4a4542;padding-top:3px}
+.step-list li .txt strong{color:#2d2926}
+
+/* Tag */
+.tag{display:inline-block;background:#e8ede8;color:#3a6349;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:700;margin:0 2px}
+.tag-o{background:#fdecd8;color:#c04010}
+.tag-b{background:#dce8f5;color:#2a5080}
+
+/* Kbd */
+kbd{background:#f0ece8;border:1px solid #ccc;border-radius:4px;padding:1px 6px;font-size:12px;font-family:monospace}
+
+/* Divider */
+.div{border:none;border-top:1px solid #ede9e4;margin:20px 0}
+
+/* Footer */
+footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">EL COMMUN</div>
+  <div class="hdr-title">EC販売ランキング｜使い方マニュアル</div>
+  <div class="hdr-sub">初心者向けガイド</div>
+</div>
+
+<div class="wrap">
+
+  <!-- はじめに -->
+  <div class="section" style="border-left:4px solid #E85D26">
+    <p style="font-size:15px;color:#2d2926">このマニュアルは <strong>EC販売ランキングアプリ</strong> の使い方を説明します。楽天・Amazon・Yahoo!などの販売データをカテゴリ別・商品別にランキング表示できます。</p>
+    <p style="margin-top:8px;font-size:13px;color:#888">対象ブラウザ：Chrome / Safari / Edge（最新版推奨）</p>
+  </div>
+
+  <!-- 目次 -->
+  <div class="toc">
+    <h2>📋 目次</h2>
+    <ol>
+      <li><a href="#login">ログイン</a></li>
+      <li><a href="#layout">画面の見かた</a></li>
+      <li><a href="#period">販売期間を絞り込む</a></li>
+      <li><a href="#store">店舗で絞り込む</a></li>
+      <li><a href="#category">カテゴリを選ぶ</a></li>
+      <li><a href="#sort">並び順を変える</a></li>
+      <li><a href="#compare">前年比較を見る</a></li>
+      <li><a href="#heatmap">ヒートマップ表示</a></li>
+      <li><a href="#search">商品を検索する</a></li>
+      <li><a href="#image">商品画像を見る</a></li>
+      <li><a href="#stockout">欠品情報を確認する</a></li>
+      <li><a href="#excel">Excelでダウンロードする</a></li>
+      <li><a href="#alias">検索エイリアスを設定する</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. ログイン -->
+  <div class="section" id="login">
+    <div class="section-hdr">
+      <div class="step-badge">1</div>
+      <h2>ログイン</h2>
+    </div>
+    <p>アプリを開くとログイン画面が表示されます。</p>
+    <ul class="step-list">
+      <li><span class="txt"><strong>ID</strong> を入力します</span></li>
+      <li><span class="txt"><strong>パスワード</strong> を入力します</span></li>
+      <li><span class="txt"><span class="btn-g" style="display:inline-block;background:#4a7c59;color:#fff;border-radius:5px;padding:2px 10px;font-size:12px;font-weight:700">ログイン</span> ボタンを押すか、<kbd>Enter</kbd> キーを押します</span></li>
+    </ul>
+    <div class="tip">
+      <strong>💡 パスワードを保存しましょう</strong><br>
+      ログイン時にブラウザから「パスワードを保存しますか？」と表示されたら <strong>「保存」</strong> を選ぶと、次回から自動入力されます。
+    </div>
+    <div class="note">
+      <strong>ℹ️ セッションについて</strong><br>
+      ログイン状態はタブを閉じるまで維持されます。タブを閉じると次回アクセス時に再度ログインが必要です。
+    </div>
+  </div>
+
+  <!-- 2. 画面の見かた -->
+  <div class="section" id="layout">
+    <div class="section-hdr">
+      <div class="step-badge">2</div>
+      <h2>画面の見かた</h2>
+    </div>
+    <p>ログイン後の画面は大きく3つのエリアに分かれています。</p>
+
+    <div class="ui-mock" style="padding:20px">
+      <div style="display:grid;grid-template-rows:44px 1fr;grid-template-columns:220px 1fr;gap:0;border:1px solid #ccc;border-radius:6px;overflow:hidden;font-size:12px">
+        <div style="grid-column:1/-1;background:#2d2926;color:#fff;display:flex;align-items:center;padding:0 12px;gap:12px;height:44px">
+          <span style="font-size:16px">☰</span>
+          <span style="font-weight:700;font-size:13px">EC事業部 販売データ</span>
+          <span style="margin-left:auto;background:rgba(255,255,255,.15);border-radius:5px;padding:4px 10px;font-size:11px">🔍 商品名・品番で検索…</span>
+          <span style="background:rgba(255,255,255,.15);border-radius:5px;padding:4px 8px;font-size:11px">⚙️</span>
+        </div>
+        <div style="background:#faf9f7;border-right:1px solid #ddd;padding:10px 12px;font-size:11px;color:#666">
+          <div style="font-weight:700;color:#E85D26;margin-bottom:6px">📅 販売期間</div>
+          <div style="background:#fff;border:1px solid #ddd;border-radius:4px;padding:4px 8px;margin-bottom:4px">2025/06/24</div>
+          <div style="background:#fff;border:1px solid #ddd;border-radius:4px;padding:4px 8px;margin-bottom:8px">2026/06/23</div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
+            <span style="background:#eee;border-radius:4px;padding:2px 6px">1年</span>
+            <span style="background:#eee;border-radius:4px;padding:2px 6px">2年</span>
+            <span style="background:#eee;border-radius:4px;padding:2px 6px">全期間</span>
+          </div>
+          <div style="font-weight:700;color:#E85D26;margin-bottom:6px">🏪 店舗</div>
+          <div style="background:#fff;border:1px solid #ddd;border-radius:4px;padding:4px 8px;margin-bottom:12px">すべての店舗 ▾</div>
+          <div style="font-weight:700;color:#E85D26;margin-bottom:6px">📊 カテゴリ</div>
+          <div style="color:#888;font-size:10px">手帳 / カレンダー<br>ステーショナリー<br>ランチ関係 …</div>
+        </div>
+        <div style="padding:12px;font-size:11px">
+          <div style="font-weight:700;margin-bottom:8px;color:#E85D26">手帳 &gt; 2026年度版 4月始まり コンパクト</div>
+          <table style="width:100%;border-collapse:collapse;font-size:11px">
+            <tr style="background:#f0ece8">
+              <th style="padding:4px 6px;text-align:left">順位</th><th style="padding:4px 6px;text-align:left">品番</th><th style="padding:4px 6px;text-align:left">商品名</th><th style="padding:4px 6px;text-align:right">個数</th><th style="padding:4px 6px;text-align:right">金額</th>
+            </tr>
+            <tr><td style="padding:4px 6px">🥇1</td><td style="padding:4px 6px;color:#E85D26">DR-MC-418</td><td style="padding:4px 6px">Jardin Picnic</td><td style="padding:4px 6px;text-align:right">246</td><td style="padding:4px 6px;text-align:right">¥221,400</td></tr>
+            <tr style="background:#faf9f7"><td style="padding:4px 6px">2</td><td style="padding:4px 6px;color:#E85D26">DR-MC-417</td><td style="padding:4px 6px">Jardin Fleurir</td><td style="padding:4px 6px;text-align:right">214</td><td style="padding:4px 6px;text-align:right">¥205,728</td></tr>
+          </table>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:220px 1fr;margin-top:6px;gap:0;font-size:11px;color:#888;text-align:center">
+        <div>← サイドバー（絞り込み・カテゴリ）</div>
+        <div>メインエリア（ランキング表）→</div>
+      </div>
+    </div>
+
+    <h3>各エリアの役割</h3>
+    <ul>
+      <li><strong>ヘッダー（上部）</strong>：検索ボックス・設定ボタン・データ期間が表示されます</li>
+      <li><strong>サイドバー（左）</strong>：販売期間・店舗・ソート順・カテゴリを選択します</li>
+      <li><strong>メインエリア（右）</strong>：選んだカテゴリの商品ランキングが表示されます</li>
+    </ul>
+    <div class="tip">
+      <strong>💡 スマートフォン・タブレットの場合</strong><br>
+      左上の <strong>☰</strong> ボタンをタップするとサイドバーが開閉します。
+    </div>
+  </div>
+
+  <!-- 3. 販売期間を絞り込む -->
+  <div class="section" id="period">
+    <div class="section-hdr">
+      <div class="step-badge">3</div>
+      <h2>販売期間を絞り込む</h2>
+    </div>
+    <p>サイドバー上部の <strong>「販売期間」</strong> で、集計したい期間を指定できます。</p>
+
+    <h3>日付を手動で入力する</h3>
+    <div class="ui-mock">
+      <span class="label">開始日</span><span class="field">2025/06/01</span>&nbsp;〜&nbsp;<span class="label">終了日</span><span class="field">2026/06/23</span>
+    </div>
+    <p>日付欄をタップ/クリックするとカレンダーが表示されます。日付を選ぶと自動でランキングが更新されます。</p>
+
+    <h3>クイックボタンで素早く選ぶ</h3>
+    <div class="ui-mock">
+      <span class="btn">1年</span><span class="btn">2年</span><span class="btn">3年</span><span class="btn-s">全期間</span>
+    </div>
+    <ul>
+      <li><span class="tag tag-o">1年</span> 最新データから過去1年間</li>
+      <li><span class="tag tag-o">2年</span> 最新データから過去2年間</li>
+      <li><span class="tag tag-o">3年</span> 最新データから過去3年間</li>
+      <li><span class="tag">全期間</span> すべてのデータ（2021年〜）</li>
+    </ul>
+  </div>
+
+  <!-- 4. 店舗で絞り込む -->
+  <div class="section" id="store">
+    <div class="section-hdr">
+      <div class="step-badge">4</div>
+      <h2>店舗で絞り込む</h2>
+    </div>
+    <p>サイドバーの <strong>「店舗」</strong> プルダウンから、特定の店舗だけのデータを見ることができます。</p>
+
+    <div class="ui-mock">
+      <span class="label">店舗</span>
+      <select style="border:1px solid #ccc;border-radius:5px;padding:3px 8px;font-size:12px;background:#fff">
+        <option>すべての店舗</option>
+        <option>EL COMMUN 楽天市場店</option>
+        <option>EL COMMUN Amazon店</option>
+        <option>EL COMMUN Yahoo!店</option>
+      </select>
+    </div>
+    <ul>
+      <li>「すべての店舗」を選ぶと全店舗の合計が表示されます</li>
+      <li>特定の店舗を選ぶとその店舗のみのランキングになります</li>
+    </ul>
+  </div>
+
+  <!-- 5. カテゴリを選ぶ -->
+  <div class="section" id="category">
+    <div class="section-hdr">
+      <div class="step-badge">5</div>
+      <h2>カテゴリを選ぶ</h2>
+    </div>
+    <p>サイドバー下部のカテゴリ一覧から、見たい商品カテゴリをクリックします。</p>
+
+    <h3>カテゴリの構造</h3>
+    <div class="ui-mock" style="font-size:13px">
+      <div style="margin:4px 0">📚 <strong>手帳</strong> <span style="color:#999;font-size:11px">（クリックで展開）</span></div>
+      <div style="margin:4px 0 4px 18px">▶ 2026年度版 4月始まり コンパクトマンスリー</div>
+      <div style="margin:4px 0 4px 18px">▶ 2026年度版 4月始まり ウィークリー</div>
+      <div style="margin:4px 0">📅 <strong>カレンダー</strong></div>
+      <div style="margin:4px 0">✏️ <strong>ステーショナリー</strong></div>
+      <div style="margin:4px 0 4px 18px">▶ ペンケース</div>
+      <div style="margin:4px 0 4px 18px">▶ マウスパッド</div>
+    </div>
+
+    <ul>
+      <li>グループ名（手帳・カレンダーなど）をクリックすると <strong>サブカテゴリが展開</strong> されます</li>
+      <li>サブカテゴリをクリックすると右側にそのカテゴリの <strong>商品ランキング</strong> が表示されます</li>
+    </ul>
+
+    <h3>サイドバーの統計情報</h3>
+    <p>カテゴリ一覧の上に、選択期間全体の合計が表示されます。</p>
+    <div class="ui-mock" style="font-size:12px;color:#555">
+      合計 <strong style="color:#E85D26">5,234個</strong> ／ ¥12,345,000 ｜ SKU <strong>456</strong>種 ／ <strong>12</strong>カテゴリ
+    </div>
+  </div>
+
+  <!-- 6. 並び順を変える -->
+  <div class="section" id="sort">
+    <div class="section-hdr">
+      <div class="step-badge">6</div>
+      <h2>並び順を変える</h2>
+    </div>
+    <p>サイドバーのボタンで、ランキングの基準を切り替えられます。</p>
+
+    <div class="ui-mock">
+      <span class="btn">個数順</span><span class="btn-s">金額順</span>
+    </div>
+    <ul>
+      <li><span class="tag tag-o">個数順</span> 販売個数が多い順にランキング（デフォルト）</li>
+      <li><span class="tag tag-o">金額順</span> 売上金額が高い順にランキング</li>
+    </ul>
+
+    <div class="note">
+      <strong>ℹ️ 列ヘッダーでもソートできます</strong><br>
+      ランキング表の「品番」「商品名」「上代」「個数」「金額」などの列ヘッダーをクリックすると、その列で昇順/降順に並べ替えられます。
+    </div>
+  </div>
+
+  <!-- 7. 前年比較 -->
+  <div class="section" id="compare">
+    <div class="section-hdr">
+      <div class="step-badge">7</div>
+      <h2>前年比較を見る</h2>
+    </div>
+    <p>サイドバーの <strong>「前年比較」</strong> をオンにすると、前年同期間の販売数と比較できます。</p>
+
+    <div class="ui-mock">
+      <span class="btn">前年比較 ON</span>
+    </div>
+
+    <table class="tbl-demo">
+      <tr>
+        <th>順位</th><th>品番</th><th>商品名</th><th>個数</th><th style="color:#4a7cc9">前年</th><th>金額</th>
+      </tr>
+      <tr>
+        <td><span class="rank-badge">1</span></td>
+        <td style="color:#E85D26">DR-MC-418</td>
+        <td>Jardin Picnic</td>
+        <td><strong>246</strong></td>
+        <td style="color:#4a7cc9">198</td>
+        <td>¥221,400</td>
+      </tr>
+      <tr>
+        <td><span class="rank-badge rank-2">2</span></td>
+        <td style="color:#E85D26">DR-MC-417</td>
+        <td>Jardin Fleurir</td>
+        <td><strong>214</strong></td>
+        <td style="color:#4a7cc9">241</td>
+        <td>¥205,728</td>
+      </tr>
+    </table>
+    <p style="font-size:13px;color:#888">青色の「前年」列に前年同期間の販売数が表示されます。</p>
+  </div>
+
+  <!-- 8. ヒートマップ -->
+  <div class="section" id="heatmap">
+    <div class="section-hdr">
+      <div class="step-badge">8</div>
+      <h2>ヒートマップ表示</h2>
+    </div>
+    <p>サイドバーの <strong>「ヒートマップ」</strong> をオンにすると、販売数に応じてセルの背景色が変わります。</p>
+
+    <div class="ui-mock">
+      <span class="btn">🌡️ ヒートマップ ON</span>
+    </div>
+
+    <table class="tbl-demo">
+      <tr><th>商品名</th><th>個数</th></tr>
+      <tr><td>Jardin Picnic</td><td style="background:#E85D26;color:#fff;font-weight:700">246</td></tr>
+      <tr><td>Jardin Fleurir</td><td style="background:#f5a070;color:#fff;font-weight:700">214</td></tr>
+      <tr><td>Trocadero</td><td style="background:#fbd4be;font-weight:700">124</td></tr>
+      <tr><td>Trio Tamago</td><td style="background:#fef0e8">89</td></tr>
+    </table>
+    <p style="font-size:13px;color:#888">色が濃い（オレンジ/赤）ほど売上が多く、薄い色ほど少ないことを表します。</p>
+  </div>
+
+  <!-- 9. 検索 -->
+  <div class="section" id="search">
+    <div class="section-hdr">
+      <div class="step-badge">9</div>
+      <h2>商品を検索する</h2>
+    </div>
+    <p>画面右上の検索ボックスに商品名・品番・キーワードを入力すると、全カテゴリから一括検索できます。</p>
+
+    <div class="ui-mock">
+      <span style="background:#2d2926;color:#fff;border-radius:5px;padding:4px 12px;font-size:12px">🔍 商品名・品番で検索…</span>
+    </div>
+
+    <h3>検索できるもの</h3>
+    <ul>
+      <li><strong>商品名</strong>：「Jardin」「花」「ネコ」など</li>
+      <li><strong>品番</strong>：「DR-MC-418」「CAL-034」など</li>
+      <li><strong>日英両方</strong>：「白」と入力すると「White」「ホワイト」も一緒にヒットします</li>
+      <li><strong>カタカナ・ひらがな・漢字</strong>：「ねこ」「猫」「ネコ」はすべて同じ結果になります</li>
+    </ul>
+
+    <div class="tip">
+      <strong>💡 検索結果の見かた</strong><br>
+      検索すると全カテゴリの商品がまとめて表示されます。「カテゴリ」列も表示されるので、どのカテゴリの商品かがわかります。
+    </div>
+
+    <h3>検索をクリアする</h3>
+    <p>検索ボックスの文字を全部消す（または <kbd>Esc</kbd> キーを押す）と通常のカテゴリ表示に戻ります。</p>
+  </div>
+
+  <!-- 10. 商品画像 -->
+  <div class="section" id="image">
+    <div class="section-hdr">
+      <div class="step-badge">10</div>
+      <h2>商品画像を見る</h2>
+    </div>
+    <p>手帳・カレンダーの商品には画像が表示されます。</p>
+
+    <h3>サムネイル（一覧内の小さな画像）</h3>
+    <p>ランキング表の右端に小さなサムネイル画像が表示されます。</p>
+
+    <h3>拡大表示（ライトボックス）</h3>
+    <ul class="step-list">
+      <li><span class="txt">サムネイル画像を <strong>タップ/クリック</strong> します</span></li>
+      <li><span class="txt">画像が大きく拡大表示されます</span></li>
+      <li><span class="txt">画像の外側をタップ/クリックすると閉じます</span></li>
+    </ul>
+  </div>
+
+  <!-- 11. 欠品情報 -->
+  <div class="section" id="stockout">
+    <div class="section-hdr">
+      <div class="step-badge">11</div>
+      <h2>欠品情報を確認する</h2>
+    </div>
+    <p>手帳・カレンダーのランキング表には <strong>「欠品日」</strong> 列が表示されます。</p>
+
+    <table class="tbl-demo">
+      <tr><th>品番</th><th>商品名</th><th>個数</th><th style="color:#c0392b">欠品日</th></tr>
+      <tr><td style="color:#E85D26">DR-MC-418</td><td>Jardin Picnic</td><td>246</td><td style="color:#c0392b">5/下</td></tr>
+      <tr><td style="color:#E85D26">DR-MC-417</td><td>Jardin Fleurir</td><td>214</td><td></td></tr>
+      <tr><td style="color:#E85D26">CAL-034</td><td>（カレンダー）</td><td>89</td><td style="color:#c0392b">12/下</td></tr>
+    </table>
+
+    <h3>表示の読み方</h3>
+    <ul>
+      <li>「<strong>5/下</strong>」→ 5月下旬に欠品予定</li>
+      <li>「<strong>12/中</strong>」→ 12月中旬に欠品予定</li>
+      <li>「<strong>上/中/下</strong>」はそれぞれ月の上旬・中旬・下旬を意味します</li>
+      <li>空欄の場合は欠品情報なし（在庫あり）</li>
+    </ul>
+  </div>
+
+  <!-- 12. Excelダウンロード -->
+  <div class="section" id="excel">
+    <div class="section-hdr">
+      <div class="step-badge">12</div>
+      <h2>Excelでダウンロードする</h2>
+    </div>
+    <p>カテゴリを選んでExcelファイルとして書き出すことができます。</p>
+
+    <ul class="step-list">
+      <li><span class="txt">サイドバーのカテゴリ一覧で、ダウンロードしたいカテゴリの <strong>チェックボックス</strong> にチェックを入れます</span></li>
+      <li><span class="txt">カテゴリ一覧の下部にある <strong>「📥 選択してExcelダウンロード」</strong> ボタンをクリックします</span></li>
+      <li><span class="txt">Excelファイルが自動でダウンロードされます</span></li>
+    </ul>
+
+    <h3>Excelファイルの内容</h3>
+    <ul>
+      <li><strong>シート1：目録</strong>　品番順で全商品を一覧</li>
+      <li><strong>シート2：ランキング</strong>　販売個数順でランク付け</li>
+    </ul>
+    <div class="note">
+      <strong>ℹ️ 前年比較オンの場合</strong><br>
+      「前年比較」をオンにした状態でダウンロードすると、Excelにも前年の数値が含まれます。
+    </div>
+  </div>
+
+  <!-- 13. 検索エイリアス -->
+  <div class="section" id="alias">
+    <div class="section-hdr">
+      <div class="step-badge">13</div>
+      <h2>検索エイリアスを設定する</h2>
+    </div>
+    <p>「この言葉で検索したときに、この言葉もヒットしてほしい」というカスタムルールを登録できます。</p>
+
+    <ul class="step-list">
+      <li><span class="txt">ヘッダー右端の <strong>⚙️</strong> ボタンをクリックします</span></li>
+      <li><span class="txt">「検索エイリアス設定」セクションで <strong>「検索語」</strong>（例：フェルメール）と <strong>「一致語」</strong>（例：Vermeer）を入力します</span></li>
+      <li><span class="txt"><strong>「追加」</strong> ボタンをクリックすると登録されます</span></li>
+    </ul>
+
+    <div class="ui-mock">
+      <span class="label">検索語</span><span class="field">フェルメール</span>
+      &nbsp;⇔&nbsp;
+      <span class="label">一致語</span><span class="field">Vermeer</span>
+      <span class="btn" style="margin-left:8px">追加</span>
+    </div>
+
+    <p>登録後は「フェルメール」で検索すると「Vermeer」を含む商品もヒットするようになります。</p>
+
+    <div class="tip">
+      <strong>💡 よく使うエイリアス例</strong><br>
+      ブランド名の日英表記（「ピーナッツ」⇔「PEANUTS」）、略称（「コンパクト」⇔「MC」）など
+    </div>
+  </div>
+
+  <!-- よくある質問 -->
+  <div class="section">
+    <div class="section-hdr">
+      <div class="step-badge" style="background:#4a7c59">Q</div>
+      <h2>よくある質問</h2>
+    </div>
+
+    <h3>データが表示されない</h3>
+    <p>販売期間の設定を確認してください。期間が古すぎる・新しすぎると該当データがない場合があります。<strong>「全期間」</strong>ボタンを押して確認してみてください。</p>
+
+    <hr class="div">
+
+    <h3>検索しても商品が出てこない</h3>
+    <p>品番は「DR-MC-418」のようにハイフンを含む正確な表記で検索してみてください。商品名はカタカナ・ひらがな・英語どれでも検索できます。</p>
+
+    <hr class="div">
+
+    <h3>前年比較の数字が表示されない商品がある</h3>
+    <p>前年に販売実績がない商品は前年欄が空欄になります。新商品や販売終了商品がこれに該当します。</p>
+
+    <hr class="div">
+
+    <h3>画像が表示されない商品がある</h3>
+    <p>現在画像が登録されているのは手帳（DR-MC-416〜434）とカレンダーの一部のみです。その他カテゴリの商品には画像がありません。</p>
+  </div>
+
+</div>
+
+<footer>
+  EL COMMUN EC事業部 販売ランキングアプリ｜使い方マニュアル
+</footer>
+
+</body>
+</html>
