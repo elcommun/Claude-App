@@ -360,7 +360,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v168</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v169</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2411,9 +2411,8 @@ function removeAlias(i){
     const pw=img.naturalWidth||200, ph=img.naturalHeight||280;
     const r=img.getBoundingClientRect();
     const gap=36;
-    // 幅はサムネ右側の空きスペースに収める（右にはみ出して表に重ならないように）。
-    const roomRight=window.innerWidth-r.right-gap-12;
-    let dw=Math.min(pw, window.innerWidth*0.13, Math.max(roomRight,80));
+    // 幅は画面幅の固定割合で決定（テーブル構成によるサイズ差をなくす）
+    let dw=Math.min(pw, window.innerWidth*0.13);
     let scale=dw/pw;
     // 高さは画面の8割まで
     const maxH=window.innerHeight*0.8;
