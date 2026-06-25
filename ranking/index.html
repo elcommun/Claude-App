@@ -310,18 +310,18 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-sec-hdr{font-size:14px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:3px;margin:10px 0 5px}
 .cat-sec-hdr.first{margin-top:0}
 .cat-sec-cnt{font-size:10px;font-weight:400;color:#888}
-.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:3px;margin-bottom:4px}
+.cat-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-bottom:4px}
 .cat-fmt{grid-column:1/-1;font-size:11px;font-weight:700;color:#555;background:#f1ece4;border-left:3px solid #E85D26;padding:2px 7px;margin-top:3px}
 .cat-fmt-cnt{font-weight:400;font-size:9px;color:#999}
 .cat-card{position:relative;border:1px solid #e2ddd4;border-radius:4px;padding:2px 2px 3px;text-align:center;background:#fff;display:flex;flex-direction:column}
 .cat-rank{position:absolute;top:2px;left:2px;min-width:15px;height:15px;line-height:15px;padding:0 3px;border-radius:8px;font-size:9px;font-weight:700;color:#fff;background:#9a948c;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:1}
 .cat-rank.r1{background:#E85D26}.cat-rank.r2{background:#8a8a8a}.cat-rank.r3{background:#a07040}.cat-rank.ro{background:#b3ada4}
 .cat-so{position:absolute;top:2px;right:2px;background:#c0392b;color:#fff;font-size:9px;font-weight:700;border-radius:3px;padding:0 4px;white-space:nowrap;z-index:1}
-.cat-imgbox{height:64px;display:flex;align-items:center;justify-content:center;margin:1px 0 2px}
-.cat-img{max-width:100%;max-height:64px;object-fit:contain}
-.cat-pname{font-size:8px;font-weight:600;line-height:1.18;height:19px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.cat-imgbox{height:72px;display:flex;align-items:center;justify-content:center;margin:1px 0 2px}
+.cat-img{max-width:100%;max-height:72px;object-fit:contain}
+.cat-pname{font-size:7px;font-weight:600;line-height:1.12;height:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
 .cat-line{display:flex;justify-content:space-between;align-items:baseline;gap:2px;margin-top:1px;font-size:8px}
-.cat-code{font-family:monospace;opacity:.85}
+.cat-code{font-family:monospace;font-weight:700;font-size:9.5px}
 .cat-price{font-weight:700;white-space:nowrap}
 .cat-qty{margin-top:1px;font-size:9px;font-weight:700;border-radius:3px;padding:1px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media print{
@@ -404,7 +404,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v175</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v176</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1278,18 +1278,27 @@ function catalogHeat(val,maxVal){
   const B=Math.round(38+(238-38)*(1-r));
   return {bg:`rgb(${R},${G},${B})`,light:r<=0.5};
 }
-// 複数の品名で共通する先頭語の数を返す（語=スペース区切り）。1件以下や全一致時は0。
-function commonPrefixWords(names){
-  const valid=names.filter(n=>n&&n.trim());
-  if(valid.length<2) return 0;
-  const toks=valid.map(n=>n.trim().split(/\s+/));
-  let i=0;
-  while(true){
-    const t=toks[0][i];
-    if(t===undefined) return 0; // 全語一致（全名称が同一）→除去しない
-    if(toks.every(a=>a[i]===t)) i++; else break;
-  }
-  return i;
+// 品名の先頭から、見出しで説明済みの語（チャネル限定・季節・フォーマット名）を取り除き、
+// 個別名のみを返す。フォーマット見出し語(fmtName)＋一般的なフォーマット語＋季節語を判定。
+// 既存の normalize()（半/全角・カタカナ→ひらがな・英小文字化）で表記揺れを吸収する。
+const CAT_FMT_STATIC=['まんすりー','うぃーくりー','でいりー','ぶろっく','ふるからー','すたんだーど','こんぱくと','みに','ろんぐ','りんぐたいぷ','新書判','文庫','文庫判','卓上','壁掛け','b6','a5','a6','nitte'];
+function catShortName(name, fmtName){
+  const norm=s=>(typeof normalize==='function'?normalize(s):String(s||'').toLowerCase());
+  const fmtKeys=norm(String(fmtName||'').replace(/[｜|・/]+/g,' ')).split(/\s+/).filter(k=>k.length>=2);
+  const isHead=tok=>{
+    const n=norm(tok); if(!n) return false;
+    if(/^(だいありー|かれんだー)$/.test(n)) return true;       // ﾀﾞｲｱﾘｰ/ｶﾚﾝﾀﾞｰ
+    if(/(年度版|年版)$/.test(tok)) return true;                 // 2025年版/2026年度版
+    if(/始まり$/.test(tok)) return true;                        // 1月始まり
+    if(/(販路限定|別注|限定)$/.test(tok)) return true;          // ﾛﾌﾄ販路限定/EC別注 等
+    if(CAT_FMT_STATIC.includes(n)) return true;                 // 一般フォーマット語（完全一致）
+    for(const k of fmtKeys){ if(n===k) return true; if(k.length>=3 && n.length>k.length && n.includes(k)) return true; } // 見出し語（連結表記も）
+    return false;
+  };
+  const toks=String(name||'').trim().split(/\s+/);
+  let i=0; while(i<toks.length && isHead(toks[i])) i++;
+  const short=toks.slice(i).join(' ').trim();
+  return short||String(name||'');
 }
 // チェック済みの手帳/カレンダーカテゴリを、フォーマット別グループ→品番順で組み立てる
 function buildCatalogData(){
@@ -1316,9 +1325,8 @@ function buildCatalogData(){
       gi.sort((a,b)=>codeCompare(a.code,b.code)); // 品番昇順
       let rmap=rankMap;
       if(catType==='手帳'){const gr=[...gi].sort((a,b)=>b.qty-a.qty);rmap={};gr.forEach((it,idx)=>{rmap[it.code]=idx+1;});} // 手帳はフォーマット別順位
-      // グループ内で共通する先頭語（見出しで説明済みの部分）を品名から除去し、個別名のみ表示
-      const cp=commonPrefixWords(gi.map(it=>it.name||''));
-      grp.push({fmtName,items:gi.map(it=>{const toks=(it.name||'').split(/\s+/);const short=cp>0?toks.slice(cp).join(' ').trim():'';return {...it,rank:rmap[it.code],shortName:short||it.name};})});
+      // 品名から季節・フォーマット名を除去し、個別名のみ表示
+      grp.push({fmtName,items:gi.map(it=>({...it,rank:rmap[it.code],shortName:catShortName(it.name,fmtName)}))});
     }
     sections.push({cat,catType,maxQty,groups:grp,count:items.length});
   }
