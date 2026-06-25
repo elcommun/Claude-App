@@ -129,6 +129,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><a href="#image">商品画像を見る</a></li>
       <li><a href="#stockout">欠品情報を確認する</a></li>
       <li><a href="#excel">Excelでダウンロードする</a></li>
+      <li><a href="#catalog">手帳・カレンダーをカタログPDF出力する</a></li>
       <li><a href="#alias">検索エイリアスを設定する</a></li>
     </ol>
   </div>
@@ -596,10 +597,48 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     </div>
   </div>
 
-  <!-- 13. 検索エイリアス -->
-  <div class="section" id="alias">
+  <!-- 13. カタログPDF -->
+  <div class="section" id="catalog">
     <div class="section-hdr">
       <div class="step-badge">13</div>
+      <h2>手帳・カレンダーをカタログPDF出力する</h2>
+    </div>
+    <p><strong>手帳・カレンダー</strong>のカテゴリを、画像付きのカタログ風PDFとして出力できます。商品画像・品名・品番・上代・順位・欠品をカード形式で、品番順に並べて表示します。</p>
+
+    <ul class="step-list">
+      <li><span class="txt">サイドバーのカテゴリ一覧で、出力したい <strong>手帳・カレンダー</strong> のカテゴリの <strong>チェックボックス</strong> にチェックを入れます</span></li>
+      <li><span class="txt">サイドバー下部の <strong>「手帳・カレンダーをカタログPDF」</strong> ボタンをクリックします（手帳・カレンダーを選んでいるときだけ押せます）</span></li>
+      <li><span class="txt">プレビュー画面が開きます。内容を確認します</span></li>
+      <li><span class="txt">右上の <strong>「PDF保存（印刷）」</strong> ボタンを押し、印刷ダイアログで <strong>「PDFとして保存」</strong> を選びます</span></li>
+    </ul>
+
+    <div class="ui-mock" style="text-align:center">
+      <span style="display:inline-block;background:#E85D26;color:#fff;border-radius:6px;padding:6px 18px;font-size:13px;font-weight:700">🖼️ 手帳・カレンダーをカタログPDF</span>
+    </div>
+
+    <h3>カードに表示される情報</h3>
+    <ul>
+      <li><strong>商品画像</strong>（中央上）</li>
+      <li><strong>順位バッジ</strong>（左上）　1〜3位は金・銀・銅、4位以下は薄いチップ</li>
+      <li><strong>欠品バッジ</strong>（右上）　欠品情報がある場合のみ赤で表示</li>
+      <li><strong>品名</strong>　フォーマット名は見出しに表示されるため、カードには個別名のみ表示</li>
+      <li><strong>品番・上代</strong></li>
+      <li><strong>販売数</strong>　数量バッジの色が販売数に応じてオレンジの濃淡に変わります（ヒートマップ）</li>
+    </ul>
+
+    <h3>並び順</h3>
+    <p>カテゴリ → フォーマット名のグループ → グループ内は <strong>品番順</strong> で並びます。</p>
+
+    <div class="note">
+      <strong>🖨️ きれいに印刷するコツ</strong><br>
+      印刷ダイアログで <strong>用紙サイズ「A4」</strong>・<strong>余白「既定」</strong>・<strong>「背景のグラフィック」をオン</strong> にすると、プレビュー通り（背景色つき）で出力されます。
+    </div>
+  </div>
+
+  <!-- 14. 検索エイリアス -->
+  <div class="section" id="alias">
+    <div class="section-hdr">
+      <div class="step-badge">14</div>
       <h2>検索エイリアスを設定する</h2>
     </div>
     <p>「この言葉で検索したときに、この言葉もヒットしてほしい」というカスタムルールを登録できます。</p>
