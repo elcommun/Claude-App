@@ -310,10 +310,12 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-sec-hdr{font-size:14px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:3px;margin:10px 0 5px}
 .cat-sec-hdr.first{margin-top:0}
 .cat-sec-cnt{font-size:10px;font-weight:400;color:#888}
-.cat-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;margin-bottom:4px}
-.cat-fmt{grid-column:1/-1;font-size:11px;font-weight:700;color:#555;background:#f1ece4;border-left:3px solid #E85D26;padding:2px 7px;margin-top:3px}
+/* CSS Gridはページ跨ぎの印刷描画が不安定（空白ページが出る）ため、印刷に強い
+   inline-block方式で8列を実現する。font-size:0でinline-block間の余白を消す。 */
+.cat-grid{display:block;font-size:0;margin-bottom:4px}
+.cat-fmt{display:block;font-size:11px;font-weight:700;color:#555;background:#f1ece4;border-left:3px solid #E85D26;padding:2px 7px;margin-top:3px}
 .cat-fmt-cnt{font-weight:400;font-size:9px;color:#999}
-.cat-card{position:relative;border:1px solid #e2ddd4;border-radius:4px;padding:2px 2px 3px;text-align:center;background:#fff;display:flex;flex-direction:column}
+.cat-card{display:inline-block;width:11.8%;margin:0.3%;vertical-align:top;box-sizing:border-box;position:relative;border:1px solid #e2ddd4;border-radius:4px;padding:2px 2px 3px;text-align:center;background:#fff}
 .cat-rank{position:absolute;top:2px;left:2px;min-width:15px;height:15px;line-height:15px;padding:0 3px;border-radius:8px;font-size:9px;font-weight:700;color:#fff;background:#9a948c;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:1}
 .cat-rank.r1{background:#E85D26}.cat-rank.r2{background:#8a8a8a}.cat-rank.r3{background:#a07040}.cat-rank.ro{background:#b3ada4}
 .cat-so{position:absolute;top:2px;right:2px;background:#c0392b;color:#fff;font-size:9px;font-weight:700;border-radius:3px;padding:0 4px;white-space:nowrap;z-index:1}
@@ -405,7 +407,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v178</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v179</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
