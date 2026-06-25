@@ -404,7 +404,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v174</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v175</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1278,6 +1278,19 @@ function catalogHeat(val,maxVal){
   const B=Math.round(38+(238-38)*(1-r));
   return {bg:`rgb(${R},${G},${B})`,light:r<=0.5};
 }
+// 複数の品名で共通する先頭語の数を返す（語=スペース区切り）。1件以下や全一致時は0。
+function commonPrefixWords(names){
+  const valid=names.filter(n=>n&&n.trim());
+  if(valid.length<2) return 0;
+  const toks=valid.map(n=>n.trim().split(/\s+/));
+  let i=0;
+  while(true){
+    const t=toks[0][i];
+    if(t===undefined) return 0; // 全語一致（全名称が同一）→除去しない
+    if(toks.every(a=>a[i]===t)) i++; else break;
+  }
+  return i;
+}
 // チェック済みの手帳/カレンダーカテゴリを、フォーマット別グループ→品番順で組み立てる
 function buildCatalogData(){
   const cats=pdfEligibleCats();
@@ -1303,7 +1316,9 @@ function buildCatalogData(){
       gi.sort((a,b)=>codeCompare(a.code,b.code)); // 品番昇順
       let rmap=rankMap;
       if(catType==='手帳'){const gr=[...gi].sort((a,b)=>b.qty-a.qty);rmap={};gr.forEach((it,idx)=>{rmap[it.code]=idx+1;});} // 手帳はフォーマット別順位
-      grp.push({fmtName,items:gi.map(it=>({...it,rank:rmap[it.code]}))});
+      // グループ内で共通する先頭語（見出しで説明済みの部分）を品名から除去し、個別名のみ表示
+      const cp=commonPrefixWords(gi.map(it=>it.name||''));
+      grp.push({fmtName,items:gi.map(it=>{const toks=(it.name||'').split(/\s+/);const short=cp>0?toks.slice(cp).join(' ').trim():'';return {...it,rank:rmap[it.code],shortName:short||it.name};})});
     }
     sections.push({cat,catType,maxQty,groups:grp,count:items.length});
   }
@@ -1326,7 +1341,7 @@ function renderCatalog(sections){
           <div class="cat-rank ${rankCls}">${it.rank}</div>
           ${so?`<div class="cat-so">欠 ${x(so)}</div>`:''}
           <div class="cat-imgbox"><img class="cat-img" src="images/${fn}.jpg" loading="lazy" onerror="this.onerror=null;this.src='images/${fn}.png';this.dataset.f=(this.dataset.f|0)+1;if(this.dataset.f>1)this.style.visibility='hidden'"></div>
-          <div class="cat-pname">${x(it.name)}</div>
+          <div class="cat-pname">${x(it.shortName||it.name)}</div>
           <div class="cat-line"><span class="cat-code">${x(it.code)}</span><span class="cat-price">¥${(it.price||0).toLocaleString()}</span></div>
           <div class="cat-qty" style="${qtyStyle}">${it.qty.toLocaleString()}個</div>
         </div>`;
