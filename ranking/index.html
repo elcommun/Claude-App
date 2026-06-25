@@ -407,7 +407,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v183</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v184</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2844,19 +2844,30 @@ applyFilter();
     if(s){s.addEventListener('blur',()=>setTimeout(tryLater,400));s.addEventListener('input',()=>{if(s.value.trim()==='')setTimeout(tryLater,400);});}
     const iv=setInterval(()=>{if(!isBusy()){clearInterval(iv);doReload();}},3000);
   }
-  fetch(location.pathname+'?_v='+Date.now(),{cache:'no-store',headers:{'Range':'bytes=0-65535'}})
-    .then(r=>r.text())
-    .then(html=>{
-      const m=html.match(/>v(\d+)<\/span>/);
-      if(!m) return;
-      const freshVer=parseInt(m[1]);
-      if(freshVer<=curVer) return;
-      // Guard against reload loops if the navigation still serves cached HTML
-      const guardKey='ecRankReloadedTo';
-      if(parseInt(sessionStorage.getItem(guardKey)||'0')>=freshVer) return;
-      sessionStorage.setItem(guardKey,String(freshVer));
-      scheduleReload();
-    }).catch(()=>{});
+  let checking=false, lastCheck=0;
+  function checkVersion(){
+    if(checking) return; checking=true;
+    fetch(location.pathname+'?_v='+Date.now(),{cache:'no-store',headers:{'Range':'bytes=0-65535'}})
+      .then(r=>r.text())
+      .then(html=>{
+        const m=html.match(/>v(\d+)<\/span>/);
+        if(!m) return;
+        const freshVer=parseInt(m[1]);
+        if(freshVer<=curVer) return;
+        // Guard against reload loops if the navigation still serves cached HTML
+        const guardKey='ecRankReloadedTo';
+        if(parseInt(sessionStorage.getItem(guardKey)||'0')>=freshVer) return;
+        sessionStorage.setItem(guardKey,String(freshVer));
+        scheduleReload();
+      }).catch(()=>{}).finally(()=>{checking=false;lastCheck=Date.now();});
+  }
+  checkVersion();                                   // 起動時
+  setInterval(checkVersion,30000);                  // 30秒ごとに定期チェック
+  // タブ/アプリを再表示・フォーカスした時にもチェック（連打防止に10秒スロットル）
+  function checkOnShow(){if(!document.hidden && Date.now()-lastCheck>10000) checkVersion();}
+  document.addEventListener('visibilitychange',checkOnShow);
+  window.addEventListener('focus',checkOnShow);
+  window.addEventListener('pageshow',checkOnShow);
 })();
 </script>
 </body>
