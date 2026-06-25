@@ -320,18 +320,19 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-imgbox{height:72px;display:flex;align-items:center;justify-content:center;margin:1px 0 2px}
 .cat-img{max-width:100%;max-height:72px;object-fit:contain}
 .cat-pname{font-size:7px;font-weight:600;line-height:1.12;height:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
-.cat-line{display:flex;justify-content:space-between;align-items:baseline;gap:2px;margin-top:1px;font-size:8px}
-.cat-code{font-family:monospace;font-weight:700;font-size:9.5px}
+.cat-line{display:flex;justify-content:space-between;align-items:baseline;gap:2px;margin-top:1px;font-size:7px}
+.cat-code{font-family:monospace;font-weight:700;font-size:8px}
 .cat-price{font-weight:700;white-space:nowrap}
 .cat-qty{margin-top:1px;font-size:9px;font-weight:700;border-radius:3px;padding:1px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media print{
   @page{size:A4;margin:8mm}
   body.catalog-open>*:not(#catalog-modal){display:none!important}
   body.catalog-open{background:#fff!important}
-  #catalog-modal{position:static;display:block;background:#fff;overflow:visible}
+  /* モーダル/スクロールはflexだとページ分割されず1ページ目が空白になるためblock強制 */
+  #catalog-modal.open{position:static!important;display:block!important;background:#fff;overflow:visible!important;inset:auto!important}
+  .cat-scroll{overflow:visible!important;padding:0!important;display:block!important}
   .cat-toolbar{display:none!important}
-  .cat-scroll{overflow:visible;padding:0;display:block}
-  #catalog-print{width:auto;padding:0;box-shadow:none}
+  #catalog-print{width:auto;padding:0;box-shadow:none;background:#fff}
   .cat-card,.cat-fmt,.cat-sec-hdr{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   .cat-sec-hdr:not(.first){break-before:page}
   .cat-fmt{break-after:avoid}
@@ -404,7 +405,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v176</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v177</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
