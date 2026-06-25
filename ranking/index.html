@@ -76,7 +76,7 @@ input[type=file]{display:none}
 /* Layout */
 .layout{display:flex;padding-top:var(--hh)}
 /* Sidebar */
-.sb{width:var(--sb);flex-shrink:0;position:fixed;top:var(--hh);bottom:0;left:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior-x:none;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sb{width:var(--sb);flex-shrink:0;position:fixed;top:var(--hh);bottom:0;left:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior:contain;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column}
 .sb::-webkit-scrollbar{width:4px}
 .sb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 .sb-hd{padding:12px 15px 9px;border-bottom:1px solid var(--border2)}
@@ -405,7 +405,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v171</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v172</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
