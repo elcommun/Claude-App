@@ -292,6 +292,51 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   .kpi-row{grid-template-columns:repeat(2,1fr);gap:7px}
   .cat-name{font-size:17px}
 }
+/* ── 手帳・カレンダー カタログPDF ── */
+#catalog-modal{display:none;position:fixed;inset:0;z-index:10000;background:#cdd2d8;flex-direction:column}
+#catalog-modal.open{display:flex}
+.cat-toolbar{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 14px;background:#2c2c3a;color:#fff;flex-wrap:wrap}
+.cat-tb-l{display:flex;align-items:baseline;gap:10px}
+.cat-tb-l b{font-size:14px}
+.cat-tb-period{font-size:12px;color:#cfd3e0}
+.cat-tb-r{display:flex;align-items:center;gap:10px}
+.cat-tb-note{font-size:10px;color:#aeb3c2;max-width:280px;line-height:1.3}
+.cat-tb-print{background:#E85D26;color:#fff;border:none;border-radius:5px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.cat-tb-print:hover{background:#c94d1a}
+.cat-tb-close{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;padding:7px 12px;font-size:13px;cursor:pointer}
+.cat-tb-close:hover{background:rgba(255,255,255,.12)}
+.cat-scroll{flex:1 1 auto;overflow:auto;padding:16px;display:flex;justify-content:center}
+#catalog-print{width:190mm;background:#fff;padding:10mm;box-shadow:0 4px 24px rgba(0,0,0,.2);box-sizing:border-box}
+.cat-sec-hdr{font-size:16px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:4px;margin:14px 0 8px}
+.cat-sec-hdr.first{margin-top:0}
+.cat-sec-cnt{font-size:11px;font-weight:400;color:#888}
+.cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:6px}
+.cat-fmt{grid-column:1/-1;font-size:12px;font-weight:700;color:#555;background:#f1ece4;border-left:3px solid #E85D26;padding:3px 8px;margin-top:4px}
+.cat-fmt-cnt{font-weight:400;font-size:10px;color:#999}
+.cat-card{position:relative;border:1px solid #e2ddd4;border-radius:6px;padding:7px 7px 8px;text-align:center;overflow:hidden}
+.cat-card.on-dark{color:#fff;border-color:rgba(255,255,255,.35)}
+.cat-rank{position:absolute;top:4px;left:4px;min-width:18px;height:18px;line-height:18px;padding:0 4px;border-radius:9px;font-size:11px;font-weight:700;color:#fff;background:#9a948c;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.cat-rank.r1{background:#E85D26}.cat-rank.r2{background:#8a8a8a}.cat-rank.r3{background:#a07040}.cat-rank.ro{background:#b3ada4}
+.cat-so{position:absolute;top:4px;right:4px;background:#c0392b;color:#fff;font-size:10px;font-weight:700;border-radius:3px;padding:1px 5px;white-space:nowrap}
+.cat-imgbox{height:120px;display:flex;align-items:center;justify-content:center;margin:14px 0 6px;background:rgba(255,255,255,.55);border-radius:4px}
+.cat-img{max-width:100%;max-height:120px;object-fit:contain}
+.cat-pname{font-size:11px;font-weight:600;line-height:1.3;min-height:28px;word-break:break-word}
+.cat-line{display:flex;justify-content:space-between;align-items:baseline;gap:4px;margin-top:4px;font-size:11px}
+.cat-code{font-family:monospace;opacity:.85}
+.cat-price{font-weight:700}
+.cat-qty{margin-top:3px;font-size:12px;font-weight:700}
+@media print{
+  @page{size:A4;margin:8mm}
+  body.catalog-open>*:not(#catalog-modal){display:none!important}
+  body.catalog-open{background:#fff!important}
+  #catalog-modal{position:static;display:block;background:#fff;overflow:visible}
+  .cat-toolbar{display:none!important}
+  .cat-scroll{overflow:visible;padding:0;display:block}
+  #catalog-print{width:auto;padding:0;box-shadow:none}
+  .cat-card,.cat-fmt,.cat-sec-hdr{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .cat-sec-hdr:not(.first){break-before:page}
+  .cat-fmt{break-after:avoid}
+}
 </style>
 <style>
 #login-overlay{position:fixed;inset:0;background:#1c1917;z-index:9999;display:flex;align-items:center;justify-content:center}
@@ -360,7 +405,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v170</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v171</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -403,6 +448,17 @@ function doLogin(){
 <div id="so-tip"></div>
 <div id="img-prev-wrap"><div id="img-prev-arrow"></div><img id="img-prev" src="" alt=""></div>
 <div id="img-lb" onclick="closeLightbox()"><img id="img-lb-img" src=""></div>
+<div id="catalog-modal">
+  <div class="cat-toolbar">
+    <div class="cat-tb-l"><b>📖 カタログプレビュー</b><span id="catalog-period" class="cat-tb-period"></span></div>
+    <div class="cat-tb-r">
+      <span class="cat-tb-note">※背景色を出すにはプリンタ設定で「背景のグラフィック」をONにしてください</span>
+      <button class="cat-tb-print" onclick="printCatalog()">🖨️ PDF保存（印刷）</button>
+      <button class="cat-tb-close" onclick="closeCatalog()">✕ 閉じる</button>
+    </div>
+  </div>
+  <div class="cat-scroll"><div id="catalog-print"></div></div>
+</div>
 <div class="sb-overlay" id="sb-overlay"></div>
 <div class="sb-resize" id="sb-resize"></div>
 <div class="layout">
@@ -446,6 +502,7 @@ function doLogin(){
     <div class="sb-list" id="sb-list"></div>
     <div id="sb-export" style="padding:6px 8px;border-top:1px solid #e0d9cf">
       <button id="export-btn" onclick="downloadCheckedCategories()" disabled style="width:100%;padding:5px 8px;background:#4a7c59;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;opacity:0.4;transition:opacity .2s">📥 選択してExcelダウンロード</button>
+      <button id="pdf-btn" onclick="openCatalog()" disabled style="width:100%;margin-top:5px;padding:5px 8px;background:#E85D26;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;opacity:0.4;transition:opacity .2s">🖼️ 手帳・カレンダーをカタログPDF</button>
     </div>
   </aside>
 
@@ -1040,8 +1097,7 @@ function toggleCheck(cat){
     // Leaf category: normal toggle
     if(exportChecks.has(cat))exportChecks.delete(cat);else exportChecks.add(cat);
   }
-  const btn=document.getElementById('export-btn');
-  if(btn){btn.disabled=!exportChecks.size;btn.style.opacity=exportChecks.size?'1':'0.4';}
+  updateExportBtns();
   renderSidebar();
 }
 // 配下の最下層に1つでもチェックがあるか調べる（親チェックボックスをオレンジにするため）
@@ -1195,8 +1251,7 @@ function renderSidebar() {
   if(aggregated['その他']) html+=itemHtml('その他');
 
   document.getElementById('sb-list').innerHTML=html;
-  const ebtn=document.getElementById('export-btn');
-  if(ebtn){ebtn.disabled=!exportChecks.size;ebtn.style.opacity=exportChecks.size?'1':'0.4';}
+  updateExportBtns();
   const {dateFrom,dateTo}=getFilterPeriod();
   const fmtPeriod=(d)=>{const p=d.split('-');return p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日';};
   const period=(dateFrom&&dateTo)?fmtPeriod(dateFrom)+'〜'+fmtPeriod(dateTo):'全期間';
@@ -1204,6 +1259,100 @@ function renderSidebar() {
   const catCnt = Object.keys(aggregated).filter(c=>c!=='未分類').length;
   document.getElementById('sb-total').innerHTML=`<b>${period}</b>&nbsp; ${totalQty.toLocaleString()}個 / ¥${totalAmount.toLocaleString()}<br>SKU ${skus.toLocaleString()}種 / ${catCnt}カテゴリ`;
 }
+
+// ── 出力ボタンの有効/無効 ───────────────────────────────────────────────────
+function pdfEligibleCats(){return [...exportChecks].filter(c=>getCatType(c));}
+function updateExportBtns(){
+  const eb=document.getElementById('export-btn');
+  if(eb){eb.disabled=!exportChecks.size;eb.style.opacity=exportChecks.size?'1':'0.4';}
+  const pb=document.getElementById('pdf-btn');
+  if(pb){const n=pdfEligibleCats().length;pb.disabled=!n;pb.style.opacity=n?'1':'0.4';}
+}
+
+// ── 手帳・カレンダー カタログPDF ──────────────────────────────────────────────
+// 販売数に応じたオレンジ濃淡（ヒートマップ）。heatmapMode トグルに依存しない独立版。
+function catalogHeat(val,maxVal){
+  if(!maxVal||!val) return {bg:'#ffffff',light:true};
+  const r=Math.min(val/maxVal,1);
+  const R=Math.round(232+(255-232)*(1-r));
+  const G=Math.round(93+(243-93)*(1-r));
+  const B=Math.round(38+(238-38)*(1-r));
+  return {bg:`rgb(${R},${G},${B})`,light:r<=0.5};
+}
+// チェック済みの手帳/カレンダーカテゴリを、フォーマット別グループ→品番順で組み立てる
+function buildCatalogData(){
+  const cats=pdfEligibleCats();
+  const sections=[];
+  for(const cat of cats){
+    const catType=getCatType(cat);
+    const realCats=getGroupCats(cat)||[cat];
+    const combined={};
+    for(const rc of realCats){for(const[code,item] of Object.entries(aggregated[rc]||{})){if(!combined[code])combined[code]={...item,qty:0,amount:0};combined[code].qty+=item.qty;combined[code].amount+=item.amount;}}
+    const items=Object.values(combined);
+    if(!items.length) continue;
+    const maxQty=items.reduce((m,i)=>Math.max(m,i.qty),1);
+    // カテゴリ内 順位（販売数ベース、カレンダー用）
+    const rankBase=[...items].sort((a,b)=>b.qty-a.qty);
+    const rankMap={};rankBase.forEach((it,i)=>{rankMap[it.code]=i+1;});
+    const formatFn=catType==='手帳'?(it=>getDiaryFormat(it.code)):(it=>getCalendarFormat(it.code,it.name));
+    const fmtOrder=catType==='手帳'?[...DIARY_FORMATS.map(f=>f.name),'その他']:['卓上','壁掛け','その他'];
+    const groups={};
+    for(const it of items){const f=formatFn(it);(groups[f]||(groups[f]=[])).push(it);}
+    const grp=[];
+    for(const fmtName of fmtOrder){
+      const gi=groups[fmtName]; if(!gi?.length) continue;
+      gi.sort((a,b)=>codeCompare(a.code,b.code)); // 品番昇順
+      let rmap=rankMap;
+      if(catType==='手帳'){const gr=[...gi].sort((a,b)=>b.qty-a.qty);rmap={};gr.forEach((it,idx)=>{rmap[it.code]=idx+1;});} // 手帳はフォーマット別順位
+      grp.push({fmtName,items:gi.map(it=>({...it,rank:rmap[it.code]}))});
+    }
+    sections.push({cat,catType,maxQty,groups:grp,count:items.length});
+  }
+  return sections;
+}
+function renderCatalog(sections){
+  let html='';
+  sections.forEach((sec,si)=>{
+    html+=`<div class="cat-sec-hdr${si===0?' first':''}">${(CAT_ICONS[sec.cat]||'📦')} ${x(sec.cat)} <span class="cat-sec-cnt">(${sec.count}種)</span></div>`;
+    html+='<div class="cat-grid">';
+    for(const g of sec.groups){
+      html+=`<div class="cat-fmt">▌ ${x(g.fmtName)} <span class="cat-fmt-cnt">(${g.items.length}種)</span></div>`;
+      for(const it of g.items){
+        const fn=it.code.replace(/-/g,'_');
+        const heat=catalogHeat(it.qty,sec.maxQty);
+        const rankCls=it.rank<=3?('r'+it.rank):'ro';
+        const so=STOCKOUT[it.code]||'';
+        const txtCls=heat.light?'':' on-dark';
+        html+=`<div class="cat-card${txtCls}" style="background:${heat.bg}">
+          <div class="cat-rank ${rankCls}">${it.rank}</div>
+          ${so?`<div class="cat-so">欠品 ${x(so)}</div>`:''}
+          <div class="cat-imgbox"><img class="cat-img" src="images/${fn}.jpg" loading="lazy" onerror="this.onerror=null;this.src='images/${fn}.png';this.dataset.f=(this.dataset.f|0)+1;if(this.dataset.f>1)this.style.visibility='hidden'"></div>
+          <div class="cat-pname">${x(it.name)}</div>
+          <div class="cat-line"><span class="cat-code">${x(it.code)}</span><span class="cat-price">¥${(it.price||0).toLocaleString()}</span></div>
+          <div class="cat-qty">${it.qty.toLocaleString()}個</div>
+        </div>`;
+      }
+    }
+    html+='</div>';
+  });
+  return html;
+}
+function openCatalog(){
+  const sections=buildCatalogData();
+  if(!sections.length){alert('手帳・カレンダーのカテゴリーを選択してください。');return;}
+  const {dateFrom,dateTo}=getFilterPeriod();
+  const fmtP=(d)=>{const p=(d||'').split('-');return p.length===3?p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日':'';};
+  const period=(dateFrom&&dateTo)?fmtP(dateFrom)+' 〜 '+fmtP(dateTo):'全期間';
+  document.getElementById('catalog-period').textContent=period;
+  document.getElementById('catalog-print').innerHTML=renderCatalog(sections);
+  document.getElementById('catalog-modal').classList.add('open');
+  document.body.classList.add('catalog-open');
+}
+function closeCatalog(){
+  document.getElementById('catalog-modal').classList.remove('open');
+  document.body.classList.remove('catalog-open');
+}
+function printCatalog(){window.print();}
 
 // ── Excel export ──────────────────────────────────────────────────────────────
 async function downloadCheckedCategories(){
