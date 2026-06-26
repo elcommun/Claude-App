@@ -306,7 +306,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-tb-close{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;padding:7px 12px;font-size:13px;cursor:pointer}
 .cat-tb-close:hover{background:rgba(255,255,255,.12)}
 .cat-scroll{flex:1 1 auto;overflow:auto;padding:16px;display:flex;justify-content:center;align-items:flex-start}
-#catalog-print{width:190mm;background:#fff;padding:8mm;box-shadow:0 4px 24px rgba(0,0,0,.2);box-sizing:border-box}
+#catalog-print{width:277mm;background:#fff;padding:8mm;box-shadow:0 4px 24px rgba(0,0,0,.2);box-sizing:border-box;column-count:2;column-gap:8mm}
 .cat-sec-hdr{font-size:14px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:3px;margin:10px 0 5px}
 .cat-sec-hdr.first{margin-top:0}
 .cat-sec-cnt{font-size:10px;font-weight:400;color:#888}
@@ -328,16 +328,18 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-price{font-weight:400;white-space:nowrap;font-size:6px}
 .cat-qty{margin-top:1px;font-size:9px;font-weight:700;border-radius:3px;padding:1px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 @media print{
-  @page{size:A4;margin:8mm}
+  @page{size:A4 landscape;margin:8mm}
   body.catalog-open>*:not(#catalog-modal){display:none!important}
   body.catalog-open{background:#fff!important}
   /* モーダル/スクロールはflexだとページ分割されず1ページ目が空白になるためblock強制 */
   #catalog-modal.open{position:static!important;display:block!important;background:#fff;overflow:visible!important;inset:auto!important}
   .cat-scroll{overflow:visible!important;padding:0!important;display:block!important}
   .cat-toolbar{display:none!important}
-  #catalog-print{width:auto;padding:0;box-shadow:none;background:#fff}
+  /* A4横向き・2カラム（1ページ分を縮小して左右に並べる）。column-fill:autoで
+     左カラムをページ下端まで埋めてから右カラムへ流す。 */
+  #catalog-print{width:auto;padding:0;box-shadow:none;background:#fff;column-count:2;column-gap:8mm;column-fill:auto}
   .cat-card,.cat-fmt,.cat-sec-hdr{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .cat-sec-hdr:not(.first){break-before:page}
+  .cat-sec-hdr:not(.first){break-before:column}
   .cat-fmt{break-after:avoid}
 }
 </style>
@@ -408,7 +410,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v187</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v188</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
