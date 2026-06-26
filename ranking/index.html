@@ -408,7 +408,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v186</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v187</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1339,7 +1339,10 @@ function buildCatalogData(){
 function renderCatalog(sections){
   let html='';
   sections.forEach((sec,si)=>{
-    html+=`<div class="cat-sec-hdr${si===0?' first':''}">${(CAT_ICONS[sec.cat]||'📦')} ${x(sec.cat)} <span class="cat-sec-cnt">(${sec.count}種)</span></div>`;
+    // 手帳見出しのアンダーライン色を開始月で分ける（1月=赤/4月=緑/10月=青、それ以外は既定のオレンジ）
+    const ulMonth=(sec.cat.match(/(\d+)月始まり/)||[])[1];
+    const ulColor=ulMonth==='1'?'#d64545':ulMonth==='4'?'#2e8b57':ulMonth==='10'?'#3b74c4':'';
+    html+=`<div class="cat-sec-hdr${si===0?' first':''}"${ulColor?` style="border-bottom-color:${ulColor}"`:''}>${(CAT_ICONS[sec.cat]||'📦')} ${x(sec.cat)} <span class="cat-sec-cnt">(${sec.count}種)</span></div>`;
     html+='<div class="cat-grid">';
     for(const g of sec.groups){
       html+=`<div class="cat-fmt">▌ ${x(g.fmtName)} <span class="cat-fmt-cnt">(${g.items.length}種)</span></div>`;
