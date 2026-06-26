@@ -413,7 +413,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v190</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v191</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1371,22 +1371,22 @@ function catalogBlocks(sections){
   return blocks;
 }
 // ブロックを横向きA4ページ（2カラム）へ分配。左カラムを下端まで埋めてから右カラム、
-// 埋まったら次ページへ。カテゴリ見出しは新カラム先頭から（印刷のbreak-before:columnと一致）。
+// 埋まったら次ページへ。1カラム＝1フォーマット（カテゴリ）になるよう、各フォーマット
+// 見出しは新カラムの先頭から配置する（左半分=フォーマットA、右半分=フォーマットB）。
+// フォーマットが大きく1カラムに収まらない場合のみ次カラムへ続ける。
 // 列の高さ超過を実測して折り返すため、プレビューと印刷の見た目が完全一致する。
 function paginateCatalog(blocks, container){
   container.innerHTML='';
   const tpl=document.createElement('div');
-  let page=null,col=null,colIdx=0;
+  let page=null,col=null,colIdx=0,colHasFmt=false;
   const newCol=()=>{col=document.createElement('div');col.className='cat-col';page.appendChild(col);};
   const newPage=()=>{page=document.createElement('div');page.className='cat-page';container.appendChild(page);colIdx=0;newCol();};
   const advance=()=>{ if(colIdx===0){colIdx=1;newCol();} else newPage(); };
   const makeNode=(html)=>{tpl.innerHTML=html;return tpl.firstElementChild;};
-  newPage();
-  for(const b of blocks){
-    if(b.type==='sec' && col.childElementCount>0) advance(); // カテゴリは新カラムから
-    const node=makeNode(b.html);
+  const place=(html)=>{                                // 追加し、列からあふれたら次カラムへ折り返す
+    const node=makeNode(html);
     col.appendChild(node);
-    if(col.scrollHeight>col.clientHeight+1){           // 列からあふれた → 折り返し
+    if(col.scrollHeight>col.clientHeight+1){
       col.removeChild(node);
       let orphanFmt=null;                              // 直前のフォーマット見出しが列末で孤立しないよう一緒に送る
       const last=col.lastElementChild;
@@ -1394,6 +1394,20 @@ function paginateCatalog(blocks, container){
       advance();
       if(orphanFmt) col.appendChild(orphanFmt);
       col.appendChild(node);
+    }
+  };
+  newPage();
+  for(const b of blocks){
+    if(b.type==='sec'){
+      if(col.childElementCount>0) advance();           // 新カテゴリは新カラムから
+      colHasFmt=false;
+      place(b.html);                                   // カテゴリ見出しは最初のフォーマットと同じカラムに置く
+    } else if(b.type==='fmt'){
+      if(colHasFmt) advance();                         // フォーマットごとに新カラム（左右で分ける）
+      colHasFmt=true;
+      place(b.html);
+    } else {
+      place(b.html);
     }
   }
 }
