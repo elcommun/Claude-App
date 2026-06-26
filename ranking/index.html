@@ -416,7 +416,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v193</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v194</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1390,7 +1390,8 @@ function paginateCatalog(blocks, container){
     cols=document.createElement('div');cols.className='cat-cols';page.appendChild(cols);
     colIdx=0;newCol();
   };
-  const advance=()=>{ if(colIdx===0){colIdx=1;newCol();} else newPage(null); };
+  let curTitle=null;                                   // 現在のカテゴリのメインタイトル（続きページにも表示）
+  const advance=()=>{ if(colIdx===0){colIdx=1;newCol();} else newPage(curTitle); };
   const place=(html)=>{                                // 追加し、列からあふれたら次カラムへ折り返す
     const node=makeNode(html);
     col.appendChild(node);
@@ -1406,15 +1407,16 @@ function paginateCatalog(blocks, container){
   };
   for(const b of blocks){
     if(b.type==='sec'){
-      newPage(b.html);                                 // カテゴリは新ページ＋両カラムを突き抜ける全幅タイトル
+      curTitle=b.html;
+      newPage(curTitle);                               // カテゴリは新ページ＋両カラムを突き抜ける全幅タイトル
       colHasFmt=false;
     } else if(b.type==='fmt'){
-      if(!page) newPage(null);
+      if(!page) newPage(curTitle);
       if(colHasFmt) advance();                         // フォーマットごとに新カラム（左右で分ける）
       colHasFmt=true;
       place(b.html);
     } else {
-      if(!page) newPage(null);
+      if(!page) newPage(curTitle);
       place(b.html);
     }
   }
