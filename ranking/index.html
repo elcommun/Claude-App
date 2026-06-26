@@ -416,7 +416,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v194</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v195</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1353,7 +1353,7 @@ function catalogBlocks(sections){
     const ulColor=ulMonth==='1'?'#d64545':ulMonth==='4'?'#2e8b57':ulMonth==='10'?'#3b74c4':'';
     blocks.push({type:'sec',html:`<div class="cat-sec-hdr${si===0?' first':''}"${ulColor?` style="border-bottom-color:${ulColor}"`:''}>${(CAT_ICONS[sec.cat]||'📦')} ${x(sec.cat)} <span class="cat-sec-cnt">(${sec.count}種)</span></div>`});
     for(const g of sec.groups){
-      blocks.push({type:'fmt',html:`<div class="cat-fmt">▌ ${x(g.fmtName)} <span class="cat-fmt-cnt">(${g.items.length}種)</span></div>`});
+      blocks.push({type:'fmt',fmtName:g.fmtName,html:`<div class="cat-fmt">▌ ${x(g.fmtName)} <span class="cat-fmt-cnt">(${g.items.length}種)</span></div>`});
       for(const it of g.items){
         const fn=it.code.replace(/-/g,'_');
         const heat=catalogHeat(it.qty,sec.maxQty);
@@ -1378,6 +1378,9 @@ function catalogBlocks(sections){
 // 見出しは新カラムの先頭から配置する（左半分=フォーマットA、右半分=フォーマットB）。
 // フォーマットが大きく1カラムに収まらない場合のみ次カラムへ続ける。
 // 列の高さ超過を実測して折り返すため、プレビューと印刷の見た目が完全一致する。
+// これらのフォーマットはページ左カラムから開始し、次のフォーマットと左右ペアで並べる
+// （スタンダード＋フルカラー、レフト＋ブロック を各ページで横並びにする）
+const CAT_FMT_NEWPAGE=new Set(['B6マンスリー｜スタンダード','B6ウィークリー｜レフト']);
 function paginateCatalog(blocks, container){
   container.innerHTML='';
   const tpl=document.createElement('div');
@@ -1412,7 +1415,12 @@ function paginateCatalog(blocks, container){
       colHasFmt=false;
     } else if(b.type==='fmt'){
       if(!page) newPage(curTitle);
-      if(colHasFmt) advance();                         // フォーマットごとに新カラム（左右で分ける）
+      // 指定フォーマットはページ左から始める（次のフォーマットと左右ペアで並べるため）
+      if(CAT_FMT_NEWPAGE.has(b.fmtName)){
+        if(col.childElementCount>0 || colIdx>0) newPage(curTitle);
+      } else if(colHasFmt){
+        advance();                                     // 通常はフォーマットごとに新カラム
+      }
       colHasFmt=true;
       place(b.html);
     } else {
