@@ -307,9 +307,11 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-tb-close:hover{background:rgba(255,255,255,.12)}
 .cat-scroll{flex:1 1 auto;overflow:auto;padding:16px;display:flex;justify-content:center;align-items:flex-start}
 #catalog-print{background:transparent}
-/* 横向きA4ページ（2カラム）。JSが列の高さを実測して内容を各ページ・各カラムに分配する */
-.cat-page{width:281mm;height:194mm;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);box-sizing:border-box;margin:0 auto 16px;display:flex;gap:8mm;overflow:hidden}
+/* 横向きA4ページ。上部に全幅メインタイトル＋下部に2カラム。JSが列の高さを実測して分配 */
+.cat-page{width:281mm;height:194mm;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);box-sizing:border-box;margin:0 auto 16px;display:flex;flex-direction:column;overflow:hidden}
+.cat-cols{flex:1 1 auto;min-height:0;display:flex;gap:8mm}
 .cat-col{width:calc(50% - 4mm);height:100%;overflow:hidden;font-size:0}
+.cat-page>.cat-sec-hdr{margin:2px 0 6px;flex:0 0 auto}
 .cat-sec-hdr{font-size:14px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:3px;margin:10px 0 5px}
 .cat-sec-hdr.first{margin-top:0}
 .cat-sec-cnt{font-size:10px;font-weight:400;color:#888}
@@ -342,6 +344,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   /* JSで分配済みの各.cat-pageを1枚ずつ印刷（高さは内容に合わせ、ページ間で改ページ） */
   .cat-page{width:auto!important;height:auto!important;box-shadow:none!important;margin:0!important;break-after:page;break-inside:avoid}
   .cat-page:last-child{break-after:auto}
+  .cat-cols{height:auto!important}
   .cat-col{height:auto!important;overflow:visible!important}
   .cat-card,.cat-fmt,.cat-sec-hdr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
@@ -413,7 +416,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v191</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v192</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1378,11 +1381,16 @@ function catalogBlocks(sections){
 function paginateCatalog(blocks, container){
   container.innerHTML='';
   const tpl=document.createElement('div');
-  let page=null,col=null,colIdx=0,colHasFmt=false;
-  const newCol=()=>{col=document.createElement('div');col.className='cat-col';page.appendChild(col);};
-  const newPage=()=>{page=document.createElement('div');page.className='cat-page';container.appendChild(page);colIdx=0;newCol();};
-  const advance=()=>{ if(colIdx===0){colIdx=1;newCol();} else newPage(); };
+  let page=null,cols=null,col=null,colIdx=0,colHasFmt=false;
   const makeNode=(html)=>{tpl.innerHTML=html;return tpl.firstElementChild;};
+  const newCol=()=>{col=document.createElement('div');col.className='cat-col';cols.appendChild(col);};
+  const newPage=(titleHtml)=>{                         // titleHtmlがあればページ上部に全幅メインタイトルを置く
+    page=document.createElement('div');page.className='cat-page';container.appendChild(page);
+    if(titleHtml) page.appendChild(makeNode(titleHtml));
+    cols=document.createElement('div');cols.className='cat-cols';page.appendChild(cols);
+    colIdx=0;newCol();
+  };
+  const advance=()=>{ if(colIdx===0){colIdx=1;newCol();} else newPage(null); };
   const place=(html)=>{                                // 追加し、列からあふれたら次カラムへ折り返す
     const node=makeNode(html);
     col.appendChild(node);
@@ -1396,17 +1404,17 @@ function paginateCatalog(blocks, container){
       col.appendChild(node);
     }
   };
-  newPage();
   for(const b of blocks){
     if(b.type==='sec'){
-      if(col.childElementCount>0) advance();           // 新カテゴリは新カラムから
+      newPage(b.html);                                 // カテゴリは新ページ＋両カラムを突き抜ける全幅タイトル
       colHasFmt=false;
-      place(b.html);                                   // カテゴリ見出しは最初のフォーマットと同じカラムに置く
     } else if(b.type==='fmt'){
+      if(!page) newPage(null);
       if(colHasFmt) advance();                         // フォーマットごとに新カラム（左右で分ける）
       colHasFmt=true;
       place(b.html);
     } else {
+      if(!page) newPage(null);
       place(b.html);
     }
   }
