@@ -306,7 +306,10 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-tb-close{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;padding:7px 12px;font-size:13px;cursor:pointer}
 .cat-tb-close:hover{background:rgba(255,255,255,.12)}
 .cat-scroll{flex:1 1 auto;overflow:auto;padding:16px;display:flex;justify-content:center;align-items:flex-start}
-#catalog-print{width:277mm;background:#fff;padding:8mm;box-shadow:0 4px 24px rgba(0,0,0,.2);box-sizing:border-box;column-count:2;column-gap:8mm}
+#catalog-print{background:transparent}
+/* 横向きA4ページ（2カラム）。JSが列の高さを実測して内容を各ページ・各カラムに分配する */
+.cat-page{width:281mm;height:194mm;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);box-sizing:border-box;margin:0 auto 16px;display:flex;gap:8mm;overflow:hidden}
+.cat-col{width:calc(50% - 4mm);height:100%;overflow:hidden;font-size:0}
 .cat-sec-hdr{font-size:14px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:3px;margin:10px 0 5px}
 .cat-sec-hdr.first{margin-top:0}
 .cat-sec-cnt{font-size:10px;font-weight:400;color:#888}
@@ -335,12 +338,12 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   #catalog-modal.open{position:static!important;display:block!important;background:#fff;overflow:visible!important;inset:auto!important}
   .cat-scroll{overflow:visible!important;padding:0!important;display:block!important}
   .cat-toolbar{display:none!important}
-  /* A4横向き・2カラム（1ページ分を縮小して左右に並べる）。column-fill:autoで
-     左カラムをページ下端まで埋めてから右カラムへ流す。 */
-  #catalog-print{width:auto;padding:0;box-shadow:none;background:#fff;column-count:2;column-gap:8mm;column-fill:auto}
-  .cat-card,.cat-fmt,.cat-sec-hdr{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .cat-sec-hdr:not(.first){break-before:column}
-  .cat-fmt{break-after:avoid}
+  #catalog-print{width:auto;padding:0;box-shadow:none;background:#fff}
+  /* JSで分配済みの各.cat-pageを1枚ずつ印刷（高さは内容に合わせ、ページ間で改ページ） */
+  .cat-page{width:auto!important;height:auto!important;box-shadow:none!important;margin:0!important;break-after:page;break-inside:avoid}
+  .cat-page:last-child{break-after:auto}
+  .cat-col{height:auto!important;overflow:visible!important}
+  .cat-card,.cat-fmt,.cat-sec-hdr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
 <style>
@@ -410,7 +413,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v188</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v189</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1338,35 +1341,61 @@ function buildCatalogData(){
   }
   return sections;
 }
-function renderCatalog(sections){
-  let html='';
+// カタログ内容を順序付きブロック配列にする（sec=見出し / fmt=フォーマット見出し / card=商品）
+function catalogBlocks(sections){
+  const blocks=[];
   sections.forEach((sec,si)=>{
     // 手帳見出しのアンダーライン色を開始月で分ける（1月=赤/4月=緑/10月=青、それ以外は既定のオレンジ）
     const ulMonth=(sec.cat.match(/(\d+)月始まり/)||[])[1];
     const ulColor=ulMonth==='1'?'#d64545':ulMonth==='4'?'#2e8b57':ulMonth==='10'?'#3b74c4':'';
-    html+=`<div class="cat-sec-hdr${si===0?' first':''}"${ulColor?` style="border-bottom-color:${ulColor}"`:''}>${(CAT_ICONS[sec.cat]||'📦')} ${x(sec.cat)} <span class="cat-sec-cnt">(${sec.count}種)</span></div>`;
-    html+='<div class="cat-grid">';
+    blocks.push({type:'sec',html:`<div class="cat-sec-hdr${si===0?' first':''}"${ulColor?` style="border-bottom-color:${ulColor}"`:''}>${(CAT_ICONS[sec.cat]||'📦')} ${x(sec.cat)} <span class="cat-sec-cnt">(${sec.count}種)</span></div>`});
     for(const g of sec.groups){
-      html+=`<div class="cat-fmt">▌ ${x(g.fmtName)} <span class="cat-fmt-cnt">(${g.items.length}種)</span></div>`;
+      blocks.push({type:'fmt',html:`<div class="cat-fmt">▌ ${x(g.fmtName)} <span class="cat-fmt-cnt">(${g.items.length}種)</span></div>`});
       for(const it of g.items){
         const fn=it.code.replace(/-/g,'_');
         const heat=catalogHeat(it.qty,sec.maxQty);
         const rankCls=it.rank<=3?('r'+it.rank):'ro';
         const so=STOCKOUT[it.code]||'';
         const qtyStyle=`background:${heat.bg};color:${heat.light?'#7a3a16':'#fff'}`;
-        html+=`<div class="cat-card">
+        blocks.push({type:'card',html:`<div class="cat-card">
           <div class="cat-rank ${rankCls}">${it.rank}</div>
           ${so?`<div class="cat-so">欠 ${x(so)}</div>`:''}
           <div class="cat-imgbox"><img class="cat-img" src="images/${fn}.jpg" loading="lazy" onerror="this.onerror=null;this.src='images/${fn}.png';this.dataset.f=(this.dataset.f|0)+1;if(this.dataset.f>1)this.style.visibility='hidden'"></div>
           <div class="cat-pname">${x(it.shortName||it.name)}</div>
           <div class="cat-line"><span class="cat-code">${x(it.code)}</span><span class="cat-price">¥${(it.price||0).toLocaleString()}</span></div>
           <div class="cat-qty" style="${qtyStyle}">${it.qty.toLocaleString()}個</div>
-        </div>`;
+        </div>`});
       }
     }
-    html+='</div>';
   });
-  return html;
+  return blocks;
+}
+// ブロックを横向きA4ページ（2カラム）へ分配。左カラムを下端まで埋めてから右カラム、
+// 埋まったら次ページへ。カテゴリ見出しは新カラム先頭から（印刷のbreak-before:columnと一致）。
+// 列の高さ超過を実測して折り返すため、プレビューと印刷の見た目が完全一致する。
+function paginateCatalog(blocks, container){
+  container.innerHTML='';
+  const tpl=document.createElement('div');
+  let page=null,col=null,colIdx=0;
+  const newCol=()=>{col=document.createElement('div');col.className='cat-col';page.appendChild(col);};
+  const newPage=()=>{page=document.createElement('div');page.className='cat-page';container.appendChild(page);colIdx=0;newCol();};
+  const advance=()=>{ if(colIdx===0){colIdx=1;newCol();} else newPage(); };
+  const makeNode=(html)=>{tpl.innerHTML=html;return tpl.firstElementChild;};
+  newPage();
+  for(const b of blocks){
+    if(b.type==='sec' && col.childElementCount>0) advance(); // カテゴリは新カラムから
+    const node=makeNode(b.html);
+    col.appendChild(node);
+    if(col.scrollHeight>col.clientHeight+1){           // 列からあふれた → 折り返し
+      col.removeChild(node);
+      let orphanFmt=null;                              // 直前のフォーマット見出しが列末で孤立しないよう一緒に送る
+      const last=col.lastElementChild;
+      if(last && last.classList.contains('cat-fmt')){orphanFmt=last;col.removeChild(last);}
+      advance();
+      if(orphanFmt) col.appendChild(orphanFmt);
+      col.appendChild(node);
+    }
+  }
 }
 function openCatalog(){
   const sections=buildCatalogData();
@@ -1375,9 +1404,10 @@ function openCatalog(){
   const fmtP=(d)=>{const p=(d||'').split('-');return p.length===3?p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日':'';};
   const period=(dateFrom&&dateTo)?fmtP(dateFrom)+' 〜 '+fmtP(dateTo):'全期間';
   document.getElementById('catalog-period').textContent=period;
-  document.getElementById('catalog-print').innerHTML=renderCatalog(sections);
   document.getElementById('catalog-modal').classList.add('open');
   document.body.classList.add('catalog-open');
+  // モーダルを開いてレイアウトを確定させてから、列の高さを実測してページ分配する
+  paginateCatalog(catalogBlocks(sections), document.getElementById('catalog-print'));
 }
 function closeCatalog(){
   document.getElementById('catalog-modal').classList.remove('open');
