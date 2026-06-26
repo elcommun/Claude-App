@@ -416,7 +416,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v198</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v199</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -758,8 +758,8 @@ const DIARY_FORMATS=[
   {prefix:'WB-',name:'B6ウィークリー｜レフト'},
   {prefix:'WK-',name:'B6ウィークリー｜ブロック'},
   {prefix:'WV-',name:'A5ウィークリー｜バーチカルノート'},
-  {prefix:'WS-',name:'Nitte 新書判 ウィークリー'},
   {prefix:'WL-',name:'ロングウィークリー'},
+  {prefix:'WS-',name:'Nitte 新書判 ウィークリー'},
   {prefix:'WX-',name:'B6ウィークリー｜インデックス レフト'},
 ];
 function getDiaryFormat(code){for(const f of DIARY_FORMATS){if(code.includes(f.prefix))return f.name;}return 'その他';}
@@ -1381,6 +1381,8 @@ function catalogBlocks(sections){
 // これらのフォーマットはページ左カラムから開始し、次のフォーマットと左右ペアで並べる
 // （スタンダード＋フルカラー、レフト＋ブロック を各ページで横並びにする）
 const CAT_FMT_NEWPAGE=new Set(['B6マンスリー｜スタンダード','B6ウィークリー｜レフト']);
+// これらは新カラムにせず前のフォーマットの下に重ねて配置する（種類が少ないため）
+const CAT_FMT_STACK=new Set(['ロングウィークリー']);
 function paginateCatalog(blocks, container){
   container.innerHTML='';
   const tpl=document.createElement('div');
@@ -1418,6 +1420,8 @@ function paginateCatalog(blocks, container){
       // 指定フォーマットはページ左から始める（次のフォーマットと左右ペアで並べるため）
       if(CAT_FMT_NEWPAGE.has(b.fmtName)){
         if(col.childElementCount>0 || colIdx>0) newPage(curTitle);
+      } else if(CAT_FMT_STACK.has(b.fmtName)){
+        /* 新カラムにせず前のフォーマットの下に重ねる（あふれたらplace内で折り返す） */
       } else if(colHasFmt){
         advance();                                     // 通常はフォーマットごとに新カラム
       }
