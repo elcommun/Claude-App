@@ -325,8 +325,8 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-rank.r1{background:#E85D26}.cat-rank.r2{background:#8a8a8a}.cat-rank.r3{background:#a07040}
 .cat-rank.ro{background:#ece8e2;color:#8c867d;box-shadow:none;border:1px solid #ddd7cf;box-sizing:border-box;line-height:13px}
 .cat-so{position:absolute;top:2px;right:2px;background:#c0392b;color:#fff;font-size:7px;font-weight:700;border-radius:3px;padding:0 3px;white-space:nowrap;z-index:1}
-.cat-imgbox{height:56px;display:flex;align-items:center;justify-content:center;margin:1px 0 2px}
-.cat-img{max-width:100%;max-height:56px;object-fit:contain}
+.cat-imgbox{width:100%;aspect-ratio:5/7;display:flex;align-items:center;justify-content:center;margin:1px 0 2px}
+.cat-img{width:100%;height:100%;object-fit:contain}
 .cat-pname{font-size:6px;font-weight:600;line-height:1.12;height:13px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
 .cat-line{margin-top:1px;font-size:7px;text-align:center}
 .cat-code{display:block;font-family:monospace;font-weight:400;font-size:9px}
@@ -416,7 +416,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v200</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v201</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
