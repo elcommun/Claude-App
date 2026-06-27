@@ -332,16 +332,18 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-code{display:block;font-family:monospace;font-weight:400;font-size:9px}
 .cat-price{display:block;font-weight:400;white-space:nowrap;font-size:6px}
 .cat-qty{margin-top:1px;font-size:9px;font-weight:700;border-radius:3px;padding:1px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-/* 種類別売上TOP5 表（新書判の右の空きスペース） */
-.cat-ranktbl-wrap{font-size:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.rt-title{font-size:10px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:2px;margin:0 0 3px}
-.cat-ranktbl{width:100%;border-collapse:collapse;table-layout:fixed;line-height:1.1}
-.cat-ranktbl td{font-size:7.5px;padding:0 4px;border-bottom:1px solid #efe9e1;vertical-align:middle}
-.cat-ranktbl .rt-fmt td{background:#f1ece4;font-weight:700;color:#555;font-size:7.5px;border-left:3px solid #E85D26;padding:1px 5px}
-.rt-rk{width:16px;text-align:center;font-weight:700;background:none!important}
+/* 種類別売上TOP5（画像付き・2カラム）：新書判の右の空きスペース */
+.cat-ranktbl-wrap{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.rt-title{font-size:10px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:2px;margin:0 0 4px}
+.rt-grid{column-count:2;column-gap:7px}
+.rt-block{break-inside:avoid;margin-bottom:5px}
+.rt-fmt{background:#f1ece4;font-weight:700;color:#555;font-size:7px;border-left:3px solid #E85D26;padding:1px 4px;margin-bottom:1px}
+.rt-row{display:flex;align-items:center;gap:3px;font-size:7px;padding:1px 2px;border-bottom:1px solid #f0eae2}
+.rt-rk{flex:0 0 auto;width:9px;text-align:center;font-weight:700}
 .rt-rk.rt1{color:#E85D26}.rt-rk.rt2{color:#8a8a8a}.rt-rk.rt3{color:#a07040}.rt-rk.rto{color:#b3ada4}
-.rt-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rt-qty{width:34px;text-align:right;white-space:nowrap;font-weight:600}
+.rt-img{flex:0 0 auto;width:13px;height:18px;object-fit:contain}
+.rt-nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rt-qty{flex:0 0 auto;text-align:right;white-space:nowrap;font-weight:600}
 @media print{
   @page{size:A4 landscape;margin:8mm}
   body.catalog-open>*:not(#catalog-modal){display:none!important}
@@ -426,7 +428,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v203</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v204</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1388,19 +1390,21 @@ function catalogBlocks(sections){
   });
   return blocks;
 }
-// 各フォーマットの売上TOP5を表にする（新書判の右の空きスペースに配置）
+// 各フォーマットの売上TOP5を、画像付き・2カラムで表示（新書判の右の空きスペースに配置）
 function buildRankTable(sec){
-  let rows='';
+  let blocks='';
   for(const g of sec.groups){
     const top=[...g.items].filter(it=>it.rank<=5).sort((a,b)=>a.rank-b.rank);
     if(!top.length) continue;
-    rows+=`<tr class="rt-fmt"><td colspan="3">${x(g.fmtName)}</td></tr>`;
+    let rows='';
     for(const it of top){
+      const fn=it.code.replace(/-/g,'_');
       const rk=it.rank<=3?('rt'+it.rank):'rto';
-      rows+=`<tr><td class="rt-rk ${rk}">${it.rank}</td><td class="rt-nm">${x(it.shortName||it.name)}</td><td class="rt-qty">${it.qty.toLocaleString()}</td></tr>`;
+      rows+=`<div class="rt-row"><span class="rt-rk ${rk}">${it.rank}</span><img class="rt-img" src="images/${fn}.jpg" loading="lazy" onerror="this.onerror=null;this.src='images/${fn}.png';this.dataset.f=(this.dataset.f|0)+1;if(this.dataset.f>1)this.style.visibility='hidden'"><span class="rt-nm">${x(it.shortName||it.name)}</span><span class="rt-qty">${it.qty.toLocaleString()}</span></div>`;
     }
+    blocks+=`<div class="rt-block"><div class="rt-fmt">${x(g.fmtName)}</div>${rows}</div>`;
   }
-  return `<div class="cat-ranktbl-wrap"><div class="rt-title">種類別 売上ランキング（各TOP5）</div><table class="cat-ranktbl">${rows}</table></div>`;
+  return `<div class="cat-ranktbl-wrap"><div class="rt-title">種類別 売上ランキング（各TOP5）</div><div class="rt-grid">${blocks}</div></div>`;
 }
 // ブロックを横向きA4ページ（2カラム）へ分配。左カラムを下端まで埋めてから右カラム、
 // 埋まったら次ページへ。1カラム＝1フォーマット（カテゴリ）になるよう、各フォーマット
