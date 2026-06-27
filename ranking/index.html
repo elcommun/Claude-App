@@ -320,6 +320,13 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-grid{display:block;font-size:0;margin-bottom:4px}
 .cat-fmt{display:block;font-size:11px;font-weight:700;color:#555;background:#f1ece4;border-left:3px solid #E85D26;padding:2px 7px;margin-top:3px}
 .cat-fmt-cnt{font-weight:400;font-size:9px;color:#999}
+/* カレンダー：1年=1カラム（卓上+壁掛けを縦に重ね）。複数年は別カラムに並ぶ */
+.cal-col{font-size:0}
+.cal-yr{font-size:12px;font-weight:700;color:#2c2c3a;border-bottom:1.5px solid #E85D26;padding-bottom:2px;margin:0 0 4px}
+.cal-yr-cnt{font-size:9px;font-weight:400;color:#888}
+/* カレンダーのカードは1カラムに多く収めるため画像を小さめに */
+.cal-col .cat-imgbox{aspect-ratio:auto;height:44px}
+.cal-col .cat-img{width:auto;height:44px;max-width:100%}
 .cat-card{display:inline-block;width:10.7%;margin:0.2%;vertical-align:top;box-sizing:border-box;position:relative;border:1px solid #e2ddd4;border-radius:4px;padding:2px 2px 3px;text-align:center;background:#fff}
 .cat-rank{position:absolute;top:2px;left:2px;min-width:15px;height:15px;line-height:15px;padding:0 3px;border-radius:8px;font-size:9px;font-weight:700;color:#fff;background:#9a948c;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:1}
 .cat-rank.r1{background:#E85D26}.cat-rank.r2{background:#8a8a8a}.cat-rank.r3{background:#a07040}
@@ -429,7 +436,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v205</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v206</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1357,33 +1364,44 @@ function buildCatalogData(){
   }
   return sections;
 }
-// カタログ内容を順序付きブロック配列にする（sec=見出し / fmt=フォーマット見出し / card=商品）
-function catalogBlocks(sections){
-  const blocks=[];
-  sections.forEach((sec,si)=>{
-    // 手帳見出しのアンダーライン色を開始月で分ける（1月=赤/4月=緑/10月=青、それ以外は既定のオレンジ）
-    const ulMonth=(sec.cat.match(/(\d+)月始まり/)||[])[1];
-    const ulColor=ulMonth==='1'?'#d64545':ulMonth==='4'?'#2e8b57':ulMonth==='10'?'#3b74c4':'';
-    blocks.push({type:'sec',html:`<div class="cat-sec-hdr${si===0?' first':''}"${ulColor?` style="border-bottom-color:${ulColor}"`:''}>${(CAT_ICONS[sec.cat]||'📦')} ${x(sec.cat)} <span class="cat-sec-cnt">(${sec.count}種)</span></div>`});
-    sec.groups.forEach((g,gi)=>{
-      blocks.push({type:'fmt',fmtName:g.fmtName,html:`<div class="cat-fmt">▌ ${x(g.fmtName)} <span class="cat-fmt-cnt">(${g.items.length}種)</span></div>`});
-      for(const it of g.items){
-        const fn=it.code.replace(/-/g,'_');
-        const heat=catalogHeat(it.qty,sec.maxQty);
-        const rankCls=it.rank<=3?('r'+it.rank):'ro';
-        const so=STOCKOUT[it.code]||'';
-        const qtyStyle=`background:${heat.bg};color:${heat.light?'#7a3a16':'#fff'}`;
-        blocks.push({type:'card',html:`<div class="cat-card">
+// 1商品カードのHTML
+function catCardHtml(it,maxQty){
+  const fn=it.code.replace(/-/g,'_');
+  const heat=catalogHeat(it.qty,maxQty);
+  const rankCls=it.rank<=3?('r'+it.rank):'ro';
+  const so=STOCKOUT[it.code]||'';
+  const qtyStyle=`background:${heat.bg};color:${heat.light?'#7a3a16':'#fff'}`;
+  return `<div class="cat-card">
           <div class="cat-rank ${rankCls}">${it.rank}</div>
           ${so?`<div class="cat-so">欠 ${x(so)}</div>`:''}
           <div class="cat-imgbox"><img class="cat-img" src="images/${fn}.jpg" loading="lazy" onerror="this.onerror=null;this.src='images/${fn}.png';this.dataset.f=(this.dataset.f|0)+1;if(this.dataset.f>1)this.style.visibility='hidden'"></div>
           <div class="cat-pname">${x(it.shortName||it.name)}</div>
           <div class="cat-line"><span class="cat-code">${x(it.code)}</span><span class="cat-price">¥${(it.price||0).toLocaleString()}</span></div>
           <div class="cat-qty" style="${qtyStyle}">${it.qty.toLocaleString()}個</div>
-        </div>`});
-      }
-      // 先頭フォーマット(新書判 コンパクトマンスリー)は単独で右カラムが空くため、
-      // そこに各フォーマットの売上TOP5表を入れる（手帳のみ）
+        </div>`;
+}
+// カタログ内容を順序付きブロック配列にする
+function catalogBlocks(sections){
+  const blocks=[];
+  // カレンダーはSKUが少ないので各年=1カラム（卓上+壁掛けを縦に重ね）にまとめ、
+  // 複数年は同ページの別カラムに並ぶよう calcol ブロックにする
+  for(const sec of sections.filter(s=>s.catType==='カレンダー')){
+    let inner=`<div class="cal-yr">${(CAT_ICONS[sec.cat]||'📅')} ${x(sec.cat)} <span class="cal-yr-cnt">(${sec.count}種)</span></div>`;
+    for(const g of sec.groups){
+      inner+=`<div class="cat-fmt">▌ ${x(g.fmtName)} <span class="cat-fmt-cnt">(${g.items.length}種)</span></div>`;
+      for(const it of g.items) inner+=catCardHtml(it,sec.maxQty);
+    }
+    blocks.push({type:'calcol',html:`<div class="cal-col">${inner}</div>`});
+  }
+  // 手帳など（従来どおり：全幅タイトル＋フォーマット）
+  sections.filter(s=>s.catType!=='カレンダー').forEach((sec,si)=>{
+    const ulMonth=(sec.cat.match(/(\d+)月始まり/)||[])[1];
+    const ulColor=ulMonth==='1'?'#d64545':ulMonth==='4'?'#2e8b57':ulMonth==='10'?'#3b74c4':'';
+    blocks.push({type:'sec',html:`<div class="cat-sec-hdr${si===0?' first':''}"${ulColor?` style="border-bottom-color:${ulColor}"`:''}>${(CAT_ICONS[sec.cat]||'📦')} ${x(sec.cat)} <span class="cat-sec-cnt">(${sec.count}種)</span></div>`});
+    sec.groups.forEach((g,gi)=>{
+      blocks.push({type:'fmt',fmtName:g.fmtName,html:`<div class="cat-fmt">▌ ${x(g.fmtName)} <span class="cat-fmt-cnt">(${g.items.length}種)</span></div>`});
+      for(const it of g.items) blocks.push({type:'card',html:catCardHtml(it,sec.maxQty)});
+      // 先頭フォーマット(新書判)の右の空きに各フォーマットTOP5表を入れる（手帳のみ）
       if(gi===0 && sec.catType==='手帳' && g.fmtName==='新書判 コンパクトマンスリー'){
         blocks.push({type:'ranktable',html:buildRankTable(sec)});
       }
@@ -1445,7 +1463,16 @@ function paginateCatalog(blocks, container){
       col.appendChild(node);
     }
   };
+  let lastWasCalcol=false;
   for(const b of blocks){
+    if(b.type==='calcol'){
+      // カレンダー：各年=1カラム。最初は新ページ、以降は次カラム（同ページの別カラム）へ
+      if(!lastWasCalcol){ curTitle=null; newPage(null); } else advance();
+      lastWasCalcol=true;
+      place(b.html);
+      continue;
+    }
+    lastWasCalcol=false;
     if(b.type==='sec'){
       curTitle=b.html;
       newPage(curTitle);                               // カテゴリは新ページ＋両カラムを突き抜ける全幅タイトル
