@@ -233,18 +233,19 @@
   .pv-badge { background: var(--accent-light); color: var(--accent); border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 600; }
   /* 縦は全件を一覧表示（高さ制限なし）。下端ドラッグで好きな高さに伸縮も可能 */
   .pv-wrap { overflow: auto; resize: vertical; min-height: 80px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
-  .pv-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .pv-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 0.8rem; }
   .pv-table thead tr { background: var(--accent-light); position: sticky; top: 0; z-index: 1; }
   .pv-table th { text-align: left; padding: 9px 12px; font-weight: 700; color: var(--accent); border-bottom: 1px solid #bfdbfe; white-space: nowrap; }
   .pv-table th.num, .pv-table td.num { text-align: right; font-family: 'DM Mono', monospace; white-space: nowrap; }
   .pv-table td.pv-code { font-family: 'DM Mono', monospace; white-space: nowrap; color: var(--accent2); }
+  .pv-codelink { color: var(--accent); text-decoration: none; }
+  .pv-codelink:hover { text-decoration: underline; }
   .pv-table td { padding: 8px 12px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: top; }
   .pv-table tbody tr:hover { background: var(--surface2); }
   .pv-table tbody tr:last-child td { border-bottom: none; }
-  /* 商品名: 先頭装飾と「｜」以降を除去し30文字以内に整形して表示（全文はホバーで確認可） */
-  .pv-name { display: block; max-width: 24em; white-space: normal; word-break: break-word; overflow-wrap: anywhere; line-height: 1.5; }
-  /* 項目・選択肢列 */
-  .pv-table td.pv-opt { color: var(--text2); white-space: normal; word-break: break-all; }
+  /* 商品名・項目選択肢: 文字数に合わせてセル幅が決まる（1行表示）。右端ドラッグで手動リサイズも可。全文はホバーで確認可 */
+  .pv-name, .pv-optv { display: inline-block; min-width: 3em; max-width: 60em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; resize: horizontal; cursor: text; }
+  .pv-optv { color: var(--text2); }
 
   /* ── 処理内容カード ── */
   .info-card { }
@@ -630,6 +631,7 @@ async function processData(download = true) {
   data = data.map(row => {
     const r = { ...row };
     r['__opt'] = row['項目・選択肢'] || '';   // プレビュー用に「項目・選択肢」を退避（Excel出力前に除去）
+    r['__url'] = row['商品URL'] || '';        // プレビュー用に「商品URL」を退避（Excel出力前に除去）
     rmCols.forEach(c => delete r[c]);
     r['クーポン利用額'] = r['クーポン利用額_計算後'];
     r['送料合計']       = r['送料合計_計算後'];
@@ -832,11 +834,12 @@ async function processData(download = true) {
       const pn=row['商品番号']||'', name=row['商品名']||'', s=row['販売店舗']||'';
       const qty=parseFloat(row['個数'])||0;
       if (!pn.trim()) return;
-      if (!pMap.has(pn)) pMap.set(pn,{quantity:0,opts:new Set(),names:{elcommun:null,laikle:null,other:null}});
+      if (!pMap.has(pn)) pMap.set(pn,{quantity:0,opts:new Set(),url:'',names:{elcommun:null,laikle:null,other:null}});
       const pd=pMap.get(pn);
       pd.quantity+=qty;
       const opt=extractOption(row['__opt']);
       if (opt) pd.opts.add(opt);
+      if (!pd.url && row['__url']) pd.url=String(row['__url']).trim();
       if (s==='EL COMMUN 楽天市場店' && !pd.names.elcommun) pd.names.elcommun=name;
       else if (s==='LAIKLE 楽天市場店' && !pd.names.laikle) pd.names.laikle=name;
       else if (!pd.names.other) pd.names.other=name;
@@ -845,7 +848,7 @@ async function processData(download = true) {
       let n=pd.names.elcommun||pd.names.laikle||pd.names.other||'';
       n=n.replace(/ダイアリー スケジュール帳/g,'').trim();
       const idx=n.indexOf('』'); if (idx!==-1) n=n.substring(0,idx+1).trim();
-      return {'商品番号':pn,'商品名':n,'個数':pd.quantity,'選択肢':Array.from(pd.opts).join(' / ')};
+      return {'商品番号':pn,'商品名':n,'個数':pd.quantity,'選択肢':Array.from(pd.opts).join(' / '),'商品URL':pd.url};
     }).sort((a,b)=>(a['商品番号']||'').localeCompare(b['商品番号']||''));
   };
 
@@ -930,7 +933,7 @@ async function processData(download = true) {
   ];
   sheetDefs.forEach(({label,data,cond}) => {
     if (cond===false) return;
-    data.forEach(r => { if (r && '__opt' in r) delete r['__opt']; }); // プレビュー用の退避列をExcelから除去
+    data.forEach(r => { if (r) { delete r['__opt']; delete r['__url']; } }); // プレビュー用の退避列をExcelから除去
     const ws=XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, `${label} - ${ts}`);
   });
@@ -960,7 +963,12 @@ function renderPreview(summaries, totalSku) {
       const full=esc(String(it['商品名']||''));
       const nm=esc(cleanPreviewName(it['商品名']));
       const opt=esc(it['選択肢']||'');
-      return `<tr><td><span class="pv-name" title="${full}">${nm}</span></td><td class="pv-opt">${opt}</td><td class="pv-code">${esc(it['商品番号'])}</td><td class="num">${esc(it['個数'])}</td></tr>`;
+      const code=esc(it['商品番号']);
+      const url=String(it['商品URL']||'').trim();
+      const codeCell = /^https?:\/\//i.test(url)
+        ? `<td class="pv-code"><a class="pv-codelink" href="${esc(url)}" target="_blank" rel="noopener" title="商品ページを開く">${code}</a></td>`
+        : `<td class="pv-code">${code}</td>`;
+      return `<tr><td><span class="pv-name" title="${full}">${nm}</span></td><td><span class="pv-optv" title="${opt}">${opt}</span></td>${codeCell}<td class="num">${esc(it['個数'])}</td></tr>`;
     }).join('');
     return `<div class="pv-sheet">
       <div class="pv-sheet-head">${esc(s.label)}<span class="pv-badge">${s.summary.length} SKU ／ 計 ${qtyTotal} 個</span></div>
@@ -989,13 +997,15 @@ function cleanPreviewName(name) {
   return n;
 }
 
-// 「項目・選択肢」から、「デザイン:」「カラー:」の右側の値だけを抽出
-// それ以外のラベル・行（例: ○了承の上購入する など）は削除する
+// 「項目・選択肢」から「デザイン:」「カラー:」の右側の値だけを抽出する。
+// 各種区切り文字（改行・／・/・｜・|・、・，・,・;・；）で項目を分割し、
+// ラベルに「デザイン」「カラー」を含む項目の値だけを残す。
+// それ以外のラベルや、ラベルなしの行（例: ○了承の上購入する）は削除する。
 function extractOption(raw) {
   if (!raw) return '';
   const LABELS = ['デザイン','カラー'];
-  return String(raw)
-    .split(/[\n\r／]+/)
+  const vals = String(raw)
+    .split(/[\n\r／\/｜|、，,;；]+/)
     .map(seg => {
       const i = seg.search(/[:：]/);
       if (i < 0) return '';
@@ -1003,8 +1013,8 @@ function extractOption(raw) {
       if (!LABELS.some(l => label.includes(l))) return '';
       return seg.slice(i+1).trim();
     })
-    .filter(Boolean)
-    .join(' / ');
+    .filter(Boolean);
+  return Array.from(new Set(vals)).join(' / ');
 }
 
 function esc(s) {
