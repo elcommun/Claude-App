@@ -241,8 +241,10 @@
   .pv-table td { padding: 8px 12px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: top; }
   .pv-table tbody tr:hover { background: var(--surface2); }
   .pv-table tbody tr:last-child td { border-bottom: none; }
-  /* 商品名: 既定は約50文字で省略表示。右端ドラッグでセル幅を広げて全文表示できる */
-  .pv-name { display: inline-block; width: 46em; min-width: 6em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; resize: horizontal; cursor: text; }
+  /* 商品名: 先頭装飾と「｜」以降を除去し30文字以内に整形して表示（全文はホバーで確認可） */
+  .pv-name { display: block; max-width: 24em; white-space: normal; word-break: break-word; overflow-wrap: anywhere; line-height: 1.5; }
+  /* 項目・選択肢列 */
+  .pv-table td.pv-opt { color: var(--text2); white-space: normal; word-break: break-all; }
 
   /* ── 処理内容カード ── */
   .info-card { }
@@ -627,6 +629,7 @@ async function processData(download = true) {
   const rmCols = ['注文日時','出荷日','SKU管理番号','項目・選択肢','税込別','商品URL'];
   data = data.map(row => {
     const r = { ...row };
+    r['__opt'] = row['項目・選択肢'] || '';   // プレビュー用に「項目・選択肢」を退避（Excel出力前に除去）
     rmCols.forEach(c => delete r[c]);
     r['クーポン利用額'] = r['クーポン利用額_計算後'];
     r['送料合計']       = r['送料合計_計算後'];
@@ -829,9 +832,11 @@ async function processData(download = true) {
       const pn=row['商品番号']||'', name=row['商品名']||'', s=row['販売店舗']||'';
       const qty=parseFloat(row['個数'])||0;
       if (!pn.trim()) return;
-      if (!pMap.has(pn)) pMap.set(pn,{quantity:0,names:{elcommun:null,laikle:null,other:null}});
+      if (!pMap.has(pn)) pMap.set(pn,{quantity:0,opts:new Set(),names:{elcommun:null,laikle:null,other:null}});
       const pd=pMap.get(pn);
       pd.quantity+=qty;
+      const opt=extractOption(row['__opt']);
+      if (opt) pd.opts.add(opt);
       if (s==='EL COMMUN 楽天市場店' && !pd.names.elcommun) pd.names.elcommun=name;
       else if (s==='LAIKLE 楽天市場店' && !pd.names.laikle) pd.names.laikle=name;
       else if (!pd.names.other) pd.names.other=name;
@@ -840,7 +845,7 @@ async function processData(download = true) {
       let n=pd.names.elcommun||pd.names.laikle||pd.names.other||'';
       n=n.replace(/ダイアリー スケジュール帳/g,'').trim();
       const idx=n.indexOf('』'); if (idx!==-1) n=n.substring(0,idx+1).trim();
-      return {'商品番号':pn,'商品名':n,'個数':pd.quantity};
+      return {'商品番号':pn,'商品名':n,'個数':pd.quantity,'選択肢':Array.from(pd.opts).join(' / ')};
     }).sort((a,b)=>(a['商品番号']||'').localeCompare(b['商品番号']||''));
   };
 
@@ -925,6 +930,7 @@ async function processData(download = true) {
   ];
   sheetDefs.forEach(({label,data,cond}) => {
     if (cond===false) return;
+    data.forEach(r => { if (r && '__opt' in r) delete r['__opt']; }); // プレビュー用の退避列をExcelから除去
     const ws=XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb, ws, `${label} - ${ts}`);
   });
@@ -951,20 +957,46 @@ function renderPreview(summaries, totalSku) {
   previewBody.innerHTML=nonEmpty.map(s => {
     const qtyTotal=s.summary.reduce((n,it)=>n+(parseFloat(it['個数'])||0),0);
     const rows=s.summary.map(it => {
-      const nm=esc(it['商品名']);
-      return `<tr><td><span class="pv-name" title="${nm}">${nm}</span></td><td class="pv-code">${esc(it['商品番号'])}</td><td class="num">${esc(it['個数'])}</td></tr>`;
+      const full=esc(String(it['商品名']||''));
+      const nm=esc(cleanPreviewName(it['商品名']));
+      const opt=esc(it['選択肢']||'');
+      return `<tr><td><span class="pv-name" title="${full}">${nm}</span></td><td class="pv-opt">${opt}</td><td class="pv-code">${esc(it['商品番号'])}</td><td class="num">${esc(it['個数'])}</td></tr>`;
     }).join('');
     return `<div class="pv-sheet">
       <div class="pv-sheet-head">${esc(s.label)}<span class="pv-badge">${s.summary.length} SKU ／ 計 ${qtyTotal} 個</span></div>
       <div class="pv-wrap">
         <table class="pv-table">
-          <thead><tr><th>商品名</th><th>商品番号</th><th class="num">数量</th></tr></thead>
+          <thead><tr><th>商品名</th><th>項目・選択肢</th><th>商品番号</th><th class="num">数量</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
     </div>`;
   }).join('');
   previewCard.style.display='block';
+}
+
+// 商品名の整形（プレビュー用）：先頭の装飾（【…】［…］〔…〕／＼…／）と「｜」以降を除去し30文字以内に
+function cleanPreviewName(name) {
+  let n=String(name||''), prev;
+  do {
+    prev=n;
+    n=n.replace(/^\s*[【［〔][^】］〕]*[】］〕]\s*/,'');   // 先頭の【…】／［…］／〔…〕
+    n=n.replace(/^\s*＼[^／]*／\s*/,'');                   // ＼…／
+    n=n.replace(/^\s*\\[^/]*\/\s*/,'');                    // \…/（半角）
+  } while (n!==prev);
+  n=n.split(/[｜|]/)[0].trim();                            // 「｜」以降を削除
+  if (n.length>30) n=n.slice(0,30)+'…';                   // 30文字以内
+  return n;
+}
+
+// 「項目・選択肢」から値部分を抽出（例: デザイン:kukka_pink → kukka_pink）
+function extractOption(raw) {
+  if (!raw) return '';
+  return String(raw)
+    .split(/[\n\r／]+/)
+    .map(seg => { const i=seg.search(/[:：]/); return (i>=0 ? seg.slice(i+1) : seg).trim(); })
+    .filter(Boolean)
+    .join(' / ');
 }
 
 function esc(s) {
