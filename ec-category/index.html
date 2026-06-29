@@ -300,6 +300,9 @@
   .step-body b { color: var(--accent2); font-weight: 700; }
   .step-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 0.82rem; font-weight: 600; color: var(--accent); text-decoration: none; word-break: break-all; }
   .step-link:hover { text-decoration: underline; }
+  .step-inline { color: var(--accent); font-weight: 600; text-decoration: none; word-break: break-all; }
+  .step-inline b { color: inherit; }
+  .step-inline:hover { text-decoration: underline; }
   .guide-tip { margin-top: 22px; padding: 12px 16px; background: var(--accent-light); border: 1px solid #bfdbfe; border-radius: var(--radius-sm); font-size: 0.82rem; color: #1e40af; }
   .guide-tip b { font-weight: 700; }
 
@@ -342,18 +345,14 @@
       <svg class="guide-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
     </summary>
     <div class="guide-body">
-      <div class="phase-label"><span class="phase-badge">STEP 1</span>受注データの抽出</div>
       <ol class="steps">
-        <li class="step"><span class="step-num">1</span><div class="step-body"><b>GoQ System 受注管理</b>を開く<br><a class="step-link" href="https://order.goqsystem.com/goq21/index_beta.php?stat=12&amp;page=1" target="_blank" rel="noopener">GoQ System 受注管理を開く ↗</a></div></li>
+        <li class="step"><span class="step-num">1</span><div class="step-body"><a class="step-inline" href="https://order.goqsystem.com/goq21/index_beta.php?stat=12&amp;page=1" target="_blank" rel="noopener"><b>GoQ System 受注管理</b>を開く ↗</a></div></li>
         <li class="step"><span class="step-num">2</span><div class="step-body">「<b>全て</b>」のタブを選択する</div></li>
         <li class="step"><span class="step-num">3</span><div class="step-body">「<b>絞込みパネル</b>」のプルダウンで「<b>出荷日</b>」を選択し、期間を指定して「<b>絞り込む</b>」ボタンを押す</div></li>
         <li class="step"><span class="step-num">4</span><div class="step-body">「<b>処理パネル</b>」内の「<b>CSVの出力</b>」を開く</div></li>
-      </ol>
-      <div class="phase-label phase-label-2"><span class="phase-badge green">STEP 2</span>「CSVの出力」パネルで書き出す</div>
-      <ol class="steps green">
-        <li class="step"><span class="step-num green">1</span><div class="step-body">「<b>全ての受注</b>」にチェックを入れる</div></li>
-        <li class="step"><span class="step-num green">2</span><div class="step-body">「<b>その他データ</b>」のプルダウンから「<b>CSV</b>」を選ぶ</div></li>
-        <li class="step"><span class="step-num green">3</span><div class="step-body">「<b>出力</b>」ボタンを押してダウンロード</div></li>
+        <li class="step"><span class="step-num">5</span><div class="step-body">「<b>全ての受注</b>」にチェックを入れる</div></li>
+        <li class="step"><span class="step-num">6</span><div class="step-body">「<b>その他データ</b>」のプルダウンから「<b>CSV</b>」を選ぶ</div></li>
+        <li class="step"><span class="step-num">7</span><div class="step-body">「<b>出力</b>」ボタンを押してダウンロード</div></li>
       </ol>
       <div class="guide-tip">⬇️ ダウンロードした CSV を、下の「<b>変換して保存</b>」にドラッグ＆ドロップ（または選択）してください。</div>
     </div>
