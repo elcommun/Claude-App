@@ -619,18 +619,44 @@
   }
   [data-theme="dark"] .preview-count { border-color: rgba(139,92,246,0.20); }
 
-  .preview-wrap {
-    overflow: auto;
-    min-height: 120px;
-    max-height: 400px;
-    resize: vertical;
+  .preview-wrap-outer {
+    position: relative;
     border: 1px solid var(--border);
     border-radius: 8px;
+    overflow: hidden;
+  }
+  .preview-wrap {
+    overflow: auto;
+    height: 260px;
+    min-height: 80px;
     background: var(--table-bg);
   }
   .preview-wrap::-webkit-scrollbar { width: 5px; height: 5px; }
   .preview-wrap::-webkit-scrollbar-track { background: transparent; }
   .preview-wrap::-webkit-scrollbar-thumb { background: var(--text3); border-radius: 4px; }
+  .preview-resize-handle {
+    height: 10px;
+    background: transparent;
+    cursor: ns-resize;
+    display: flex; align-items: center; justify-content: center;
+    border-top: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .preview-resize-handle:hover, .preview-resize-handle.dragging {
+    background: var(--accent-dim);
+  }
+  .preview-resize-handle::before {
+    content: '';
+    width: 32px; height: 3px;
+    border-radius: 2px;
+    background: var(--text3);
+    opacity: 0.5;
+    transition: opacity 0.2s, background 0.2s;
+  }
+  .preview-resize-handle:hover::before, .preview-resize-handle.dragging::before {
+    background: var(--accent2);
+    opacity: 1;
+  }
 
   .preview-table {
     width: max-content;
@@ -741,17 +767,20 @@
       </div>
       <span class="preview-count" id="previewCount">0 件</span>
     </div>
-    <div class="preview-wrap" id="previewWrap">
-      <table class="preview-table" id="previewTable">
-        <thead>
-          <tr>
-            <th style="width:300px">商品名<div class="col-resize-handle"></div></th>
-            <th style="width:160px">商品番号<div class="col-resize-handle"></div></th>
-            <th style="width:80px">数量<div class="col-resize-handle"></div></th>
-          </tr>
-        </thead>
-        <tbody id="previewTbody"></tbody>
-      </table>
+    <div class="preview-wrap-outer">
+      <div class="preview-wrap" id="previewWrap">
+        <table class="preview-table" id="previewTable">
+          <thead>
+            <tr>
+              <th style="width:300px">商品名<div class="col-resize-handle"></div></th>
+              <th style="width:160px">商品番号<div class="col-resize-handle"></div></th>
+              <th style="width:80px">数量<div class="col-resize-handle"></div></th>
+            </tr>
+          </thead>
+          <tbody id="previewTbody"></tbody>
+        </table>
+      </div>
+      <div class="preview-resize-handle" id="previewResizeHandle"></div>
     </div>
   </div>
 
@@ -907,6 +936,31 @@ async function showPreview(f) {
   previewCount.textContent = rows.length + ' 件';
   previewSection.style.display = 'block';
   initColResize();
+  initRowResize();
+}
+
+function initRowResize() {
+  const handle = document.getElementById('previewResizeHandle');
+  const wrap   = document.getElementById('previewWrap');
+  if (!handle || handle.dataset.bound) return;
+  handle.dataset.bound = '1';
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    handle.classList.add('dragging');
+    const startY = e.clientY;
+    const startH = wrap.offsetHeight;
+    const onMove = e => {
+      const newH = Math.max(80, startH + e.clientY - startY);
+      wrap.style.height = newH + 'px';
+    };
+    const onUp = () => {
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
 
 function initColResize() {
