@@ -853,10 +853,13 @@ async function processData(download = true) {
       else if (!pd.names.other) pd.names.other=name;
     });
     return Array.from(pMap.entries()).map(([pn,pd]) => {
-      let n=pd.names.elcommun||pd.names.laikle||pd.names.other||'';
-      n=n.replace(/ダイアリー スケジュール帳/g,'').trim();
+      const rawName=pd.names.elcommun||pd.names.laikle||pd.names.other||'';
+      let n=rawName.replace(/ダイアリー スケジュール帳/g,'').trim();
       const idx=n.indexOf('』'); if (idx!==-1) n=n.substring(0,idx+1).trim();
-      return {'商品番号':pn,'商品名':n,'個数':pd.quantity,'選択肢':Array.from(pd.opts).join(' / '),'商品URL':pd.url};
+      // 選択肢: このシート内 → 全データ横断(同一品番) → 商品名の品番直前の語 の順で決定
+      let opt=Array.from(pd.opts).join(' / ');
+      if (!opt) opt = GLOBAL_OPT[pn] || extractOptionFromName(rawName, pn);
+      return {'商品番号':pn,'商品名':n,'個数':pd.quantity,'選択肢':opt,'商品URL':pd.url};
     }).sort((a,b)=>(a['商品番号']||'').localeCompare(b['商品番号']||''));
   };
 
@@ -866,6 +869,15 @@ async function processData(download = true) {
     arr.push({...blank},{...blank},{'販売店舗':'','受注番号':'','商品名':'','商品番号':'【商品番号別集計】','個数':'','商品単価':'','クーポン利用額':'','送料合計':'','合計':'','総合計':''});
     summary.forEach(item => arr.push({'販売店舗':'','受注番号':'','商品名':item['商品名'],'商品番号':item['商品番号'],'個数':item['個数'],'商品単価':'','クーポン利用額':'','送料合計':'','合計':'','総合計':''}));
   };
+
+  // 全シート横断で「品番→項目選択肢」を作成（選択肢が空欄の品番に、他店の同一品番の選択肢を紐付ける）
+  const GLOBAL_OPT = {};
+  [remainOwnData,makerData,calendarData,january_Data,april_Data,october_Data].forEach(arr => {
+    arr.forEach(row => {
+      const pn=(row['商品番号']||'').toString().trim(); if (!pn || GLOBAL_OPT[pn]) return;
+      const o=extractOption(row['__opt']); if (o) GLOBAL_OPT[pn]=o;
+    });
+  });
 
   // 各シートの商品番号別集計を先に計算（appendSummaryで行を追加する前に取得）
   const summaryDefs=[
@@ -1084,6 +1096,23 @@ function extractOption(raw) {
     })
     .filter(Boolean);
   return Array.from(new Set(vals)).join(' / ');
+}
+
+// 商品名から「品番の直前にある語」を取り出す（Amazon等、項目・選択肢が無い場合のフォールバック）
+//   例: 「… B6 マンスリー レジェド サンドイエロー DRMG585(DR-MG-585)」→「サンドイエロー」
+function extractOptionFromName(name, pn) {
+  if (!name || !pn) return '';
+  const codeNoHyphen = pn.replace(/-/g, '');
+  let idx = -1;
+  [codeNoHyphen, pn].forEach(t => { if (t) { const p = name.indexOf(t); if (p >= 0 && (idx < 0 || p < idx)) idx = p; } });
+  const head = (idx >= 0 ? name.slice(0, idx) : name).trim();
+  const tokens = head.split(/[\s　]+/).filter(Boolean);
+  // 末尾から、日本語など非ASCIIを含む語を最初に1つ返す（品番コード等のASCII語はスキップ）
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const tk = tokens[i].replace(/[（）()]/g, '').trim();
+    if (tk && /[^\x00-\x7F]/.test(tk)) return tk;
+  }
+  return '';
 }
 
 function esc(s) {
