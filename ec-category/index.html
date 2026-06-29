@@ -492,6 +492,20 @@ function setFile(f) {
   fileBadge.style.display = 'inline-flex';
   convertBtn.disabled = false;
   clearResults();
+  previewFile();   // アップロードした時点でプレビューを表示（30SKU以内）
+}
+
+// アップロード直後のプレビュー（Excelは生成しない）
+async function previewFile() {
+  if (!csvFile) return;
+  showMsg('プレビューを生成中...', 'info');
+  await new Promise(r => setTimeout(r, 30)); // UIを更新させる
+  try {
+    await processData(false);
+  } catch(err) {
+    console.error(err);
+    showMsg('プレビューを表示できませんでした: ' + err.message, 'error');
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -533,7 +547,7 @@ convertBtn.addEventListener('click', async () => {
   await new Promise(r => setTimeout(r, 50)); // UIを更新させる
 
   try {
-    await processData();
+    await processData(true);
   } catch(err) {
     console.error(err);
     showMsg('エラーが発生しました: ' + err.message, 'error');
@@ -546,7 +560,7 @@ convertBtn.addEventListener('click', async () => {
   }
 });
 
-async function processData() {
+async function processData(download = true) {
   // ── CSV読み込み ──
   const buf = await csvFile.arrayBuffer();
   const dec = new TextDecoder('shift-jis');
@@ -881,7 +895,24 @@ async function processData() {
     emptyCard.style.display='block';
   }
 
-  // Excel生成
+  // プレビュー状況の文言（両モード共通）
+  let previewNote='';
+  if (totalSku>0 && totalSku<=PREVIEW_SKU_LIMIT) previewNote=`\n👁️ ${totalSku} SKU（30以内）のためプレビューを表示しました。`;
+  else if (totalSku>PREVIEW_SKU_LIMIT)            previewNote=`\nℹ️ ${totalSku} SKU（30超）のためプレビューは省略しました。`;
+
+  // ── アップロード時点（download=false）：Excelは生成せずプレビューのみ ──
+  if (!download) {
+    const emptyNote = emptyItems.length>0 ? `\n⚠️ 商品番号が空欄: ${emptyItems.length}件` : '';
+    showMsg(`プレビューを表示しました。内容を確認して「変換して保存」を押すとExcelをダウンロードします。${previewNote}${emptyNote}`,
+            emptyItems.length>0 ? 'warning' : 'info');
+    // ウィンドウを下げなくても見えるよう、プレビュー位置まで自動スクロール
+    if (totalSku>0 && totalSku<=PREVIEW_SKU_LIMIT) {
+      previewCard.scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+    return;
+  }
+
+  // ── 変換ボタン（download=true）：Excel生成してダウンロード ──
   const wb=XLSX.utils.book_new();
   const ts=new Date().toISOString().replace(/[-:]/g,'').slice(0,12);
   const sheetDefs=[
@@ -901,11 +932,6 @@ async function processData() {
   const today=new Date();
   const dateStr=today.getFullYear()+(today.getMonth()+1).toString().padStart(2,'0')+today.getDate().toString().padStart(2,'0');
   XLSX.writeFile(wb, `${dateStr}-品番別-販売数集計.xlsx`);
-
-  // 完了メッセージ（プレビュー状況も付記）
-  let previewNote='';
-  if (totalSku>0 && totalSku<=PREVIEW_SKU_LIMIT) previewNote=`\n👁️ ${totalSku} SKU（30以内）のためプレビューを表示しました。`;
-  else if (totalSku>PREVIEW_SKU_LIMIT)            previewNote=`\nℹ️ ${totalSku} SKU（30超）のためプレビューは省略しました。`;
 
   if (emptyItems.length>0) showMsg(`処理完了！データを振り分けました。\n⚠️ 商品番号が空欄: ${emptyItems.length}件${previewNote}`, 'warning');
   else showMsg(`処理完了！データを振り分けました。${previewNote}`, 'success');
