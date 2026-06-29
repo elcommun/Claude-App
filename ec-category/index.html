@@ -989,13 +989,20 @@ function cleanPreviewName(name) {
   return n;
 }
 
-// 「項目・選択肢」から、ラベル（デザイン:/カラー: など）の右側の値だけを抽出
-// 「ラベル:値」の形式でないもの（コロンを含まない部分）は削除する
+// 「項目・選択肢」から、「デザイン:」「カラー:」の右側の値だけを抽出
+// それ以外のラベル・行（例: ○了承の上購入する など）は削除する
 function extractOption(raw) {
   if (!raw) return '';
+  const LABELS = ['デザイン','カラー'];
   return String(raw)
     .split(/[\n\r／]+/)
-    .map(seg => { const i=seg.search(/[:：]/); return i>=0 ? seg.slice(i+1).trim() : ''; })
+    .map(seg => {
+      const i = seg.search(/[:：]/);
+      if (i < 0) return '';
+      const label = seg.slice(0, i);
+      if (!LABELS.some(l => label.includes(l))) return '';
+      return seg.slice(i+1).trim();
+    })
     .filter(Boolean)
     .join(' / ');
 }
