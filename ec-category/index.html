@@ -1062,7 +1062,7 @@ function extractOption(raw) {
   const vals = String(raw)
     .split(/[\n\r／\/｜|、，,;；]+/)
     .map(seg => {
-      const i = seg.search(/[:：]/);
+      const i = seg.search(/[:：=＝]/);   // 区切りは「:」「：」「=」「＝」（Yahoo店は「=」）
       if (i < 0) return '';
       const label = seg.slice(0, i);
       if (!LABELS.some(l => label.includes(l))) return '';
