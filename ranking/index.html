@@ -436,7 +436,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v208</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v209</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2483,6 +2483,14 @@ for(const g of TRANS_GROUPS){
 }
 
 // ── Search ────────────────────────────────────────────────────────────────────
+// 手帳/カレンダーのカテゴリを年月の若い順に並べるためのキー（年*100+開始月、
+// カレンダーは開始月なしのため0）。手帳/カレンダー以外はnull。
+function catYearMonth(cat){
+  const ym=cat.match(/(\d{4})年/);
+  if(!ym||!getCatType(cat))return null;
+  const mm=cat.match(/(\d+)月始まり/);
+  return parseInt(ym[1])*100+(mm?parseInt(mm[1]):0);
+}
 document.getElementById('hd-search').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.isComposing&&e.keyCode!==229)e.target.blur();});
 document.getElementById('hd-search-clear').addEventListener('click',()=>{const s=document.getElementById('hd-search');s.value='';s.dispatchEvent(new Event('input'));s.focus();});
 document.getElementById('hd-search').addEventListener('input',e=>{
@@ -2566,7 +2574,16 @@ document.getElementById('hd-search').addEventListener('input',e=>{
       g.totalQty+=r.qty;
     });
     const cats=[...catMap.entries()].sort((a,b)=>{
-      if(searchSortCol==='cat'){const c=a[0].localeCompare(b[0],'ja');return searchSortDir==='asc'?c:-c;}
+      const ya=catYearMonth(a[0]), yb=catYearMonth(b[0]);
+      if(searchSortCol==='cat'){
+        // カテゴリ列ソート：手帳/カレンダーは年月順、その他は名前順
+        let c = (ya!=null&&yb!=null) ? ya-yb : (ya!=null?-1:(yb!=null?1:a[0].localeCompare(b[0],'ja')));
+        return searchSortDir==='asc'?c:-c;
+      }
+      // 既定：手帳/カレンダーを年月の若い順で上に、その他はqty降順
+      if(ya!=null&&yb!=null) return ya-yb;
+      if(ya!=null) return -1;
+      if(yb!=null) return 1;
       return b[1].totalQty-a[1].totalQty;
     });
     cats.forEach(([cat,g])=>{
