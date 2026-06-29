@@ -627,7 +627,7 @@
   }
   .preview-wrap {
     overflow: auto;
-    height: 260px;
+    height: auto;
     min-height: 80px;
     background: var(--table-bg);
   }
@@ -944,6 +944,12 @@ async function showPreview(f) {
   previewSection.style.display = 'block';
   initColResize();
   initRowResize();
+  // 全行が見える高さに自動調整（ウィンドウ高さの80%を上限）
+  const wrap = document.getElementById('previewWrap');
+  requestAnimationFrame(() => {
+    const tableH = document.getElementById('previewTable').offsetHeight;
+    wrap.style.height = Math.min(tableH, window.innerHeight * 0.8) + 'px';
+  });
 }
 
 function initRowResize() {
