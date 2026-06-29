@@ -931,7 +931,7 @@ async function showPreview(f) {
 
   if (skuMap.size > 30) return;
 
-  previewTbody.innerHTML = Array.from(skuMap.entries()).map(([pn, { name, qty }]) => {
+  previewTbody.innerHTML = Array.from(skuMap.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([pn, { name, qty }]) => {
     const displayName = name.length > 50 ? name.slice(0, 50) + '…' : name;
     return `<tr>
       <td class="name-cell" title="${esc(name)}">${esc(displayName)}</td>
