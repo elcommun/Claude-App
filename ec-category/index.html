@@ -6,6 +6,7 @@
 <title>ECカテゴリ別販売数 — EL COMMUN EC事業部</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="product-names.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -852,14 +853,16 @@ async function processData(download = true) {
       else if (s==='LAIKLE 楽天市場店' && !pd.names.laikle) pd.names.laikle=name;
       else if (!pd.names.other) pd.names.other=name;
     });
+    const MASTER = (window.PRODUCT_NAMES || {});
     return Array.from(pMap.entries()).map(([pn,pd]) => {
-      const rawName=pd.names.elcommun||pd.names.laikle||pd.names.other||'';
-      let n=rawName.replace(/ダイアリー スケジュール帳/g,'').trim();
-      const idx=n.indexOf('』'); if (idx!==-1) n=n.substring(0,idx+1).trim();
-      // 選択肢: このシート内 → 全データ横断(同一品番) → 商品名の品番直前の語 の順で決定
-      let opt=Array.from(pd.opts).join(' / ');
-      if (!opt) opt = GLOBAL_OPT[pn] || extractOptionFromName(rawName, pn);
-      return {'商品番号':pn,'商品名':n,'個数':pd.quantity,'選択肢':opt,'商品URL':pd.url};
+      // 商品名は ranking のマスタ（品番→商品名）を優先。無ければCSVの商品名を整形して使用
+      let n = MASTER[pn] || '';
+      if (!n) {
+        n = (pd.names.elcommun||pd.names.laikle||pd.names.other||'').replace(/ダイアリー スケジュール帳/g,'').trim();
+        const idx=n.indexOf('』'); if (idx!==-1) n=n.substring(0,idx+1).trim();
+        n = cleanPreviewName(n);
+      }
+      return {'商品番号':pn,'商品名':n,'個数':pd.quantity,'商品URL':pd.url};
     }).sort((a,b)=>(a['商品番号']||'').localeCompare(b['商品番号']||''));
   };
 
@@ -869,15 +872,6 @@ async function processData(download = true) {
     arr.push({...blank},{...blank},{'販売店舗':'','受注番号':'','商品名':'','商品番号':'【商品番号別集計】','個数':'','商品単価':'','クーポン利用額':'','送料合計':'','合計':'','総合計':''});
     summary.forEach(item => arr.push({'販売店舗':'','受注番号':'','商品名':item['商品名'],'商品番号':item['商品番号'],'個数':item['個数'],'商品単価':'','クーポン利用額':'','送料合計':'','合計':'','総合計':''}));
   };
-
-  // 全シート横断で「品番→項目選択肢」を作成（選択肢が空欄の品番に、他店の同一品番の選択肢を紐付ける）
-  const GLOBAL_OPT = {};
-  [remainOwnData,makerData,calendarData,january_Data,april_Data,october_Data].forEach(arr => {
-    arr.forEach(row => {
-      const pn=(row['商品番号']||'').toString().trim(); if (!pn || GLOBAL_OPT[pn]) return;
-      const o=extractOption(row['__opt']); if (o) GLOBAL_OPT[pn]=o;
-    });
-  });
 
   // 各シートの商品番号別集計を先に計算（appendSummaryで行を追加する前に取得）
   const summaryDefs=[
@@ -980,21 +974,19 @@ function renderPreview(summaries, totalSku) {
   previewBody.innerHTML=nonEmpty.map(s => {
     const qtyTotal=s.summary.reduce((n,it)=>n+(parseFloat(it['個数'])||0),0);
     const rows=s.summary.map(it => {
-      const full=esc(String(it['商品名']||''));
-      const nm=esc(cleanPreviewName(it['商品名']));
-      const opt=esc(it['選択肢']||'');
+      const nm=esc(String(it['商品名']||''));
       const code=esc(it['商品番号']);
       const url=String(it['商品URL']||'').trim();
       const codeInner = /^https?:\/\//i.test(url)
         ? `<a class="pv-codelink" href="${esc(url)}" target="_blank" rel="noopener" title="クリックで商品ページを開く">${code}</a>`
         : code;
-      return `<tr><td><span class="pv-name" title="${full}">${nm}</span></td><td><span class="pv-optv" title="${opt}">${opt}</span></td><td class="pv-code" data-code="${code}">${codeInner}</td><td class="num">${esc(it['個数'])}</td></tr>`;
+      return `<tr><td><span class="pv-name" title="${nm}">${nm}</span></td><td class="pv-code" data-code="${code}">${codeInner}</td><td class="num">${esc(it['個数'])}</td></tr>`;
     }).join('');
     return `<div class="pv-sheet">
       <div class="pv-sheet-head">${esc(s.label)}<span class="pv-badge">${s.summary.length} SKU ／ 計 ${qtyTotal} 個</span></div>
       <div class="pv-wrap">
         <table class="pv-table">
-          <thead><tr><th>商品名</th><th>項目・選択肢</th><th>商品番号</th><th class="num">数量</th></tr></thead>
+          <thead><tr><th>商品名</th><th>商品番号</th><th class="num">数量</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -1019,10 +1011,10 @@ function setupPreviewColumnResize() {
       const sum = natural.reduce((a, b) => a + b, 0);
       const containerW = table.parentElement ? table.parentElement.clientWidth : sum;
       let widths = natural.slice();
-      // 右に余白が出ないよう、余りは商品名(0)・項目選択肢(1)の列に配分して全体を表示幅まで広げる
+      // 右に余白が出ないよう、余りは商品名(0)の列に配分して全体を表示幅まで広げる
       const extra = containerW - sum;
       if (extra > 0) {
-        const flex = [0, 1].filter(i => ths[i]);
+        const flex = [0].filter(i => ths[i]);
         const flexSum = flex.reduce((a, i) => a + natural[i], 0) || 1;
         flex.forEach(i => { widths[i] = natural[i] + extra * (natural[i] / flexSum); });
       }
