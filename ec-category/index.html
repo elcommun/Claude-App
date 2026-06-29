@@ -233,9 +233,13 @@
   .pv-badge { background: var(--accent-light); color: var(--accent); border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 600; }
   /* 縦は全件を一覧表示（高さ制限なし）。下端ドラッグで好きな高さに伸縮も可能 */
   .pv-wrap { overflow: auto; resize: vertical; min-height: 80px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
-  .pv-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .pv-table { width: auto; border-collapse: collapse; font-size: 0.8rem; }
   .pv-table thead tr { background: var(--accent-light); position: sticky; top: 0; z-index: 1; }
-  .pv-table th { text-align: left; padding: 9px 12px; font-weight: 700; color: var(--accent); border-bottom: 1px solid #bfdbfe; white-space: nowrap; }
+  .pv-table th { position: relative; text-align: left; padding: 9px 12px; font-weight: 700; color: var(--accent); border-bottom: 1px solid #bfdbfe; white-space: nowrap; overflow: hidden; }
+  /* 列リサイザー（ヘッダー右端をドラッグして列全体の幅を変更） */
+  .col-resizer { position: absolute; top: 0; right: 0; width: 9px; height: 100%; cursor: col-resize; user-select: none; touch-action: none; z-index: 3; }
+  .col-resizer::after { content: ''; position: absolute; top: 25%; right: 3px; height: 50%; width: 2px; background: #bfdbfe; border-radius: 1px; }
+  .col-resizer:hover::after, .col-resizer:active::after { background: var(--accent); }
   .pv-table th.num, .pv-table td.num { text-align: right; font-family: 'DM Mono', monospace; white-space: nowrap; }
   .pv-table td.pv-code { font-family: 'DM Mono', monospace; white-space: nowrap; color: var(--accent2); }
   .pv-codelink { color: var(--accent); text-decoration: none; }
@@ -244,11 +248,11 @@
   /* 商品番号ホバー時の画像プレビュー */
   #pv-thumb { position: fixed; z-index: 1000; display: none; padding: 5px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); pointer-events: none; }
   #pv-thumb img { display: block; max-width: 220px; max-height: 280px; border-radius: 7px; }
-  .pv-table td { padding: 8px 12px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: top; }
+  .pv-table td { padding: 8px 12px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: top; overflow: hidden; }
   .pv-table tbody tr:hover { background: var(--surface2); }
   .pv-table tbody tr:last-child td { border-bottom: none; }
-  /* 商品名・項目選択肢: 文字数に合わせてセル幅が決まる（1行表示）。右端ドラッグで手動リサイズも可。全文はホバーで確認可 */
-  .pv-name, .pv-optv { display: inline-block; min-width: 3em; max-width: 60em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; resize: horizontal; cursor: text; }
+  /* 商品名・項目選択肢: 1行表示。初期幅は文字数に合わせて自動。列ヘッダーのドラッグで列ごとに幅変更。全文はホバーで確認可 */
+  .pv-name, .pv-optv { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pv-optv { color: var(--text2); }
 
   /* ── 処理内容カード ── */
@@ -985,6 +989,53 @@ function renderPreview(summaries, totalSku) {
     </div>`;
   }).join('');
   previewCard.style.display='block';
+  setupPreviewColumnResize();
+}
+
+// ─────────────────────────────────────────────
+// プレビュー表の列リサイズ（列ヘッダー右端のドラッグで列全体の幅を変更）
+//   初期幅は自動レイアウトで測った文字数ベースの幅。商品名・項目選択肢の列にハンドルを付与。
+// ─────────────────────────────────────────────
+function setupPreviewColumnResize() {
+  const ready = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+  ready.then(() => {
+    previewBody.querySelectorAll('.pv-table').forEach(table => {
+      if (table.dataset.colInit || !table.tHead) return;
+      const ths = Array.from(table.tHead.rows[0].cells);
+      // 自動レイアウトの幅を測ってthに固定し、table-layout:fixed へ移行
+      const widths = ths.map(th => Math.round(th.getBoundingClientRect().width));
+      ths.forEach((th, i) => { th.style.width = widths[i] + 'px'; });
+      table.style.tableLayout = 'fixed';
+      table.style.width = widths.reduce((a, b) => a + b, 0) + 'px';
+      // 商品名(0)・項目選択肢(1)の列ヘッダーにリサイザーを付与
+      [0, 1].forEach(idx => { if (ths[idx]) addColResizer(ths[idx], table, ths); });
+      table.dataset.colInit = '1';
+    });
+  });
+}
+function addColResizer(th, table, ths) {
+  const r = document.createElement('div');
+  r.className = 'col-resizer';
+  th.appendChild(r);
+  const syncTableWidth = () => {
+    let total = 0;
+    ths.forEach(t => { total += parseFloat(t.style.width) || t.getBoundingClientRect().width; });
+    table.style.width = total + 'px';
+  };
+  r.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    const startX = e.clientX, startW = th.getBoundingClientRect().width;
+    try { r.setPointerCapture(e.pointerId); } catch (_) {}
+    const onMove = ev => { th.style.width = Math.max(40, startW + (ev.clientX - startX)) + 'px'; syncTableWidth(); };
+    const onUp = () => {
+      r.removeEventListener('pointermove', onMove);
+      r.removeEventListener('pointerup', onUp);
+      r.removeEventListener('pointercancel', onUp);
+    };
+    r.addEventListener('pointermove', onMove);
+    r.addEventListener('pointerup', onUp);
+    r.addEventListener('pointercancel', onUp);
+  });
 }
 
 // 商品名の整形（プレビュー用）：先頭の装飾（【…】［…］〔…〕／＼…／）と「｜」以降を除去し30文字以内に
@@ -1038,12 +1089,13 @@ const pvThumbImg = pvThumb.querySelector('img');
 let pvThumbTriedPng = false;
 
 function moveThumb(x, y) {
-  const pad = 16, w = pvThumb.offsetWidth || 220, h = pvThumb.offsetHeight || 220;
-  let left = x + pad, top = y + pad;
-  if (left + w > window.innerWidth)  left = x - w - pad;
-  if (top  + h > window.innerHeight) top  = window.innerHeight - h - pad;
-  if (left < 0) left = pad;
-  if (top  < 0) top  = pad;
+  const margin = 24, w = pvThumb.offsetWidth || 220, h = pvThumb.offsetHeight || 280;
+  // 画面の右端寄りに表示（カーソルから離す）
+  let left = window.innerWidth - w - margin;
+  // カーソルの高さに中央揃え
+  let top = y - h / 2;
+  if (top < margin) top = margin;
+  if (top + h > window.innerHeight - margin) top = window.innerHeight - h - margin;
   pvThumb.style.left = left + 'px';
   pvThumb.style.top  = top  + 'px';
 }
