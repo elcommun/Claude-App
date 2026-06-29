@@ -236,10 +236,10 @@
   .pv-table { width: auto; border-collapse: collapse; font-size: 0.8rem; }
   .pv-table thead tr { background: var(--accent-light); position: sticky; top: 0; z-index: 1; }
   .pv-table th { position: relative; text-align: left; padding: 9px 12px; font-weight: 700; color: var(--accent); border-bottom: 1px solid #bfdbfe; white-space: nowrap; overflow: hidden; }
-  /* 列リサイザー（ヘッダー右端をドラッグして列全体の幅を変更） */
-  .col-resizer { position: absolute; top: 0; right: 0; width: 9px; height: 100%; cursor: col-resize; user-select: none; touch-action: none; z-index: 3; }
-  .col-resizer::after { content: ''; position: absolute; top: 25%; right: 3px; height: 50%; width: 2px; background: #bfdbfe; border-radius: 1px; }
-  .col-resizer:hover::after, .col-resizer:active::after { background: var(--accent); }
+  /* 列リサイザー（ヘッダー右端の縦線をドラッグして列全体の幅を変更） */
+  .col-resizer { position: absolute; top: 0; right: 0; width: 16px; height: 100%; cursor: col-resize; user-select: none; touch-action: none; z-index: 5; }
+  .col-resizer::after { content: ''; position: absolute; top: 12%; right: 4px; height: 76%; width: 3px; background: #9db8ec; border-radius: 2px; transition: background 0.15s ease, width 0.15s ease; }
+  .col-resizer:hover::after, .col-resizer:active::after { background: var(--accent); width: 5px; }
   .pv-table th.num, .pv-table td.num { text-align: right; font-family: 'DM Mono', monospace; white-space: nowrap; }
   .pv-table td.pv-code { font-family: 'DM Mono', monospace; white-space: nowrap; color: var(--accent2); }
   .pv-codelink { color: var(--accent); text-decoration: none; }
@@ -1007,8 +1007,8 @@ function setupPreviewColumnResize() {
       ths.forEach((th, i) => { th.style.width = widths[i] + 'px'; });
       table.style.tableLayout = 'fixed';
       table.style.width = widths.reduce((a, b) => a + b, 0) + 'px';
-      // 商品名(0)・項目選択肢(1)の列ヘッダーにリサイザーを付与
-      [0, 1].forEach(idx => { if (ths[idx]) addColResizer(ths[idx], table, ths); });
+      // 各列ヘッダー（最後の数量列以外）にリサイザーを付与し、列全体の幅をドラッグで変更できるようにする
+      ths.forEach((th, idx) => { if (idx < ths.length - 1) addColResizer(th, table, ths); });
       table.dataset.colInit = '1';
     });
   });
@@ -1016,6 +1016,7 @@ function setupPreviewColumnResize() {
 function addColResizer(th, table, ths) {
   const r = document.createElement('div');
   r.className = 'col-resizer';
+  r.title = 'ドラッグで列幅を変更';
   th.appendChild(r);
   const syncTableWidth = () => {
     let total = 0;
