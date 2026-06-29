@@ -240,6 +240,10 @@
   .pv-table td.pv-code { font-family: 'DM Mono', monospace; white-space: nowrap; color: var(--accent2); }
   .pv-codelink { color: var(--accent); text-decoration: none; }
   .pv-codelink:hover { text-decoration: underline; }
+  .pv-code[data-code] { cursor: default; }
+  /* 商品番号ホバー時の画像プレビュー */
+  #pv-thumb { position: fixed; z-index: 1000; display: none; padding: 5px; background: #fff; border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-lg); pointer-events: none; }
+  #pv-thumb img { display: block; max-width: 220px; max-height: 280px; border-radius: 7px; }
   .pv-table td { padding: 8px 12px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: top; }
   .pv-table tbody tr:hover { background: var(--surface2); }
   .pv-table tbody tr:last-child td { border-bottom: none; }
@@ -965,10 +969,10 @@ function renderPreview(summaries, totalSku) {
       const opt=esc(it['選択肢']||'');
       const code=esc(it['商品番号']);
       const url=String(it['商品URL']||'').trim();
-      const codeCell = /^https?:\/\//i.test(url)
-        ? `<td class="pv-code"><a class="pv-codelink" href="${esc(url)}" target="_blank" rel="noopener" title="商品ページを開く">${code}</a></td>`
-        : `<td class="pv-code">${code}</td>`;
-      return `<tr><td><span class="pv-name" title="${full}">${nm}</span></td><td><span class="pv-optv" title="${opt}">${opt}</span></td>${codeCell}<td class="num">${esc(it['個数'])}</td></tr>`;
+      const codeInner = /^https?:\/\//i.test(url)
+        ? `<a class="pv-codelink" href="${esc(url)}" target="_blank" rel="noopener" title="クリックで商品ページを開く">${code}</a>`
+        : code;
+      return `<tr><td><span class="pv-name" title="${full}">${nm}</span></td><td><span class="pv-optv" title="${opt}">${opt}</span></td><td class="pv-code" data-code="${code}">${codeInner}</td><td class="num">${esc(it['個数'])}</td></tr>`;
     }).join('');
     return `<div class="pv-sheet">
       <div class="pv-sheet-head">${esc(s.label)}<span class="pv-badge">${s.summary.length} SKU ／ 計 ${qtyTotal} 個</span></div>
@@ -1020,6 +1024,54 @@ function extractOption(raw) {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ─────────────────────────────────────────────
+// 商品番号ホバーで商品画像（ranking/images）をプレビュー表示
+//   画像パス: ../ranking/images/{品番のハイフン→アンダースコア}.jpg（.pngフォールバック）
+//   画像が存在しない品番では何も表示しない
+// ─────────────────────────────────────────────
+const pvThumb = document.createElement('div');
+pvThumb.id = 'pv-thumb';
+pvThumb.innerHTML = '<img alt="">';
+document.body.appendChild(pvThumb);
+const pvThumbImg = pvThumb.querySelector('img');
+let pvThumbTriedPng = false;
+
+function moveThumb(x, y) {
+  const pad = 16, w = pvThumb.offsetWidth || 220, h = pvThumb.offsetHeight || 220;
+  let left = x + pad, top = y + pad;
+  if (left + w > window.innerWidth)  left = x - w - pad;
+  if (top  + h > window.innerHeight) top  = window.innerHeight - h - pad;
+  if (left < 0) left = pad;
+  if (top  < 0) top  = pad;
+  pvThumb.style.left = left + 'px';
+  pvThumb.style.top  = top  + 'px';
+}
+function showThumb(code, x, y) {
+  if (!code) return;
+  const base = '../ranking/images/' + code.replace(/-/g, '_');
+  pvThumbTriedPng = false;
+  pvThumb.style.display = 'none';
+  pvThumbImg.onerror = () => {
+    if (!pvThumbTriedPng) { pvThumbTriedPng = true; pvThumbImg.src = base + '.png'; }
+    else { pvThumb.style.display = 'none'; }
+  };
+  pvThumbImg.onload = () => { pvThumb.style.display = 'block'; moveThumb(x, y); };
+  pvThumbImg.src = base + '.jpg';
+}
+function hideThumb() { pvThumb.style.display = 'none'; pvThumbImg.removeAttribute('src'); }
+
+previewBody.addEventListener('mouseover', e => {
+  const cell = e.target.closest('.pv-code'); if (!cell) return;
+  showThumb(cell.dataset.code || '', e.clientX, e.clientY);
+});
+previewBody.addEventListener('mousemove', e => {
+  if (pvThumb.style.display === 'block' && e.target.closest('.pv-code')) moveThumb(e.clientX, e.clientY);
+});
+previewBody.addEventListener('mouseout', e => {
+  const from = e.target.closest('.pv-code');
+  if (from && (!e.relatedTarget || !from.contains(e.relatedTarget))) hideThumb();
+});
 </script>
 </body>
 </html>
