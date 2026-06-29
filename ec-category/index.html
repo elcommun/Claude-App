@@ -989,12 +989,13 @@ function cleanPreviewName(name) {
   return n;
 }
 
-// 「項目・選択肢」から値部分を抽出（例: デザイン:kukka_pink → kukka_pink）
+// 「項目・選択肢」から、ラベル（デザイン:/カラー: など）の右側の値だけを抽出
+// 「ラベル:値」の形式でないもの（コロンを含まない部分）は削除する
 function extractOption(raw) {
   if (!raw) return '';
   return String(raw)
     .split(/[\n\r／]+/)
-    .map(seg => { const i=seg.search(/[:：]/); return (i>=0 ? seg.slice(i+1) : seg).trim(); })
+    .map(seg => { const i=seg.search(/[:：]/); return i>=0 ? seg.slice(i+1).trim() : ''; })
     .filter(Boolean)
     .join(' / ');
 }
