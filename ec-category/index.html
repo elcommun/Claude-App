@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECカテゴリ別販売数 — EL COMMUN EC事業部</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --surface2: #f8f9fc;
+    --border: #e2e6ed;
+    --accent: #2563eb;
+    --accent2: #4f46e5;
+    --accent-light: #eff6ff;
+    --green: #059669;
+    --green-light: #ecfdf5;
+    --amber: #d97706;
+    --amber-light: #fffbeb;
+    --red: #dc2626;
+    --red-light: #fef2f2;
+    --text: #1e293b;
+    --text2: #64748b;
+    --text3: #94a3b8;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 32px 16px;
+    line-height: 1.6;
+  }
+
+  .wrapper {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ── ヘッダー ── */
+  .header {
+    text-align: center;
+    padding: 12px 0 8px;
+  }
+  .header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.28);
+  }
+  .header-icon svg { width: 28px; height: 28px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .header h1 {
+    font-size: 1.7rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .header p { color: var(--text2); font-size: 0.875rem; }
+
+  /* ── カード ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+
+  /* ── ドロップゾーン ── */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 40px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background: var(--surface2);
+    position: relative;
+  }
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    transform: scale(1.01);
+    box-shadow: 0 0 0 4px rgba(37,99,235,0.08);
+  }
+  .dropzone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .dz-icon {
+    width: 52px; height: 52px;
+    background: var(--border);
+    border-radius: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-bottom: 12px;
+    transition: background 0.2s;
+  }
+  .dropzone:hover .dz-icon, .dropzone.drag-over .dz-icon {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+  }
+  .dz-icon svg { width: 26px; height: 26px; stroke: var(--text2); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s; }
+  .dropzone:hover .dz-icon svg, .dropzone.drag-over .dz-icon svg { stroke: #fff; }
+  .dz-label { font-size: 0.95rem; font-weight: 600; color: var(--text2); margin-bottom: 4px; }
+  .dropzone.drag-over .dz-label { color: var(--accent); }
+  .dz-sub { font-size: 0.8rem; color: var(--text3); margin-bottom: 12px; }
+  .dz-btn {
+    display: inline-block;
+    padding: 7px 20px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    pointer-events: none;
+  }
+  .file-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    margin-top: 14px;
+    padding: 6px 14px;
+    background: var(--green-light);
+    border: 1px solid #6ee7b7;
+    border-radius: 20px;
+    font-size: 0.8rem; font-weight: 600; color: var(--green);
+  }
+
+  /* ── ボタン ── */
+  .btn-convert {
+    width: 100%;
+    padding: 15px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(37,99,235,0.25);
+  }
+  .btn-convert:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(37,99,235,0.35); }
+  .btn-convert:active:not(:disabled) { transform: translateY(0); }
+  .btn-convert:disabled { background: linear-gradient(90deg, #cbd5e1, #94a3b8); cursor: not-allowed; box-shadow: none; }
+  .btn-convert svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── メッセージ ── */
+  .msg {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem; font-weight: 500;
+    animation: fadeSlide 0.3s ease;
+  }
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+  .msg.success { background: var(--green-light); border: 1px solid #6ee7b7; color: #065f46; }
+  .msg.error   { background: var(--red-light);   border: 1px solid #fca5a5; color: #991b1b; }
+  .msg.warning { background: var(--amber-light);  border: 1px solid #fcd34d; color: #92400e; }
+  .msg.info    { background: var(--accent-light);  border: 1px solid #bfdbfe; color: #1e40af; }
+  .msg-icon { flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; }
+  .msg-text { white-space: pre-line; }
+
+  /* ── 統計グリッド ── */
+  .stats-section { border-top: 1px solid var(--border); margin-top: 20px; padding-top: 20px; }
+  .stats-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 12px;
+    text-align: center;
+    transition: box-shadow 0.2s;
+  }
+  .stat-item:hover { box-shadow: var(--shadow); }
+  .stat-label { font-size: 0.75rem; color: var(--text2); font-weight: 500; margin-bottom: 4px; }
+  .stat-value {
+    font-size: 1.8rem; font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .stat-item.green .stat-value {
+    background: linear-gradient(90deg, var(--green), #10b981);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+
+  /* ── 空欄テーブル ── */
+  .empty-section { margin-top: 0; }
+  .section-title { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .table-wrap { max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  thead tr { background: var(--amber-light); position: sticky; top: 0; }
+  th { text-align: left; padding: 10px 12px; font-weight: 700; color: #92400e; border-bottom: 1px solid #fcd34d; }
+  td { padding: 9px 12px; color: var(--text); border-bottom: 1px solid var(--border); }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ── プレビュー ── */
+  .preview-section .section-title { color: var(--text); }
+  .preview-hint { font-size: 0.78rem; color: var(--text3); margin: -4px 0 16px; }
+  .pv-sheet { margin-bottom: 20px; }
+  .pv-sheet:last-child { margin-bottom: 0; }
+  .pv-sheet-head { font-size: 0.85rem; font-weight: 700; color: var(--accent2); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .pv-badge { background: var(--accent-light); color: var(--accent); border-radius: 999px; padding: 2px 10px; font-size: 0.72rem; font-weight: 600; }
+  .pv-wrap { max-height: 360px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); }
+  .pv-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .pv-table thead tr { background: var(--accent-light); position: sticky; top: 0; }
+  .pv-table th { text-align: left; padding: 9px 12px; font-weight: 700; color: var(--accent); border-bottom: 1px solid #bfdbfe; }
+  .pv-table th.num, .pv-table td.num { text-align: right; font-family: 'DM Mono', monospace; white-space: nowrap; }
+  .pv-table td { padding: 8px 12px; color: var(--text); border-bottom: 1px solid var(--border); }
+  .pv-table tbody tr:hover { background: var(--surface2); }
+  .pv-table tbody tr:last-child td { border-bottom: none; }
+
+  /* ── 処理内容カード ── */
+  .info-card { }
+  .info-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .checklist { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; margin-bottom: 20px; }
+  .check-item { display: flex; align-items: flex-start; gap: 8px; font-size: 0.85rem; color: var(--text2); }
+  .check-dot { width: 18px; height: 18px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; font-size: 0.7rem; }
+  .check-dot.blue { background: var(--accent-light); color: var(--accent); }
+  .check-dot.indigo { background: #ede9fe; color: var(--accent2); }
+  .check-dot.green  { background: var(--green-light); color: var(--green); }
+
+  .rule-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .rule-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 0.8rem; }
+  .rule-item b { color: var(--accent2); }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+  .rule-title { font-size: 0.85rem; font-weight: 700; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
+  /* ── フッター ── */
+  .footer { text-align: center; font-size: 0.75rem; color: var(--text3); padding-top: 4px; }
+
+  /* ── スペーサー ── */
+  .spacer { height: 12px; }
+
+  /* ── スピナー ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- ヘッダー -->
+  <div class="header">
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </div>
+    <h1>ECカテゴリ別販売数</h1>
+    <p>CSVファイルをExcel形式に変換し、商品番号でシート振り分け</p>
+  </div>
+
+  <!-- メインカード -->
+  <div class="card">
+    <!-- ドロップゾーン -->
+    <div class="dropzone" id="dropzone">
+      <input type="file" accept=".csv" id="fileInput">
+      <div class="dz-icon">
+        <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+      </div>
+      <div class="dz-label" id="dzLabel">CSVファイルをドラッグ&amp;ドロップ</div>
+      <div class="dz-sub">または</div>
+      <div class="dz-btn">ファイルを選択</div>
+      <div id="fileBadge" style="display:none;" class="file-badge">
+        <svg style="width:14px;height:14px;stroke:#059669;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        <span id="fileName"></span>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <!-- 変換ボタン -->
+    <button class="btn-convert" id="convertBtn" disabled>
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span id="btnLabel">変換して保存</span>
+    </button>
+
+    <!-- メッセージ -->
+    <div id="msgArea" style="display:none; margin-top:14px;"></div>
+
+    <!-- 振り分け統計 -->
+    <div id="statsArea" style="display:none;" class="stats-section">
+      <div class="stats-title">📊 振り分け結果</div>
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-label">自社（残り）</div><div class="stat-value" id="s-own">0</div></div>
+        <div class="stat-item"><div class="stat-label">メーカー</div><div class="stat-value" id="s-maker">0</div></div>
+        <div class="stat-item stat-item green"><div class="stat-label">カレンダー</div><div class="stat-value" id="s-cal">0</div></div>
+        <div class="stat-item stat-item green"><div class="stat-label">1月</div><div class="stat-value" id="s-jan">0</div></div>
+        <div class="stat-item stat-item green"><div class="stat-label">4月</div><div class="stat-value" id="s-apr">0</div></div>
+        <div class="stat-item stat-item green"><div class="stat-label">10月</div><div class="stat-value" id="s-oct">0</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- プレビュー（30SKU以内のとき表示） -->
+  <div class="card preview-section" id="previewCard" style="display:none;">
+    <div class="section-title">👁️ プレビュー（商品番号別集計 / 合計 <span id="previewSku">0</span> SKU）</div>
+    <div class="preview-hint">SKU数が30以内のため、Excelに出力される商品番号別集計をこの画面でも表示しています。</div>
+    <div id="previewBody"></div>
+  </div>
+
+  <!-- 商品番号空欄リスト -->
+  <div class="card empty-section" id="emptyCard" style="display:none;">
+    <div class="section-title">⚠️ 商品番号が空欄の項目（<span id="emptyCount">0</span>件）</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>シート</th><th>販売店舗</th><th>受注番号</th><th>商品名</th></tr></thead>
+        <tbody id="emptyTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 処理内容説明 -->
+  <div class="card info-card">
+    <div class="info-title">⚙️ 処理内容</div>
+    <div class="checklist">
+      <div class="check-item"><span class="check-dot blue">✓</span><span>受注番号で昇順ソート</span></div>
+      <div class="check-item"><span class="check-dot blue">✓</span><span>クーポン・送料の重複削除</span></div>
+      <div class="check-item"><span class="check-dot blue">✓</span><span>税込価格を税抜価格に変換</span></div>
+      <div class="check-item"><span class="check-dot blue">✓</span><span>商品名から見出しを削除</span></div>
+      <div class="check-item"><span class="check-dot blue">✓</span><span>不要な列を削除</span></div>
+      <div class="check-item"><span class="check-dot blue">✓</span><span>自社とメーカーでシート分割</span></div>
+      <div class="check-item"><span class="check-dot indigo">★</span><span><b>商品番号による自動振り分け</b></span></div>
+      <div class="check-item"><span class="check-dot green">★</span><span><b>全シートに商品番号別集計表を追加</b></span></div>
+    </div>
+    <hr class="divider">
+    <div class="rule-title">📋 振り分けルール</div>
+    <div class="rule-grid">
+      <div class="rule-item"><b>カレンダー：</b>CAL- で始まる商品</div>
+      <div class="rule-item"><b>1月：</b>DR-/XDR- で始まり「1月始まり」を含む</div>
+      <div class="rule-item"><b>4月：</b>DR-/XDR- で始まり「4月始まり」を含む</div>
+      <div class="rule-item"><b>10月：</b>DR-/XDR- で始まり「10月始まり」を含む</div>
+    </div>
+  </div>
+
+  <div class="footer">EL COMMUN EC事業部 — ECカテゴリ別販売数</div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DOM refs
+// ─────────────────────────────────────────────
+const dropzone   = document.getElementById('dropzone');
+const fileInput  = document.getElementById('fileInput');
+const dzLabel    = document.getElementById('dzLabel');
+const fileBadge  = document.getElementById('fileBadge');
+const fileName   = document.getElementById('fileName');
+const convertBtn = document.getElementById('convertBtn');
+const btnLabel   = document.getElementById('btnLabel');
+const msgArea    = document.getElementById('msgArea');
+const statsArea  = document.getElementById('statsArea');
+const emptyCard  = document.getElementById('emptyCard');
+const emptyCount = document.getElementById('emptyCount');
+const emptyTbody = document.getElementById('emptyTbody');
+const previewCard = document.getElementById('previewCard');
+const previewSku  = document.getElementById('previewSku');
+const previewBody = document.getElementById('previewBody');
+
+// プレビューを表示するSKU数の上限
+const PREVIEW_SKU_LIMIT = 30;
+
+let csvFile = null;
+
+// ─────────────────────────────────────────────
+// ファイル選択
+// ─────────────────────────────────────────────
+fileInput.addEventListener('change', e => setFile(e.target.files[0]));
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); dzLabel.textContent = 'ここにドロップ！'; });
+dropzone.addEventListener('dragleave', e => { dropzone.classList.remove('drag-over'); dzLabel.textContent = 'CSVファイルをドラッグ&ドロップ'; });
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag-over');
+  dzLabel.textContent = 'CSVファイルをドラッグ&ドロップ';
+  const f = e.dataTransfer.files[0];
+  if (f && f.name.endsWith('.csv')) setFile(f);
+  else showMsg('CSVファイルを選択してください', 'error');
+});
+
+function setFile(f) {
+  if (!f) return;
+  csvFile = f;
+  fileName.textContent = f.name;
+  fileBadge.style.display = 'inline-flex';
+  convertBtn.disabled = false;
+  clearResults();
+}
+
+// ─────────────────────────────────────────────
+// メッセージ表示
+// ─────────────────────────────────────────────
+const icons = {
+  success: `<svg class="msg-icon" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  error:   `<svg class="msg-icon" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  warning: `<svg class="msg-icon" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  info:    `<svg class="msg-icon" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+};
+function showMsg(text, type='info') {
+  msgArea.style.display = 'block';
+  msgArea.innerHTML = `<div class="msg ${type}">${icons[type]}<span class="msg-text">${text}</span></div>`;
+}
+function clearResults() {
+  msgArea.style.display = 'none';
+  statsArea.style.display = 'none';
+  emptyCard.style.display = 'none';
+  emptyTbody.innerHTML = '';
+  previewCard.style.display = 'none';
+  previewBody.innerHTML = '';
+}
+
+// ─────────────────────────────────────────────
+// 変換処理
+// ─────────────────────────────────────────────
+convertBtn.addEventListener('click', async () => {
+  if (!csvFile) { showMsg('CSVファイルを選択してください', 'error'); return; }
+  convertBtn.disabled = true;
+  btnLabel.textContent = '処理中...';
+  convertBtn.querySelector('svg').style.display = 'none';
+  const sp = document.createElement('span'); sp.className = 'spinner';
+  convertBtn.insertBefore(sp, convertBtn.querySelector('#btnLabel'));
+  showMsg('処理中...', 'info');
+  clearResults();
+  showMsg('処理中...', 'info');
+
+  await new Promise(r => setTimeout(r, 50)); // UIを更新させる
+
+  try {
+    await processData();
+  } catch(err) {
+    console.error(err);
+    showMsg('エラーが発生しました: ' + err.message, 'error');
+  } finally {
+    convertBtn.disabled = false;
+    btnLabel.textContent = '変換して保存';
+    convertBtn.querySelector('svg').style.display = '';
+    const s = convertBtn.querySelector('.spinner');
+    if (s) s.remove();
+  }
+});
+
+async function processData() {
+  // ── CSV読み込み ──
+  const buf = await csvFile.arrayBuffer();
+  const dec = new TextDecoder('shift-jis');
+  const csvText = dec.decode(buf);
+
+  const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true, dynamicTyping: false });
+  let data = parsed.data;
+
+  // ── 最優先処理: 全店舗共通 DR-/XDR- 抽出 ──
+  data = data.map(row => {
+    let pn = row['商品番号'] || '';
+    const drMatch = pn.match(/(XDR-[A-Z]+-[0-9]+|DR-[A-Z]+-[0-9]+)/);
+    if (drMatch) {
+      row['商品番号'] = pn.substring(pn.indexOf(drMatch[0]));
+    }
+    return row;
+  });
+
+  // ステップ1: 受注番号で昇順ソート
+  data.sort((a, b) => (a['受注番号']||'').localeCompare(b['受注番号']||''));
+
+  // ステップ2: クーポン利用額・送料合計（同受注番号の2行目以降は0）
+  data = data.map((row, i) => {
+    const cur = row['受注番号'];
+    const prev = i > 0 ? data[i-1]['受注番号'] : null;
+    return {
+      ...row,
+      'クーポン利用額_計算後': cur === prev ? '0' : (row['クーポン利用額']||'0'),
+      '送料合計_計算後':       cur === prev ? '0' : (row['送料合計']||'0')
+    };
+  });
+
+  // ステップ3: 税込→税抜
+  const taxRateMap = {};
+  data.forEach(row => {
+    const pn = row['商品番号'], s = row['販売店舗'];
+    const price = parseFloat(row['商品単価'])||0;
+    if (row['税込別']==='込' && !s.includes('Amazon') && pn && !taxRateMap[pn]) {
+      taxRateMap[pn] = Math.round(price/1.1);
+    }
+  });
+  data = data.map(row => {
+    const pn = row['商品番号'], s = row['販売店舗'];
+    const price = parseFloat(row['商品単価'])||0;
+    let np = price;
+    if (row['税込別']==='込') {
+      np = s.includes('Amazon') && taxRateMap[pn] ? taxRateMap[pn] : Math.round(price/1.1);
+    }
+    return { ...row, '商品単価': np.toString() };
+  });
+
+  // ステップ4: 商品名の見出し削除
+  const headingPatterns = [
+    /^＼ポイント2倍＋クーポン／/, /^＼ポイント2倍!／/, /^＼ポイント2倍／/,
+    /^＼ポイントキャンペーン／/, /^＼P2倍＋クーポン／/
+  ];
+  data = data.map(row => {
+    let name = row['商品名']||'';
+    headingPatterns.forEach(p => { name = name.replace(p,''); });
+    return { ...row, '商品名': name };
+  });
+
+  // ステップ5: 不要列削除・列名置換
+  const rmCols = ['注文日時','出荷日','SKU管理番号','項目・選択肢','税込別','商品URL'];
+  data = data.map(row => {
+    const r = { ...row };
+    rmCols.forEach(c => delete r[c]);
+    r['クーポン利用額'] = r['クーポン利用額_計算後'];
+    r['送料合計']       = r['送料合計_計算後'];
+    delete r['クーポン利用額_計算後'];
+    delete r['送料合計_計算後'];
+    return r;
+  });
+
+  // ステップ6: メーカー/自社分類
+  const makerPrefixes = ['4on-','8mw-','af','ai-','aito-','ak-','alsk-','apj-','bm-','cocochi-','cre-','ef','ldw',
+                         'ma-','mgt-','nlf','nm-','pb-','psm-','rio-','sh-','SLW-','tri-','wf','wh-','ky-','tp-'];
+  const makerProductNames = ['【Raffinart】'];
+  const makerData=[], ownData=[];
+  data.forEach(row => {
+    const pn = row['商品番号']||'', name = row['商品名']||'';
+    if (pn.startsWith('ma-46-')) {
+      row['商品番号'] = pn.replace(/^ma-46-/,'');
+      ownData.push(row);
+    } else if (pn.startsWith('DR-') || pn.startsWith('XDR-')) {
+      // DR-/XDR-で始まる商品番号は自社に強制振り分け（ma-等の他プレフィックスより優先）
+      ownData.push(row);
+    } else if (makerPrefixes.some(p => pn.startsWith(p))
+               || makerProductNames.some(n => name.startsWith(n))) {
+      makerData.push(row);
+    } else {
+      ownData.push(row);
+    }
+  });
+
+  // 販売店舗順
+  const storeOrder = [
+    'EL COMMUN 楽天市場店','LAIKLE 楽天市場店','EL COMMUN Yahoo店',
+    'EL COMMUN Amazon店','EL COMMUN auPAYマーケット店','EL COMMUN Qoo10','EL COMMUN Shopify'
+  ];
+  const sortByStore = arr => arr.sort((a,b) => {
+    let ia = storeOrder.indexOf(a['販売店舗']||''), ib = storeOrder.indexOf(b['販売店舗']||'');
+    if (ia===-1) ia=9999; if (ib===-1) ib=9999;
+    if (ia!==ib) return ia-ib;
+    return (a['受注番号']||'').localeCompare(b['受注番号']||'');
+  });
+
+  // 自社データの商品番号整形
+  ownData.forEach(row => {
+    const storeName = row['販売店舗']||'';
+    let pn = row['商品番号']||'';
+    const productName = row['商品名']||'';
+
+    // Qoo10特別処理
+    if (storeName==='EL COMMUN Qoo10') {
+      if (/^elco-pbc.+-/.test(pn) && productName.indexOf('ワンポイント ブックカバー')===0) { row['商品番号']='PBC-001'; return; }
+      if (productName.indexOf('SCHATZ シャッツ 帆布ペンケース')===0)                       { row['商品番号']='CPC-024'; return; }
+      if (productName.indexOf('MASTERPIECE マスターピース ブックカバー')===0)               { row['商品番号']='MTP-001'; return; }
+    }
+
+    // auPAY優先処理
+    if (storeName==='EL COMMUN auPAYマーケット店') {
+      if (pn.match(/^cal-.+-CAL-.+$/))               { pn=pn.replace(/^cal-.+-(CAL-.+)$/,'$1');           row['商品番号']=pn; return; }
+      if (pn.match(/^elco-(LLN|ECL)-.+$/))           { pn=pn.replace(/^elco-/,'');                        row['商品番号']=pn; return; }
+      const m1=pn.match(/-((?:X)?DR-[A-Z]+-[^-]+)$/);
+      if (m1)                                         { pn=m1[1];                                          row['商品番号']=pn; return; }
+      pn=pn.replace(/elco-[^-]+-/g,'');
+      row['商品番号']=pn; return;
+    }
+
+    // 通常処理
+    if      (pn.match(/^cal-.+-CAL-.+$/))              pn=pn.replace(/^cal-.+-(CAL-.+)$/,'$1');
+    else if (pn.match(/GYR/))                          pn=pn.replace(/^.*?(GYR.*)$/,'$1');
+    else if (pn.match(/^elco-ampc(\d+)-/))             pn=pn.replace(/^elco-ampc(\d+)-.*$/,'AMP-C$1');
+    else if (pn.match(/^elco-(LLN|ECL)-.+$/))          { pn=pn.replace(/^elco-/,''); row['商品番号']=pn; return; }
+    else if (pn.match(/^elco-(.+?)wf-(natural|brown)$/)) pn=pn.replace(/^elco-(.+?)wf-(natural|brown)$/,'$1');
+    else if (pn.match(/^elco-lln(.+?)-/))              pn=pn.replace(/^elco-lln(.+?)-.*$/,'LLN-$1');
+    else if (pn.match(/^elco-ecl(.+?)-/))              pn=pn.replace(/^elco-ecl(.+?)-.*$/,'ECL-$1');
+    else if (pn==='elco-wpk101')                       pn='WPK-101';
+    else if (pn.match(/^elco-wcl(\d+)$/))              pn=pn.replace(/^elco-wcl(\d+)$/,'WCL-$1');
+    else if (pn.match(/^elco-CRB(\d+)-?$/))            pn=pn.replace(/^elco-CRB(\d+)-?$/,'CRB-$1');
+    else if (pn.match(/^elco-lln-.+wf-(LLN-.+?)wf-.+$/)) pn=pn.replace(/^elco-lln-.+wf-(LLN-.+?)wf-.+$/,'$1');
+    else if (pn.match(/^elco-elc-.+wf-(ECL-.+?)wf-.+$/)) pn=pn.replace(/^elco-elc-.+wf-(ECL-.+?)wf-.+$/,'$1');
+    else if (pn.match(/^elco-gyr-091(.+)$/))           pn=pn.replace(/^elco-gyr-091(.+)$/,'$1');
+    else if (pn.match(/^elco-gyr-061(.+)$/))           pn=pn.replace(/^elco-gyr-061(.+)$/,'$1');
+    else if (pn.match(/^elco-gyr-074(.+)$/))           pn=pn.replace(/^elco-gyr-074(.+)$/,'$1');
+    else if (pn.match(/^elco-nba-041-(.+)$/))          pn=pn.replace(/^elco-nba-041-(.+)$/,'$1');
+    else                                               pn=pn.replace(/elco-[^-]+-/g,'');
+
+    pn=pn.replace(/cal-[^-]+-/g,'');
+    ['lln-','mh-','ma-','mg-','mc-','wb-','wk-','wx-','ws-','wl-'].forEach(s => { pn=pn.replace(new RegExp(s+'[^-]+-','g'),''); });
+
+    const drPats=['WK-','WB-','WS-','WL-','WX-','MC-','MG-','MH-'];
+    for (const dp of drPats) {
+      const m=pn.match(new RegExp(`.*\\(${dp}([^)]+)\\).*`));
+      if (m) { pn='DR-'+m[1]; break; }
+    }
+    pn=pn.replace(/wf-natural/g,'').replace(/wf-brown/g,'');
+    row['商品番号']=pn;
+  });
+
+  // auPAY括弧処理（2回目）
+  ownData.forEach(row => {
+    const s=row['販売店舗']||''; let pn=row['商品番号']||'';
+    if (s==='EL COMMUN auPAYマーケット店') {
+      const pats=['WK-','WB-','WS-','WL-','WX-','MC-','MG-','MH-'];
+      let matched=false;
+      for (const dp of pats) {
+        const m=pn.match(new RegExp(`.*[（(](${dp}[^）)]+)[）)]`));
+        if (m) { pn='DR-'+m[1]; matched=true; break; }
+      }
+      if (!matched && (pn.includes('(')||pn.includes('（'))) {
+        pn=pn.replace(/.*[（(]([^）)]+)[）)].*/,'$1');
+      }
+      pn=pn.replace(/[（(）)]/g,'');
+      if (pn.startsWith('WV-')) pn='DR-'+pn;
+      row['商品番号']=pn;
+    }
+  });
+
+  // メーカーデータのauPAY（MC-）を自社へ
+  const moveToOwn=[], remainInMaker=[];
+  makerData.forEach(row => {
+    const s=row['販売店舗']||''; let pn=row['商品番号']||'';
+    if (s==='EL COMMUN auPAYマーケット店' && pn.includes('（MC-')) {
+      const m=pn.match(/.*[（(](MC-[^）)]+)[）)]/);
+      if (m) { row['商品番号']='DR-'+m[1].replace(/[（(）)]/g,''); moveToOwn.push(row); }
+      else remainInMaker.push(row);
+    } else remainInMaker.push(row);
+  });
+  ownData.push(...moveToOwn);
+  makerData.length=0; makerData.push(...remainInMaker);
+
+  // Amazon 商品番号変換テーブル（変換後商品番号 → 正規商品番号）
+  const amazonProductMap = {
+    'Z6-ZRJM-E460': 'CLB-226',
+  };
+
+  // 最終処理：wf-natural/brown削除・WB-470/471・XDR変換
+  ownData.forEach(row => {
+    let pn=row['商品番号']||''; const name=row['商品名']||''; const s=row['販売店舗']||'';
+    pn=pn.replace(/wf-natural/g,'').replace(/wf-brown/g,'');
+    if (pn==='WB-470') pn='DR-WB-470';
+    else if (pn==='WB-471') pn='DR-WB-471';
+    if (pn.startsWith('DR-') && (name.includes('【限定】')||name.includes('【EC限定】'))) pn='XDR-'+pn.substring(3);
+    // Amazon固有の商品番号再変換
+    if (s==='EL COMMUN Amazon店' && amazonProductMap[pn]) pn=amazonProductMap[pn];
+    row['商品番号']=pn;
+  });
+
+  // ★ シート振り分け
+  const calendarData=[], january_Data=[], april_Data=[], october_Data=[], remainOwnData=[];
+  ownData.forEach(row => {
+    const pn=row['商品番号']||'', name=row['商品名']||'';
+    if (pn.startsWith('CAL-'))                                         calendarData.push(row);
+    else if ((pn.startsWith('DR-')||pn.startsWith('XDR-')) && name.includes('1月始まり'))  january_Data.push(row);
+    else if ((pn.startsWith('DR-')||pn.startsWith('XDR-')) && name.includes('4月始まり'))  april_Data.push(row);
+    else if ((pn.startsWith('DR-')||pn.startsWith('XDR-')) && name.includes('10月始まり')) october_Data.push(row);
+    else remainOwnData.push(row);
+  });
+
+  // 統計表示
+  document.getElementById('s-own').textContent   = remainOwnData.length;
+  document.getElementById('s-maker').textContent = makerData.length;
+  document.getElementById('s-cal').textContent   = calendarData.length;
+  document.getElementById('s-jan').textContent   = january_Data.length;
+  document.getElementById('s-apr').textContent   = april_Data.length;
+  document.getElementById('s-oct').textContent   = october_Data.length;
+  statsArea.style.display='block';
+
+  [remainOwnData, makerData, calendarData, january_Data, april_Data, october_Data].forEach(sortByStore);
+
+  // 合計計算
+  const calcTotal = row =>
+    Math.round((parseFloat(row['商品単価'])||0) * (parseFloat(row['個数'])||0)
+               - Math.abs(parseFloat(row['クーポン利用額'])||0)
+               + (parseFloat(row['送料合計'])||0));
+
+  const addTotals = arr => arr.forEach(row => { row['合計']=calcTotal(row); row['総合計']=''; });
+  [remainOwnData,makerData,calendarData,january_Data,april_Data,october_Data].forEach(addTotals);
+
+  const addStoreTotals = arr => {
+    if (arr.length===0) return;
+    const storeMap=new Map();
+    arr.forEach((row,i) => {
+      const s=row['販売店舗']||'';
+      if (!storeMap.has(s)) storeMap.set(s,[]);
+      storeMap.get(s).push(i);
+    });
+    let grandTotal=0;
+    storeMap.forEach((indices,store) => {
+      let st=0;
+      indices.forEach(i => { st+=arr[i]['合計']||0; });
+      arr[indices[indices.length-1]]['総合計']=st;
+      grandTotal+=st;
+    });
+    arr.push({'販売店舗':'','受注番号':'','商品名':'','商品番号':'','個数':'','商品単価':'','クーポン利用額':'','送料合計':'','合計':'','総合計':grandTotal});
+  };
+  [remainOwnData,makerData,calendarData,january_Data,april_Data,october_Data].forEach(addStoreTotals);
+
+  // 商品番号別集計
+  const createProductSummary = arr => {
+    const withoutLast = arr.slice(0,-1);
+    const pMap=new Map();
+    withoutLast.forEach(row => {
+      const pn=row['商品番号']||'', name=row['商品名']||'', s=row['販売店舗']||'';
+      const qty=parseFloat(row['個数'])||0;
+      if (!pn.trim()) return;
+      if (!pMap.has(pn)) pMap.set(pn,{quantity:0,names:{elcommun:null,laikle:null,other:null}});
+      const pd=pMap.get(pn);
+      pd.quantity+=qty;
+      if (s==='EL COMMUN 楽天市場店' && !pd.names.elcommun) pd.names.elcommun=name;
+      else if (s==='LAIKLE 楽天市場店' && !pd.names.laikle) pd.names.laikle=name;
+      else if (!pd.names.other) pd.names.other=name;
+    });
+    return Array.from(pMap.entries()).map(([pn,pd]) => {
+      let n=pd.names.elcommun||pd.names.laikle||pd.names.other||'';
+      n=n.replace(/ダイアリー スケジュール帳/g,'').trim();
+      const idx=n.indexOf('』'); if (idx!==-1) n=n.substring(0,idx+1).trim();
+      return {'商品番号':pn,'商品名':n,'個数':pd.quantity};
+    }).sort((a,b)=>(a['商品番号']||'').localeCompare(b['商品番号']||''));
+  };
+
+  const appendSummary = (arr, summary) => {
+    if (summary.length===0) return;
+    const blank={販売店舗:'',受注番号:'',商品名:'',商品番号:'',個数:'',商品単価:'',クーポン利用額:'',送料合計:'',合計:'',総合計:''};
+    arr.push({...blank},{...blank},{'販売店舗':'','受注番号':'','商品名':'','商品番号':'【商品番号別集計】','個数':'','商品単価':'','クーポン利用額':'','送料合計':'','合計':'','総合計':''});
+    summary.forEach(item => arr.push({'販売店舗':'','受注番号':'','商品名':item['商品名'],'商品番号':item['商品番号'],'個数':item['個数'],'商品単価':'','クーポン利用額':'','送料合計':'','合計':'','総合計':''}));
+  };
+
+  // 各シートの商品番号別集計を先に計算（appendSummaryで行を追加する前に取得）
+  const summaryDefs=[
+    {label:'自社',      data:remainOwnData},
+    {label:'メーカー',  data:makerData},
+    {label:'カレンダー',data:calendarData},
+    {label:'1月',       data:january_Data},
+    {label:'4月',       data:april_Data},
+    {label:'10月',      data:october_Data}
+  ];
+  const summaries = summaryDefs.map(({label,data}) => ({
+    label,
+    summary: data.length>1 ? createProductSummary(data) : []
+  }));
+
+  // Excel出力用に各シートへ集計表を追記
+  summaryDefs.forEach(({data}, i) => { if (data.length>1) appendSummary(data, summaries[i].summary); });
+
+  // 合計SKU数（商品番号の種類）
+  const totalSku = summaries.reduce((n,s) => n + s.summary.length, 0);
+
+  // 30SKU以内ならアプリ内にプレビューを表示
+  renderPreview(summaries, totalSku);
+
+  // 商品番号空欄チェック
+  const emptyItems=[];
+  const allSets=[
+    {name:'自社',data:remainOwnData},{name:'メーカー',data:makerData},{name:'カレンダー',data:calendarData},
+    {name:'1月',data:january_Data},{name:'4月',data:april_Data},{name:'10月',data:october_Data}
+  ];
+  allSets.forEach(({name,data}) => {
+    data.forEach(row => {
+      const pn=(row['商品番号']||'').toString().trim(), s=(row['販売店舗']||'').toString().trim();
+      if (!pn && s) emptyItems.push({シート:name,販売店舗:row['販売店舗']||'',受注番号:row['受注番号']||'',商品名:row['商品名']||''});
+    });
+  });
+
+  if (emptyItems.length>0) {
+    emptyCount.textContent=emptyItems.length;
+    emptyTbody.innerHTML=emptyItems.map(item=>
+      `<tr><td>${esc(item.シート)}</td><td>${esc(item.販売店舗)}</td><td>${esc(item.受注番号)}</td><td>${esc(item.商品名)}</td></tr>`
+    ).join('');
+    emptyCard.style.display='block';
+  }
+
+  // Excel生成
+  const wb=XLSX.utils.book_new();
+  const ts=new Date().toISOString().replace(/[-:]/g,'').slice(0,12);
+  const sheetDefs=[
+    {label:'自社',data:remainOwnData},
+    {label:'メーカー',data:makerData},
+    {label:'カレンダー',data:calendarData,cond:calendarData.length>0},
+    {label:'1月',data:january_Data,cond:january_Data.length>0},
+    {label:'4月',data:april_Data,cond:april_Data.length>0},
+    {label:'10月',data:october_Data,cond:october_Data.length>0}
+  ];
+  sheetDefs.forEach(({label,data,cond}) => {
+    if (cond===false) return;
+    const ws=XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, `${label} - ${ts}`);
+  });
+
+  const today=new Date();
+  const dateStr=today.getFullYear()+(today.getMonth()+1).toString().padStart(2,'0')+today.getDate().toString().padStart(2,'0');
+  XLSX.writeFile(wb, `${dateStr}-品番別-販売数集計.xlsx`);
+
+  // 完了メッセージ（プレビュー状況も付記）
+  let previewNote='';
+  if (totalSku>0 && totalSku<=PREVIEW_SKU_LIMIT) previewNote=`\n👁️ ${totalSku} SKU（30以内）のためプレビューを表示しました。`;
+  else if (totalSku>PREVIEW_SKU_LIMIT)            previewNote=`\nℹ️ ${totalSku} SKU（30超）のためプレビューは省略しました。`;
+
+  if (emptyItems.length>0) showMsg(`処理完了！データを振り分けました。\n⚠️ 商品番号が空欄: ${emptyItems.length}件${previewNote}`, 'warning');
+  else showMsg(`処理完了！データを振り分けました。${previewNote}`, 'success');
+}
+
+// ─────────────────────────────────────────────
+// プレビュー描画（合計SKU数が上限以内のときのみ）
+// ─────────────────────────────────────────────
+function renderPreview(summaries, totalSku) {
+  if (totalSku<=0 || totalSku>PREVIEW_SKU_LIMIT) {
+    previewCard.style.display='none';
+    previewBody.innerHTML='';
+    return;
+  }
+  previewSku.textContent=totalSku;
+  const nonEmpty=summaries.filter(s => s.summary.length>0);
+  previewBody.innerHTML=nonEmpty.map(s => {
+    const qtyTotal=s.summary.reduce((n,it)=>n+(parseFloat(it['個数'])||0),0);
+    const rows=s.summary.map(it =>
+      `<tr><td>${esc(it['商品番号'])}</td><td>${esc(it['商品名'])}</td><td class="num">${esc(it['個数'])}</td></tr>`
+    ).join('');
+    return `<div class="pv-sheet">
+      <div class="pv-sheet-head">${esc(s.label)}<span class="pv-badge">${s.summary.length} SKU ／ 計 ${qtyTotal} 個</span></div>
+      <div class="pv-wrap">
+        <table class="pv-table">
+          <thead><tr><th>商品番号</th><th>商品名</th><th class="num">個数</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+  previewCard.style.display='block';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
