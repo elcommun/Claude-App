@@ -1103,7 +1103,7 @@ const pvThumbImg = pvThumb.querySelector('img');
 let pvThumbTriedPng = false;
 
 function moveThumb(x, y) {
-  const gap = 18, edge = 8, w = pvThumb.offsetWidth || 220, h = pvThumb.offsetHeight || 280;
+  const gap = 40, edge = 8, w = pvThumb.offsetWidth || 220, h = pvThumb.offsetHeight || 280;
   // カーソルのすぐ右に表示。右に入りきらない場合は左側へ
   let left = x + gap;
   if (left + w > window.innerWidth - edge) left = x - w - gap;
