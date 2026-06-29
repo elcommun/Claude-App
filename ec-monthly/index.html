@@ -918,22 +918,29 @@ async function showPreview(f) {
   const parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
   const rows = parsed.data;
 
-  const uniqueSKU = new Set(rows.map(r => (r['商品番号'] || '').trim()).filter(v => v));
-  if (uniqueSKU.size > 30) return;
-
-  previewTbody.innerHTML = rows.map(row => {
-    const name = (row['商品名'] || '').trim();
+  // 品番ごとに集計（商品名は最初に出現したものを使用）
+  const skuMap = new Map();
+  rows.forEach(row => {
     const pn   = (row['商品番号'] || '').trim();
-    const qty  = (row['個数'] || row['数量'] || '').trim();
+    const name = (row['商品名'] || '').trim();
+    const qty  = parseInt(row['個数'] || row['数量'] || '0', 10) || 0;
+    if (!pn) return;
+    if (!skuMap.has(pn)) skuMap.set(pn, { name, qty: 0 });
+    skuMap.get(pn).qty += qty;
+  });
+
+  if (skuMap.size > 30) return;
+
+  previewTbody.innerHTML = Array.from(skuMap.entries()).map(([pn, { name, qty }]) => {
     const displayName = name.length > 50 ? name.slice(0, 50) + '…' : name;
     return `<tr>
       <td class="name-cell" title="${esc(name)}">${esc(displayName)}</td>
       <td>${esc(pn)}</td>
-      <td class="qty-cell">${esc(qty)}</td>
+      <td class="qty-cell">${qty}</td>
     </tr>`;
   }).join('');
 
-  previewCount.textContent = rows.length + ' 件';
+  previewCount.textContent = skuMap.size + ' SKU';
   previewSection.style.display = 'block';
   initColResize();
   initRowResize();
