@@ -1002,8 +1002,21 @@ function setupPreviewColumnResize() {
     previewBody.querySelectorAll('.pv-table').forEach(table => {
       if (table.dataset.colInit || !table.tHead) return;
       const ths = Array.from(table.tHead.rows[0].cells);
-      // 自動レイアウトの幅を測ってthに固定し、table-layout:fixed へ移行
-      const widths = ths.map(th => Math.round(th.getBoundingClientRect().width));
+      // 自動レイアウトの幅を測る
+      const natural = ths.map(th => th.getBoundingClientRect().width);
+      const sum = natural.reduce((a, b) => a + b, 0);
+      const containerW = table.parentElement ? table.parentElement.clientWidth : sum;
+      let widths = natural.slice();
+      // 右に余白が出ないよう、余りは商品名(0)・項目選択肢(1)の列に配分して全体を表示幅まで広げる
+      const extra = containerW - sum;
+      if (extra > 0) {
+        const flex = [0, 1].filter(i => ths[i]);
+        const flexSum = flex.reduce((a, i) => a + natural[i], 0) || 1;
+        flex.forEach(i => { widths[i] = natural[i] + extra * (natural[i] / flexSum); });
+      }
+      widths = widths.map(w => Math.round(w));
+      const target = extra > 0 ? containerW : sum;
+      widths[0] += target - widths.reduce((a, b) => a + b, 0); // 端数を商品名列で調整
       ths.forEach((th, i) => { th.style.width = widths[i] + 'px'; });
       table.style.tableLayout = 'fixed';
       table.style.width = widths.reduce((a, b) => a + b, 0) + 'px';
@@ -1090,13 +1103,15 @@ const pvThumbImg = pvThumb.querySelector('img');
 let pvThumbTriedPng = false;
 
 function moveThumb(x, y) {
-  const margin = 24, w = pvThumb.offsetWidth || 220, h = pvThumb.offsetHeight || 280;
-  // 画面の右端寄りに表示（カーソルから離す）
-  let left = window.innerWidth - w - margin;
+  const gap = 18, edge = 8, w = pvThumb.offsetWidth || 220, h = pvThumb.offsetHeight || 280;
+  // カーソルのすぐ右に表示。右に入りきらない場合は左側へ
+  let left = x + gap;
+  if (left + w > window.innerWidth - edge) left = x - w - gap;
+  if (left < edge) left = edge;
   // カーソルの高さに中央揃え
   let top = y - h / 2;
-  if (top < margin) top = margin;
-  if (top + h > window.innerHeight - margin) top = window.innerHeight - h - margin;
+  if (top < edge) top = edge;
+  if (top + h > window.innerHeight - edge) top = window.innerHeight - h - edge;
   pvThumb.style.left = left + 'px';
   pvThumb.style.top  = top  + 'px';
 }
