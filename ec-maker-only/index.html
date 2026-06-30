@@ -141,7 +141,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">プロパー(自社)商品を削除し、メーカー商品だけ残す <span class="ver">v2</span></div>
+      <div class="sub">プロパー(自社)商品を削除し、メーカー商品だけ残す <span class="ver">v3</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -176,7 +176,7 @@
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
       プロパー(自社)を削除してメーカーのみ出力
     </button>
-    <div class="toggle-row"><input type="checkbox" id="keepOrder"><label for="keepOrder" style="cursor:pointer">取り寄せ（<code>apj-</code> / <code>rft-</code>）も残す</label></div>
+    <div class="toggle-row"><input type="checkbox" id="removeOrder"><label for="removeOrder" style="cursor:pointer">取り寄せ（<code>apj-</code> / <code>rft-</code>）を削除する（既定では販売数として残す）</label></div>
     <div class="msg" id="msg"></div>
 
     <div id="result" class="hidden">
@@ -186,7 +186,7 @@
         <div class="stat prop"><div class="lbl"><span class="dot"></span>プロパー（削除）</div>
           <div class="big" id="propCount">0</div><div class="small">自社商品</div></div>
         <div class="stat order"><div class="lbl"><span class="dot"></span>取り寄せ</div>
-          <div class="big" id="orderCount">0</div><div class="small" id="orderSub">apj- / rft-</div></div>
+          <div class="big" id="orderCount">0</div><div class="small" id="orderSub">apj- / rft-（残す）</div></div>
         <div class="stat skip"><div class="lbl"><span class="dot"></span>商品番号空</div>
           <div class="big" id="skipCount">0</div><div class="small">判定不可</div></div>
       </div>
@@ -204,7 +204,7 @@
       <ul>
         <li><span class="b">A</span><span><b>判定</b>：各行の <code>商品番号</code> を内部品番に解決し（<code>item-data</code> 準拠の抽出・正規化）、<b>自社品番マスタ</b>（約<span id="genkaCount2">0</span>件）に一致するもの、または <code>elco-</code> <code>cal-</code> や自社確定接頭辞（<code>X?DR-</code> <code>CAL-</code> <code>EGP-</code> <code>WCL-</code> 等）を<b>プロパー（自社）として削除</b>します。</span></li>
         <li><span class="b">B</span><span><b>メーカー（残す）</b>：自社と判定されなかった他社ブランド商品（<code>8mw-</code> <code>wh-</code> <code>ldw</code> <code>psm-</code> <code>ak-</code> <code>SLW-</code> 等）。</span></li>
-        <li><span class="b">C</span><span><b>取り寄せ</b>：<code>apj-</code> <code>rft-</code> は既定で削除（チェックで残せます）。<code>商品番号</code>が空の行は判定不可として除外。</span></li>
+        <li><span class="b">C</span><span><b>取り寄せ</b>：<code>apj-</code> <code>rft-</code> は<b>既定で販売数として残します</b>（自社ではないため）。チェックを入れると削除できます。<code>商品番号</code>が空の行は判定不可として除外。</span></li>
         <li><span class="b">D</span><span><b>出力</b>：アップロードした CSV と<b>同じ列・同じ並び順をそのまま維持</b>し、メーカー行だけを残した CSV（Shift-JIS・元の値は無加工）。</span></li>
       </ul>
     </div>
@@ -433,7 +433,7 @@ document.getElementById('goBtn').onclick=async()=>{
     }
     srcName=(files.sales.name||'受注データ').replace(/\.[^.]*$/,'');
 
-    const keepOrder=document.getElementById('keepOrder').checked;
+    const removeOrder=document.getElementById('removeOrder').checked;
     const kept=[];
     let maker=0,prop=0,order=0,orderKept=0,empty=0;
     rows.forEach(r=>{
@@ -441,7 +441,7 @@ document.getElementById('goBtn').onclick=async()=>{
       const sku=(r['SKU管理番号']||'');
       const store=(r['販売店舗']||'');
       if(!pn){empty++;return;}
-      if(isExcluded(pn)){order++;if(keepOrder){kept.push(r);orderKept++;}return;}
+      if(isExcluded(pn)){order++;if(!removeOrder){kept.push(r);orderKept++;}return;}  // 取り寄せ → 既定は残す
       if(isOwn(pn,sku,store)){prop++;return;}  // プロパー(自社) → 削除
       maker++;kept.push(r);                     // メーカー → 残す
     });
@@ -450,12 +450,12 @@ document.getElementById('goBtn').onclick=async()=>{
 
     document.getElementById('result').classList.remove('hidden');
     document.getElementById('keepCount').textContent=kept.length.toLocaleString();
-    document.getElementById('keepSub').textContent=keepOrder&&orderKept
+    document.getElementById('keepSub').textContent=orderKept
       ? `メーカー ${maker.toLocaleString()} ＋ 取り寄せ ${orderKept.toLocaleString()}`
       : `メーカー商品 ${maker.toLocaleString()}件`;
     document.getElementById('propCount').textContent=prop.toLocaleString();
     document.getElementById('orderCount').textContent=order.toLocaleString();
-    document.getElementById('orderSub').textContent=keepOrder?'apj- / rft-（残す）':'apj- / rft-（削除）';
+    document.getElementById('orderSub').textContent=removeOrder?'apj- / rft-（削除）':'apj- / rft-（残す）';
     document.getElementById('skipCount').textContent=empty.toLocaleString();
 
     const pw=document.getElementById('prevWrap');
@@ -473,8 +473,8 @@ document.getElementById('goBtn').onclick=async()=>{
       pw.innerHTML=html;pw.classList.remove('hidden');
     }else{pw.innerHTML='';pw.classList.add('hidden');}
 
-    showMsg(`完了！　メーカー ${maker.toLocaleString()}件を残し、プロパー(自社) ${prop.toLocaleString()}件を削除しました`+
-      `${keepOrder?`（取り寄せ ${order.toLocaleString()}件は残す）`:(order?`　／ 取り寄せ(apj-・rft-) ${order.toLocaleString()}件も削除`:'')}`+
+    showMsg(`完了！　プロパー(自社) ${prop.toLocaleString()}件を削除し、${kept.length.toLocaleString()}件を残しました`+
+      `${order?(removeOrder?`　／ 取り寄せ(apj-・rft-) ${order.toLocaleString()}件も削除`:`（うちメーカー ${maker.toLocaleString()}・取り寄せ ${order.toLocaleString()}）`):''}`+
       `${empty?`　／ 商品番号空 ${empty.toLocaleString()}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
