@@ -174,7 +174,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v7</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v8</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -425,24 +425,29 @@ document.getElementById('goBtn').onclick=async()=>{
     // 商品管理番号（商品URL）でも引けるようにフォールバック用マップを作る。
     // キーは大文字小文字を無視（itemdata=「-L」、dl=「-l」等の表記揺れに対応）
     const price={};
-    const kanRaw={};  // 正規化した商品管理番号 -> {v:価格, ok:単価一意か}
+    const kanRaw={};     // 連携SKU空行のみ: 商品管理番号 -> {v, ok}（単体商品フォールバック）
+    const kanAllRaw={};  // 全行: 商品管理番号 -> {v, ok}（psm-brc 等の特例参照用）
     const normKan=s=>(s||'').trim().replace(/-+$/,'').toLowerCase();
     const normSku=s=>(s||'').trim().toLowerCase();
+    const addKan=(m,kn,f)=>{if(!(kn in m))m[kn]={v:f,ok:true};else if(m[kn].v!==f)m[kn].ok=false;};
     dlRows.forEach(r=>{
-      const k=normSku(r['システム連携用SKU番号']);const v=(r['通常購入販売価格']||'').trim();
-      if(v==='')return;const f=parseFloat(v);if(isNaN(f))return;
+      const v=(r['通常購入販売価格']||'').trim();if(v==='')return;const f=parseFloat(v);if(isNaN(f))return;
+      const k=normSku(r['システム連携用SKU番号']);
+      const kn=normKan(r['商品管理番号（商品URL）']);
+      if(kn)addKan(kanAllRaw,kn,f);              // 全行ベース（特例用）
       if(k){price[k]=f;return;}
-      // 連携SKU が空 → 商品管理番号で参照（単体商品想定）
-      const kn=normKan(r['商品管理番号（商品URL）']);if(!kn)return;
-      if(!(kn in kanRaw))kanRaw[kn]={v:f,ok:true};
-      else if(kanRaw[kn].v!==f)kanRaw[kn].ok=false;  // 価格が割れる場合は曖昧なので使わない
+      if(kn)addKan(kanRaw,kn,f);                 // 連携SKU空のみ（単体商品フォールバック）
     });
-    const priceKan={};
-    for(const kn in kanRaw){if(kanRaw[kn].ok)priceKan[kn]=kanRaw[kn].v;}
+    const pick=raw=>{const o={};for(const kn in raw){if(raw[kn].ok)o[kn]=raw[kn].v;}return o;};
+    const priceKan=pick(kanRaw), priceKanAll=pick(kanAllRaw);
+    // 選択肢別在庫でも商品管理番号で上代を参照する特例プレフィックス
+    const SPECIAL_KAN_PREFIXES=['psm-brc'];
     const lookupJoka=r=>{
       const sku=normSku(r['システム連携用SKU番号']);
+      const knMain=normKan(r['商品管理番号（商品URL）']);
+      if(SPECIAL_KAN_PREFIXES.some(p=>sku.startsWith(p))&&knMain in priceKanAll)return priceKanAll[knMain];
       if(sku in price)return price[sku];
-      const kn=normKan(r['商品管理番号（商品URL）']);
+      const kn=knMain;
       if(kn in priceKan)return priceKan[kn];
       return null;
     };
