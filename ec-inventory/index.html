@@ -133,6 +133,31 @@
        margin-bottom:6px;color:var(--amber)}
   .hidden{display:none}
 
+  /* collapsible card */
+  .card.collapsible .card-h{cursor:pointer;margin-bottom:0}
+  .card.collapsible.open .card-h{margin-bottom:16px}
+  .card-h .chev{margin-left:auto;width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:2;transition:transform .25s}
+  .card.collapsible .card-h .opt{margin-left:0}
+  .card.collapsible.open .chev{transform:rotate(180deg)}
+  .collapse-body{display:none}
+  .card.collapsible.open .collapse-body{display:block;animation:fade .3s cubic-bezier(.4,0,.2,1)}
+
+  /* error block */
+  .errhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);
+       font-size:.84rem;font-weight:600;color:var(--amber)}
+  .errhead .sp{margin-left:auto;display:flex;gap:8px}
+  .errtable-wrap{margin-top:12px;max-height:320px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius-sm)}
+  table.errt{width:100%;border-collapse:collapse;font-size:.74rem;white-space:nowrap}
+  table.errt th{position:sticky;top:0;background:var(--bg2);color:var(--text2);font-weight:600;font-size:.68rem;
+       text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);z-index:1}
+  table.errt td{padding:6px 10px;border-bottom:1px solid var(--table-border,rgba(0,0,0,.04))}
+  table.errt tr:hover td{background:var(--accent-dim)}
+  table.errt .badge{font-size:.66rem;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--amber-dim);
+       color:var(--amber);border:1px solid var(--amber-border)}
+  table.errt .nm{white-space:normal;max-width:280px}
+  table.errt .mono{font-family:var(--mono);font-size:.7rem;color:var(--text2)}
+  .errmore{padding:8px 10px;font-size:.74rem;color:var(--text2);text-align:center}
+
   .info{font-size:.82rem;color:var(--text2)}
   .info ul{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:7px}
   .info li{display:flex;gap:9px;align-items:flex-start}
@@ -149,7 +174,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v1</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v2</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -189,18 +214,21 @@
     </label>
   </div>
 
-  <!-- 掛け率 table -->
-  <div class="card">
-    <div class="card-h"><span class="num">4</span><h2>メーカー掛け率（接頭辞別）</h2><span class="opt">編集可</span></div>
-    <div class="info" style="margin-bottom:12px">合計 = 上代 × 掛け率 × 在庫数。表に無い接頭辞（例 <code>apj-</code> <code>rft-</code>）は合計が空欄になります。必要に応じて追加してください。</div>
-    <table class="rates"><thead><tr><th style="width:130px">接頭辞</th><th>掛け率</th><th class="rm"></th></tr></thead>
-      <tbody id="rateBody"></tbody></table>
-    <div class="rate-add">
-      <input id="newPrefix" placeholder="接頭辞（例 apj-）">
-      <input id="newRate" placeholder="掛け率（例 0.55）" inputmode="decimal">
-      <button class="mini-btn" id="addRate">＋ 追加</button>
+  <!-- 掛け率 table (collapsed by default) -->
+  <div class="card collapsible" id="rateCard">
+    <div class="card-h" id="rateHead"><span class="num">4</span><h2>メーカー掛け率（接頭辞別）</h2><span class="opt">編集可</span>
+      <svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <div class="collapse-body">
+      <div class="info" style="margin-bottom:12px">合計 = 上代 × 掛け率 × 在庫数。表に無い接頭辞（例 <code>apj-</code> <code>rft-</code>）は合計が空欄になります。必要に応じて追加してください。</div>
+      <table class="rates"><thead><tr><th style="width:130px">接頭辞</th><th>掛け率</th><th class="rm"></th></tr></thead>
+        <tbody id="rateBody"></tbody></table>
+      <div class="rate-add">
+        <input id="newPrefix" placeholder="接頭辞（例 apj-）">
+        <input id="newRate" placeholder="掛け率（例 0.55）" inputmode="decimal">
+        <button class="mini-btn" id="addRate">＋ 追加</button>
+      </div>
+      <div class="toggle-row"><input type="checkbox" id="resetRates"><label for="resetRates" style="cursor:pointer">既定値に戻す（再読み込み時）</label></div>
     </div>
-    <div class="toggle-row"><input type="checkbox" id="resetRates"><label for="resetRates" style="cursor:pointer">既定値に戻す（再読み込み時）</label></div>
   </div>
 
   <!-- Generate -->
@@ -224,6 +252,17 @@
         <button class="dl maker" id="dlMaker"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>EC棚卸し（メーカー）.xlsx</button>
       </div>
       <div class="warnlist" id="warnlist"></div>
+
+      <div id="errBlock" class="hidden">
+        <div class="errhead">
+          <span>⚠ 合計を算出できなかった商品 <b id="errCount">0</b>件</span>
+          <span class="sp">
+            <button class="mini-btn" id="errToggle">プレビュー</button>
+            <button class="mini-btn" id="errDl">ダウンロード</button>
+          </span>
+        </div>
+        <div id="errTableWrap" class="errtable-wrap hidden"></div>
+      </div>
     </div>
   </div>
 
@@ -281,6 +320,8 @@ function renderRates(){
   tb.querySelectorAll('[data-del]').forEach(b=>b.onclick=e=>{delete rates[e.target.dataset.del];saveRates();renderRates();});
 }
 renderRates();
+// collapsible 掛け率 card (collapsed by default)
+document.getElementById('rateHead').onclick=()=>document.getElementById('rateCard').classList.toggle('open');
 document.getElementById('addRate').onclick=()=>{
   let pf=document.getElementById('newPrefix').value.trim();
   const v=parseFloat(document.getElementById('newRate').value);
@@ -354,8 +395,9 @@ async function loadMasterXlsx(f){
 function refreshGo(){document.getElementById('goBtn').disabled=!(files.item&&files.dl);}
 
 /* ---------- generate ---------- */
-let outOwn=null,outMaker=null;
+let outOwn=null,outMaker=null,errRows=[];
 const yen=n=>'¥'+Math.round(n).toLocaleString();
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function showMsg(t,c){const m=document.getElementById('msg');m.textContent=t;m.className='msg show '+c;}
 
 document.getElementById('goBtn').onclick=async()=>{
@@ -371,7 +413,7 @@ document.getElementById('goBtn').onclick=async()=>{
       if(k&&v!==''){const f=parseFloat(v);if(!isNaN(f))price[k]=f;}});
 
     const hideZero=document.getElementById('hideZero').checked;
-    const own=[],maker=[];
+    const own=[],maker=[],errors=[];
     const noGenka={},noPrice={},noRate={};
     itemRows.forEach(r=>{
       const sku=(r['システム連携用SKU番号']||'').trim();if(!sku)return;
@@ -388,11 +430,20 @@ document.getElementById('goBtn').onclick=async()=>{
           '商品番号':r['商品番号']||'','SKU管理番号':r['SKU管理番号']||'','システム連携用SKU番号':sku,
           'バリエーション項目選択肢1':r['バリエーション項目選択肢1']||'','上代':joka!=null?joka:'','掛け率':rt!=null?rt:'',
           '在庫数':qty,'合計':total});
+        if(total===''){
+          const kinds=[];if(joka==null)kinds.push('上代なし');if(rt==null)kinds.push('掛け率なし');
+          errors.push({'区分':'メーカー','エラー種別':kinds.join('・'),'商品名':name,'品番':r['SKU管理番号']||'',
+            'システム連携用SKU番号':sku,'在庫数':qty,'上代':joka!=null?joka:'','掛け率':rt!=null?rt:'','原価':''});
+        }
       }else{
         const {hinban,genka}=ownHinban(r);
         const total=(genka!=null)?Math.round(genka*qty*100)/100:'';
         if(genka==null)noGenka[prefix]=(noGenka[prefix]||0)+1;
         own.push({'商品名':name,'品番':hinban,'原価':genka!=null?genka:'','在庫数':qty,'合計':total});
+        if(total===''){
+          errors.push({'区分':'自社','エラー種別':'原価なし','商品名':name,'品番':hinban,
+            'システム連携用SKU番号':sku,'在庫数':qty,'上代':'','掛け率':'','原価':''});
+        }
       }
     });
 
@@ -429,12 +480,51 @@ document.getElementById('goBtn').onclick=async()=>{
     if(Object.keys(noRate).length)wl.innerHTML+=`<div class="wi">メーカーで掛け率未設定の接頭辞: ${fmt(noRate)}（Step4で掛け率を追加すると合計が算出されます）</div>`;
     if(Object.keys(noPrice).length)wl.innerHTML+=`<div class="wi">メーカーで上代（dl-normal）に無い商品: ${fmt(noPrice)}（dl-normalに該当SKUが無い／在庫切れ商品など）</div>`;
 
-    showMsg(`生成完了！　自社 ${own.length}件・メーカー ${maker.length}件。下のボタンからダウンロードできます。`,'success');
+    // error block (rows whose 合計 could not be computed)
+    errRows=errors;
+    const errBlock=document.getElementById('errBlock');
+    const errTableWrap=document.getElementById('errTableWrap');
+    const errToggle=document.getElementById('errToggle');
+    if(errors.length){
+      errBlock.classList.remove('hidden');
+      document.getElementById('errCount').textContent=errors.length.toLocaleString();
+      const PREVIEW=200;
+      let html='<table class="errt"><thead><tr><th>区分</th><th>エラー種別</th><th>商品名</th><th>品番</th><th>連携SKU</th><th>在庫</th><th>上代</th><th>掛率</th></tr></thead><tbody>';
+      errors.slice(0,PREVIEW).forEach(e=>{
+        html+=`<tr><td><span class="badge">${esc(e['区分'])}</span></td><td>${esc(e['エラー種別'])}</td>`+
+          `<td class="nm">${esc(e['商品名'])}</td><td class="mono">${esc(e['品番'])}</td>`+
+          `<td class="mono">${esc(e['システム連携用SKU番号'])}</td><td class="mono">${esc(e['在庫数'])}</td>`+
+          `<td class="mono">${esc(e['上代'])}</td><td class="mono">${esc(e['掛け率'])}</td></tr>`;
+      });
+      html+='</tbody></table>';
+      if(errors.length>PREVIEW)html+=`<div class="errmore">プレビューは先頭 ${PREVIEW} 件のみ表示（全 ${errors.length.toLocaleString()} 件はダウンロードで確認できます）</div>`;
+      errTableWrap.innerHTML=html;
+      errTableWrap.classList.add('hidden');errToggle.textContent='プレビュー';
+    }else{
+      errBlock.classList.add('hidden');errTableWrap.innerHTML='';
+    }
+
+    showMsg(`生成完了！　自社 ${own.length}件・メーカー ${maker.length}件${errors.length?`（うち合計未算出 ${errors.length}件）`:''}。下のボタンからダウンロードできます。`,'success');
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
 
 document.getElementById('dlOwn').onclick=()=>{if(outOwn)XLSX.writeFile(outOwn,'EC棚卸し（自社）.xlsx');};
 document.getElementById('dlMaker').onclick=()=>{if(outMaker)XLSX.writeFile(outMaker,'EC棚卸し（メーカー）.xlsx');};
+
+// error preview toggle
+document.getElementById('errToggle').onclick=()=>{
+  const w=document.getElementById('errTableWrap'),b=document.getElementById('errToggle');
+  const hidden=w.classList.toggle('hidden');
+  b.textContent=hidden?'プレビュー':'閉じる';
+};
+// error list download
+document.getElementById('errDl').onclick=()=>{
+  if(!errRows.length)return;
+  const header=['区分','エラー種別','商品名','品番','システム連携用SKU番号','在庫数','上代','掛け率','原価'];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(errRows,{header}),'エラー箇所');
+  XLSX.writeFile(wb,'EC棚卸し_エラー箇所.xlsx');
+};
 </script>
 </body>
 </html>
