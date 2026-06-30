@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EC棚卸し — 自社/メーカー振り分け｜EL COMMUN EC事業部</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="genka_master.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:#f8f9fc; --bg2:#f1f3f8;
+    --surface:rgba(255,255,255,0.75); --surface-hover:rgba(255,255,255,0.92);
+    --border:rgba(0,0,0,0.08); --border-hover:rgba(0,0,0,0.14);
+    --accent:#7c3aed; --accent2:#6d28d9; --accent-glow:rgba(124,58,237,0.20); --accent-dim:rgba(124,58,237,0.06);
+    --green:#059669; --green-dim:rgba(5,150,105,0.08); --green-border:rgba(5,150,105,0.20);
+    --amber:#b45309; --amber-dim:rgba(180,83,9,0.07); --amber-border:rgba(180,83,9,0.20);
+    --red:#dc2626; --red-dim:rgba(220,38,38,0.06); --red-border:rgba(220,38,38,0.18);
+    --blue:#2563eb; --blue-dim:rgba(37,99,235,0.06); --blue-border:rgba(37,99,235,0.18);
+    --text:#1e293b; --text2:#64748b; --text3:#94a3b8;
+    --glow1:rgba(124,58,237,0.06); --glow2:rgba(37,99,235,0.04);
+    --radius:16px; --radius-sm:10px; --radius-xs:6px;
+    --font:'Inter','Noto Sans JP',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  [data-theme="dark"]{
+    --bg:#0f0f11; --bg2:#18181b;
+    --surface:rgba(255,255,255,0.04); --surface-hover:rgba(255,255,255,0.07);
+    --border:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.16);
+    --accent:#8b5cf6; --accent2:#a78bfa; --accent-glow:rgba(139,92,246,0.30); --accent-dim:rgba(139,92,246,0.10);
+    --green:#34d399; --green-dim:rgba(52,211,153,0.10); --green-border:rgba(52,211,153,0.22);
+    --amber:#fbbf24; --amber-dim:rgba(251,191,36,0.10); --amber-border:rgba(251,191,36,0.22);
+    --red:#f87171; --red-dim:rgba(248,113,113,0.10); --red-border:rgba(248,113,113,0.22);
+    --blue:#60a5fa; --blue-dim:rgba(96,165,250,0.10); --blue-border:rgba(96,165,250,0.22);
+    --text:#e4e4e7; --text2:#a1a1aa; --text3:#71717a;
+    --glow1:rgba(139,92,246,0.10); --glow2:rgba(96,165,250,0.06);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;
+       transition:background .4s,color .4s;position:relative;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+       background:radial-gradient(700px circle at 12% 8%,var(--glow1),transparent 45%),
+                  radial-gradient(600px circle at 88% 92%,var(--glow2),transparent 45%)}
+  .wrap{max-width:860px;margin:0 auto;padding:40px 24px 80px}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:32px}
+  .brand{display:flex;flex-direction:column;gap:6px}
+  .brand h1{font-size:1.55rem;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+  .brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+       display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px var(--accent-glow)}
+  .brand .logo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.2}
+  .brand .sub{font-size:.8rem;color:var(--text2);display:flex;align-items:center;gap:8px}
+  .brand .sub .ver{font-family:var(--mono);font-size:.7rem;background:var(--accent-dim);color:var(--accent);
+       padding:1px 7px;border-radius:999px}
+  .theme-btn{flex-shrink:0;width:40px;height:40px;border-radius:10px;border:1px solid var(--border);
+       background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;
+       transition:.2s;backdrop-filter:blur(10px)}
+  .theme-btn:hover{border-color:var(--border-hover);transform:translateY(-1px)}
+  .theme-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+       padding:22px;margin-bottom:18px;backdrop-filter:blur(14px);transition:.3s}
+  .card-h{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+  .card-h .num{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+       color:#fff;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+       box-shadow:0 3px 10px var(--accent-glow)}
+  .card-h h2{font-size:1rem;font-weight:600}
+  .card-h .opt{font-size:.68rem;font-weight:600;color:var(--text2);background:var(--bg2);border:1px solid var(--border);
+       padding:1px 8px;border-radius:999px;margin-left:auto}
+  .card-h .opt.req{color:var(--accent);background:var(--accent-dim);border-color:transparent}
+
+  .drop{position:relative;border:2px dashed var(--border);border-radius:var(--radius-sm);padding:22px 18px;
+       text-align:center;cursor:pointer;transition:.25s;background:var(--bg2)}
+  .drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-dim)}
+  .drop.has{border-style:solid;border-color:var(--green-border);background:var(--green-dim)}
+  .drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .drop .ic{width:30px;height:30px;margin:0 auto 8px;stroke:var(--text3);fill:none;stroke-width:1.8;display:block}
+  .drop.has .ic{stroke:var(--green)}
+  .drop .t{font-size:.86rem;font-weight:500}
+  .drop .h{font-size:.74rem;color:var(--text2);margin-top:3px}
+  .drop.has .t{color:var(--green)}
+  .fname{font-family:var(--mono);font-size:.74rem;word-break:break-all}
+
+  table.rates{width:100%;border-collapse:collapse;font-size:.8rem}
+  table.rates th,table.rates td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)}
+  table.rates th{font-size:.7rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  table.rates input{width:100%;background:transparent;border:none;color:var(--text);font-family:var(--mono);font-size:.8rem;padding:2px}
+  table.rates input:focus{outline:1px solid var(--accent);border-radius:4px}
+  table.rates .pf{font-family:var(--mono);color:var(--accent)}
+  table.rates td.rm{text-align:center;width:34px}
+  .x-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:1rem;line-height:1;padding:2px 6px;border-radius:4px}
+  .x-btn:hover{color:var(--red);background:var(--red-dim)}
+  .rate-add{display:flex;gap:8px;margin-top:10px}
+  .rate-add input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-xs);
+       padding:7px 10px;color:var(--text);font-family:var(--mono);font-size:.8rem}
+  .rate-add input:focus{outline:none;border-color:var(--accent)}
+  .mini-btn{background:var(--accent-dim);color:var(--accent);border:none;border-radius:var(--radius-xs);
+       padding:7px 14px;font-weight:600;font-size:.78rem;cursor:pointer;transition:.2s;white-space:nowrap}
+  .mini-btn:hover{background:var(--accent);color:#fff}
+
+  .go{width:100%;padding:15px;border:none;border-radius:var(--radius-sm);font-size:.98rem;font-weight:700;
+       font-family:var(--font);cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));
+       box-shadow:0 6px 22px var(--accent-glow);transition:.25s;display:flex;align-items:center;justify-content:center;gap:9px}
+  .go:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 9px 28px var(--accent-glow)}
+  .go:disabled{opacity:.5;cursor:not-allowed}
+  .go svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+
+  .msg{margin-top:14px;padding:12px 15px;border-radius:var(--radius-sm);font-size:.84rem;display:none;white-space:pre-wrap}
+  .msg.show{display:block;animation:fade .4s cubic-bezier(.4,0,.2,1)}
+  .msg.success{background:var(--green-dim);border:1px solid var(--green-border);color:var(--green)}
+  .msg.error{background:var(--red-dim);border:1px solid var(--red-border);color:var(--red)}
+  .msg.warning{background:var(--amber-dim);border:1px solid var(--amber-border);color:var(--amber)}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px}
+  .stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px}
+  .stat .lbl{font-size:.72rem;color:var(--text2);font-weight:600;display:flex;align-items:center;gap:6px}
+  .stat .lbl .dot{width:8px;height:8px;border-radius:50%}
+  .stat .big{font-size:1.5rem;font-weight:700;font-family:var(--mono);margin-top:5px}
+  .stat .small{font-size:.74rem;color:var(--text2);margin-top:2px;font-family:var(--mono)}
+  .stat .yen{font-size:.92rem;color:var(--text);margin-top:3px;font-family:var(--mono)}
+  .stat.own .dot{background:var(--accent)} .stat.maker .dot{background:var(--blue)}
+  .dlrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .dl{padding:13px;border-radius:var(--radius-sm);font-weight:600;font-size:.84rem;cursor:pointer;border:1px solid;
+       display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;background:var(--surface)}
+  .dl svg{width:16px;height:16px;fill:none;stroke-width:2}
+  .dl.own{border-color:var(--accent);color:var(--accent)} .dl.own:hover{background:var(--accent);color:#fff}
+  .dl.own svg{stroke:currentColor}
+  .dl.maker{border-color:var(--blue);color:var(--blue)} .dl.maker:hover{background:var(--blue);color:#fff}
+  .dl.maker svg{stroke:currentColor}
+  .warnlist{margin-top:14px;font-size:.78rem;color:var(--text2)}
+  .warnlist .wi{padding:8px 12px;background:var(--amber-dim);border:1px solid var(--amber-border);border-radius:var(--radius-xs);
+       margin-bottom:6px;color:var(--amber)}
+  .hidden{display:none}
+
+  .info{font-size:.82rem;color:var(--text2)}
+  .info ul{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:7px}
+  .info li{display:flex;gap:9px;align-items:flex-start}
+  .info li .b{width:18px;height:18px;border-radius:5px;background:var(--accent-dim);color:var(--accent);font-size:.64rem;
+       font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+  .info code{font-family:var(--mono);font-size:.78rem;background:var(--bg2);padding:1px 5px;border-radius:4px;color:var(--accent)}
+  .toggle-row{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:.82rem;color:var(--text2)}
+  .toggle-row input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+  @media(max-width:600px){.wrap{padding:28px 16px 60px}.stats,.dlrow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v1</span></div>
+    </div>
+    <button class="theme-btn" id="themeBtn" title="テーマ切替">
+      <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </div>
+
+  <!-- STEP 1: itemdata -->
+  <div class="card">
+    <div class="card-h"><span class="num">1</span><h2>itemdata CSV（在庫・商品名）</h2><span class="opt req">必須</span></div>
+    <label class="drop" id="dropItem">
+      <input type="file" accept=".csv" id="fileItem">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <div class="t" id="tItem">クリック または ドラッグでCSVを選択</div>
+      <div class="h">在庫数・商品名・システム連携用SKU番号 を含むデータ</div>
+    </label>
+  </div>
+
+  <!-- STEP 2: dl-normal-item -->
+  <div class="card">
+    <div class="card-h"><span class="num">2</span><h2>dl-normal-item CSV（楽天・上代）</h2><span class="opt req">必須</span></div>
+    <label class="drop" id="dropDl">
+      <input type="file" accept=".csv" id="fileDl">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <div class="t" id="tDl">クリック または ドラッグでCSVを選択</div>
+      <div class="h">通常購入販売価格 を含む楽天ダウンロードデータ（メーカー商品の上代）</div>
+    </label>
+  </div>
+
+  <!-- STEP 3: master xlsx (optional) -->
+  <div class="card">
+    <div class="card-h"><span class="num">3</span><h2>商品データ xlsx（原価マスタ）</h2><span class="opt">任意</span></div>
+    <label class="drop" id="dropMaster">
+      <input type="file" accept=".xlsx,.xls" id="fileMaster">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <div class="t" id="tMaster">アプリ内蔵の原価マスタを使用中</div>
+      <div class="h">最新の原価・新商品を反映したい場合のみアップロード（内蔵: <span id="genkaCount">0</span>件）</div>
+    </label>
+  </div>
+
+  <!-- 掛け率 table -->
+  <div class="card">
+    <div class="card-h"><span class="num">4</span><h2>メーカー掛け率（接頭辞別）</h2><span class="opt">編集可</span></div>
+    <div class="info" style="margin-bottom:12px">合計 = 上代 × 掛け率 × 在庫数。表に無い接頭辞（例 <code>apj-</code> <code>rft-</code>）は合計が空欄になります。必要に応じて追加してください。</div>
+    <table class="rates"><thead><tr><th style="width:130px">接頭辞</th><th>掛け率</th><th class="rm"></th></tr></thead>
+      <tbody id="rateBody"></tbody></table>
+    <div class="rate-add">
+      <input id="newPrefix" placeholder="接頭辞（例 apj-）">
+      <input id="newRate" placeholder="掛け率（例 0.55）" inputmode="decimal">
+      <button class="mini-btn" id="addRate">＋ 追加</button>
+    </div>
+    <div class="toggle-row"><input type="checkbox" id="resetRates"><label for="resetRates" style="cursor:pointer">既定値に戻す（再読み込み時）</label></div>
+  </div>
+
+  <!-- Generate -->
+  <div class="card">
+    <button class="go" id="goBtn" disabled>
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      棚卸しデータを生成
+    </button>
+    <div class="toggle-row"><input type="checkbox" id="hideZero"><label for="hideZero" style="cursor:pointer">在庫0の商品を除外する</label></div>
+    <div class="msg" id="msg"></div>
+
+    <div id="result" class="hidden">
+      <div class="stats">
+        <div class="stat own"><div class="lbl"><span class="dot"></span>自社</div>
+          <div class="big" id="ownCount">0</div><div class="small" id="ownSub"></div><div class="yen" id="ownYen"></div></div>
+        <div class="stat maker"><div class="lbl"><span class="dot"></span>メーカー</div>
+          <div class="big" id="makerCount">0</div><div class="small" id="makerSub"></div><div class="yen" id="makerYen"></div></div>
+      </div>
+      <div class="dlrow">
+        <button class="dl own" id="dlOwn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>EC棚卸し（自社）.xlsx</button>
+        <button class="dl maker" id="dlMaker"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>EC棚卸し（メーカー）.xlsx</button>
+      </div>
+      <div class="warnlist" id="warnlist"></div>
+    </div>
+  </div>
+
+  <!-- info -->
+  <div class="card">
+    <div class="card-h"><span class="num">i</span><h2>処理ルール</h2></div>
+    <div class="info">
+      <ul>
+        <li><span class="b">A</span><span><b>振り分け</b>：システム連携用SKU番号の接頭辞で判定（ec-monthly 準拠）。メーカー接頭辞（<code>apj-</code><code>8mw-</code><code>wh-</code> 等）と <code>【Raffinart】</code>(<code>rft-</code>) はメーカー、<code>elco-</code><code>cal-</code> 等は自社。</span></li>
+        <li><span class="b">B</span><span><b>商品名</b>：itemdata から抽出し、先頭の装飾（<code>【…】</code><code>＼…／</code>）と <code>｜</code> 以降、HTMLタグを除去。</span></li>
+        <li><span class="b">C</span><span><b>自社</b>：商品名 / 品番 / 原価 / 在庫数 / 合計（＝原価×在庫数）。原価はマスタから品番で突合。</span></li>
+        <li><span class="b">D</span><span><b>メーカー</b>：商品名 / 品番 / 上代 / 掛け率 / 在庫数 / 合計（＝上代×掛け率×在庫数）。上代は dl-normal を連携SKUで突合。</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- theme ---------- */
+const themeBtn=document.getElementById('themeBtn'),themeIcon=document.getElementById('themeIcon');
+const SUN='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/>';
+const MOON='<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);themeIcon.innerHTML=t==='dark'?SUN:MOON;localStorage.setItem('ec_inv_theme',t);}
+applyTheme(localStorage.getItem('ec_inv_theme')||'light');
+themeBtn.onclick=()=>applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
+
+/* ---------- constants ---------- */
+const MAKER_PREFIXES=['4on-','8mw-','af','ai-','aito-','ak-','alsk-','apj-','bm-','cocochi-','cre-','ef','ldw',
+  'ma-','mgt-','MO','nlf','nm-','pb-','psm-','rft-','rio-','sh-','SLW-','tp-','tri-','wf','wh-','ky-'];
+const DEFAULT_RATES={'4on-':0.55,'8mw-':0.5,'ak-':0.6,'alsk-':0.6,'bm-':0.45,'cocochi-':0.5,'cre-':0.5,'ky-':0.6,
+  'ldw001-':1,'ma-':0.5,'mgt-':0.53,'nm-':0.55,'pb-':0.55,'psm-':0.5,'rio-':0.6,'sh-':0.55,'tp-':0.55,'tri-':0.38,
+  'uncm-':0.53,'wh-':0.55};
+
+/* embedded 原価 master, possibly overridden by uploaded xlsx */
+let GENKA=Object.assign({},window.GENKA_MASTER||{});
+document.getElementById('genkaCount').textContent=Object.keys(GENKA).length.toLocaleString();
+
+/* ---------- rate table UI ---------- */
+let rates=loadRates();
+function loadRates(){
+  try{const s=localStorage.getItem('ec_inv_rates');if(s)return JSON.parse(s);}catch(e){}
+  return Object.assign({},DEFAULT_RATES);
+}
+function saveRates(){localStorage.setItem('ec_inv_rates',JSON.stringify(rates));}
+function renderRates(){
+  const tb=document.getElementById('rateBody');tb.innerHTML='';
+  Object.keys(rates).sort().forEach(pf=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td class="pf">${pf}</td><td><input data-pf="${pf}" value="${rates[pf]}" inputmode="decimal"></td><td class="rm"><button class="x-btn" data-del="${pf}">×</button></td>`;
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('input').forEach(inp=>inp.onchange=e=>{
+    const v=parseFloat(e.target.value);const pf=e.target.dataset.pf;
+    if(!isNaN(v)){rates[pf]=v;saveRates();}});
+  tb.querySelectorAll('[data-del]').forEach(b=>b.onclick=e=>{delete rates[e.target.dataset.del];saveRates();renderRates();});
+}
+renderRates();
+document.getElementById('addRate').onclick=()=>{
+  let pf=document.getElementById('newPrefix').value.trim();
+  const v=parseFloat(document.getElementById('newRate').value);
+  if(!pf||isNaN(v)){alert('接頭辞と掛け率を入力してください');return;}
+  if(!pf.endsWith('-'))pf+='-';
+  rates[pf]=v;saveRates();renderRates();
+  document.getElementById('newPrefix').value='';document.getElementById('newRate').value='';
+};
+document.getElementById('resetRates').onchange=e=>{if(e.target.checked){localStorage.removeItem('ec_inv_rates');rates=Object.assign({},DEFAULT_RATES);saveRates();renderRates();e.target.checked=false;}};
+
+/* ---------- helpers ---------- */
+function cleanName(n){
+  n=(n||'').replace(/　/g,' ').trim();
+  while(true){const m=n.match(/^\s*(【[^】]*】|＼[^／]*／)\s*/);if(!m)break;n=n.slice(m[0].length);}
+  n=n.split(/｜|<br/)[0];
+  n=n.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+  return n.trim();
+}
+function isMaker(sku){return MAKER_PREFIXES.some(p=>sku.startsWith(p))||sku==='303069-C';}
+function rateFor(sku){
+  let best=null;
+  for(const pf in rates){if(sku.startsWith(pf)&&(best===null||pf.length>best.length))best=pf;}
+  return best===null?null:rates[best];
+}
+function ownHinban(r){
+  const cands=[];
+  const sk=(r['SKU管理番号']||'').trim();if(sk)cands.push(sk);
+  const sku=(r['システム連携用SKU番号']||'').trim();
+  const base=sku.replace(/wf-(natural|brown)$/,'');
+  cands.push(base.replace(/^elco-[^-]+-/,''));
+  cands.push(base.replace(/^[a-z0-9]+-/,''));
+  const m=base.match(/([A-Z]{2,}-?\d[\w-]*)$/);if(m)cands.push(m[1]);
+  for(const c of cands){if(c&&GENKA[c.trim()]!==undefined)return{hinban:c.trim(),genka:GENKA[c.trim()]};}
+  return{hinban:sk||cands.find(Boolean)||sku,genka:null};
+}
+function decodeSJIS(buf){return new TextDecoder('shift-jis').decode(buf);}
+function parseCSV(text){return Papa.parse(text,{header:true,skipEmptyLines:true,dynamicTyping:false}).data;}
+
+/* ---------- file handling ---------- */
+const files={item:null,dl:null,master:null};
+function wireDrop(dropId,inputId,tId,key,onLoad){
+  const drop=document.getElementById(dropId),input=document.getElementById(inputId),t=document.getElementById(tId);
+  input.onchange=()=>{if(input.files[0])handle(input.files[0]);};
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])handle(e.dataTransfer.files[0]);});
+  function handle(f){files[key]=f;drop.classList.add('has');t.innerHTML='<span class="fname">'+f.name+'</span>';if(onLoad)onLoad(f);refreshGo();}
+}
+wireDrop('dropItem','fileItem','tItem','item');
+wireDrop('dropDl','fileDl','tDl','dl');
+wireDrop('dropMaster','fileMaster','tMaster','master',loadMasterXlsx);
+
+async function loadMasterXlsx(f){
+  try{
+    const buf=await f.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    let added=0;
+    ['商品データ','plaisir別注'].forEach(sn=>{
+      if(!wb.Sheets[sn])return;
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1});
+      for(let i=2;i<rows.length;i++){
+        const row=rows[i];if(!row)continue;
+        const hb=row[8],g=row[13];
+        if(hb!=null&&g!=null&&g!==''){const k=String(hb).trim();const v=parseFloat(g);if(k&&!isNaN(v)){GENKA[k]=v;added++;}}
+      }
+    });
+    document.getElementById('genkaCount').textContent=Object.keys(GENKA).length.toLocaleString();
+    showMsg(`原価マスタを更新しました（${added.toLocaleString()}件マージ）`,'success');
+  }catch(e){showMsg('xlsxの読み込みに失敗しました: '+e.message,'error');}
+}
+function refreshGo(){document.getElementById('goBtn').disabled=!(files.item&&files.dl);}
+
+/* ---------- generate ---------- */
+let outOwn=null,outMaker=null;
+const yen=n=>'¥'+Math.round(n).toLocaleString();
+function showMsg(t,c){const m=document.getElementById('msg');m.textContent=t;m.className='msg show '+c;}
+
+document.getElementById('goBtn').onclick=async()=>{
+  try{
+    showMsg('処理中…','warning');
+    const itemRows=parseCSV(decodeSJIS(await files.item.arrayBuffer()));
+    const dlRows=parseCSV(decodeSJIS(await files.dl.arrayBuffer()));
+    if(!itemRows.length||!('システム連携用SKU番号' in itemRows[0])){showMsg('itemdata CSV の形式が想定と異なります（システム連携用SKU番号 列が見つかりません）','error');return;}
+
+    // dl price map by 連携SKU
+    const price={};
+    dlRows.forEach(r=>{const k=(r['システム連携用SKU番号']||'').trim();const v=(r['通常購入販売価格']||'').trim();
+      if(k&&v!==''){const f=parseFloat(v);if(!isNaN(f))price[k]=f;}});
+
+    const hideZero=document.getElementById('hideZero').checked;
+    const own=[],maker=[];
+    const noGenka={},noPrice={},noRate={};
+    itemRows.forEach(r=>{
+      const sku=(r['システム連携用SKU番号']||'').trim();if(!sku)return;
+      const qty=parseInt(r['総在庫数']||r['在庫数']||'0',10)||0;
+      if(hideZero&&qty===0)return;
+      const name=cleanName(r['商品名']);
+      const prefix=(sku.match(/^([a-z0-9]+)/)||[,''])[1];
+      if(isMaker(sku)){
+        const joka=price[sku],rt=rateFor(sku);
+        const total=(joka!=null&&rt!=null)?Math.round(joka*rt*qty):'';
+        if(joka==null)noPrice[prefix]=(noPrice[prefix]||0)+1;
+        if(rt==null)noRate[prefix]=(noRate[prefix]||0)+1;
+        maker.push({'商品名':name,'JANコード':r['JANコード']||'','商品管理番号（商品URL）':r['商品管理番号（商品URL）']||'',
+          '商品番号':r['商品番号']||'','SKU管理番号':r['SKU管理番号']||'','システム連携用SKU番号':sku,
+          'バリエーション項目選択肢1':r['バリエーション項目選択肢1']||'','上代':joka!=null?joka:'','掛け率':rt!=null?rt:'',
+          '在庫数':qty,'合計':total});
+      }else{
+        const {hinban,genka}=ownHinban(r);
+        const total=(genka!=null)?Math.round(genka*qty*100)/100:'';
+        if(genka==null)noGenka[prefix]=(noGenka[prefix]||0)+1;
+        own.push({'商品名':name,'品番':hinban,'原価':genka!=null?genka:'','在庫数':qty,'合計':total});
+      }
+    });
+
+    const ownTotal=own.reduce((s,r)=>s+(typeof r['合計']==='number'?r['合計']:0),0);
+    const makerTotal=maker.reduce((s,r)=>s+(typeof r['合計']==='number'?r['合計']:0),0);
+
+    // append total rows
+    const ownOut=own.concat([{'商品名':'合計','品番':'','原価':'','在庫数':own.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(ownTotal*100)/100}]);
+    const makerOut=maker.concat([{'商品名':'合計','JANコード':'','商品管理番号（商品URL）':'','商品番号':'','SKU管理番号':'',
+      'システム連携用SKU番号':'','バリエーション項目選択肢1':'','上代':'','掛け率':'','在庫数':maker.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(makerTotal)}]);
+
+    // build workbooks
+    const wbOwn=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wbOwn,XLSX.utils.json_to_sheet(ownOut,{header:['商品名','品番','原価','在庫数','合計']}),'自社');
+    const wbMaker=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wbMaker,XLSX.utils.json_to_sheet(makerOut,{header:['商品名','JANコード','商品管理番号（商品URL）','商品番号','SKU管理番号','システム連携用SKU番号','バリエーション項目選択肢1','上代','掛け率','在庫数','合計']}),'メーカー');
+    const rateSheet=[['接頭辞','掛け率']].concat(Object.keys(rates).sort().map(k=>[k,rates[k]]));
+    XLSX.utils.book_append_sheet(wbMaker,XLSX.utils.aoa_to_sheet(rateSheet),'掛け率');
+    outOwn=wbOwn;outMaker=wbMaker;
+
+    // stats
+    document.getElementById('result').classList.remove('hidden');
+    document.getElementById('ownCount').textContent=own.length.toLocaleString();
+    document.getElementById('ownSub').textContent='原価あり '+own.filter(r=>typeof r['合計']==='number').length.toLocaleString()+'件';
+    document.getElementById('ownYen').textContent='棚卸額 '+yen(ownTotal);
+    document.getElementById('makerCount').textContent=maker.length.toLocaleString();
+    document.getElementById('makerSub').textContent='合計算出 '+maker.filter(r=>typeof r['合計']==='number').length.toLocaleString()+'件';
+    document.getElementById('makerYen').textContent='棚卸額 '+yen(makerTotal);
+
+    // warnings
+    const wl=document.getElementById('warnlist');wl.innerHTML='';
+    const fmt=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} ${v}件`).join(' / ');
+    if(Object.keys(noGenka).length)wl.innerHTML+=`<div class="wi">自社で原価が見つからない商品: ${fmt(noGenka)}（新商品の可能性。最新の商品データxlsxをStep3でアップロードすると反映されます）</div>`;
+    if(Object.keys(noRate).length)wl.innerHTML+=`<div class="wi">メーカーで掛け率未設定の接頭辞: ${fmt(noRate)}（Step4で掛け率を追加すると合計が算出されます）</div>`;
+    if(Object.keys(noPrice).length)wl.innerHTML+=`<div class="wi">メーカーで上代（dl-normal）に無い商品: ${fmt(noPrice)}（dl-normalに該当SKUが無い／在庫切れ商品など）</div>`;
+
+    showMsg(`生成完了！　自社 ${own.length}件・メーカー ${maker.length}件。下のボタンからダウンロードできます。`,'success');
+  }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
+};
+
+document.getElementById('dlOwn').onclick=()=>{if(outOwn)XLSX.writeFile(outOwn,'EC棚卸し（自社）.xlsx');};
+document.getElementById('dlMaker').onclick=()=>{if(outMaker)XLSX.writeFile(outMaker,'EC棚卸し（メーカー）.xlsx');};
+</script>
+</body>
+</html>
