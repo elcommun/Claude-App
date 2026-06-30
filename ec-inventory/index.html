@@ -174,7 +174,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v5</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v6</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -351,14 +351,18 @@ function rateFor(sku){
 }
 function ownHinban(r){
   const cands=[];
-  const sk=(r['SKU管理番号']||'').trim();if(sk)cands.push(sk);
   const sku=(r['システム連携用SKU番号']||'').trim();
   const base=sku.replace(/wf-(natural|brown)$/,'');
+  // elco-ampcNNN-（単体形）→ AMP-CNNN（末尾の - は削除）
+  const amp=base.match(/^elco-ampc(\d+)-?$/i);
+  const ampHinban=amp?('AMP-C'+amp[1]):null;
+  if(ampHinban)cands.push(ampHinban);
+  const sk=(r['SKU管理番号']||'').trim();if(sk)cands.push(sk);
   cands.push(base.replace(/^elco-[^-]+-/,''));
   cands.push(base.replace(/^[a-z0-9]+-/,''));
   const m=base.match(/([A-Z]{2,}-?\d[\w-]*)$/);if(m)cands.push(m[1]);
   for(const c of cands){if(c&&GENKA[c.trim()]!==undefined)return{hinban:c.trim(),genka:GENKA[c.trim()]};}
-  return{hinban:sk||cands.find(Boolean)||sku,genka:null};
+  return{hinban:ampHinban||sk||cands.find(Boolean)||sku,genka:null};
 }
 function decodeSJIS(buf){return new TextDecoder('shift-jis').decode(buf);}
 function parseCSV(text){return Papa.parse(text,{header:true,skipEmptyLines:true,dynamicTyping:false}).data;}
@@ -412,11 +416,13 @@ document.getElementById('goBtn').onclick=async()=>{
 
     // dl price map by 連携SKU。連携SKU が空の行（＝選択肢の無い単体商品）は
     // 商品管理番号（商品URL）でも引けるようにフォールバック用マップを作る。
+    // キーは大文字小文字を無視（itemdata=「-L」、dl=「-l」等の表記揺れに対応）
     const price={};
     const kanRaw={};  // 正規化した商品管理番号 -> {v:価格, ok:単価一意か}
-    const normKan=s=>(s||'').trim().replace(/-+$/,'');
+    const normKan=s=>(s||'').trim().replace(/-+$/,'').toLowerCase();
+    const normSku=s=>(s||'').trim().toLowerCase();
     dlRows.forEach(r=>{
-      const k=(r['システム連携用SKU番号']||'').trim();const v=(r['通常購入販売価格']||'').trim();
+      const k=normSku(r['システム連携用SKU番号']);const v=(r['通常購入販売価格']||'').trim();
       if(v==='')return;const f=parseFloat(v);if(isNaN(f))return;
       if(k){price[k]=f;return;}
       // 連携SKU が空 → 商品管理番号で参照（単体商品想定）
@@ -427,7 +433,7 @@ document.getElementById('goBtn').onclick=async()=>{
     const priceKan={};
     for(const kn in kanRaw){if(kanRaw[kn].ok)priceKan[kn]=kanRaw[kn].v;}
     const lookupJoka=r=>{
-      const sku=(r['システム連携用SKU番号']||'').trim();
+      const sku=normSku(r['システム連携用SKU番号']);
       if(sku in price)return price[sku];
       const kn=normKan(r['商品管理番号（商品URL）']);
       if(kn in priceKan)return priceKan[kn];
