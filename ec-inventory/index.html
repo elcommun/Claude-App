@@ -88,6 +88,17 @@
   .rms-tags span{font-size:.72rem;font-family:var(--mono);background:var(--surface);border:1px solid var(--blue-border);
        color:var(--text);padding:3px 9px;border-radius:999px}
 
+  .dl-steps{margin-top:12px;padding:11px 13px;border:1px solid var(--green-border);background:var(--green-dim);border-radius:var(--radius-sm)}
+  .dl-steps-h{font-size:.76rem;font-weight:600;color:var(--green);margin-bottom:9px;display:flex;align-items:center;gap:6px}
+  .dl-steps-h svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+  .dl-steps ol{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:6px}
+  .dl-steps li{counter-increment:s;display:flex;gap:8px;align-items:flex-start;font-size:.78rem;color:var(--text)}
+  .dl-steps li::before{content:counter(s);flex-shrink:0;width:17px;height:17px;border-radius:50%;background:var(--green);
+       color:#fff;font-size:.64rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .dl-steps a{color:var(--green);font-weight:600;text-decoration:none;border-bottom:1px solid var(--green-border)}
+  .dl-steps a:hover{border-bottom-color:var(--green)}
+  .dl-steps b{font-weight:600}
+
   table.rates{width:100%;border-collapse:collapse;font-size:.8rem}
   table.rates th,table.rates td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)}
   table.rates th{font-size:.7rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -182,7 +193,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v11</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v12</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -198,6 +209,15 @@
       <div class="t" id="tItem">クリック または ドラッグでCSVを選択</div>
       <div class="h">在庫数・商品名・システム連携用SKU番号 を含むデータ</div>
     </label>
+    <div class="dl-steps">
+      <div class="dl-steps-h"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>GoQ System からのダウンロード手順</div>
+      <ol>
+        <li><a href="https://stock2.goqsystem.com/?nav_id=stockSituation" target="_blank" rel="noopener">GoQ System 在庫連携</a> を開く</li>
+        <li><b>「すべて」</b>にチェックを入れる</li>
+        <li>プルダウンで <b>「EL COMMUN 楽天市場店」</b> を選択</li>
+        <li><b>「CSV出力」</b> ボタンを押す</li>
+      </ol>
+    </div>
   </div>
 
   <!-- STEP 2: dl-normal-item -->

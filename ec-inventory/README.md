@@ -15,6 +15,8 @@ EC在庫データ（itemdata CSV）を取り込み、**自社商品**と**メー
 
 いずれの CSV も Shift-JIS（CP932）想定。
 
+**itemdata を GoQ System からダウンロードする手順**: [GoQ System 在庫連携](https://stock2.goqsystem.com/?nav_id=stockSituation) を開き、「すべて」にチェック → プルダウンで「EL COMMUN 楽天市場店」を選択 → 「CSV出力」ボタンを押す。
+
 **dl-normal-item を RMS でダウンロードする際の必須項目**: 商品番号 / システム連携用SKU番号 / 通常購入販売価格 / 商品名 / バリエーション項目名・選択肢
 
 ## 出力
