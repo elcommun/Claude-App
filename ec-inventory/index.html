@@ -174,7 +174,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v2</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v3</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -219,11 +219,11 @@
     <div class="card-h" id="rateHead"><span class="num">4</span><h2>メーカー掛け率（接頭辞別）</h2><span class="opt">編集可</span>
       <svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
     <div class="collapse-body">
-      <div class="info" style="margin-bottom:12px">合計 = 上代 × 掛け率 × 在庫数。表に無い接頭辞（例 <code>apj-</code> <code>rft-</code>）は合計が空欄になります。必要に応じて追加してください。</div>
+      <div class="info" style="margin-bottom:12px">合計 = 上代 × 掛け率 × 在庫数。表に無い接頭辞の商品は合計が空欄になります。必要に応じて追加してください。（<code>apj-</code> <code>rft-</code> は取り寄せ商品のため出力対象外）</div>
       <table class="rates"><thead><tr><th style="width:130px">接頭辞</th><th>掛け率</th><th class="rm"></th></tr></thead>
         <tbody id="rateBody"></tbody></table>
       <div class="rate-add">
-        <input id="newPrefix" placeholder="接頭辞（例 apj-）">
+        <input id="newPrefix" placeholder="接頭辞（例 8mw-）">
         <input id="newRate" placeholder="掛け率（例 0.55）" inputmode="decimal">
         <button class="mini-btn" id="addRate">＋ 追加</button>
       </div>
@@ -271,7 +271,7 @@
     <div class="card-h"><span class="num">i</span><h2>処理ルール</h2></div>
     <div class="info">
       <ul>
-        <li><span class="b">A</span><span><b>振り分け</b>：システム連携用SKU番号の接頭辞で判定（ec-monthly 準拠）。メーカー接頭辞（<code>apj-</code><code>8mw-</code><code>wh-</code> 等）と <code>【Raffinart】</code>(<code>rft-</code>) はメーカー、<code>elco-</code><code>cal-</code> 等は自社。</span></li>
+        <li><span class="b">A</span><span><b>振り分け</b>：システム連携用SKU番号の接頭辞で判定（ec-monthly 準拠）。メーカー接頭辞（<code>8mw-</code><code>wh-</code><code>psm-</code> 等）はメーカー、<code>elco-</code><code>cal-</code> 等は自社。<code>apj-</code><code>rft-</code> は取り寄せ（非在庫）のため出力対象外。</span></li>
         <li><span class="b">B</span><span><b>商品名</b>：itemdata から抽出し、先頭の装飾（<code>【…】</code><code>＼…／</code>）と <code>｜</code> 以降、HTMLタグを除去。</span></li>
         <li><span class="b">C</span><span><b>自社</b>：商品名 / 品番 / 原価 / 在庫数 / 合計（＝原価×在庫数）。原価はマスタから品番で突合。</span></li>
         <li><span class="b">D</span><span><b>メーカー</b>：商品名 / 品番 / 上代 / 掛け率 / 在庫数 / 合計（＝上代×掛け率×在庫数）。上代は dl-normal を連携SKUで突合。</span></li>
@@ -290,8 +290,10 @@ applyTheme(localStorage.getItem('ec_inv_theme')||'light');
 themeBtn.onclick=()=>applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
 
 /* ---------- constants ---------- */
-const MAKER_PREFIXES=['4on-','8mw-','af','ai-','aito-','ak-','alsk-','apj-','bm-','cocochi-','cre-','ef','ldw',
-  'ma-','mgt-','MO','nlf','nm-','pb-','psm-','rft-','rio-','sh-','SLW-','tp-','tri-','wf','wh-','ky-'];
+// 取り寄せ（非在庫）商品: 棚卸し対象外として完全に除外する
+const EXCLUDE_PREFIXES=['apj-','rft-'];
+const MAKER_PREFIXES=['4on-','8mw-','af','ai-','aito-','ak-','alsk-','bm-','cocochi-','cre-','ef','ldw',
+  'ma-','mgt-','MO','nlf','nm-','pb-','psm-','rio-','sh-','SLW-','tp-','tri-','wf','wh-','ky-'];
 const DEFAULT_RATES={'4on-':0.55,'8mw-':0.5,'ak-':0.6,'alsk-':0.6,'bm-':0.45,'cocochi-':0.5,'cre-':0.5,'ky-':0.6,
   'ldw001-':1,'ma-':0.5,'mgt-':0.53,'nm-':0.55,'pb-':0.55,'psm-':0.5,'rio-':0.6,'sh-':0.55,'tp-':0.55,'tri-':0.38,
   'uncm-':0.53,'wh-':0.55};
@@ -340,6 +342,7 @@ function cleanName(n){
   n=n.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
   return n.trim();
 }
+function isExcluded(sku){return EXCLUDE_PREFIXES.some(p=>sku.startsWith(p));}
 function isMaker(sku){return MAKER_PREFIXES.some(p=>sku.startsWith(p))||sku==='303069-C';}
 function rateFor(sku){
   let best=null;
@@ -415,8 +418,10 @@ document.getElementById('goBtn').onclick=async()=>{
     const hideZero=document.getElementById('hideZero').checked;
     const own=[],maker=[],errors=[];
     const noGenka={},noPrice={},noRate={};
+    let excluded=0;
     itemRows.forEach(r=>{
       const sku=(r['システム連携用SKU番号']||'').trim();if(!sku)return;
+      if(isExcluded(sku)){excluded++;return;}  // 取り寄せ(apj-/rft-)は除外
       const qty=parseInt(r['総在庫数']||r['在庫数']||'0',10)||0;
       if(hideZero&&qty===0)return;
       const name=cleanName(r['商品名']);
@@ -504,7 +509,7 @@ document.getElementById('goBtn').onclick=async()=>{
       errBlock.classList.add('hidden');errTableWrap.innerHTML='';
     }
 
-    showMsg(`生成完了！　自社 ${own.length}件・メーカー ${maker.length}件${errors.length?`（うち合計未算出 ${errors.length}件）`:''}。下のボタンからダウンロードできます。`,'success');
+    showMsg(`生成完了！　自社 ${own.length}件・メーカー ${maker.length}件${errors.length?`（うち合計未算出 ${errors.length}件）`:''}${excluded?`　／ 取り寄せ(apj-・rft-) ${excluded}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
 
