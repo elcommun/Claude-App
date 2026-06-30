@@ -81,6 +81,13 @@
   .drop.has .t{color:var(--green)}
   .fname{font-family:var(--mono);font-size:.74rem;word-break:break-all}
 
+  .rms-note{margin-top:12px;padding:11px 13px;border:1px solid var(--blue-border);background:var(--blue-dim);border-radius:var(--radius-sm)}
+  .rms-note-h{font-size:.76rem;font-weight:600;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .rms-note-h svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+  .rms-tags{display:flex;flex-wrap:wrap;gap:6px}
+  .rms-tags span{font-size:.72rem;font-family:var(--mono);background:var(--surface);border:1px solid var(--blue-border);
+       color:var(--text);padding:3px 9px;border-radius:999px}
+
   table.rates{width:100%;border-collapse:collapse;font-size:.8rem}
   table.rates th,table.rates td{padding:5px 8px;text-align:left;border-bottom:1px solid var(--border)}
   table.rates th{font-size:.7rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
@@ -174,7 +181,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v8</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v9</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -201,6 +208,12 @@
       <div class="t" id="tDl">クリック または ドラッグでCSVを選択</div>
       <div class="h">通常購入販売価格 を含む楽天ダウンロードデータ（メーカー商品の上代）</div>
     </label>
+    <div class="rms-note">
+      <div class="rms-note-h"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>RMSでダウンロードする際の必須項目</div>
+      <div class="rms-tags">
+        <span>商品番号</span><span>システム連携用SKU番号</span><span>通常購入販売価格</span><span>商品名</span><span>バリエーション項目名・選択肢</span>
+      </div>
+    </div>
   </div>
 
   <!-- STEP 3: master xlsx (optional) -->
