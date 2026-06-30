@@ -128,6 +128,7 @@
   .stat .yen{font-size:.92rem;color:var(--text);margin-top:3px;font-family:var(--mono)}
   .stat.own .dot{background:var(--accent)} .stat.maker .dot{background:var(--blue)}
   .dlrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .dlrow.one{grid-template-columns:1fr}
   .dl{padding:13px;border-radius:var(--radius-sm);font-weight:600;font-size:.84rem;cursor:pointer;border:1px solid;
        display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;background:var(--surface)}
   .dl svg{width:16px;height:16px;fill:none;stroke-width:2}
@@ -181,7 +182,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v10</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v11</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -260,9 +261,8 @@
         <div class="stat maker"><div class="lbl"><span class="dot"></span>メーカー</div>
           <div class="big" id="makerCount">0</div><div class="small" id="makerSub"></div><div class="yen" id="makerYen"></div></div>
       </div>
-      <div class="dlrow">
-        <button class="dl own" id="dlOwn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>EC棚卸し（自社）.xlsx</button>
-        <button class="dl maker" id="dlMaker"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>EC棚卸し（メーカー）.xlsx</button>
+      <div class="dlrow one">
+        <button class="dl own" id="dlAll"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>EC棚卸し.xlsx（自社・メーカー）をダウンロード</button>
       </div>
       <div class="warnlist" id="warnlist"></div>
 
@@ -422,7 +422,7 @@ async function loadMasterXlsx(f){
 function refreshGo(){document.getElementById('goBtn').disabled=!(files.item&&files.dl);}
 
 /* ---------- generate ---------- */
-let outOwn=null,outMaker=null,errRows=[];
+let outWb=null,errRows=[];
 const yen=n=>'¥'+Math.round(n).toLocaleString();
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 function showMsg(t,c){const m=document.getElementById('msg');m.textContent=t;m.className='msg show '+c;}
@@ -510,14 +510,13 @@ document.getElementById('goBtn').onclick=async()=>{
     const makerOut=maker.concat([{'商品名':'合計','JANコード':'','商品管理番号（商品URL）':'','商品番号':'','SKU管理番号':'',
       'システム連携用SKU番号':'','バリエーション項目選択肢1':'','上代':'','掛け率':'','在庫数':maker.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(makerTotal)}]);
 
-    // build workbooks
-    const wbOwn=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wbOwn,XLSX.utils.json_to_sheet(ownOut,{header:['商品名','品番','原価','在庫数','合計']}),'自社');
-    const wbMaker=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wbMaker,XLSX.utils.json_to_sheet(makerOut,{header:['商品名','JANコード','商品管理番号（商品URL）','商品番号','SKU管理番号','システム連携用SKU番号','バリエーション項目選択肢1','上代','掛け率','在庫数','合計']}),'メーカー');
+    // build workbook（自社 / メーカー / 掛け率 を1ファイルにまとめる）
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ownOut,{header:['商品名','品番','原価','在庫数','合計']}),'自社');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(makerOut,{header:['商品名','JANコード','商品管理番号（商品URL）','商品番号','SKU管理番号','システム連携用SKU番号','バリエーション項目選択肢1','上代','掛け率','在庫数','合計']}),'メーカー');
     const rateSheet=[['接頭辞','掛け率']].concat(Object.keys(rates).sort().map(k=>[k,rates[k]]));
-    XLSX.utils.book_append_sheet(wbMaker,XLSX.utils.aoa_to_sheet(rateSheet),'掛け率');
-    outOwn=wbOwn;outMaker=wbMaker;
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rateSheet),'掛け率');
+    outWb=wb;
 
     // stats
     document.getElementById('result').classList.remove('hidden');
@@ -565,8 +564,7 @@ document.getElementById('goBtn').onclick=async()=>{
 
 // ファイル名の先頭に実行年月（YYYYMM）を付与
 const ym=()=>{const d=new Date();return ''+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0');};
-document.getElementById('dlOwn').onclick=()=>{if(outOwn)XLSX.writeFile(outOwn,`${ym()}_EC棚卸し（自社）.xlsx`);};
-document.getElementById('dlMaker').onclick=()=>{if(outMaker)XLSX.writeFile(outMaker,`${ym()}_EC棚卸し（メーカー）.xlsx`);};
+document.getElementById('dlAll').onclick=()=>{if(outWb)XLSX.writeFile(outWb,`${ym()}_EC棚卸し.xlsx`);};
 
 // error preview toggle
 document.getElementById('errToggle').onclick=()=>{
