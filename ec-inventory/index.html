@@ -174,7 +174,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v4</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v5</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -274,7 +274,7 @@
         <li><span class="b">A</span><span><b>振り分け</b>：システム連携用SKU番号の接頭辞で判定（ec-monthly 準拠）。メーカー接頭辞（<code>8mw-</code><code>wh-</code><code>psm-</code> 等）はメーカー、<code>elco-</code><code>cal-</code> 等は自社。<code>apj-</code><code>rft-</code> は取り寄せ（非在庫）のため出力対象外。</span></li>
         <li><span class="b">B</span><span><b>商品名</b>：itemdata から抽出し、先頭の装飾（<code>【…】</code><code>＼…／</code>）と <code>｜</code> 以降、HTMLタグを除去。</span></li>
         <li><span class="b">C</span><span><b>自社</b>：商品名 / 品番 / 原価 / 在庫数 / 合計（＝原価×在庫数）。原価はマスタから品番で突合。</span></li>
-        <li><span class="b">D</span><span><b>メーカー</b>：商品名 / 品番 / 上代 / 掛け率 / 在庫数 / 合計（＝上代×掛け率×在庫数）。上代は dl-normal を連携SKUで突合。</span></li>
+        <li><span class="b">D</span><span><b>メーカー</b>：商品名 / 品番 / 上代 / 掛け率 / 在庫数 / 合計（＝上代×掛け率×在庫数）。上代は dl-normal を連携SKUで突合。連携SKUが無い行（単体商品）は<code>商品管理番号（商品URL）</code>で参照。</span></li>
       </ul>
     </div>
   </div>
@@ -410,10 +410,29 @@ document.getElementById('goBtn').onclick=async()=>{
     const dlRows=parseCSV(decodeSJIS(await files.dl.arrayBuffer()));
     if(!itemRows.length||!('システム連携用SKU番号' in itemRows[0])){showMsg('itemdata CSV の形式が想定と異なります（システム連携用SKU番号 列が見つかりません）','error');return;}
 
-    // dl price map by 連携SKU
+    // dl price map by 連携SKU。連携SKU が空の行（＝選択肢の無い単体商品）は
+    // 商品管理番号（商品URL）でも引けるようにフォールバック用マップを作る。
     const price={};
-    dlRows.forEach(r=>{const k=(r['システム連携用SKU番号']||'').trim();const v=(r['通常購入販売価格']||'').trim();
-      if(k&&v!==''){const f=parseFloat(v);if(!isNaN(f))price[k]=f;}});
+    const kanRaw={};  // 正規化した商品管理番号 -> {v:価格, ok:単価一意か}
+    const normKan=s=>(s||'').trim().replace(/-+$/,'');
+    dlRows.forEach(r=>{
+      const k=(r['システム連携用SKU番号']||'').trim();const v=(r['通常購入販売価格']||'').trim();
+      if(v==='')return;const f=parseFloat(v);if(isNaN(f))return;
+      if(k){price[k]=f;return;}
+      // 連携SKU が空 → 商品管理番号で参照（単体商品想定）
+      const kn=normKan(r['商品管理番号（商品URL）']);if(!kn)return;
+      if(!(kn in kanRaw))kanRaw[kn]={v:f,ok:true};
+      else if(kanRaw[kn].v!==f)kanRaw[kn].ok=false;  // 価格が割れる場合は曖昧なので使わない
+    });
+    const priceKan={};
+    for(const kn in kanRaw){if(kanRaw[kn].ok)priceKan[kn]=kanRaw[kn].v;}
+    const lookupJoka=r=>{
+      const sku=(r['システム連携用SKU番号']||'').trim();
+      if(sku in price)return price[sku];
+      const kn=normKan(r['商品管理番号（商品URL）']);
+      if(kn in priceKan)return priceKan[kn];
+      return null;
+    };
 
     const hideZero=document.getElementById('hideZero').checked;
     const own=[],maker=[],errors=[];
@@ -427,7 +446,7 @@ document.getElementById('goBtn').onclick=async()=>{
       const name=cleanName(r['商品名']);
       const prefix=(sku.match(/^([a-z0-9]+)/)||[,''])[1];
       if(isMaker(sku)){
-        const joka=price[sku],rt=rateFor(sku);
+        const joka=lookupJoka(r),rt=rateFor(sku);
         const total=(joka!=null&&rt!=null)?Math.round(joka*rt*qty):'';
         if(joka==null)noPrice[prefix]=(noPrice[prefix]||0)+1;
         if(rt==null)noRate[prefix]=(noRate[prefix]||0)+1;
