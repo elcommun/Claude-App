@@ -25,8 +25,9 @@ EC在庫データ（itemdata CSV）を取り込み、**自社商品**と**メー
 ## 振り分けルール（`ec-monthly` 準拠）
 
 - システム連携用SKU番号の**接頭辞**で判定。
-  - メーカー: `4on- 8mw- ak- alsk- apj- bm- cocochi- cre- ky- ldw ma- mgt- nm- pb- psm- rft- rio- sh- tp- tri- wf wh-` など、および商品名が `【Raffinart】`（`rft-`）の商品。
+  - メーカー: `4on- 8mw- ak- alsk- bm- cocochi- cre- ky- ldw ma- mgt- nm- pb- psm- rio- sh- tp- tri- wf wh-` など。
   - 自社: `elco-` `cal-` ほか上記以外。
+  - **除外（取り寄せ・非在庫）**: `apj-` `rft-` で始まる品番は棚卸し対象外として出力しない。
 - 商品名は itemdata から抽出し、先頭の装飾（`【…】` `＼…／`）と `｜` 以降、HTMLタグを除去。
 
 ## 掛け率（接頭辞別・アプリ内で編集可能）
