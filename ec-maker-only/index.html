@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>メーカー商品のみ抽出 — プロパー(自社)除外｜EL COMMUN EC事業部</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.0.0/encoding.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:#f8f9fc; --bg2:#f1f3f8;
+    --surface:rgba(255,255,255,0.75); --surface-hover:rgba(255,255,255,0.92);
+    --border:rgba(0,0,0,0.08); --border-hover:rgba(0,0,0,0.14);
+    --accent:#7c3aed; --accent2:#6d28d9; --accent-glow:rgba(124,58,237,0.20); --accent-dim:rgba(124,58,237,0.06);
+    --green:#059669; --green-dim:rgba(5,150,105,0.08); --green-border:rgba(5,150,105,0.20);
+    --amber:#b45309; --amber-dim:rgba(180,83,9,0.07); --amber-border:rgba(180,83,9,0.20);
+    --red:#dc2626; --red-dim:rgba(220,38,38,0.06); --red-border:rgba(220,38,38,0.18);
+    --blue:#2563eb; --blue-dim:rgba(37,99,235,0.06); --blue-border:rgba(37,99,235,0.18);
+    --text:#1e293b; --text2:#64748b; --text3:#94a3b8;
+    --glow1:rgba(124,58,237,0.06); --glow2:rgba(37,99,235,0.04);
+    --radius:16px; --radius-sm:10px; --radius-xs:6px;
+    --font:'Inter','Noto Sans JP',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  [data-theme="dark"]{
+    --bg:#0f0f11; --bg2:#18181b;
+    --surface:rgba(255,255,255,0.04); --surface-hover:rgba(255,255,255,0.07);
+    --border:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.16);
+    --accent:#8b5cf6; --accent2:#a78bfa; --accent-glow:rgba(139,92,246,0.30); --accent-dim:rgba(139,92,246,0.10);
+    --green:#34d399; --green-dim:rgba(52,211,153,0.10); --green-border:rgba(52,211,153,0.22);
+    --amber:#fbbf24; --amber-dim:rgba(251,191,36,0.10); --amber-border:rgba(251,191,36,0.22);
+    --red:#f87171; --red-dim:rgba(248,113,113,0.10); --red-border:rgba(248,113,113,0.22);
+    --blue:#60a5fa; --blue-dim:rgba(96,165,250,0.10); --blue-border:rgba(96,165,250,0.22);
+    --text:#e4e4e7; --text2:#a1a1aa; --text3:#71717a;
+    --glow1:rgba(139,92,246,0.10); --glow2:rgba(96,165,250,0.06);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;
+       transition:background .4s,color .4s;position:relative;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+       background:radial-gradient(700px circle at 12% 8%,var(--glow1),transparent 45%),
+                  radial-gradient(600px circle at 88% 92%,var(--glow2),transparent 45%)}
+  .wrap{max-width:860px;margin:0 auto;padding:40px 24px 80px}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:32px}
+  .brand{display:flex;flex-direction:column;gap:6px}
+  .brand h1{font-size:1.55rem;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+  .brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+       display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px var(--accent-glow)}
+  .brand .logo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.2}
+  .brand .sub{font-size:.8rem;color:var(--text2);display:flex;align-items:center;gap:8px}
+  .brand .sub .ver{font-family:var(--mono);font-size:.7rem;background:var(--accent-dim);color:var(--accent);
+       padding:1px 7px;border-radius:999px}
+  .theme-btn{flex-shrink:0;width:40px;height:40px;border-radius:10px;border:1px solid var(--border);
+       background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;
+       transition:.2s;backdrop-filter:blur(10px)}
+  .theme-btn:hover{border-color:var(--border-hover);transform:translateY(-1px)}
+  .theme-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+       padding:22px;margin-bottom:18px;backdrop-filter:blur(14px);transition:.3s}
+  .card-h{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+  .card-h .num{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+       color:#fff;font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+       box-shadow:0 3px 10px var(--accent-glow)}
+  .card-h h2{font-size:1rem;font-weight:600}
+  .card-h .opt{font-size:.68rem;font-weight:600;color:var(--text2);background:var(--bg2);border:1px solid var(--border);
+       padding:1px 8px;border-radius:999px;margin-left:auto}
+  .card-h .opt.req{color:var(--accent);background:var(--accent-dim);border-color:transparent}
+
+  .drop{display:block;position:relative;border:2px dashed var(--border);border-radius:var(--radius-sm);padding:22px 18px;
+       text-align:center;cursor:pointer;transition:.25s;background:var(--bg2)}
+  .drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-dim)}
+  .drop.has{border-style:solid;border-color:var(--green-border);background:var(--green-dim)}
+  .drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .drop .ic{width:30px;height:30px;margin:0 auto 8px;stroke:var(--text3);fill:none;stroke-width:1.8;display:block}
+  .drop.has .ic{stroke:var(--green)}
+  .drop .t{font-size:.86rem;font-weight:500}
+  .drop .h{font-size:.74rem;color:var(--text2);margin-top:3px}
+  .drop.has .t{color:var(--green)}
+  .fname{font-family:var(--mono);font-size:.74rem;word-break:break-all}
+
+  .dl-steps{margin-top:12px;padding:11px 13px;border:1px solid var(--green-border);background:var(--green-dim);border-radius:var(--radius-sm)}
+  .dl-steps-h{font-size:.76rem;font-weight:600;color:var(--green);margin-bottom:9px;display:flex;align-items:center;gap:6px}
+  .dl-steps-h svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+  .dl-steps ol{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:6px}
+  .dl-steps li{counter-increment:s;display:flex;gap:8px;align-items:flex-start;font-size:.78rem;color:var(--text)}
+  .dl-steps li::before{content:counter(s);flex-shrink:0;width:17px;height:17px;border-radius:50%;background:var(--green);
+       color:#fff;font-size:.64rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .dl-steps a{color:var(--green);font-weight:600;text-decoration:none;border-bottom:1px solid var(--green-border)}
+  .dl-steps a:hover{border-bottom-color:var(--green)}
+  .dl-steps b{font-weight:600}
+
+  .go{width:100%;padding:15px;border:none;border-radius:var(--radius-sm);font-size:.98rem;font-weight:700;
+       font-family:var(--font);cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));
+       box-shadow:0 6px 22px var(--accent-glow);transition:.25s;display:flex;align-items:center;justify-content:center;gap:9px}
+  .go:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 9px 28px var(--accent-glow)}
+  .go:disabled{opacity:.5;cursor:not-allowed}
+  .go svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+
+  .msg{margin-top:14px;padding:12px 15px;border-radius:var(--radius-sm);font-size:.84rem;display:none;white-space:pre-wrap}
+  .msg.show{display:block;animation:fade .4s cubic-bezier(.4,0,.2,1)}
+  .msg.success{background:var(--green-dim);border:1px solid var(--green-border);color:var(--green)}
+  .msg.error{background:var(--red-dim);border:1px solid var(--red-border);color:var(--red)}
+  .msg.warning{background:var(--amber-dim);border:1px solid var(--amber-border);color:var(--amber)}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:4px}
+  .stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px}
+  .stat .lbl{font-size:.72rem;color:var(--text2);font-weight:600;display:flex;align-items:center;gap:6px}
+  .stat .lbl .dot{width:8px;height:8px;border-radius:50%}
+  .stat .big{font-size:1.5rem;font-weight:700;font-family:var(--mono);margin-top:5px}
+  .stat .small{font-size:.72rem;color:var(--text2);margin-top:2px}
+  .stat.keep{border-color:var(--green-border);background:var(--green-dim)}
+  .stat.keep .dot{background:var(--green)} .stat.keep .big{color:var(--green)}
+  .stat.prop .dot{background:var(--accent)}
+  .stat.order .dot{background:var(--amber)}
+  .stat.skip .dot{background:var(--text3)}
+
+  .dlrow{margin-top:14px}
+  .dl{width:100%;padding:13px;border-radius:var(--radius-sm);font-weight:600;font-size:.88rem;cursor:pointer;border:1px solid var(--green-border);
+       display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;background:var(--surface);color:var(--green)}
+  .dl:hover{background:var(--green);color:#fff}
+  .dl svg{width:16px;height:16px;fill:none;stroke-width:2;stroke:currentColor}
+
+  .prev-wrap{margin-top:14px;max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius-sm)}
+  table.prev{width:100%;border-collapse:collapse;font-size:.74rem;white-space:nowrap}
+  table.prev th{position:sticky;top:0;background:var(--bg2);color:var(--text2);font-weight:600;font-size:.68rem;
+       text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);z-index:1}
+  table.prev td{padding:6px 10px;border-bottom:1px solid rgba(125,125,125,.12)}
+  table.prev tr:hover td{background:var(--accent-dim)}
+  table.prev .nm{white-space:normal;max-width:340px}
+  table.prev .mono{font-family:var(--mono);font-size:.7rem;color:var(--text2)}
+  .prevmore{padding:8px 10px;font-size:.74rem;color:var(--text2);text-align:center}
+
+  .info{font-size:.82rem;color:var(--text2)}
+  .info ul{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:7px}
+  .info li{display:flex;gap:9px;align-items:flex-start}
+  .info li .b{width:18px;height:18px;border-radius:5px;background:var(--accent-dim);color:var(--accent);font-size:.64rem;
+       font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+  .info code{font-family:var(--mono);font-size:.78rem;background:var(--bg2);padding:1px 5px;border-radius:4px;color:var(--accent)}
+  .toggle-row{display:flex;align-items:center;gap:9px;margin-top:14px;font-size:.82rem;color:var(--text2)}
+  .toggle-row input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
+  .hidden{display:none}
+  @media(max-width:600px){.wrap{padding:28px 16px 60px}.stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
+      <div class="sub">プロパー(自社)商品を削除し、メーカー商品だけ残す <span class="ver">v1</span></div>
+    </div>
+    <button class="theme-btn" id="themeBtn" title="テーマ切替">
+      <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </div>
+
+  <!-- STEP 1: itemdata -->
+  <div class="card">
+    <div class="card-h"><span class="num">1</span><h2>itemdata CSV（在庫・商品名）</h2><span class="opt req">必須</span></div>
+    <label class="drop" id="dropItem">
+      <input type="file" accept=".csv" id="fileItem">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <div class="t" id="tItem">クリック または ドラッグでCSVを選択</div>
+      <div class="h">システム連携用SKU番号 を含む在庫データ（プロパー抽出アプリと同じ入力）</div>
+    </label>
+    <div class="dl-steps">
+      <div class="dl-steps-h"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>GoQ System からのダウンロード手順</div>
+      <ol>
+        <li><a href="https://stock2.goqsystem.com/?nav_id=stockSituation" target="_blank" rel="noopener">GoQ System 在庫連携</a> を開く</li>
+        <li><b>「すべて」</b>にチェックを入れる</li>
+        <li>プルダウンで <b>「EL COMMUN 楽天市場店」</b> を選択</li>
+        <li><b>「CSV出力」</b> ボタンを押す</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Generate -->
+  <div class="card">
+    <button class="go" id="goBtn" disabled>
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      プロパー(自社)を削除してメーカーのみ出力
+    </button>
+    <div class="toggle-row"><input type="checkbox" id="keepOrder"><label for="keepOrder" style="cursor:pointer">取り寄せ（<code style="font-family:var(--mono)">apj-</code> / <code style="font-family:var(--mono)">rft-</code>）も残す</label></div>
+    <div class="msg" id="msg"></div>
+
+    <div id="result" class="hidden">
+      <div class="stats">
+        <div class="stat keep"><div class="lbl"><span class="dot"></span>メーカー（残す）</div>
+          <div class="big" id="keepCount">0</div><div class="small" id="keepSub"></div></div>
+        <div class="stat prop"><div class="lbl"><span class="dot"></span>プロパー（削除）</div>
+          <div class="big" id="propCount">0</div><div class="small">自社商品</div></div>
+        <div class="stat order"><div class="lbl"><span class="dot"></span>取り寄せ</div>
+          <div class="big" id="orderCount">0</div><div class="small" id="orderSub">apj- / rft-</div></div>
+        <div class="stat skip"><div class="lbl"><span class="dot"></span>SKU空（除外）</div>
+          <div class="big" id="skipCount">0</div><div class="small">判定不可</div></div>
+      </div>
+      <div class="dlrow">
+        <button class="dl" id="dlBtn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>メーカー商品のみ CSV をダウンロード（元と同じ形式・Shift-JIS）</button>
+      </div>
+      <div id="prevWrap" class="prev-wrap hidden"></div>
+    </div>
+  </div>
+
+  <!-- info -->
+  <div class="card">
+    <div class="card-h"><span class="num">i</span><h2>処理ルール</h2></div>
+    <div class="info">
+      <ul>
+        <li><span class="b">A</span><span><b>判定</b>：システム連携用SKU番号の接頭辞で判定（ec-inventory / ec-monthly 準拠）。メーカー接頭辞（<code>8mw-</code><code>wh-</code><code>psm-</code> 等）の行だけを残し、<code>elco-</code><code>cal-</code> 等のプロパー（自社）商品の行は削除します。</span></li>
+        <li><span class="b">B</span><span><b>取り寄せ</b>：<code>apj-</code><code>rft-</code>（非在庫・取り寄せ）は既定で削除します。メーカー扱いで残したい場合は上のチェックを入れてください。</span></li>
+        <li><span class="b">C</span><span><b>出力</b>：アップロードした CSV と<b>同じ列・同じ並び順をそのまま維持</b>し、メーカー商品の行だけを残した CSV を出力します（Shift-JIS・元の値は無加工）。</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- theme ---------- */
+const themeBtn=document.getElementById('themeBtn'),themeIcon=document.getElementById('themeIcon');
+const SUN='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/>';
+const MOON='<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);themeIcon.innerHTML=t==='dark'?SUN:MOON;localStorage.setItem('ec_mko_theme',t);}
+applyTheme(localStorage.getItem('ec_mko_theme')||'light');
+themeBtn.onclick=()=>applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
+
+/* ---------- classification (ec-inventory 準拠) ---------- */
+// 取り寄せ（非在庫）商品の接頭辞
+const EXCLUDE_PREFIXES=['apj-','rft-'];
+// メーカー商品の接頭辞
+const MAKER_PREFIXES=['4on-','8mw-','af','ai-','aito-','ak-','alsk-','bm-','cocochi-','cre-','ef','ldw',
+  'ma-','mgt-','MO','nlf','nm-','pb-','psm-','rio-','sh-','SLW-','tp-','tri-','wf','wh-','ky-'];
+function isExcluded(sku){return EXCLUDE_PREFIXES.some(p=>sku.startsWith(p));}
+function isMaker(sku){return MAKER_PREFIXES.some(p=>sku.startsWith(p))||sku==='303069-C';}
+
+/* ---------- helpers ---------- */
+// 商品名のプレビュー表示用整形（出力CSVには使わず、元の値を保持する）
+function cleanName(n){
+  n=(n||'').replace(/　/g,' ').trim();
+  while(true){const m=n.match(/^\s*(【[^】]*】|＼[^／]*／)\s*/);if(!m)break;n=n.slice(m[0].length);}
+  n=n.split(/｜|<br/)[0];
+  n=n.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+  return n.trim();
+}
+function decodeSJIS(buf){return new TextDecoder('shift-jis').decode(buf);}
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function showMsg(t,c){const m=document.getElementById('msg');m.textContent=t;m.className='msg show '+c;}
+
+/* ---------- file handling ---------- */
+const files={item:null};
+(function wireDrop(){
+  const drop=document.getElementById('dropItem'),input=document.getElementById('fileItem'),t=document.getElementById('tItem');
+  function handle(f){files.item=f;drop.classList.add('has');t.innerHTML='<span class="fname">'+f.name+'</span>';refreshGo();}
+  input.onchange=()=>{if(input.files[0])handle(input.files[0]);};
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])handle(e.dataTransfer.files[0]);});
+})();
+function refreshGo(){document.getElementById('goBtn').disabled=!files.item;}
+
+/* ---------- generate ---------- */
+let outFields=null,outRows=null,srcName='itemdata';
+
+document.getElementById('goBtn').onclick=async()=>{
+  try{
+    showMsg('処理中…','warning');
+    const parsed=Papa.parse(decodeSJIS(await files.item.arrayBuffer()),{header:true,skipEmptyLines:true,dynamicTyping:false});
+    const rows=parsed.data;
+    const fields=parsed.meta.fields||[];
+    if(!rows.length||!fields.includes('システム連携用SKU番号')){
+      showMsg('itemdata CSV の形式が想定と異なります（「システム連携用SKU番号」列が見つかりません）','error');return;
+    }
+    srcName=(files.item.name||'itemdata').replace(/\.[^.]*$/,'');
+
+    const keepOrder=document.getElementById('keepOrder').checked;
+    const kept=[];
+    let maker=0,prop=0,order=0,orderKept=0,empty=0;
+    rows.forEach(r=>{
+      const sku=(r['システム連携用SKU番号']||'').trim();
+      if(!sku){empty++;return;}
+      if(isExcluded(sku)){order++;if(keepOrder){kept.push(r);orderKept++;}return;}
+      if(isMaker(sku)){maker++;kept.push(r);return;}
+      prop++; // メーカーでも取り寄せでもない＝プロパー(自社) → 削除
+    });
+
+    outFields=fields;outRows=kept;
+
+    // stats
+    document.getElementById('result').classList.remove('hidden');
+    document.getElementById('keepCount').textContent=kept.length.toLocaleString();
+    document.getElementById('keepSub').textContent=keepOrder&&orderKept
+      ? `メーカー ${maker.toLocaleString()} ＋ 取り寄せ ${orderKept.toLocaleString()}`
+      : `メーカー商品 ${maker.toLocaleString()}件`;
+    document.getElementById('propCount').textContent=prop.toLocaleString();
+    document.getElementById('orderCount').textContent=order.toLocaleString();
+    document.getElementById('orderSub').textContent=keepOrder?'apj- / rft-（残す）':'apj- / rft-（削除）';
+    document.getElementById('skipCount').textContent=empty.toLocaleString();
+
+    // preview (先頭150件)
+    const pw=document.getElementById('prevWrap');
+    if(kept.length){
+      const PREVIEW=150;
+      let html='<table class="prev"><thead><tr><th>商品名</th><th>システム連携用SKU番号</th><th>在庫数</th></tr></thead><tbody>';
+      kept.slice(0,PREVIEW).forEach(r=>{
+        const qty=r['総在庫数']!=null&&r['総在庫数']!==''?r['総在庫数']:(r['在庫数']||'');
+        html+=`<tr><td class="nm">${esc(cleanName(r['商品名']))}</td>`+
+          `<td class="mono">${esc((r['システム連携用SKU番号']||'').trim())}</td>`+
+          `<td class="mono">${esc(qty)}</td></tr>`;
+      });
+      html+='</tbody></table>';
+      if(kept.length>PREVIEW)html+=`<div class="prevmore">プレビューは先頭 ${PREVIEW} 件のみ表示（全 ${kept.length.toLocaleString()} 件はダウンロードで確認できます）</div>`;
+      pw.innerHTML=html;pw.classList.remove('hidden');
+    }else{pw.innerHTML='';pw.classList.add('hidden');}
+
+    showMsg(`完了！　メーカー ${maker.toLocaleString()}件を残し、プロパー(自社) ${prop.toLocaleString()}件を削除しました`+
+      `${keepOrder?`（取り寄せ ${order.toLocaleString()}件は残す）`:(order?`　／ 取り寄せ(apj-・rft-) ${order.toLocaleString()}件も削除`:'')}`+
+      `${empty?`　／ SKU空 ${empty.toLocaleString()}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
+  }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
+};
+
+// download — 元と同じ列構成のまま、Shift-JIS(CP932) CSV で出力
+document.getElementById('dlBtn').onclick=()=>{
+  if(!outRows||!outFields)return;
+  const csv=Papa.unparse({fields:outFields,data:outRows},{newline:'\r\n'});
+  const sjis=Encoding.convert(Encoding.stringToCode(csv),{to:'SJIS',from:'UNICODE'});
+  const blob=new Blob([new Uint8Array(sjis)],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`${srcName}_メーカーのみ.csv`;
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+};
+</script>
+</body>
+</html>
