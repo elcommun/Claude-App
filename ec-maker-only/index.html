@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>メーカー商品のみ抽出 — プロパー(自社)除外｜EL COMMUN EC事業部</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.0.0/encoding.min.js"></script>
+<script src="../ec-inventory/genka_master.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -80,17 +82,6 @@
   .drop.has .t{color:var(--green)}
   .fname{font-family:var(--mono);font-size:.74rem;word-break:break-all}
 
-  .dl-steps{margin-top:12px;padding:11px 13px;border:1px solid var(--green-border);background:var(--green-dim);border-radius:var(--radius-sm)}
-  .dl-steps-h{font-size:.76rem;font-weight:600;color:var(--green);margin-bottom:9px;display:flex;align-items:center;gap:6px}
-  .dl-steps-h svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
-  .dl-steps ol{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:6px}
-  .dl-steps li{counter-increment:s;display:flex;gap:8px;align-items:flex-start;font-size:.78rem;color:var(--text)}
-  .dl-steps li::before{content:counter(s);flex-shrink:0;width:17px;height:17px;border-radius:50%;background:var(--green);
-       color:#fff;font-size:.64rem;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px}
-  .dl-steps a{color:var(--green);font-weight:600;text-decoration:none;border-bottom:1px solid var(--green-border)}
-  .dl-steps a:hover{border-bottom-color:var(--green)}
-  .dl-steps b{font-weight:600}
-
   .go{width:100%;padding:15px;border:none;border-radius:var(--radius-sm);font-size:.98rem;font-weight:700;
        font-family:var(--font);cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));
        box-shadow:0 6px 22px var(--accent-glow);transition:.25s;display:flex;align-items:center;justify-content:center;gap:9px}
@@ -129,7 +120,7 @@
        text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);z-index:1}
   table.prev td{padding:6px 10px;border-bottom:1px solid rgba(125,125,125,.12)}
   table.prev tr:hover td{background:var(--accent-dim)}
-  table.prev .nm{white-space:normal;max-width:340px}
+  table.prev .nm{white-space:normal;max-width:320px}
   table.prev .mono{font-family:var(--mono);font-size:.7rem;color:var(--text2)}
   .prevmore{padding:8px 10px;font-size:.74rem;color:var(--text2);text-align:center}
 
@@ -150,31 +141,33 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">プロパー(自社)商品を削除し、メーカー商品だけ残す <span class="ver">v1</span></div>
+      <div class="sub">プロパー(自社)商品を削除し、メーカー商品だけ残す <span class="ver">v3</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
     </button>
   </div>
 
-  <!-- STEP 1: itemdata -->
+  <!-- STEP 1: 受注/売上 CSV -->
   <div class="card">
-    <div class="card-h"><span class="num">1</span><h2>itemdata CSV（在庫・商品名）</h2><span class="opt req">必須</span></div>
-    <label class="drop" id="dropItem">
-      <input type="file" accept=".csv" id="fileItem">
+    <div class="card-h"><span class="num">1</span><h2>受注・売上データ CSV</h2><span class="opt req">必須</span></div>
+    <label class="drop" id="dropSales">
+      <input type="file" accept=".csv" id="fileSales">
       <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <div class="t" id="tItem">クリック または ドラッグでCSVを選択</div>
-      <div class="h">システム連携用SKU番号 を含む在庫データ（プロパー抽出アプリと同じ入力）</div>
+      <div class="t" id="tSales">クリック または ドラッグでCSVを選択</div>
+      <div class="h">販売店舗・商品番号・SKU管理番号・商品名 などを含む受注/売上CSV（プロパー抽出アプリと同じ入力・Shift-JIS）</div>
     </label>
-    <div class="dl-steps">
-      <div class="dl-steps-h"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>GoQ System からのダウンロード手順</div>
-      <ol>
-        <li><a href="https://stock2.goqsystem.com/?nav_id=stockSituation" target="_blank" rel="noopener">GoQ System 在庫連携</a> を開く</li>
-        <li><b>「すべて」</b>にチェックを入れる</li>
-        <li>プルダウンで <b>「EL COMMUN 楽天市場店」</b> を選択</li>
-        <li><b>「CSV出力」</b> ボタンを押す</li>
-      </ol>
-    </div>
+  </div>
+
+  <!-- STEP 2: master xlsx (optional) -->
+  <div class="card">
+    <div class="card-h"><span class="num">2</span><h2>商品データ xlsx（自社品番マスタ）</h2><span class="opt">任意</span></div>
+    <label class="drop" id="dropMaster">
+      <input type="file" accept=".xlsx,.xls" id="fileMaster">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <div class="t" id="tMaster">アプリ内蔵の自社品番マスタを使用中</div>
+      <div class="h">最新の自社新商品を判定に反映したい場合のみアップロード（内蔵: <span id="genkaCount">0</span>件）</div>
+    </label>
   </div>
 
   <!-- Generate -->
@@ -183,7 +176,7 @@
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
       プロパー(自社)を削除してメーカーのみ出力
     </button>
-    <div class="toggle-row"><input type="checkbox" id="keepOrder"><label for="keepOrder" style="cursor:pointer">取り寄せ（<code style="font-family:var(--mono)">apj-</code> / <code style="font-family:var(--mono)">rft-</code>）も残す</label></div>
+    <div class="toggle-row"><input type="checkbox" id="removeOrder"><label for="removeOrder" style="cursor:pointer">取り寄せ（<code>apj-</code> / <code>rft-</code>）を削除する（既定では販売数として残す）</label></div>
     <div class="msg" id="msg"></div>
 
     <div id="result" class="hidden">
@@ -193,8 +186,8 @@
         <div class="stat prop"><div class="lbl"><span class="dot"></span>プロパー（削除）</div>
           <div class="big" id="propCount">0</div><div class="small">自社商品</div></div>
         <div class="stat order"><div class="lbl"><span class="dot"></span>取り寄せ</div>
-          <div class="big" id="orderCount">0</div><div class="small" id="orderSub">apj- / rft-</div></div>
-        <div class="stat skip"><div class="lbl"><span class="dot"></span>SKU空（除外）</div>
+          <div class="big" id="orderCount">0</div><div class="small" id="orderSub">apj- / rft-（残す）</div></div>
+        <div class="stat skip"><div class="lbl"><span class="dot"></span>商品番号空</div>
           <div class="big" id="skipCount">0</div><div class="small">判定不可</div></div>
       </div>
       <div class="dlrow">
@@ -209,9 +202,10 @@
     <div class="card-h"><span class="num">i</span><h2>処理ルール</h2></div>
     <div class="info">
       <ul>
-        <li><span class="b">A</span><span><b>判定</b>：システム連携用SKU番号の接頭辞で判定（ec-inventory / ec-monthly 準拠）。メーカー接頭辞（<code>8mw-</code><code>wh-</code><code>psm-</code> 等）の行だけを残し、<code>elco-</code><code>cal-</code> 等のプロパー（自社）商品の行は削除します。</span></li>
-        <li><span class="b">B</span><span><b>取り寄せ</b>：<code>apj-</code><code>rft-</code>（非在庫・取り寄せ）は既定で削除します。メーカー扱いで残したい場合は上のチェックを入れてください。</span></li>
-        <li><span class="b">C</span><span><b>出力</b>：アップロードした CSV と<b>同じ列・同じ並び順をそのまま維持</b>し、メーカー商品の行だけを残した CSV を出力します（Shift-JIS・元の値は無加工）。</span></li>
+        <li><span class="b">A</span><span><b>判定</b>：各行の <code>商品番号</code> を内部品番に解決し（<code>item-data</code> 準拠の抽出・正規化）、<b>自社品番マスタ</b>（約<span id="genkaCount2">0</span>件）に一致するもの、または <code>elco-</code> <code>cal-</code> や自社確定接頭辞（<code>X?DR-</code> <code>CAL-</code> <code>EGP-</code> <code>WCL-</code> 等）を<b>プロパー（自社）として削除</b>します。</span></li>
+        <li><span class="b">B</span><span><b>メーカー（残す）</b>：自社と判定されなかった他社ブランド商品（<code>8mw-</code> <code>wh-</code> <code>ldw</code> <code>psm-</code> <code>ak-</code> <code>SLW-</code> 等）。</span></li>
+        <li><span class="b">C</span><span><b>取り寄せ</b>：<code>apj-</code> <code>rft-</code> は<b>既定で販売数として残します</b>（自社ではないため）。チェックを入れると削除できます。<code>商品番号</code>が空の行は判定不可として除外。</span></li>
+        <li><span class="b">D</span><span><b>出力</b>：アップロードした CSV と<b>同じ列・同じ並び順をそのまま維持</b>し、メーカー行だけを残した CSV（Shift-JIS・元の値は無加工）。</span></li>
       </ul>
     </div>
   </div>
@@ -226,17 +220,161 @@ function applyTheme(t){document.documentElement.setAttribute('data-theme',t);the
 applyTheme(localStorage.getItem('ec_mko_theme')||'light');
 themeBtn.onclick=()=>applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
 
-/* ---------- classification (ec-inventory 準拠) ---------- */
-// 取り寄せ（非在庫）商品の接頭辞
+/* ---------- 自社品番マスタ（ec-inventory の genka_master を流用、xlsxアップロードで拡張可） ---------- */
+const OWN=new Set(Object.keys(window.GENKA_MASTER||{}).map(k=>k.trim()));
+function updateGenkaCount(){const n=OWN.size.toLocaleString();document.getElementById('genkaCount').textContent=n;document.getElementById('genkaCount2').textContent=n;}
+updateGenkaCount();
+
+/* ── 商品番号→品番 ハードコードマップ（item-data 準拠） ───────────────────── */
+const PN_OVERRIDE = {
+  'Z6-ZRJM-E460':'CLB-226','FX-N2ER-PH3F':'CLB-504','H7-LXP2-BH31':'CLB-505','NQ-4UGF-AHYD':'FC-05',
+  'PBC-002.':'PBC-002','PBC-003.':'PBC-003','PBC-005.':'PBC-005','PBC-006.':'PBC-006',
+  'QO-4W6M-NLX3':'CLB-503','RDL-011':'RGL-011','T0-AJFH-JQKL':'FC-06','V5-SGBZ-OU7C':'FC-07',
+  'WY-T0RV-OQRQ':'FC-08','XN-I1C9-HG7Y':'FC-03','GYR-51':'GYR-051','GYR-52':'GYR-052','GYR-53':'GYR-053',
+  'GYR-54':'GYR-054','GYR-55':'GYR-055','GYR-56':'GYR-056','1T-BV4P-C8SS':'CPC-007','3O-Z747-CB0C':'PPC-054',
+  '6I-3MK8-XBTJ':'FC-01','1L-29S5-4M45':'CLB-501','7O-HOPN-LCJ7':'CPC-014','7U-9U6Y-LE5C':'SLV-502',
+  '9Y-ICHO-LN2M':'CPC-001','AC-GXJG-CK78':'CLB-202','B6-1J7F-DA1E':'B6-1J7F-DA1E','EL-VZLO-THM2':'WCL-001',
+  'H9-JXV2-AIUK':'CPC-016','HI-MB14-92DB':'CPC-012','IC-QG26-4DD3':'RGL-021','IE-I6GU-BIQV':'KIT-003',
+  'IS-WB3X-Y17O':'PPC-001','JC-BDBM-8OXZ':'PPC-011','K3-N7L5-OV6G':'PPC-010','KG-JDDN-COL3':'CLB-102',
+  'MJ-ZBYY-1VUO':'CLB-205','PBC-001.':'PBC-001','T9-7A7U-HRDS':'CLB-206','WQ-NRJO-FWH3':'KIT-101',
+  'XS-5IIC-P4CZ':'CLB-204','Y2-D3UX-K7OT':'CPC-008','YW-RI9H-WNH7':'CLB-606','Z1-YSGL-E2AI':'WCL-010',
+  'DRWK-306':'DR-WK-306','DRMH-306':'DR-MH-306','CT-K3PB-93HB':'WCL-011','CV-B543-60EE':'TCL-302',
+  'VV-ZLOI-O4F6':'CPC-018','NT-LK0T-8EW4':'SLV-503','OA-CO5U-F6XK':'CPC-006','PBC-004.':'PBC-004',
+  'VH-6MJV-QFCE':'CPC-002','ZN-MSL4-0GQJ':'CPC-013','CA-MQ83-4X1N':'CLB-224',
+  'elco-lnc311-10244':'LNC-313','elco-lnc311-13248':'LNC-321','elco-pbc001-10523':'PBC-027',
+  'elco-pnb001-13238':'PNB-003','elco-leaf24-10133':'CLB-723',
+};
+const QOO10_PN_OVERRIDE = {
+  '10109':'CLB-205','10116':'CLB-420','10241':'LNC-320','10242':'LNC-311','10497':'PBC-007','10499':'PBC-009',
+  '10501':'PBC-011','10515':'PBC-022','10699':'SKL-002','10700':'SKL-003','10971':'YGC-062','10977':'YGC-068',
+  '11365':'SLW-243','11366':'SLW-244','10111':'CLB-214','10245':'LNC-314','10505':'PBC-015','10506':'PBC-016',
+  '10517':'XEC-007','10524':'PBC-028','13011':'PRT-303','13097':'CPC-024','13099':'CPC-026','13239':'PNB-004',
+  '13245':'LNC-024','13250':'LNC-124','13265':'MTP-001','13270':'MTP-006','13273':'MTP-008',
+};
+
+// ── 商品番号から内部品番を抽出（item-data 準拠） ──────────────────────────────
+function extractProductCode(pn, store) {
+  if (!pn) return null;
+  if (/^在庫SFD-/i.test(pn)) return pn.slice(2);
+  if (/^DRMC-/i.test(pn)) return 'DR-MC-' + pn.slice(5);
+  if (/^DRMH-/i.test(pn)) return 'DR-MH-' + pn.slice(5);
+  if (/^DRMG-/i.test(pn)) return 'DR-MG-' + pn.slice(5);
+  if (/^DRWK-/i.test(pn)) return 'DR-WK-' + pn.slice(5);
+  const mbpfx = pn.match(/^mb-0[13]-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
+  if (mbpfx) return mbpfx[1].toUpperCase();
+  if (store && store.includes('Qoo10')) {
+    const mmpfx = pn.match(/^mm-\d+-(X?DR-.+)$/i);
+    if (mmpfx) return mmpfx[1];
+  }
+  if (/^elco-wcl-/i.test(pn)) return 'WCL-' + pn.slice(9);
+  if (/DR-MK-\d+/i.test(pn)) { const m = pn.match(/DR-MK-(\d+)/i); if (m) return 'MK-' + m[1]; }
+  const auPAY = store && store.includes('auPAY');
+  if (/^(?:ma|mg|mh|mc|mk|mb|wb|wk|ws|wv|wx|wl|mm)-/i.test(pn)) {
+    const hits = pn.match(/X?DR-[A-Z]{2,3}-\d+/g);
+    if (hits) return hits[hits.length - 1];
+    const bm = pn.match(/[（(]([A-Z]{2,3}-\d+)[）)]/);
+    if (bm) return 'DR-' + bm[1];
+    const dm = pn.match(/[A-Z]{2,3}-\d+/g);
+    if (dm) return 'DR-' + dm[dm.length - 1];
+    return null;
+  }
+  if (/^cal-/i.test(pn)) {
+    const m = pn.match(/^cal-[^-]+-(.+)$/i);
+    return m ? normalizeCode(m[1]) : null;
+  }
+  if (/^elco-/i.test(pn)) {
+    const bm = pn.match(/[（(]([A-Z]+-\d+)[）)]/);
+    if (bm) { const c = bm[1]; return normalizeCode(/^MC-\d+$/.test(c) ? 'DR-' + c : c); }
+    let rest = pn.slice(5);
+    const lowSeg = (rest.match(/^([a-z][a-z0-9]*)(?:-|$)/) || [])[1] || null;
+    rest = rest.replace(/^[a-z][a-z0-9]*-/, '');
+    rest = rest.replace(/^\d{3,}-?(?=[A-Z])/, '');
+    if (/^elco-/i.test(rest)) return extractProductCode(rest, store);
+    if (rest) return normalizeCode(rest);
+    return lowSeg ? normalizeCode(lowSeg) : null;
+  }
+  if (auPAY || pn.includes('（') || pn.includes('(')) {
+    const bm = pn.match(/[（(]([A-Z]+-\d+)[）)]/);
+    if (bm) { const c = bm[1]; return normalizeCode(/^MC-\d+$/.test(c) ? 'DR-' + c : c); }
+  }
+  const m5 = pn.match(/^[a-z][a-z0-9]*-([A-Z][A-Z0-9]+-\d+)$/);
+  if (m5) return normalizeCode(m5[1]);
+  const m6 = pn.match(/^[a-z0-9]+-[a-z0-9]+-(\d+)$/);
+  if (m6) return m6[1];
+  const drxx = pn.match(/^DR([A-Z]{2})-(.+)$/i);
+  if (drxx) return 'DR-' + drxx[1].toUpperCase() + '-' + drxx[2];
+  if (/^X?DR-[A-Z]{2,3}-\d+$/.test(pn)) return pn;
+  const m8 = pn.match(/^(WB|WK|WS|WV|WX|MA|MG|MH|MC|MB|MK|LB)-(\d+)$/i);
+  if (m8) return 'DR-' + m8[1].toUpperCase() + '-' + m8[2];
+  const m9a = pn.match(/^([A-Z]{2,4})-(\d+)\.00$/);
+  if (m9a) return m9a[1] + '-' + m9a[2].padStart(3, '0');
+  const m9b = pn.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
+  if (m9b) return m9b[1] + '-' + m9b[2].padStart(3, '0');
+  const dblm = pn.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/) || pn.match(/^[A-Z]{2,4}\d+-([A-Z]{2,4}-\d+.*)$/);
+  if (dblm) return dblm[1];
+  return null;
+}
+// コード正規化（item-data 準拠）
+function normalizeCode(code) {
+  if (!code) return code;
+  const m = code.match(/^((?:LLN|ECL)-\d{3})/);
+  if (m) return m[1];
+  const sa = code.match(/^([A-Z]{2,4})-(\d+)\.00$/);
+  if (sa) return sa[1] + '-' + sa[2].padStart(3, '0');
+  const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
+  if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
+  const dbl = code.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/) || code.match(/^[A-Z]{2,4}\d+-([A-Z]{2,4}-\d+.*)$/);
+  if (dbl) return dbl[1];
+  if (/^elco-wcl-/i.test(code)) return 'WCL-' + code.slice(9);
+  if (/^DRMC-/i.test(code)) return 'DR-MC-' + code.slice(5);
+  if (/^DRMH-/i.test(code)) return 'DR-MH-' + code.slice(5);
+  if (/^DRMG-/i.test(code)) return 'DR-MG-' + code.slice(5);
+  if (/^DRWK-/i.test(code)) return 'DR-WK-' + code.slice(5);
+  const mbv = code.match(/^mb-\d+-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
+  if (mbv) return mbv[1].toUpperCase();
+  if (/^CRB_/i.test(code)) return 'CRB-' + code.slice(4);
+  const crb = code.match(/^CRB(\d+)[-_]/i);
+  if (crb) return 'CRB-' + crb[1].padStart(3, '0');
+  const gyr = code.match(/^GYR-(\d{1,2})$/i);
+  if (gyr) return 'GYR-' + gyr[1].padStart(3, '0');
+  const drn = code.match(/^DR([A-Z]{2})-(.+)$/i);
+  if (drn) return 'DR-' + drn[1].toUpperCase() + '-' + drn[2];
+  if (/^在庫SFD-/i.test(code)) return code.slice(2);
+  const dm = code.match(/^(WB|WK|WS|WV|WX|WL|MA|MG|MH|MC|MB|MK)-(\d+)$/i);
+  if (dm) return 'DR-' + dm[1].toUpperCase() + '-' + dm[2];
+  const ac = code.match(/^[Aa][Mm][Pp][Cc]-?(\d+)$/);
+  if (ac) return 'AMP-C' + ac[1];
+  const lm = code.match(/^([a-z]{2,4})(\d+)$/);
+  if (lm) return lm[1].toUpperCase() + '-' + lm[2].padStart(3, '0');
+  return code;
+}
+
+/* ---------- 自社/メーカー判定 ---------- */
 const EXCLUDE_PREFIXES=['apj-','rft-'];
-// メーカー商品の接頭辞
-const MAKER_PREFIXES=['4on-','8mw-','af','ai-','aito-','ak-','alsk-','bm-','cocochi-','cre-','ef','ldw',
-  'ma-','mgt-','MO','nlf','nm-','pb-','psm-','rio-','sh-','SLW-','tp-','tri-','wf','wh-','ky-'];
-function isExcluded(sku){return EXCLUDE_PREFIXES.some(p=>sku.startsWith(p));}
-function isMaker(sku){return MAKER_PREFIXES.some(p=>sku.startsWith(p))||sku==='303069-C';}
+const OWN_PREFIX=/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-|WCL-|X?DR-|CAL-)/i;
+function resolveCode(pn,store){
+  if(!pn)return '';
+  const t=pn.trim();
+  const ov=PN_OVERRIDE[t]||(store&&store.includes('Qoo10')?(QOO10_PN_OVERRIDE[t]||null):null);
+  const ex=ov||extractProductCode(t,store);
+  return ov||(ex?(normalizeCode(ex)||ex):(normalizeCode(t)||t));
+}
+// プロパー(自社)なら true
+function isOwn(pn,sku,store){
+  const t=(pn||'').trim(),low=t.toLowerCase();
+  if(low.startsWith('elco-')||low.startsWith('cal-'))return true;
+  const code=resolveCode(t,store);
+  if(code&&OWN.has(code))return true;
+  const ns=sku?(normalizeCode(sku.trim())||sku.trim()):'';
+  if(ns&&OWN.has(ns))return true;
+  if(sku&&OWN.has(sku.trim()))return true;
+  if(t&&OWN.has(t))return true;
+  if(code&&(OWN_PREFIX.test(code)||/^AK-/.test(code)))return true;
+  return false;
+}
+function isExcluded(pn){const low=(pn||'').trim().toLowerCase();return EXCLUDE_PREFIXES.some(p=>low.startsWith(p));}
 
 /* ---------- helpers ---------- */
-// 商品名のプレビュー表示用整形（出力CSVには使わず、元の値を保持する）
 function cleanName(n){
   n=(n||'').replace(/　/g,' ').trim();
   while(true){const m=n.match(/^\s*(【[^】]*】|＼[^／]*／)\s*/);if(!m)break;n=n.slice(m[0].length);}
@@ -249,74 +387,95 @@ const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','
 function showMsg(t,c){const m=document.getElementById('msg');m.textContent=t;m.className='msg show '+c;}
 
 /* ---------- file handling ---------- */
-const files={item:null};
-(function wireDrop(){
-  const drop=document.getElementById('dropItem'),input=document.getElementById('fileItem'),t=document.getElementById('tItem');
-  function handle(f){files.item=f;drop.classList.add('has');t.innerHTML='<span class="fname">'+f.name+'</span>';refreshGo();}
+const files={sales:null,master:null};
+function wireDrop(dropId,inputId,tId,key,onLoad){
+  const drop=document.getElementById(dropId),input=document.getElementById(inputId),t=document.getElementById(tId);
+  function handle(f){files[key]=f;drop.classList.add('has');t.innerHTML='<span class="fname">'+f.name+'</span>';if(onLoad)onLoad(f);refreshGo();}
   input.onchange=()=>{if(input.files[0])handle(input.files[0]);};
   drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
   drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
   drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])handle(e.dataTransfer.files[0]);});
-})();
-function refreshGo(){document.getElementById('goBtn').disabled=!files.item;}
+}
+wireDrop('dropSales','fileSales','tSales','sales');
+wireDrop('dropMaster','fileMaster','tMaster','master',loadMasterXlsx);
+function refreshGo(){document.getElementById('goBtn').disabled=!files.sales;}
+
+async function loadMasterXlsx(f){
+  try{
+    const buf=await f.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    let added=0;
+    ['商品データ','plaisir別注'].forEach(sn=>{
+      if(!wb.Sheets[sn])return;
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1});
+      for(let i=2;i<rows.length;i++){
+        const row=rows[i];if(!row)continue;
+        const hb=row[8];
+        if(hb!=null){const k=String(hb).trim();if(k&&!OWN.has(k)){OWN.add(k);added++;}}
+      }
+    });
+    updateGenkaCount();
+    showMsg(`自社品番マスタを更新しました（${added.toLocaleString()}件追加）`,'success');
+  }catch(e){showMsg('xlsxの読み込みに失敗しました: '+e.message,'error');}
+}
 
 /* ---------- generate ---------- */
-let outFields=null,outRows=null,srcName='itemdata';
+let outFields=null,outRows=null,srcName='受注データ';
 
 document.getElementById('goBtn').onclick=async()=>{
   try{
     showMsg('処理中…','warning');
-    const parsed=Papa.parse(decodeSJIS(await files.item.arrayBuffer()),{header:true,skipEmptyLines:true,dynamicTyping:false});
+    const parsed=Papa.parse(decodeSJIS(await files.sales.arrayBuffer()),{header:true,skipEmptyLines:true,dynamicTyping:false});
     const rows=parsed.data;
     const fields=parsed.meta.fields||[];
-    if(!rows.length||!fields.includes('システム連携用SKU番号')){
-      showMsg('itemdata CSV の形式が想定と異なります（「システム連携用SKU番号」列が見つかりません）','error');return;
+    if(!rows.length||!fields.includes('商品番号')){
+      showMsg('CSV の形式が想定と異なります（「商品番号」列が見つかりません）。受注・売上データCSVをアップロードしてください。','error');return;
     }
-    srcName=(files.item.name||'itemdata').replace(/\.[^.]*$/,'');
+    srcName=(files.sales.name||'受注データ').replace(/\.[^.]*$/,'');
 
-    const keepOrder=document.getElementById('keepOrder').checked;
+    const removeOrder=document.getElementById('removeOrder').checked;
     const kept=[];
     let maker=0,prop=0,order=0,orderKept=0,empty=0;
     rows.forEach(r=>{
-      const sku=(r['システム連携用SKU番号']||'').trim();
-      if(!sku){empty++;return;}
-      if(isExcluded(sku)){order++;if(keepOrder){kept.push(r);orderKept++;}return;}
-      if(isMaker(sku)){maker++;kept.push(r);return;}
-      prop++; // メーカーでも取り寄せでもない＝プロパー(自社) → 削除
+      const pn=(r['商品番号']||'').trim();
+      const sku=(r['SKU管理番号']||'');
+      const store=(r['販売店舗']||'');
+      if(!pn){empty++;return;}
+      if(isExcluded(pn)){order++;if(!removeOrder){kept.push(r);orderKept++;}return;}  // 取り寄せ → 既定は残す
+      if(isOwn(pn,sku,store)){prop++;return;}  // プロパー(自社) → 削除
+      maker++;kept.push(r);                     // メーカー → 残す
     });
 
     outFields=fields;outRows=kept;
 
-    // stats
     document.getElementById('result').classList.remove('hidden');
     document.getElementById('keepCount').textContent=kept.length.toLocaleString();
-    document.getElementById('keepSub').textContent=keepOrder&&orderKept
+    document.getElementById('keepSub').textContent=orderKept
       ? `メーカー ${maker.toLocaleString()} ＋ 取り寄せ ${orderKept.toLocaleString()}`
       : `メーカー商品 ${maker.toLocaleString()}件`;
     document.getElementById('propCount').textContent=prop.toLocaleString();
     document.getElementById('orderCount').textContent=order.toLocaleString();
-    document.getElementById('orderSub').textContent=keepOrder?'apj- / rft-（残す）':'apj- / rft-（削除）';
+    document.getElementById('orderSub').textContent=removeOrder?'apj- / rft-（削除）':'apj- / rft-（残す）';
     document.getElementById('skipCount').textContent=empty.toLocaleString();
 
-    // preview (先頭150件)
     const pw=document.getElementById('prevWrap');
     if(kept.length){
       const PREVIEW=150;
-      let html='<table class="prev"><thead><tr><th>商品名</th><th>システム連携用SKU番号</th><th>在庫数</th></tr></thead><tbody>';
+      let html='<table class="prev"><thead><tr><th>商品名</th><th>商品番号</th><th>販売店舗</th><th>個数</th></tr></thead><tbody>';
       kept.slice(0,PREVIEW).forEach(r=>{
-        const qty=r['総在庫数']!=null&&r['総在庫数']!==''?r['総在庫数']:(r['在庫数']||'');
         html+=`<tr><td class="nm">${esc(cleanName(r['商品名']))}</td>`+
-          `<td class="mono">${esc((r['システム連携用SKU番号']||'').trim())}</td>`+
-          `<td class="mono">${esc(qty)}</td></tr>`;
+          `<td class="mono">${esc((r['商品番号']||'').trim())}</td>`+
+          `<td>${esc((r['販売店舗']||'').trim())}</td>`+
+          `<td class="mono">${esc(r['個数']||'')}</td></tr>`;
       });
       html+='</tbody></table>';
       if(kept.length>PREVIEW)html+=`<div class="prevmore">プレビューは先頭 ${PREVIEW} 件のみ表示（全 ${kept.length.toLocaleString()} 件はダウンロードで確認できます）</div>`;
       pw.innerHTML=html;pw.classList.remove('hidden');
     }else{pw.innerHTML='';pw.classList.add('hidden');}
 
-    showMsg(`完了！　メーカー ${maker.toLocaleString()}件を残し、プロパー(自社) ${prop.toLocaleString()}件を削除しました`+
-      `${keepOrder?`（取り寄せ ${order.toLocaleString()}件は残す）`:(order?`　／ 取り寄せ(apj-・rft-) ${order.toLocaleString()}件も削除`:'')}`+
-      `${empty?`　／ SKU空 ${empty.toLocaleString()}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
+    showMsg(`完了！　プロパー(自社) ${prop.toLocaleString()}件を削除し、${kept.length.toLocaleString()}件を残しました`+
+      `${order?(removeOrder?`　／ 取り寄せ(apj-・rft-) ${order.toLocaleString()}件も削除`:`（うちメーカー ${maker.toLocaleString()}・取り寄せ ${order.toLocaleString()}）`):''}`+
+      `${empty?`　／ 商品番号空 ${empty.toLocaleString()}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
 
