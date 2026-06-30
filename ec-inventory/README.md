@@ -30,7 +30,11 @@ EC在庫データ（itemdata CSV）を取り込み、**自社商品**と**メー
   - **除外（取り寄せ・非在庫）**: `apj-` `rft-` で始まる品番は棚卸し対象外として出力しない。
 - 商品名は itemdata から抽出し、先頭の装飾（`【…】` `＼…／`）と `｜` 以降、HTMLタグを除去。
 - 上代・原価の突合は**大文字小文字を無視**（itemdata `-L` ⇔ dl `-l` 等の表記揺れに対応）。
-- 自社品番 `elco-ampcNNN-`（単体形）は `AMP-CNNN` に変換（末尾の `-` を削除。例 `elco-ampc037-` → `AMP-C037`）。
+- 自社品番の単体形は正規品番に変換（末尾の `-` を削除・小文字は大文字化）:
+  - `elco-ampcNNN-` → `AMP-CNNN`（例 `elco-ampc037-` → `AMP-C037`）
+  - `elco-nxt●●●` → `NXT-●●●`（例 `elco-nxt5246go` → `NXT-5246GO`）
+  - `elco-wclNNN` → `WCL-NNN`（例 `elco-wcl023` → `WCL-023`）
+  - `elco-wpkNNN` → `WPK-NNN`（例 `elco-wpk101` → `WPK-101`）
 
 ## 掛け率（接頭辞別・アプリ内で編集可能）
 
