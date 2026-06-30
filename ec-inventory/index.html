@@ -181,7 +181,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v9</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v10</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -563,8 +563,10 @@ document.getElementById('goBtn').onclick=async()=>{
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
 
-document.getElementById('dlOwn').onclick=()=>{if(outOwn)XLSX.writeFile(outOwn,'EC棚卸し（自社）.xlsx');};
-document.getElementById('dlMaker').onclick=()=>{if(outMaker)XLSX.writeFile(outMaker,'EC棚卸し（メーカー）.xlsx');};
+// ファイル名の先頭に実行年月（YYYYMM）を付与
+const ym=()=>{const d=new Date();return ''+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0');};
+document.getElementById('dlOwn').onclick=()=>{if(outOwn)XLSX.writeFile(outOwn,`${ym()}_EC棚卸し（自社）.xlsx`);};
+document.getElementById('dlMaker').onclick=()=>{if(outMaker)XLSX.writeFile(outMaker,`${ym()}_EC棚卸し（メーカー）.xlsx`);};
 
 // error preview toggle
 document.getElementById('errToggle').onclick=()=>{
@@ -578,7 +580,7 @@ document.getElementById('errDl').onclick=()=>{
   const header=['区分','エラー種別','商品名','品番','システム連携用SKU番号','在庫数','上代','掛け率','原価'];
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(errRows,{header}),'エラー箇所');
-  XLSX.writeFile(wb,'EC棚卸し_エラー箇所.xlsx');
+  XLSX.writeFile(wb,`${ym()}_EC棚卸し_エラー箇所.xlsx`);
 };
 </script>
 </body>
