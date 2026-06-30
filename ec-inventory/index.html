@@ -174,7 +174,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v6</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v7</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -349,20 +349,27 @@ function rateFor(sku){
   for(const pf in rates){if(sku.startsWith(pf)&&(best===null||pf.length>best.length))best=pf;}
   return best===null?null:rates[best];
 }
+// 自社の単体形SKUを正規品番に変換（末尾ハイフン削除・小文字は大文字化）
+function ownCleanHinban(base){
+  let m;
+  if(m=base.match(/^elco-ampc(\d+)-?$/i))    return 'AMP-C'+m[1];                 // elco-ampc037- → AMP-C037
+  if(m=base.match(/^elco-nxt([a-z0-9]+)$/i)) return 'NXT-'+m[1].toUpperCase();    // elco-nxt5246go → NXT-5246GO
+  if(m=base.match(/^elco-wcl(\d+)$/i))       return 'WCL-'+m[1];                  // elco-wcl023 → WCL-023
+  if(m=base.match(/^elco-wpk(\d+)$/i))       return 'WPK-'+m[1];                  // elco-wpk101 → WPK-101
+  return null;
+}
 function ownHinban(r){
   const cands=[];
   const sku=(r['システム連携用SKU番号']||'').trim();
   const base=sku.replace(/wf-(natural|brown)$/,'');
-  // elco-ampcNNN-（単体形）→ AMP-CNNN（末尾の - は削除）
-  const amp=base.match(/^elco-ampc(\d+)-?$/i);
-  const ampHinban=amp?('AMP-C'+amp[1]):null;
-  if(ampHinban)cands.push(ampHinban);
+  const special=ownCleanHinban(base);
+  if(special)cands.push(special);
   const sk=(r['SKU管理番号']||'').trim();if(sk)cands.push(sk);
   cands.push(base.replace(/^elco-[^-]+-/,''));
   cands.push(base.replace(/^[a-z0-9]+-/,''));
   const m=base.match(/([A-Z]{2,}-?\d[\w-]*)$/);if(m)cands.push(m[1]);
   for(const c of cands){if(c&&GENKA[c.trim()]!==undefined)return{hinban:c.trim(),genka:GENKA[c.trim()]};}
-  return{hinban:ampHinban||sk||cands.find(Boolean)||sku,genka:null};
+  return{hinban:special||sk||cands.find(Boolean)||sku,genka:null};
 }
 function decodeSJIS(buf){return new TextDecoder('shift-jis').decode(buf);}
 function parseCSV(text){return Papa.parse(text,{header:true,skipEmptyLines:true,dynamicTyping:false}).data;}
