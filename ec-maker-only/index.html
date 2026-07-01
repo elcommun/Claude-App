@@ -147,7 +147,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v10</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v11</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -210,10 +210,11 @@
     <div class="card-h"><span class="num">i</span><h2>処理ルール</h2></div>
     <div class="info">
       <ul>
-        <li><span class="b">A</span><span><b>判定</b>：各行の <code>商品番号</code> を内部品番に解決し（<code>item-data</code> 準拠）、<b>自社品番マスタ</b>（約<span id="genkaCount2">0</span>件）に一致、または <code>elco-</code> <code>cal-</code>・自社確定接頭辞（<code>X?DR-</code> <code>CAL-</code> <code>EGP-</code> <code>WCL-</code> 等）を<b>プロパー（自社）として削除</b>。それ以外をメーカーとして残します。</span></li>
+        <li><span class="b">A</span><span><b>判定</b>：各行の <code>商品番号</code> を内部品番に解決し（<code>item-data</code> 準拠）、<b>自社品番マスタ</b>（約<span id="genkaCount2">0</span>件）に一致、<code>elco-</code> <code>cal-</code>・自社確定接頭辞（<code>X?DR-</code> <code>CAL-</code> <code>EGP-</code> <code>WCL-</code> 等）に一致、または<b>商品名に「エルコミューン」を含む</b>行を<b>プロパー（自社）として削除</b>。それ以外をメーカーとして残します。</span></li>
         <li><span class="b">B</span><span><b>税抜単価</b>：<code>税込別</code> が「込」の行は <code>商品単価 ÷ 1.1</code>（四捨五入）で税抜換算。それ以外は <code>商品単価</code> をそのまま使用。<b>小計（税抜）＝ 税抜単価 × 数量</b>。</span></li>
-        <li><span class="b">C</span><span><b>メーカー・掛け率</b>：<code>商品番号</code> の接頭辞を掛け率表（内蔵31件、例 <code>8mw-</code>→8000000works/0.5、<code>wh-</code>→MDS/0.55、<code>apj-</code>→APJ/0.45、<code>af/wf</code>→APJ/0.45、<code>SLW-</code>→TRI/0.38、<code>MO/12816等</code>→パドルビー/0.55、<code>303069-C</code>→志成販売シセイ/0.55、<code>aito-</code>→アイトー/0.5）と照合して入力。未登録の接頭辞は空欄（件数を下部に表示）。</span></li>
-        <li><span class="b">D</span><span><b>出力</b>：<code>店舗 / 出荷日 / 商品名 / 商品番号 / 税抜単価 / 数量 / 小計（税抜）/ メーカー / 掛け率</code> の9列の変換テーブル（Shift-JIS CSV）。</span></li>
+        <li><span class="b">C</span><span><b>メーカー・掛け率</b>：<code>商品番号</code> の接頭辞を掛け率表（内蔵36件）と照合して入力。未登録の場合は<b>フォールバック</b>として、商品名に「プラス」「キングジム」→MDS、「クルテク」→パドルビー、「cocochi」→cocochi、「くるみん」「竹久夢二」→京佑キョウユウ、商品番号が大文字<code>MM</code>/<code>KF</code>で始まる5文字→ユニコン、と推定。それでも未登録の場合は空欄（件数を下部に表示）。</span></li>
+        <li><span class="b">D</span><span><b>項目・選択肢</b>：元データの <code>項目・選択肢</code> 列から「デザイン:」「カラー:」等のバリエーション値だけを抽出（送料・注意事項等の行は除外）。</span></li>
+        <li><span class="b">E</span><span><b>出力</b>：<code>店舗 / 出荷日 / 商品名 / 項目・選択肢 / 商品番号 / 税抜単価 / 数量 / 小計（税抜）/ メーカー / 掛け率</code> の10列の変換テーブル（Shift-JIS CSV）。</span></li>
       </ul>
     </div>
   </div>
@@ -373,6 +374,7 @@ const MAKER_MAP={
   '303069-c':['志成販売シセイ',0.55],                      // 真鍮ボタニカル
   'aito-':['アイトー',0.5],                                // スイミー豆皿 等
   'kj-':['カミオジャパン',0.6],'lfc-':['LFC',0.55],'chpo-':['ブリエ',0.5],
+  'nl-':['ユニコン',0.53],'ts-':['ユニコン',0.53],
 };
 const MAKER_KEYS=Object.keys(MAKER_MAP).sort((a,b)=>b.length-a.length); // 長い接頭辞を優先
 // 商品番号の接頭辞からメーカー名・掛け率を引く（見つからなければ ['','']）
@@ -380,6 +382,17 @@ function makerFor(pn){
   const low=(pn||'').trim().toLowerCase();
   for(const k of MAKER_KEYS){if(low.startsWith(k))return MAKER_MAP[k];}
   return ['',''];
+}
+// 接頭辞で判定できなかった場合のフォールバック（商品名のキーワード・商品番号のパターンから推定）
+function makerFallback(pn,rawName){
+  const nm=rawName||'';
+  if(nm.includes('プラス')||nm.includes('キングジム'))return['MDS',0.55];
+  if(nm.includes('クルテク'))return['パドルビー',0.55];
+  if(nm.includes('cocochi'))return['cocochi',0.5];
+  if(nm.includes('くるみん')||nm.includes('竹久夢二'))return['京佑キョウユウ',0.6];
+  const t=(pn||'').trim();
+  if(t.length===5&&/^(MM|KF)/.test(t))return['ユニコン',0.53]; // 大文字のMM/KFで始まる5文字の品番
+  return['',''];
 }
 
 /* ---------- 自社/メーカー判定 ---------- */
@@ -412,6 +425,18 @@ function cleanName(n){
   n=n.split(/｜|<br/)[0];
   n=n.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
   return n.trim();
+}
+// 項目・選択肢の生データから「デザイン:」「カラー:」等の値だけを抽出（送料・注意事項等の行は除外）
+function extractOption(raw){
+  if(!raw)return'';
+  const vals=[];
+  raw.split(/\n/).forEach(line=>{
+    const m=line.trim().match(/^([^:：=]+)[:：=](.*)$/);
+    if(!m)return;
+    const label=m[1].trim();
+    if(label.includes('デザイン')||label.includes('カラー'))vals.push(m[2].trim());
+  });
+  return vals.join(' / ');
 }
 function decodeSJIS(buf){return new TextDecoder('shift-jis').decode(buf);}
 const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
@@ -451,7 +476,7 @@ async function loadMasterXlsx(f){
 }
 
 /* ---------- generate ---------- */
-const OUT_FIELDS=['店舗','出荷日','商品名','商品番号','税抜単価','数量','小計（税抜）','メーカー','掛け率'];
+const OUT_FIELDS=['店舗','出荷日','商品名','項目・選択肢','商品番号','税抜単価','数量','小計（税抜）','メーカー','掛け率'];
 let outRows=null,propRows=null,noMakerRows=null,emptyRows=null,srcFields=null,srcName='受注データ';
 const intOf=v=>{const n=parseInt(String(v==null?'':v).replace(/[^\d-]/g,''),10);return isNaN(n)?0:n;};
 
@@ -475,19 +500,22 @@ document.getElementById('goBtn').onclick=async()=>{
       const pn=(r['商品番号']||'').trim();
       const sku=(r['SKU管理番号']||'');
       const store=(r['販売店舗']||'').trim();
+      const rawName=r['商品名']||'';
       if(!pn){empty++;emptyOut.push(r);return;}         // 商品番号空 → 除外（元の列のまま保持）
-      if(isOwn(pn,sku,store)){prop++;propOut.push(r);return;}  // プロパー(自社) → 削除（元の列のまま保持）
+      if(isOwn(pn,sku,store)||rawName.includes('エルコミューン')){prop++;propOut.push(r);return;}  // プロパー(自社) → 削除（元の列のまま保持）
       maker++;                                          // メーカー → 残す＆変換
       // 税抜単価: 税込別が「込」なら 商品単価÷1.1（四捨五入）
       const rawPrice=intOf(r['商品単価']);
       const taxType=(r['税込別']||'').trim();
       const net=(taxType==='込')?Math.round(rawPrice/1.1):rawPrice;
       const qty=intOf(r['個数']);
-      const [mk,rate]=makerFor(pn);
+      let [mk,rate]=makerFor(pn);
+      if(!mk){const fb=makerFallback(pn,rawName);if(fb[0]){mk=fb[0];rate=fb[1];}}
       const row={
         '店舗':store,
         '出荷日':(r['出荷日']||'').trim()||(r['注文日時']||'').trim().slice(0,10),
-        '商品名':cleanName(r['商品名']),
+        '商品名':cleanName(rawName),
+        '項目・選択肢':extractOption(r['項目・選択肢']),
         '商品番号':pn,
         '税抜単価':net,
         '数量':qty,
@@ -516,7 +544,7 @@ document.getElementById('goBtn').onclick=async()=>{
       out.slice(0,PREVIEW).forEach(o=>{
         html+='<tr>'+OUT_FIELDS.map(h=>{
           const v=o[h];
-          const cls=(h==='商品名')?'nm':(h==='店舗'||h==='メーカー')?'':'mono';
+          const cls=(h==='商品名'||h==='項目・選択肢')?'nm':(h==='店舗'||h==='メーカー')?'':'mono';
           const disp=(h==='税抜単価'||h==='小計（税抜）')?(v===''?'':Number(v).toLocaleString()):v;
           return `<td class="${cls}">${esc(disp)}</td>`;
         }).join('')+'</tr>';
