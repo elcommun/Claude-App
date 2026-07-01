@@ -147,7 +147,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v8</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v9</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -420,7 +420,7 @@ const files={sales:null,master:null};
 function wireDrop(dropId,inputId,tId,key,onLoad){
   const drop=document.getElementById(dropId),input=document.getElementById(inputId),t=document.getElementById(tId);
   function handle(f){files[key]=f;drop.classList.add('has');t.innerHTML='<span class="fname">'+f.name+'</span>';if(onLoad)onLoad(f);refreshGo();}
-  input.onchange=()=>{if(input.files[0])handle(input.files[0]);};
+  input.onchange=()=>{if(input.files[0])handle(input.files[0]);input.value='';}; // 同じファイルの再選択でも change を発火させる
   drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
   drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
   drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])handle(e.dataTransfer.files[0]);});
@@ -527,26 +527,31 @@ document.getElementById('goBtn').onclick=async()=>{
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
 
-// download — 9列の変換テーブルを Shift-JIS(CP932) CSV で出力
-document.getElementById('dlBtn').onclick=()=>{
-  if(!outRows)return;
-  const csv=Papa.unparse({fields:OUT_FIELDS,data:outRows},{newline:'\r\n'});
+// Shift-JIS(CP932) CSV を生成してダウンロード。
+// URL.revokeObjectURL を a.click() 直後に同期で呼ぶと、ブラウザによっては
+// ダウンロード開始前にBlobが失効し「1回目は成功・2回目以降失敗」の原因になるため、
+// クリック後に少し時間を置いてから要素の削除・失効を行う。
+function downloadCSV(fields,data,filename){
+  const csv=Papa.unparse({fields,data},{newline:'\r\n'});
   const sjis=Encoding.convert(Encoding.stringToCode(csv),{to:'SJIS',from:'UNICODE'});
   const blob=new Blob([new Uint8Array(sjis)],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`${srcName}_メーカー変換.csv`;
-  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  const a=document.createElement('a');a.href=url;a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{a.remove();URL.revokeObjectURL(url);},1000);
+}
+
+// download — 9列の変換テーブルを Shift-JIS(CP932) CSV で出力
+document.getElementById('dlBtn').onclick=()=>{
+  if(!outRows)return;
+  downloadCSV(OUT_FIELDS,outRows,`${srcName}_メーカー変換.csv`);
 };
 
 // download — 削除されたプロパー(自社)行を元のCSV列のまま出力（確認用）
 document.getElementById('propDlBtn').onclick=()=>{
   if(!propRows||!propRows.length){showMsg('プロパー(自社)として削除された行はありませんでした','warning');return;}
-  const csv=Papa.unparse({fields:srcFields,data:propRows},{newline:'\r\n'});
-  const sjis=Encoding.convert(Encoding.stringToCode(csv),{to:'SJIS',from:'UNICODE'});
-  const blob=new Blob([new Uint8Array(sjis)],{type:'text/csv'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`${srcName}_プロパー削除分.csv`;
-  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+  downloadCSV(srcFields,propRows,`${srcName}_プロパー削除分.csv`);
 };
 </script>
 </body>
