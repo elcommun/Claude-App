@@ -225,7 +225,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v2</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v3</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -265,6 +265,10 @@ function doLogin(){
 <div class="sb-overlay" id="sb-overlay"></div>
 <div class="layout">
   <aside class="sb">
+    <div class="sb-tog" style="border-bottom:1px solid var(--border2)">
+      <button class="sb-tbtn on" id="tog-mode-maker" onclick="setGroupMode('maker')">メーカー別</button>
+      <button class="sb-tbtn" id="tog-mode-category" onclick="setGroupMode('category')">カテゴリ別</button>
+    </div>
     <div class="sb-flt">
       <div class="sb-flt-sec">
         <div class="sb-flt-lbl">販売期間</div>
@@ -370,11 +374,45 @@ function buildData(){
 buildData();
 
 // ── 状態 ──────────────────────────────────────────────────
-let AGG={}; // maker -> {qty,amount,items:{pid:{qty,amount}}}
+let AGG={}; // group(メーカー名 or カテゴリ名) -> {qty,amount,items:{pid:{qty,amount}}}
 let ALL_TOTAL={qty:0,amount:0};
-let currentMaker=null; // null = 全メーカー
+let groupMode='maker'; // 'maker' | 'category'
+let currentGroup=null; // null = 全体
 let sortMode='qty', sortDir='desc';
 let searchQuery='';
+function groupKeyOf(p){ return groupMode==='category' ? p[5] : p[0]; }
+const CATEGORY_RULES=[
+  ['額縁・フレーム',['フレーム','額縁','FRAME','PANEL','ポロック']],
+  ['バッグ・ポーチ・巾着',['バッグ','ポーチ','トート','エコバッグ','リュック','巾着','Tote']],
+  ['ファブリック・マット',['クッション','Cushion','ガーゼ','ブランケット','マット','ラグ','タペストリー','タッセルクロス','スローケット','カットクロス']],
+  ['タオル・ハンカチ・ソックス',['タオル','ハンカチ','ソックス','靴下','ふきん']],
+  ['ランチョンマット・キッチン雑貨',['ランチョンマット','コースター','キッチン','エプロン']],
+  ['マグカップ・食器',['マグ','カップ','プレート','Plate','Mug','食器','スプーン','フォーク','グラス','タンブラー','ボウル','Bowl','耐熱ガラス','豆皿']],
+  ['アクセサリー・キーホルダー',['ブローチ','ピン','アクセサリー','リング','イヤリング','ネックレス','キーホルダー','ヘアコーム','ヘアクリップ','Hair Clip','Comb','Watch']],
+  ['インテリア雑貨',['ミラー','鏡','時計','CLOCK','フック','壁掛け','飾り','カードスタンド','ウォールピン','ホルダー','スタンド','ベース','トレー','Art Clip','トッパー']],
+  ['ライト・照明',['ネオン','LED','ライト','照明','ランプ']],
+  ['文具',['ペン','レター','一筆箋','メモ','ノート','シール','スタンプ','マスキング','KITTA','付箋','ふせん','クリップ','テープ','マーカー']],
+  ['マグネット',['マグネット','MAGNET','磁石']],
+  ['アロマ・お香・生活雑貨',['ディフューザー','お香','アロマ','DIFFUSER','スプレー','フラワーライフ','フラワーベース']],
+  ['財布・小物入れ',['財布','がま口','ケース','小物入れ']],
+  ['ぬいぐるみ・マスコット',['ぬいぐるみ','マスコット','人形']],
+  ['傘',['傘']],
+];
+function categorizeProduct(name){
+  const lname=(name||'').toLowerCase();
+  for(const [cat,kws] of CATEGORY_RULES){
+    for(const kw of kws){ if(lname.includes(kw.toLowerCase())) return cat; }
+  }
+  return 'その他';
+}
+function setGroupMode(mode){
+  groupMode=mode;
+  currentGroup=null;
+  document.getElementById('tog-mode-maker').classList.toggle('on', mode==='maker');
+  document.getElementById('tog-mode-category').classList.toggle('on', mode==='category');
+  clearSearch();
+  applyFilter();
+}
 
 function normalize(s){
   return (s||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'');
@@ -430,8 +468,8 @@ function applyFilter(){
     if(store!=='all'&&rStore!==store) continue;
     const p=ALL_PRODUCTS[pid];
     if(!p) continue;
-    const maker=p[0];
-    const m=AGG[maker]||(AGG[maker]={qty:0,amount:0,items:{}});
+    const g=groupKeyOf(p);
+    const m=AGG[g]||(AGG[g]={qty:0,amount:0,items:{}});
     m.qty+=qty; m.amount+=amount;
     const it=m.items[pid]||(m.items[pid]={qty:0,amount:0});
     it.qty+=qty; it.amount+=amount;
@@ -440,8 +478,8 @@ function applyFilter(){
   updateHeaderDate(dF,dT);
   renderSidebar();
   if(searchQuery){ renderSearch(); }
-  else if(currentMaker && AGG[currentMaker]){ showMaker(currentMaker); }
-  else { showAllMakers(); }
+  else if(currentGroup && AGG[currentGroup]){ showGroup(currentGroup); }
+  else { showAllGroups(); }
 }
 function updateHeaderDate(dF,dT){
   document.getElementById('hd-date').innerHTML='<b>'+dF+'</b> 〜 <b>'+dT+'</b>';
@@ -459,30 +497,31 @@ function setSort(mode){
   });
   document.getElementById('sort-lbl').textContent = mode==='amount' ? '金額ランキング' : mode==='price' ? '単価ランキング' : '個数ランキング';
   renderSidebar();
-  if(currentMaker) showMaker(currentMaker); else showAllMakers();
+  if(currentGroup) showGroup(currentGroup); else showAllGroups();
 }
 
 // ── サイドバー ────────────────────────────────────────────
 function renderSidebar(){
   const list=document.getElementById('sb-list');
-  const makerNames=Object.keys(AGG);
+  const groupNames=Object.keys(AGG);
   const metric = sortMode==='amount' ? 'amount' : 'qty';
-  const maxVal=Math.max(1, ...makerNames.map(m=>AGG[m][metric]));
-  makerNames.sort((a,b)=>AGG[b][metric]-AGG[a][metric]);
+  const maxVal=Math.max(1, ...groupNames.map(g=>AGG[g][metric]));
+  groupNames.sort((a,b)=>AGG[b][metric]-AGG[a][metric]);
 
+  const allLabel = groupMode==='category' ? '🗂 全カテゴリ' : '🏷 全メーカー';
   const allBadge = metric==='amount' ? '¥'+Math.round(ALL_TOTAL.amount).toLocaleString() : ALL_TOTAL.qty.toLocaleString()+'個';
-  let html = `<div class="sbi sbi-all${currentMaker===null?' active':''}" onclick="selectMaker(null)">
-      <span class="sbi-name">🏷 全メーカー</span>
+  let html = `<div class="sbi sbi-all${currentGroup===null?' active':''}" onclick="selectGroup(null)">
+      <span class="sbi-name">${allLabel}</span>
       <span class="sbi-badge">${allBadge}</span>
     </div>`;
 
-  html += makerNames.map(m=>{
-    const v=AGG[m][metric];
+  html += groupNames.map(g=>{
+    const v=AGG[g][metric];
     const badge = metric==='amount' ? '¥'+Math.round(v).toLocaleString() : v.toLocaleString()+'個';
     const pct = Math.round(v/maxVal*100);
-    const active = currentMaker===m;
-    return `<div class="sbi${active?' active':''}" onclick="selectMaker('${esc(m)}')">
-      <span class="sbi-name">${x(m)}</span>
+    const active = currentGroup===g;
+    return `<div class="sbi${active?' active':''}" onclick="selectGroup('${esc(g)}')">
+      <span class="sbi-name">${x(g)}</span>
       <span class="sbi-badge">${badge}</span>
       <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
@@ -490,10 +529,10 @@ function renderSidebar(){
   list.innerHTML=html;
 }
 function esc(s){ return String(s).replace(/'/g,"\\'"); }
-function selectMaker(m){
-  currentMaker=m;
+function selectGroup(g){
+  currentGroup=g;
   clearSearch();
-  if(m===null) showAllMakers(); else showMaker(m);
+  if(g===null) showAllGroups(); else showGroup(g);
   renderSidebar();
   document.querySelector('.sb').classList.remove('open');
   document.getElementById('sb-overlay').classList.remove('open');
@@ -514,8 +553,11 @@ function itemRows(items){
   return Object.keys(items).map(pid=>{
     const p=ALL_PRODUCTS[pid];
     const it=items[pid];
-    return {pid, maker:p[0], name:p[1], varName:p[2], code:p[3], price:p[4], qty:it.qty, amount:it.amount};
+    return {pid, maker:p[0], name:p[1], varName:p[2], code:p[3], price:p[4], category:p[5], qty:it.qty, amount:it.amount};
   });
+}
+function costOf(rows){
+  return rows.reduce((sum,r)=>sum+r.amount*(ALL_MAKERS[r.maker]||0),0);
 }
 function sortItems(rows){
   rows.sort((a,b)=>{
@@ -528,25 +570,25 @@ function sortItems(rows){
   });
   return rows;
 }
-function showAllMakers(){
+function showAllGroups(){
   document.getElementById('cat-view').style.display='';
   document.getElementById('search-view').style.display='none';
   const items={};
-  Object.keys(AGG).forEach(m=>Object.assign(items, AGG[m].items));
+  Object.keys(AGG).forEach(g=>Object.assign(items, AGG[g].items));
   const rows=sortItems(itemRows(items));
-  const totalCost=Object.keys(AGG).reduce((sum,m)=>sum+AGG[m].amount*(ALL_MAKERS[m]||0),0);
-  renderKPI(ALL_TOTAL.qty, ALL_TOTAL.amount, totalCost, rows.length);
-  document.getElementById('cat-name').textContent='全メーカー';
+  renderKPI(ALL_TOTAL.qty, ALL_TOTAL.amount, costOf(rows), rows.length);
+  document.getElementById('cat-name').textContent = groupMode==='category' ? '全カテゴリ' : '全メーカー';
   document.getElementById('cat-rate').textContent='';
-  document.getElementById('cat-stats').innerHTML=`<span class="cs">メーカー数 <b>${Object.keys(AGG).length}</b></span>`;
+  const cntLabel = groupMode==='category' ? 'カテゴリ数' : 'メーカー数';
+  document.getElementById('cat-stats').innerHTML=`<span class="cs">${cntLabel} <b>${Object.keys(AGG).length}</b></span>`;
   renderRankTable(rows, ALL_TOTAL.amount, true);
 }
-function showMaker(m){
+function showGroup(g){
   document.getElementById('cat-view').style.display='';
   document.getElementById('search-view').style.display='none';
-  const agg=AGG[m];
+  const agg=AGG[g];
   if(!agg){
-    document.getElementById('cat-name').textContent=m;
+    document.getElementById('cat-name').textContent=g;
     document.getElementById('cat-rate').textContent='';
     document.getElementById('cat-stats').innerHTML='';
     document.getElementById('rank-tbody').innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">📭</div>この期間の販売データはありません</div></td></tr>';
@@ -554,11 +596,11 @@ function showMaker(m){
     return;
   }
   const rows=sortItems(itemRows(agg.items));
-  renderKPI(agg.qty, agg.amount, agg.amount*(ALL_MAKERS[m]||0), rows.length);
-  document.getElementById('cat-name').textContent=m;
-  document.getElementById('cat-rate').textContent = ALL_MAKERS[m]!=null ? '掛け率 '+ALL_MAKERS[m] : '';
+  renderKPI(agg.qty, agg.amount, costOf(rows), rows.length);
+  document.getElementById('cat-name').textContent=g;
+  document.getElementById('cat-rate').textContent = (groupMode==='maker'&&ALL_MAKERS[g]!=null) ? '掛け率 '+ALL_MAKERS[g] : '';
   document.getElementById('cat-stats').innerHTML=`<span class="cs">全体の <b>${(agg.amount/(ALL_TOTAL.amount||1)*100).toFixed(1)}%</b></span>`;
-  renderRankTable(rows, agg.amount, false);
+  renderRankTable(rows, agg.amount, groupMode==='category');
 }
 function renderRankTable(rows, totalAmount, showMakerTag){
   if(!rows.length){
@@ -600,7 +642,7 @@ function renderSearch(){
       const hay=normalize(p[0]+p[1]+p[2]+p[3]);
       if(hay.includes(qn)){
         const it=AGG[m].items[pid];
-        rows.push({pid, maker:p[0], name:p[1], varName:p[2], code:p[3], price:p[4], qty:it.qty, amount:it.amount});
+        rows.push({pid, maker:p[0], name:p[1], varName:p[2], code:p[3], price:p[4], category:p[5], qty:it.qty, amount:it.amount});
       }
     });
   });
@@ -617,7 +659,7 @@ function renderSearch(){
       <td>${rankHtml}</td>
       <td><span class="ct">${x(r.maker)}</span></td>
       <td class="cc">${x(r.code)}</td>
-      <td class="nc">${x(r.name)}${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
+      <td class="nc">${x(r.name)}${r.varName?`<span class="var">${x(r.varName)}</span>`:''}<span class="var">${x(r.category)}</span></td>
       <td class="num">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
       <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
@@ -628,11 +670,11 @@ document.getElementById('hd-search').addEventListener('input', e=>{
   searchQuery=e.target.value;
   document.querySelector('.search-wrap').classList.toggle('has-text', !!searchQuery);
   if(searchQuery){ renderSearch(); }
-  else if(currentMaker) showMaker(currentMaker); else showAllMakers();
+  else if(currentGroup) showGroup(currentGroup); else showAllGroups();
 });
 document.getElementById('hd-search-clear').addEventListener('click', ()=>{
   clearSearch();
-  if(currentMaker) showMaker(currentMaker); else showAllMakers();
+  if(currentGroup) showGroup(currentGroup); else showAllGroups();
 });
 
 // ── アップロード（追加データ取込） ────────────────────────
@@ -720,7 +762,7 @@ function processFile(file){
         if(!pid){
           pid=uploadTag+'p'+(count+1);
           PRODUCT_INDEX[key]=pid;
-          newProducts[pid]=[maker,name,varName,code,price];
+          newProducts[pid]=[maker,name,varName,code,price,categorizeProduct(name)];
           ALL_PRODUCTS[pid]=newProducts[pid];
         }
         newRecords.push([date,store,pid,qty,amount]);
