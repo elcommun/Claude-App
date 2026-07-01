@@ -147,7 +147,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v19</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v20</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -198,7 +198,7 @@
       <div class="dlrow">
         <a class="dl" id="dlBtn" href="#" download><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>変換テーブル（メーカーのみ）CSV をダウンロード・Shift-JIS</a>
       </div>
-      <button class="subtle-link" id="confirmDlBtn">確認用（プロパー削除分・掛け率未設定・商品番号空）をまとめてExcelダウンロード</button>
+      <a class="subtle-link" id="confirmDlBtn" href="#" download>確認用（プロパー削除分・掛け率未設定・商品番号空）をまとめてExcelダウンロード</a>
       <div id="prevWrap" class="prev-wrap hidden"></div>
     </div>
   </div>
@@ -552,6 +552,22 @@ document.getElementById('goBtn').onclick=async()=>{
     // ダウンロードリンクのクリックは瞬時のネイティブ遷移だけで済むようにする。
     updateDownloadLink('dlBtn',OUT_FIELDS,outRows,'メーカー変換',null);
 
+    // 確認用Excel（プロパー削除分・掛け率未設定・商品番号空）のリンクも同様に事前構築
+    const confirmEl=document.getElementById('confirmDlBtn');
+    if(dlUrls['confirmDlBtn'])URL.revokeObjectURL(dlUrls['confirmDlBtn']);
+    const confirmUrl=buildConfirmWbUrl();
+    if(confirmUrl){
+      dlUrls['confirmDlBtn']=confirmUrl;
+      confirmEl.href=confirmUrl;
+      confirmEl.download=`${srcName}_確認用.xlsx`;
+      confirmEl.dataset.ready='1';
+    }else{
+      dlUrls['confirmDlBtn']=null;
+      confirmEl.removeAttribute('href');
+      confirmEl.dataset.ready='';
+      confirmEl.dataset.emptyMsg='プロパー(自社)・掛け率未設定・商品番号空のいずれの行もありませんでした';
+    }
+
     document.getElementById('result').classList.remove('hidden');
     document.getElementById('keepCount').textContent=out.length.toLocaleString();
     document.getElementById('keepSub').textContent=`メーカー商品 ${maker.toLocaleString()}行`;
@@ -613,23 +629,30 @@ function updateDownloadLink(id,fields,rows,filenameSuffix,emptyMsg){
     el.dataset.emptyMsg=emptyMsg||'';
   }
 }
-document.getElementById('dlBtn').addEventListener('click',e=>{
-  if(!e.currentTarget.dataset.ready)e.preventDefault();
-  // ready な場合は何もしない → ブラウザ標準のリンクダウンロード動作へ続行
-});
-
-// 確認用（プロパー削除分・掛け率未設定・商品番号空）は1つのExcel(3シート)にまとめてダウンロード。
-// 個別に3回ダウンロードさせると、ブラウザの「複数ファイルの自動ダウンロード」保護に
-// 引っかかりやすいため、1回のダウンロードで完結させる。
-document.getElementById('confirmDlBtn').onclick=()=>{
+// 確認用（プロパー削除分・掛け率未設定・商品番号空）の Excel(最大3シート) の Blob URL を作る
+function buildConfirmWbUrl(){
   const hasProp=propRows&&propRows.length,hasNoMaker=noMakerRows&&noMakerRows.length,hasEmpty=emptyRows&&emptyRows.length;
-  if(!hasProp&&!hasNoMaker&&!hasEmpty){showMsg('プロパー(自社)・掛け率未設定・商品番号空のいずれの行もありませんでした','warning');return;}
+  if(!hasProp&&!hasNoMaker&&!hasEmpty)return null;
   const wb=XLSX.utils.book_new();
   if(hasProp)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(propRows,{header:srcFields}),'プロパー削除分');
   if(hasNoMaker)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(noMakerRows,{header:OUT_FIELDS}),'掛け率未設定');
   if(hasEmpty)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(emptyRows,{header:srcFields}),'商品番号空');
-  XLSX.writeFile(wb,`${srcName}_確認用.xlsx`);
-};
+  const arr=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  return URL.createObjectURL(blob);
+}
+// dlBtn と confirmDlBtn の両方に、ready フラグに基づくクリックガードを設定。
+// XLSX.writeFile() 等のヘルパーは内部で非表示<a>への疑似クリックを行っており、
+// これは同一ページ内での2つ目以降のダウンロードとしてブラウザの
+// 「複数ファイルの自動ダウンロード」保護に引っかかりやすい。
+// このため confirmDlBtn も dlBtn と同様、本物の<a>要素のhrefをあらかじめ
+// 用意しておき、クリックはブラウザ標準のネイティブ遷移だけにする。
+['dlBtn','confirmDlBtn'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{
+    if(!e.currentTarget.dataset.ready){e.preventDefault();const m=e.currentTarget.dataset.emptyMsg;if(m)showMsg(m,'warning');}
+    // ready な場合は何もしない → ブラウザ標準のリンクダウンロード動作へ続行
+  });
+});
 </script>
 </body>
 </html>
