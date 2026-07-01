@@ -147,7 +147,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v12</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v13</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -212,7 +212,7 @@
       <ul>
         <li><span class="b">A</span><span><b>判定</b>：各行の <code>商品番号</code> を内部品番に解決し（<code>item-data</code> 準拠）、<b>自社品番マスタ</b>（約<span id="genkaCount2">0</span>件）に一致、<code>elco-</code> <code>cal-</code>・自社確定接頭辞（<code>X?DR-</code> <code>CAL-</code> <code>EGP-</code> <code>WCL-</code> 等）に一致、または<b>商品名に「エルコミューン」を含む</b>行を<b>プロパー（自社）として削除</b>。それ以外をメーカーとして残します。</span></li>
         <li><span class="b">B</span><span><b>税抜単価</b>：<code>税込別</code> が「込」の行は <code>商品単価 ÷ 1.1</code>（四捨五入）で税抜換算。それ以外は <code>商品単価</code> をそのまま使用。<b>小計（税抜）＝ 税抜単価 × 数量</b>。</span></li>
-        <li><span class="b">C</span><span><b>メーカー・掛け率</b>：<code>商品番号</code> の接頭辞を掛け率表（内蔵36件）と照合して入力。未登録の場合は<b>フォールバック</b>として、商品名に「プラス」「キングジム」→MDS、「クルテク」→パドルビー、「cocochi」→cocochi、「くるみん」「竹久夢二」→京佑キョウユウ、「Alinea」→BEEM、商品番号が大文字<code>MM</code>/<code>KF</code>で始まる5文字→ユニコン、と推定。それでも未登録の場合は空欄（件数を下部に表示）。</span></li>
+        <li><span class="b">C</span><span><b>メーカー・掛け率</b>：<code>商品番号</code> の接頭辞を掛け率表（内蔵37件）と照合して入力。未登録の場合は<b>フォールバック</b>として、商品名に「プラス」「キングジム」→MDS、「クルテク」→パドルビー、「cocochi」→cocochi、「くるみん」「竹久夢二」→京佑キョウユウ、「Alinea」「AND PACKABLE」→BEEM、「真鍮カードスタンド」「真鍮ボタニカル」「【sh-】」→志成販売シセイ、「mashu」「【ky-】」→京佑キョウユウ、「SCANDINAVIAN」「【lfc-】」→LFC、フレーム系名称（「FIT FRAME」「FLAT PANEL」「ローレルフレーム」等）→APJ、「【tp-】」→テクノプライム、「【kj-】」→カミオジャパン、商品番号が大文字<code>MM</code>/<code>KF</code>で始まる5文字、または<code>YB</code>で始まる→ユニコン、と推定。それでも未登録の場合は空欄（件数を下部に表示）。</span></li>
         <li><span class="b">D</span><span><b>項目・選択肢</b>：元データの <code>項目・選択肢</code> 列から「デザイン:」「カラー:」等のバリエーション値だけを抽出（送料・注意事項等の行は除外）。</span></li>
         <li><span class="b">E</span><span><b>出力</b>：<code>店舗 / 出荷日 / 商品名 / 項目・選択肢 / 商品番号 / 税抜単価 / 数量 / 小計（税抜）/ メーカー / 掛け率</code> の10列の変換テーブル（Shift-JIS CSV）。</span></li>
       </ul>
@@ -374,7 +374,7 @@ const MAKER_MAP={
   '303069-c':['志成販売シセイ',0.55],                      // 真鍮ボタニカル
   'aito-':['アイトー',0.5],                                // スイミー豆皿 等
   'kj-':['カミオジャパン',0.6],'lfc-':['LFC',0.55],'chpo-':['ブリエ',0.5],
-  'nl-':['ユニコン',0.53],'ts-':['ユニコン',0.53],
+  'nl-':['ユニコン',0.53],'ts-':['ユニコン',0.53],'yb':['ユニコン',0.53],
 };
 const MAKER_KEYS=Object.keys(MAKER_MAP).sort((a,b)=>b.length-a.length); // 長い接頭辞を優先
 // 商品番号の接頭辞からメーカー名・掛け率を引く（見つからなければ ['','']）
@@ -390,7 +390,13 @@ function makerFallback(pn,rawName){
   if(nm.includes('クルテク'))return['パドルビー',0.55];
   if(nm.includes('cocochi'))return['cocochi',0.5];
   if(nm.includes('くるみん')||nm.includes('竹久夢二'))return['京佑キョウユウ',0.6];
-  if(nm.includes('Alinea'))return['BEEM',0.45];
+  if(nm.includes('Alinea')||nm.includes('AND PACKABLE'))return['BEEM',0.45];
+  if(nm.includes('真鍮カードスタンド')||nm.includes('真鍮ボタニカル')||nm.includes('【sh-】'))return['志成販売シセイ',0.55];
+  if(nm.includes('mashu')||nm.includes('【ky-】'))return['京佑キョウユウ',0.6];
+  if(nm.includes('SCANDINAVIAN')||nm.includes('【lfc-】'))return['LFC',0.55];
+  if(['ローレルフレーム','エルバフレーム','フィアートフレーム','FLAT PANEL','FIT FRAME','Eフレーム','ニューライトフレーム'].some(k=>nm.includes(k)))return['APJ',0.45];
+  if(nm.includes('【tp-】'))return['テクノプライム',0.55];
+  if(nm.includes('【kj-】'))return['カミオジャパン',0.6];
   const t=(pn||'').trim();
   if(t.length===5&&/^(MM|KF)/.test(t))return['ユニコン',0.53]; // 大文字のMM/KFで始まる5文字の品番
   return['',''];
