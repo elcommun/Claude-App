@@ -225,7 +225,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v6</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v7</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -345,7 +345,10 @@ function doLogin(){
   </main>
 </div>
 
-<script src="data.js"></script>
+<script>
+  var _ver=((document.querySelector('.hd-sub span')||{}).textContent||'0').replace(/\D/g,'');
+  document.write('<script src="data.js?v='+_ver+'"><\/script>');
+</script>
 <script>
 // ── データマージ ──────────────────────────────────────────
 const UPLOAD_KEY='ec_supplier_uploads_v1';
