@@ -147,7 +147,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v9</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v10</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -199,6 +199,8 @@
         <button class="dl" id="dlBtn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>変換テーブル（メーカーのみ）CSV をダウンロード・Shift-JIS</button>
       </div>
       <button class="subtle-link" id="propDlBtn">削除されたプロパー(自社)行を確認（元の列のままCSVダウンロード）</button>
+      <button class="subtle-link" id="noMakerDlBtn">掛け率未設定の行を確認（変換テーブル形式でCSVダウンロード）</button>
+      <button class="subtle-link" id="emptyDlBtn">商品番号が空の行を確認（元の列のままCSVダウンロード）</button>
       <div id="prevWrap" class="prev-wrap hidden"></div>
     </div>
   </div>
@@ -450,7 +452,7 @@ async function loadMasterXlsx(f){
 
 /* ---------- generate ---------- */
 const OUT_FIELDS=['店舗','出荷日','商品名','商品番号','税抜単価','数量','小計（税抜）','メーカー','掛け率'];
-let outRows=null,propRows=null,srcFields=null,srcName='受注データ';
+let outRows=null,propRows=null,noMakerRows=null,emptyRows=null,srcFields=null,srcName='受注データ';
 const intOf=v=>{const n=parseInt(String(v==null?'':v).replace(/[^\d-]/g,''),10);return isNaN(n)?0:n;};
 
 document.getElementById('goBtn').onclick=async()=>{
@@ -466,12 +468,14 @@ document.getElementById('goBtn').onclick=async()=>{
 
     const out=[];
     const propOut=[];
+    const noMakerOut=[];
+    const emptyOut=[];
     let maker=0,prop=0,noMaker=0,empty=0;
     rows.forEach(r=>{
       const pn=(r['商品番号']||'').trim();
       const sku=(r['SKU管理番号']||'');
       const store=(r['販売店舗']||'').trim();
-      if(!pn){empty++;return;}
+      if(!pn){empty++;emptyOut.push(r);return;}         // 商品番号空 → 除外（元の列のまま保持）
       if(isOwn(pn,sku,store)){prop++;propOut.push(r);return;}  // プロパー(自社) → 削除（元の列のまま保持）
       maker++;                                          // メーカー → 残す＆変換
       // 税抜単価: 税込別が「込」なら 商品単価÷1.1（四捨五入）
@@ -480,8 +484,7 @@ document.getElementById('goBtn').onclick=async()=>{
       const net=(taxType==='込')?Math.round(rawPrice/1.1):rawPrice;
       const qty=intOf(r['個数']);
       const [mk,rate]=makerFor(pn);
-      if(!mk)noMaker++;
-      out.push({
+      const row={
         '店舗':store,
         '出荷日':(r['出荷日']||'').trim()||(r['注文日時']||'').trim().slice(0,10),
         '商品名':cleanName(r['商品名']),
@@ -491,10 +494,12 @@ document.getElementById('goBtn').onclick=async()=>{
         '小計（税抜）':net*qty,
         'メーカー':mk,
         '掛け率':rate===''?'':rate,
-      });
+      };
+      if(!mk){noMaker++;noMakerOut.push(row);}
+      out.push(row);
     });
 
-    outRows=out;propRows=propOut;srcFields=fields;
+    outRows=out;propRows=propOut;noMakerRows=noMakerOut;emptyRows=emptyOut;srcFields=fields;
 
     document.getElementById('result').classList.remove('hidden');
     document.getElementById('keepCount').textContent=out.length.toLocaleString();
@@ -552,6 +557,18 @@ document.getElementById('dlBtn').onclick=()=>{
 document.getElementById('propDlBtn').onclick=()=>{
   if(!propRows||!propRows.length){showMsg('プロパー(自社)として削除された行はありませんでした','warning');return;}
   downloadCSV(srcFields,propRows,`${srcName}_プロパー削除分.csv`);
+};
+
+// download — 掛け率未設定（メーカー名が空欄）の行を変換テーブル形式で出力（確認用）
+document.getElementById('noMakerDlBtn').onclick=()=>{
+  if(!noMakerRows||!noMakerRows.length){showMsg('掛け率未設定の行はありませんでした','warning');return;}
+  downloadCSV(OUT_FIELDS,noMakerRows,`${srcName}_掛け率未設定.csv`);
+};
+
+// download — 商品番号が空の行を元のCSV列のまま出力（確認用）
+document.getElementById('emptyDlBtn').onclick=()=>{
+  if(!emptyRows||!emptyRows.length){showMsg('商品番号が空の行はありませんでした','warning');return;}
+  downloadCSV(srcFields,emptyRows,`${srcName}_商品番号空.csv`);
 };
 </script>
 </body>
