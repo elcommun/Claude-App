@@ -1141,7 +1141,8 @@ async function processData() {
     if (s==='EL COMMUN Yahoo店' && pn.startsWith('MOF-'))                     { ownData.push(row); return; }
     if (pn.startsWith('DR-') || pn.startsWith('XDR-'))                        { ownData.push(row); return; }
     const isMaker = makerPrefixes.some(p => pn.startsWith(p)) || pn==='303069-C'
-                    || makerProductNames.some(n => name.startsWith(n));
+                    || makerProductNames.some(n => name.startsWith(n))
+                    || name.includes('クルテク');
     (isMaker ? makerData : ownData).push(row);
   });
 
@@ -1170,6 +1171,7 @@ async function processData() {
     if (s==='EL COMMUN auPAYマーケット店') {
       if (pn.match(/^cal-.+-CAL-.+$/))      { row['商品番号']=pn.replace(/^cal-.+-(CAL-.+)$/,'$1'); return; }
       if (pn.match(/^elco-(LLN|ECL)-.+$/)) { row['商品番号']=pn.replace(/^elco-/,''); return; }
+      if (pn.match(/^elco-pnt-(.+)$/))    { row['商品番号']='PNT-'+pn.replace(/^elco-pnt-/,''); return; }
       row['商品番号']=pn.replace(/elco-[^-]+-/g,''); return;
     }
 
@@ -1189,6 +1191,7 @@ async function processData() {
     else if (pn.match(/^elco-gyr-061(.+)$/))             { pn=pn.replace(/^elco-gyr-061(.+)$/,'$1'); }
     else if (pn.match(/^elco-gyr-074(.+)$/))             { pn=pn.replace(/^elco-gyr-074(.+)$/,'$1'); }
     else if (pn.match(/^elco-nba-041-(.+)$/))            { pn=pn.replace(/^elco-nba-041-(.+)$/,'$1'); }
+    else if (pn.match(/^elco-pnt-(.+)$/))               { pn='PNT-'+pn.replace(/^elco-pnt-/,''); }
     else                                                 { pn=pn.replace(/elco-[^-]+-/g,''); }
 
     pn=pn.replace(/cal-[^-]+-/g,'');
