@@ -225,7 +225,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v7</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v8</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -431,6 +431,12 @@ function cleanProductName(name){
   for(const w of STRIP_WORDS){ s=s.split(w).join(' '); }
   s=s.replace(SPACE_RE,' ').trim();
   return s || name;
+}
+const VAR_STOCK_PREFIX_RE=/^在庫\s*\/\s*/;
+function cleanVarName(v){
+  v=(v||'').trim();
+  if(v==='在庫') return '';
+  return v.replace(VAR_STOCK_PREFIX_RE,'');
 }
 function setGroupMode(mode){
   groupMode=mode;
@@ -783,7 +789,7 @@ function processFile(file){
         const maker=String(row[colIdx['メーカー']]||'').trim();
         const name=String(row[colIdx['商品名']]||'').trim();
         if(!store||!maker||!name) continue;
-        const varName=String(row[colIdx['項目・選択肢']]||'').trim();
+        const varName=cleanVarName(String(row[colIdx['項目・選択肢']]||'').trim());
         const code=String(row[colIdx['商品番号']]||'').trim();
         const price=num(row[colIdx['税抜単価']]);
         const qty=num(row[colIdx['数量']]);
