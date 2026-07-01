@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>仕入れメーカー別 販売ランキング | EL COMMUN</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#E85D26">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#2d2926;--ink2:#44403c;--ink3:#78716c;--ink4:#a8a29e;
+  --paper:#faf8f4;--paper2:#f5f1ea;--white:#fff;--border:#e7e2da;--border2:#f0ece5;
+  --gold:#E85D26;--gold-lt:#fff3ee;
+  --green:#3a6b52;--green-lt:#edf5f0;
+  --red:#b85c3c;--red-lt:#fdf2ee;
+  --sb:220px;--hh:56px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(--paper);color:var(--ink);font-size:13px;line-height:1.6;min-height:100vh}
+/* Header */
+.hdr{position:fixed;top:0;left:0;right:0;height:var(--hh);background:#2d2926;display:flex;align-items:center;padding:0 18px;gap:12px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.hd-logo{font-size:15px;font-weight:700;color:#fff;letter-spacing:.04em;white-space:nowrap;cursor:pointer}
+.hd-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase}
+.hd-sep{width:1px;height:18px;background:rgba(255,255,255,.12);flex-shrink:0}
+.hd-date{font-size:11px;color:rgba(255,255,255,.45);white-space:nowrap}
+.hd-date b{color:rgba(255,255,255,.85);font-weight:600}
+.hd-spacer{flex:1}
+.search-wrap{position:relative}
+.si{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.35);font-size:12px;pointer-events:none}
+#hd-search{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;color:#fff;padding:6px 28px 6px 30px;font-size:12px;width:230px;outline:none;font-family:inherit;transition:border-color .2s,background .2s}
+#hd-search::placeholder{color:rgba(255,255,255,.3)}
+#hd-search:focus{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.3)}
+#hd-search-clear{display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);width:18px;height:18px;line-height:16px;text-align:center;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.25);color:#fff;font-size:13px;cursor:pointer;font-family:inherit}
+#hd-search-clear:hover{background:rgba(255,255,255,.45)}
+.search-wrap.has-text #hd-search-clear{display:block}
+.hd-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;white-space:nowrap}
+.hd-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:none;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--white);border-radius:14px;padding:32px 36px;max-width:480px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:5px}
+.modal-desc{font-size:12px;color:var(--ink3);margin-bottom:20px;line-height:1.65}
+.dz{border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;margin-bottom:12px}
+.dz:hover,.dz.over{border-color:var(--gold);background:var(--gold-lt)}
+.dz.done{border-color:var(--green);background:var(--green-lt);border-style:solid}
+.dz-icon{font-size:22px;margin-bottom:4px}
+.dz-lbl{font-size:12px;font-weight:600}
+.dz-hint{font-size:10px;color:var(--ink4);margin-top:3px}
+.dz-files{margin-top:6px;font-size:11px;color:var(--green);text-align:left}
+input[type=file]{display:none}
+.mn{font-size:12px;padding:9px 12px;border-radius:6px;margin-bottom:12px;display:none}
+.mn.show{display:block}
+.mn.info{background:var(--gold-lt);color:#7a5f35;border:1px solid #dfd0b4}
+.mn.ok{background:var(--green-lt);color:#2d5540;border:1px solid #b4d4c4}
+.mn.err{background:var(--red-lt);color:#8a3820;border:1px solid #e0beb0}
+.modal-btns{display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+.modal-reset{font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;padding:4px 8px;text-decoration:underline;margin-right:auto}
+.modal-reset:hover{opacity:.7}
+.btn-cancel{background:transparent;border:1.5px solid var(--border);color:var(--ink3);padding:8px 18px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;transition:border-color .15s}
+.btn-cancel:hover{border-color:var(--ink3);color:var(--ink)}
+.modal-sec{border-top:1px solid var(--border);margin:14px 0 6px;padding-top:10px;font-size:11px;color:var(--ink3);line-height:1.8}
+.modal-sec code{background:var(--paper2);padding:1px 4px;border-radius:3px;font-size:10px}
+/* Layout */
+.layout{display:flex;padding-top:var(--hh)}
+.sb{width:var(--sb);flex-shrink:0;position:fixed;top:var(--hh);bottom:0;left:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior:contain;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sb::-webkit-scrollbar{width:4px}
+.sb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sb-flt{padding:10px 12px;border-bottom:1px solid var(--border2);display:flex;flex-direction:column;gap:0}
+.sb-flt-sec{padding:10px 0;border-bottom:1px solid var(--border2)}
+.sb-flt-sec:last-child{border-bottom:none}
+.sb-flt-lbl{font-size:11px;font-weight:700;color:var(--ink2);margin-bottom:8px;letter-spacing:.02em}
+.sb-flt-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.sb-chip{display:inline-block;background:#2d2926;color:#fff;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;letter-spacing:.03em;flex-shrink:0}
+.fsel{width:100%;height:29px;padding:0 7px;border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--ink);background:var(--white);outline:none;font-family:inherit;transition:border-color .15s}
+.fsel:focus{border-color:var(--gold)}
+.qbtn{flex:1;padding:3px 4px;font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--ink3);cursor:pointer;line-height:1.4;font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+.qbtn:hover{border-color:var(--gold);color:var(--gold)}
+.qbtn.on{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700}
+.sb-tog{padding:7px 11px;border-bottom:1px solid var(--border2);display:flex;gap:4px}
+.sb-tbtn{flex:1;padding:5px 4px;border:1px solid var(--border);border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;background:var(--white);color:var(--ink3);transition:all .15s;text-align:center}
+.sb-tbtn.on{background:var(--gold);color:#fff;border-color:var(--gold)}
+.sb-list{flex:1;padding:5px 0}
+.sbi{display:flex;align-items:center;gap:6px;padding:7px 14px;cursor:pointer;transition:background .1s;border-left:3px solid transparent;position:relative}
+.sbi:hover{background:var(--gold-lt)}
+.sbi.active{background:var(--gold-lt);border-left-color:var(--gold)}
+.sbi-name{flex:1;font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sbi.active .sbi-name{color:var(--ink);font-weight:600}
+.sbi-badge{font-size:10px;font-weight:700;color:var(--ink4);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
+.sbi.active .sbi-badge{color:var(--gold)}
+.sbi-bar{position:absolute;bottom:0;left:17px;right:14px;height:2px;background:var(--border2);border-radius:1px}
+.sbi-bar-fill{height:100%;background:var(--gold);border-radius:1px;opacity:.5;transition:width .3s}
+.sbi-all{border-bottom:1px solid var(--border2);margin-bottom:2px;padding-bottom:9px}
+/* Main */
+.main{margin-left:var(--sb);flex:1;padding:22px 26px 60px;min-width:0}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--gold);opacity:.28}
+.kpi-v{font-size:19px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:4px;letter-spacing:-.02em}
+.kpi-l{font-size:10px;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase}
+.cat-hd{display:flex;align-items:baseline;gap:11px;margin-bottom:14px;flex-wrap:wrap}
+.cat-name{font-size:21px;font-weight:700}
+.cat-rate{font-size:11px;color:var(--ink3);background:var(--paper2);border-radius:5px;padding:2px 8px}
+.cat-stats{display:flex;gap:13px;flex-wrap:wrap}
+.cs{font-size:12px;color:var(--ink3)}
+.cs b{color:var(--ink2);font-weight:700}
+.sort-lbl{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--gold);text-transform:uppercase}
+.tw{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(28,25,23,.04)}
+.tbl{width:100%;border-collapse:collapse}
+.tbl thead{position:sticky;top:0;z-index:10}
+.tbl th{background:#f0ece8;color:#5a4540;padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:center;border-right:1px solid #e0dbd5;border-bottom:1px solid #e0dbd5;white-space:nowrap}
+.th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:#2d2926}.sort-ind{margin-left:3px;font-size:9px;opacity:.7}
+.tbl th:last-child{border-right:none}
+.tbl td{padding:8px 13px;border-bottom:1px solid var(--border2);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#fdf9f4}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
+.cc{font-size:11px;color:var(--ink3);font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
+.nc{max-width:400px}
+.nc .var{display:block;font-size:11px;color:var(--ink3);margin-top:2px}
+.rn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+.r1{background:#E85D26;color:#fff}
+.r2{background:#888;color:#fff}
+.r3{background:#a07040;color:#fff}
+.ro{color:var(--ink4);font-size:11px}
+.bb{height:6px;background:var(--border2);border-radius:3px;overflow:hidden;width:84px}
+.bf{height:100%;background:var(--gold);border-radius:3px;opacity:.65}
+.ct{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:var(--gold-lt);color:var(--gold);margin-right:5px;white-space:nowrap}
+.empty{text-align:center;padding:70px 20px;color:var(--ink4)}
+.empty-icon{font-size:32px;margin-bottom:8px}
+.fmt-hdr td{background:var(--paper2);font-weight:600;font-size:11px;color:var(--ink3);padding:5px 10px;letter-spacing:.03em;border-bottom:1px solid var(--border2)}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(146,117,74,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Responsive */
+.hd-menu{display:none;background:none;border:none;color:rgba(255,255,255,.8);font-size:22px;cursor:pointer;padding:2px 8px;line-height:1;flex-shrink:0;margin-right:2px}
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:155}
+.sb-overlay.open{display:block}
+@media(max-width:768px){
+  :root{--hh:52px}
+  .hd-menu{display:block}
+  .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:160;box-shadow:4px 0 24px rgba(0,0,0,.18)}
+  .sb.open{transform:translateX(0)}
+  .main{margin-left:0;padding:16px 14px 60px}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .nc{max-width:160px}
+  .bb{width:56px}
+  #hd-search{width:130px}
+  .hd-btn{padding:5px 9px;font-size:10px}
+  .hd-date{display:none}
+}
+@media(max-width:480px){
+  #hd-search{width:100px;font-size:16px}
+  .kpi-row{grid-template-columns:repeat(2,1fr);gap:7px}
+  .cat-name{font-size:17px}
+}
+/* Login */
+#login-overlay{position:fixed;inset:0;background:#1c1917;z-index:9999;display:flex;align-items:center;justify-content:center}
+#login-overlay.hidden{display:none}
+.login-box{background:#fff;border-radius:14px;padding:40px 36px;width:320px;max-width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.4)}
+.login-logo{font-size:13px;font-weight:700;letter-spacing:.08em;color:#4a7c59;text-align:center;margin-bottom:4px}
+.login-title{font-size:11px;color:#888;text-align:center;margin-bottom:28px;letter-spacing:.05em}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-size:11px;font-weight:600;color:#555;margin-bottom:5px;letter-spacing:.04em}
+.login-field input{width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:7px;padding:10px 12px;font-size:16px;outline:none;transition:border-color .2s}
+.login-field input:focus{border-color:#4a7c59}
+.login-btn{width:100%;padding:11px;background:#4a7c59;color:#fff;border:none;border-radius:7px;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;transition:background .2s}
+.login-btn:hover{background:#3a6349}
+.login-err{color:#c0392b;font-size:12px;text-align:center;margin-top:12px;min-height:16px}
+</style>
+</head>
+<body>
+<div id="login-overlay">
+  <form class="login-box" onsubmit="doLogin();return false;" action="#">
+    <div class="login-logo">EL COMMUN</div>
+    <div class="login-title">仕入れメーカー 販売データ</div>
+    <div class="login-field">
+      <label>ID</label>
+      <input type="text" id="login-id" name="username" autocomplete="username" autocapitalize="off" spellcheck="false">
+    </div>
+    <div class="login-field">
+      <label>パスワード</label>
+      <input type="password" id="login-pw" name="password" autocomplete="current-password">
+    </div>
+    <button type="submit" class="login-btn">ログイン</button>
+    <div class="login-err" id="login-err"></div>
+  </form>
+</div>
+<script>
+(function(){
+  if(sessionStorage.getItem('ec_auth')==='1'){
+    document.getElementById('login-overlay').classList.add('hidden');
+  } else if(window.PasswordCredential){
+    navigator.credentials.get({password:true}).then(function(c){
+      if(c){
+        document.getElementById('login-id').value=c.id;
+        document.getElementById('login-pw').value=c.password;
+      }
+    }).catch(function(){});
+  }
+  document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+  document.getElementById('login-id').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+})();
+function doLogin(){
+  const id=document.getElementById('login-id').value.trim();
+  const pw=document.getElementById('login-pw').value;
+  if(id==='elcommun'&&pw==='ec0299'){
+    sessionStorage.setItem('ec_auth','1');
+    if(window.PasswordCredential){
+      const c=new PasswordCredential({id:id,password:pw});
+      navigator.credentials.store(c).catch(function(){});
+    }
+    document.getElementById('login-overlay').classList.add('hidden');
+  } else {
+    document.getElementById('login-err').textContent='IDまたはパスワードが正しくありません';
+    document.getElementById('login-pw').value='';
+    document.getElementById('login-pw').focus();
+  }
+}
+</script>
+
+<header class="hdr">
+  <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v1</span></div></div>
+  <div class="hd-sep"></div>
+  <div class="hd-date" id="hd-date"></div>
+  <div class="hd-spacer"></div>
+  <div class="search-wrap">
+    <span class="si">🔍</span>
+    <input type="text" id="hd-search" placeholder="商品名・品番・メーカーで検索…" autocomplete="off">
+    <button type="button" id="hd-search-clear" aria-label="検索をクリア" title="検索をクリア">×</button>
+  </div>
+  <button class="hd-btn" id="hd-update-btn" onclick="openModal()">⬆ データ更新</button>
+</header>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-title">販売データを追加</div>
+    <div class="modal-desc">
+      「ec-maker-only」アプリで変換した<b>メーカー変換CSV</b>（店舗/出荷日/商品名/項目・選択肢/商品番号/税抜単価/数量/小計（税抜）/メーカー/掛け率の10列）をアップロードすると、既存データに追加でマージされます。
+    </div>
+    <div class="dz" id="dz" onclick="document.getElementById('file-input').click()">
+      <div class="dz-icon">📄</div>
+      <div class="dz-lbl">クリックまたはドラッグ＆ドロップ</div>
+      <div class="dz-hint">.csv / .xlsx（Shift-JIS対応）</div>
+      <div class="dz-files" id="dz-files"></div>
+    </div>
+    <input type="file" id="file-input" accept=".csv,.xlsx,.xls" multiple>
+    <div class="mn" id="mn"></div>
+    <div class="modal-sec">
+      現在の読込データ: <b id="modal-summary"></b><br>
+      追加したデータをリセットしたい場合は下のボタンから削除できます（初期サンプルデータは消えません）。
+    </div>
+    <div class="modal-btns">
+      <button class="modal-reset" onclick="resetUploads()">追加データを削除</button>
+      <button class="btn-cancel" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="sb-overlay" id="sb-overlay"></div>
+<div class="layout">
+  <aside class="sb">
+    <div class="sb-flt">
+      <div class="sb-flt-sec">
+        <div class="sb-flt-lbl">販売期間</div>
+        <div class="sb-flt-row">
+          <span class="sb-chip">開始日</span>
+          <input type="date" class="fsel" id="f-date-from" onchange="setQBtnActive(null);applyFilter()">
+        </div>
+        <div class="sb-flt-row">
+          <span class="sb-chip">終了日</span>
+          <input type="date" class="fsel" id="f-date-to" onchange="setQBtnActive(null);applyFilter()">
+        </div>
+        <div style="display:flex;gap:4px;margin-top:6px">
+          <button id="qbtn-1m" onclick="setRecentPeriod(1)" class="qbtn">直近1ヶ月</button>
+          <button id="qbtn-3m" onclick="setRecentPeriod(3)" class="qbtn">直近3ヶ月</button>
+          <button id="qbtn-all" onclick="setFullPeriod()" class="qbtn">全期間</button>
+        </div>
+      </div>
+      <div class="sb-flt-sec">
+        <div class="sb-flt-lbl">店舗</div>
+        <select class="fsel" id="f-store" onchange="applyFilter()">
+          <option value="all">すべての店舗</option>
+        </select>
+      </div>
+    </div>
+    <div class="sb-tog">
+      <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty')">個数順</button>
+      <button class="sb-tbtn" id="tog-amt" onclick="setSort('amount')">金額順</button>
+    </div>
+    <div class="sb-list" id="sb-list"></div>
+  </aside>
+
+  <main class="main">
+    <div class="kpi-row" id="kpi-row"></div>
+    <div id="cat-view">
+      <div class="cat-hd">
+        <div class="cat-name" id="cat-name"></div>
+        <div class="cat-rate" id="cat-rate"></div>
+        <div class="cat-stats" id="cat-stats"></div>
+        <div class="sort-lbl" id="sort-lbl">個数ランキング</div>
+      </div>
+      <div class="tw"><table class="tbl" id="rank-tbl">
+        <thead><tr>
+          <th style="width:50px">順位</th>
+          <th class="code-col" style="min-width:110px">商品番号</th>
+          <th class="name-col" style="min-width:280px">商品名</th>
+          <th class="th-sort" onclick="setSort('price')" style="min-width:80px">税抜単価<span class="sort-ind" id="ri-price"></span></th>
+          <th class="th-sort" onclick="setSort('qty')" style="min-width:70px">数量<span class="sort-ind" id="ri-qty"></span></th>
+          <th style="min-width:90px">売上比</th>
+          <th class="th-sort" onclick="setSort('amount')" style="min-width:100px">小計金額<span class="sort-ind" id="ri-amount"></span></th>
+        </tr></thead>
+        <tbody id="rank-tbody"></tbody>
+      </table></div>
+    </div>
+    <div id="search-view" style="display:none">
+      <div class="cat-hd">
+        <div class="cat-name">検索結果</div>
+        <div class="cat-stats" id="search-stats"></div>
+      </div>
+      <div class="tw"><table class="tbl" id="search-tbl">
+        <thead><tr>
+          <th style="width:50px">順位</th>
+          <th style="min-width:80px">メーカー</th>
+          <th style="min-width:110px">商品番号</th>
+          <th class="name-col" style="min-width:260px">商品名</th>
+          <th style="min-width:80px">税抜単価</th>
+          <th style="min-width:70px">数量</th>
+          <th style="min-width:100px">小計金額</th>
+        </tr></thead>
+        <tbody id="search-tbody"></tbody>
+      </table></div>
+    </div>
+  </main>
+</div>
+
+<script src="data.js"></script>
+<script>
+// ── データマージ ──────────────────────────────────────────
+const UPLOAD_KEY='ec_supplier_uploads_v1';
+let ALL_MAKERS={}, ALL_PRODUCTS={}, ALL_RECORDS=[], PRODUCT_INDEX={};
+
+function loadUploads(){
+  try{ return JSON.parse(localStorage.getItem(UPLOAD_KEY)||'[]'); }catch(e){ return []; }
+}
+function saveUploads(batches){
+  localStorage.setItem(UPLOAD_KEY, JSON.stringify(batches));
+}
+function buildData(){
+  ALL_MAKERS=Object.assign({}, PRELOADED.makers);
+  ALL_PRODUCTS=Object.assign({}, PRELOADED.products);
+  ALL_RECORDS=PRELOADED.records.slice();
+  const batches=loadUploads();
+  batches.forEach(b=>{
+    Object.assign(ALL_MAKERS, b.makers||{});
+    Object.assign(ALL_PRODUCTS, b.products||{});
+    ALL_RECORDS=ALL_RECORDS.concat(b.records||[]);
+  });
+  PRODUCT_INDEX={};
+  Object.keys(ALL_PRODUCTS).forEach(pid=>{
+    const p=ALL_PRODUCTS[pid];
+    PRODUCT_INDEX[p[0]+''+p[1]+''+p[2]]=pid;
+  });
+}
+buildData();
+
+// ── 状態 ──────────────────────────────────────────────────
+let AGG={}; // maker -> {qty,amount,items:{pid:{qty,amount}}}
+let ALL_TOTAL={qty:0,amount:0};
+let currentMaker=null; // null = 全メーカー
+let sortMode='qty', sortDir='desc';
+let searchQuery='';
+
+function normalize(s){
+  return (s||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'');
+}
+function x(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ── 期間・店舗フィルタ ──────────────────────────────────────
+function buildSelects(){
+  const from=document.getElementById('f-date-from');
+  const to=document.getElementById('f-date-to');
+  from.min=to.min=PRELOADED.date_from;
+  from.max=to.max=PRELOADED.date_to;
+  from.value=PRELOADED.date_from;
+  to.value=PRELOADED.date_to;
+  const storeSel=document.getElementById('f-store');
+  const stores=Array.from(new Set(ALL_RECORDS.map(r=>r[1]))).sort();
+  storeSel.innerHTML='<option value="all">すべての店舗</option>'+stores.map(s=>`<option value="${x(s)}">${x(s)}</option>`).join('');
+}
+function setFullPeriod(){
+  document.getElementById('f-date-from').value=PRELOADED.date_from;
+  document.getElementById('f-date-to').value=PRELOADED.date_to;
+  setQBtnActive('qbtn-all');
+  applyFilter();
+}
+function setRecentPeriod(months){
+  const to=PRELOADED.date_to;
+  const d=new Date(to+'T00:00:00');
+  d.setMonth(d.getMonth()-months);
+  const from=d.toISOString().slice(0,10);
+  document.getElementById('f-date-from').value= from<PRELOADED.date_from?PRELOADED.date_from:from;
+  document.getElementById('f-date-to').value=to;
+  setQBtnActive('qbtn-'+months+'m');
+  applyFilter();
+}
+function setQBtnActive(id){
+  ['qbtn-1m','qbtn-3m','qbtn-all'].forEach(b=>{
+    const el=document.getElementById(b);
+    if(el) el.classList.toggle('on', b===id);
+  });
+}
+
+function applyFilter(){
+  const dF=document.getElementById('f-date-from').value||PRELOADED.date_from;
+  const dT=document.getElementById('f-date-to').value||PRELOADED.date_to;
+  const store=document.getElementById('f-store').value;
+  AGG={};
+  ALL_TOTAL={qty:0,amount:0};
+  for(const rec of ALL_RECORDS){
+    const [date,rStore,pid,qty,amount]=rec;
+    if(date<dF||date>dT) continue;
+    if(store!=='all'&&rStore!==store) continue;
+    const p=ALL_PRODUCTS[pid];
+    if(!p) continue;
+    const maker=p[0];
+    const m=AGG[maker]||(AGG[maker]={qty:0,amount:0,items:{}});
+    m.qty+=qty; m.amount+=amount;
+    const it=m.items[pid]||(m.items[pid]={qty:0,amount:0});
+    it.qty+=qty; it.amount+=amount;
+    ALL_TOTAL.qty+=qty; ALL_TOTAL.amount+=amount;
+  }
+  updateHeaderDate(dF,dT);
+  renderSidebar();
+  if(searchQuery){ renderSearch(); }
+  else if(currentMaker && AGG[currentMaker]){ showMaker(currentMaker); }
+  else { showAllMakers(); }
+}
+function updateHeaderDate(dF,dT){
+  document.getElementById('hd-date').innerHTML='<b>'+dF+'</b> 〜 <b>'+dT+'</b>';
+}
+
+// ── ソート ────────────────────────────────────────────────
+function setSort(mode){
+  if(sortMode===mode){ sortDir = sortDir==='desc' ? 'asc' : 'desc'; }
+  else { sortMode=mode; sortDir = (mode==='code') ? 'asc' : 'desc'; }
+  document.getElementById('tog-qty').classList.toggle('on', mode==='qty');
+  document.getElementById('tog-amt').classList.toggle('on', mode==='amount');
+  ['price','qty','amount'].forEach(m=>{
+    const el=document.getElementById('ri-'+m);
+    if(el) el.textContent = (sortMode===m) ? (sortDir==='desc'?'▼':'▲') : '';
+  });
+  document.getElementById('sort-lbl').textContent = mode==='amount' ? '金額ランキング' : mode==='price' ? '単価ランキング' : '個数ランキング';
+  renderSidebar();
+  if(currentMaker) showMaker(currentMaker); else showAllMakers();
+}
+
+// ── サイドバー ────────────────────────────────────────────
+function renderSidebar(){
+  const list=document.getElementById('sb-list');
+  const makerNames=Object.keys(AGG);
+  const metric = sortMode==='amount' ? 'amount' : 'qty';
+  const maxVal=Math.max(1, ...makerNames.map(m=>AGG[m][metric]));
+  makerNames.sort((a,b)=>AGG[b][metric]-AGG[a][metric]);
+
+  const allBadge = metric==='amount' ? '¥'+Math.round(ALL_TOTAL.amount).toLocaleString() : ALL_TOTAL.qty.toLocaleString()+'個';
+  let html = `<div class="sbi sbi-all${currentMaker===null?' active':''}" onclick="selectMaker(null)">
+      <span class="sbi-name">🏷 全メーカー</span>
+      <span class="sbi-badge">${allBadge}</span>
+    </div>`;
+
+  html += makerNames.map(m=>{
+    const v=AGG[m][metric];
+    const badge = metric==='amount' ? '¥'+Math.round(v).toLocaleString() : v.toLocaleString()+'個';
+    const pct = Math.round(v/maxVal*100);
+    const active = currentMaker===m;
+    return `<div class="sbi${active?' active':''}" onclick="selectMaker('${esc(m)}')">
+      <span class="sbi-name">${x(m)}</span>
+      <span class="sbi-badge">${badge}</span>
+      <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+  list.innerHTML=html;
+}
+function esc(s){ return String(s).replace(/'/g,"\\'"); }
+function selectMaker(m){
+  currentMaker=m;
+  clearSearch();
+  if(m===null) showAllMakers(); else showMaker(m);
+  renderSidebar();
+  document.querySelector('.sb').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('open');
+}
+
+// ── KPIカード ─────────────────────────────────────────────
+function renderKPI(qty,amount,cost,skuCount){
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi"><div class="kpi-v">${qty.toLocaleString()}</div><div class="kpi-l">販売数量</div></div>
+    <div class="kpi"><div class="kpi-v">¥${Math.round(amount).toLocaleString()}</div><div class="kpi-l">税抜売上金額</div></div>
+    <div class="kpi"><div class="kpi-v">${cost!=null?'¥'+Math.round(cost).toLocaleString():'—'}</div><div class="kpi-l">仕入金額（概算）</div></div>
+    <div class="kpi"><div class="kpi-v">${skuCount.toLocaleString()}</div><div class="kpi-l">SKU数</div></div>
+  `;
+}
+
+// ── メーカー別ランキング表示 ──────────────────────────────
+function itemRows(items){
+  return Object.keys(items).map(pid=>{
+    const p=ALL_PRODUCTS[pid];
+    const it=items[pid];
+    return {pid, maker:p[0], name:p[1], varName:p[2], code:p[3], price:p[4], qty:it.qty, amount:it.amount};
+  });
+}
+function sortItems(rows){
+  rows.sort((a,b)=>{
+    let av,bv;
+    if(sortMode==='price'){ av=a.price; bv=b.price; }
+    else if(sortMode==='amount'){ av=a.amount; bv=b.amount; }
+    else { av=a.qty; bv=b.qty; }
+    const d = sortDir==='desc' ? (bv-av) : (av-bv);
+    return d!==0 ? d : b.amount-a.amount;
+  });
+  return rows;
+}
+function showAllMakers(){
+  document.getElementById('cat-view').style.display='';
+  document.getElementById('search-view').style.display='none';
+  const items={};
+  Object.keys(AGG).forEach(m=>Object.assign(items, AGG[m].items));
+  const rows=sortItems(itemRows(items));
+  const totalCost=Object.keys(AGG).reduce((sum,m)=>sum+AGG[m].amount*(ALL_MAKERS[m]||0),0);
+  renderKPI(ALL_TOTAL.qty, ALL_TOTAL.amount, totalCost, rows.length);
+  document.getElementById('cat-name').textContent='全メーカー';
+  document.getElementById('cat-rate').textContent='';
+  document.getElementById('cat-stats').innerHTML=`<span class="cs">メーカー数 <b>${Object.keys(AGG).length}</b></span>`;
+  renderRankTable(rows, ALL_TOTAL.amount, true);
+}
+function showMaker(m){
+  document.getElementById('cat-view').style.display='';
+  document.getElementById('search-view').style.display='none';
+  const agg=AGG[m];
+  if(!agg){
+    document.getElementById('cat-name').textContent=m;
+    document.getElementById('cat-rate').textContent='';
+    document.getElementById('cat-stats').innerHTML='';
+    document.getElementById('rank-tbody').innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">📭</div>この期間の販売データはありません</div></td></tr>';
+    renderKPI(0,0,0,0);
+    return;
+  }
+  const rows=sortItems(itemRows(agg.items));
+  renderKPI(agg.qty, agg.amount, agg.amount*(ALL_MAKERS[m]||0), rows.length);
+  document.getElementById('cat-name').textContent=m;
+  document.getElementById('cat-rate').textContent = ALL_MAKERS[m]!=null ? '掛け率 '+ALL_MAKERS[m] : '';
+  document.getElementById('cat-stats').innerHTML=`<span class="cs">全体の <b>${(agg.amount/(ALL_TOTAL.amount||1)*100).toFixed(1)}%</b></span>`;
+  renderRankTable(rows, agg.amount, false);
+}
+function renderRankTable(rows, totalAmount, showMakerTag){
+  if(!rows.length){
+    document.getElementById('rank-tbody').innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">📭</div>この期間の販売データはありません</div></td></tr>';
+    return;
+  }
+  const maxAmt=Math.max(1,...rows.map(r=>r.amount));
+  document.getElementById('rank-tbody').innerHTML=rows.map((r,i)=>{
+    const rank=i+1;
+    const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
+    const pct=(r.amount/(totalAmount||1)*100);
+    const barPct=Math.round(r.amount/maxAmt*100);
+    return `<tr>
+      <td>${rankHtml}</td>
+      <td class="cc">${x(r.code)}</td>
+      <td class="nc">${showMakerTag?`<span class="ct">${x(r.maker)}</span>`:''}${x(r.name)}${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
+      <td class="num">¥${r.price.toLocaleString()}</td>
+      <td class="num">${r.qty.toLocaleString()}</td>
+      <td><div class="bb"><div class="bf" style="width:${barPct}%"></div></div><div style="font-size:10px;color:var(--ink4);margin-top:2px">${pct.toFixed(1)}%</div></td>
+      <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── 検索 ──────────────────────────────────────────────────
+function clearSearch(){
+  searchQuery='';
+  document.getElementById('hd-search').value='';
+  document.querySelector('.search-wrap').classList.remove('has-text');
+}
+function renderSearch(){
+  const qn=normalize(searchQuery);
+  document.getElementById('cat-view').style.display='none';
+  document.getElementById('search-view').style.display='';
+  const rows=[];
+  Object.keys(AGG).forEach(m=>{
+    Object.keys(AGG[m].items).forEach(pid=>{
+      const p=ALL_PRODUCTS[pid];
+      const hay=normalize(p[0]+p[1]+p[2]+p[3]);
+      if(hay.includes(qn)){
+        const it=AGG[m].items[pid];
+        rows.push({pid, maker:p[0], name:p[1], varName:p[2], code:p[3], price:p[4], qty:it.qty, amount:it.amount});
+      }
+    });
+  });
+  sortItems(rows);
+  document.getElementById('search-stats').innerHTML=`<span class="cs">一致件数 <b>${rows.length}</b> 件</span>`;
+  if(!rows.length){
+    document.getElementById('search-tbody').innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔍</div>該当する商品が見つかりません</div></td></tr>';
+    return;
+  }
+  document.getElementById('search-tbody').innerHTML=rows.map((r,i)=>{
+    const rank=i+1;
+    const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
+    return `<tr>
+      <td>${rankHtml}</td>
+      <td><span class="ct">${x(r.maker)}</span></td>
+      <td class="cc">${x(r.code)}</td>
+      <td class="nc">${x(r.name)}${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
+      <td class="num">¥${r.price.toLocaleString()}</td>
+      <td class="num">${r.qty.toLocaleString()}</td>
+      <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
+    </tr>`;
+  }).join('');
+}
+document.getElementById('hd-search').addEventListener('input', e=>{
+  searchQuery=e.target.value;
+  document.querySelector('.search-wrap').classList.toggle('has-text', !!searchQuery);
+  if(searchQuery){ renderSearch(); }
+  else if(currentMaker) showMaker(currentMaker); else showAllMakers();
+});
+document.getElementById('hd-search-clear').addEventListener('click', ()=>{
+  clearSearch();
+  if(currentMaker) showMaker(currentMaker); else showAllMakers();
+});
+
+// ── アップロード（追加データ取込） ────────────────────────
+function openModal(){
+  document.getElementById('modal').classList.add('show');
+  document.getElementById('modal-summary').textContent =
+    `メーカー${Object.keys(ALL_MAKERS).length}件・SKU${Object.keys(ALL_PRODUCTS).length}件・${ALL_RECORDS.length}明細（${PRELOADED.date_from}〜${PRELOADED.date_to}が初期サンプル）`;
+}
+function closeModal(){ document.getElementById('modal').classList.remove('show'); }
+function resetUploads(){
+  if(!confirm('アップロードで追加したデータをすべて削除します。よろしいですか？')) return;
+  localStorage.removeItem(UPLOAD_KEY);
+  buildData();
+  buildSelects();
+  applyFilter();
+  openModal();
+}
+function setMN(type,msg){
+  const el=document.getElementById('mn');
+  el.className='mn show '+type;
+  el.textContent=msg;
+}
+const REQUIRED_COLS=['店舗','出荷日','商品名','項目・選択肢','商品番号','税抜単価','数量','小計（税抜）','メーカー','掛け率'];
+function excelDateToStr(v){
+  if(v instanceof Date){
+    return v.getFullYear()+'-'+String(v.getMonth()+1).padStart(2,'0')+'-'+String(v.getDate()).padStart(2,'0');
+  }
+  if(typeof v==='number'){
+    const d=XLSX.SSF.parse_date_code(v);
+    return d.y+'-'+String(d.m).padStart(2,'0')+'-'+String(d.d).padStart(2,'0');
+  }
+  const s=String(v||'').trim();
+  const m=s.match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+  if(m) return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  return s;
+}
+function num(v){
+  if(v==null||v==='') return 0;
+  return parseFloat(String(v).replace(/[,¥\s]/g,''))||0;
+}
+function processFile(file){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const data=new Uint8Array(e.target.result);
+      const isUtf8Bom = data[0]===0xEF && data[1]===0xBB && data[2]===0xBF;
+      const isXlsx = /\.xlsx?$/i.test(file.name);
+      const readOpts = {type:'array', cellDates:true};
+      if(!isXlsx && !isUtf8Bom) readOpts.codepage=932;
+      const wb=XLSX.read(data,readOpts);
+      const sheet=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:''});
+      if(!rows.length){ setMN('err', `${file.name}: データが空です`); return; }
+      let headerIdx=-1, colIdx={};
+      for(let i=0;i<Math.min(5,rows.length);i++){
+        const idxMap={};
+        rows[i].forEach((c,j)=>{ idxMap[String(c).trim()]=j; });
+        if(REQUIRED_COLS.every(c=>c in idxMap)){ headerIdx=i; colIdx=idxMap; break; }
+      }
+      if(headerIdx===-1){
+        setMN('err', `${file.name}: 見出し行（店舗/出荷日/商品名/項目・選択肢/商品番号/税抜単価/数量/小計（税抜）/メーカー/掛け率）が見つかりません`);
+        return;
+      }
+      const newMakers={}, newProducts={}, newRecords=[];
+      let count=0, uploadTag='u'+Date.now()+'_';
+      for(let i=headerIdx+1;i<rows.length;i++){
+        const row=rows[i];
+        if(!row||!row.length) continue;
+        const store=String(row[colIdx['店舗']]||'').trim();
+        const maker=String(row[colIdx['メーカー']]||'').trim();
+        const name=String(row[colIdx['商品名']]||'').trim();
+        if(!store||!maker||!name) continue;
+        const varName=String(row[colIdx['項目・選択肢']]||'').trim();
+        const code=String(row[colIdx['商品番号']]||'').trim();
+        const price=num(row[colIdx['税抜単価']]);
+        const qty=num(row[colIdx['数量']]);
+        const amount=num(row[colIdx['小計（税抜）']]);
+        const rate=num(row[colIdx['掛け率']]);
+        const date=excelDateToStr(row[colIdx['出荷日']]);
+        if(!date||!qty) continue;
+
+        if(!(maker in ALL_MAKERS) && !(maker in newMakers)) newMakers[maker]=rate;
+        const key=maker+''+name+''+varName;
+        let pid=PRODUCT_INDEX[key];
+        if(!pid){
+          pid=uploadTag+'p'+(count+1);
+          PRODUCT_INDEX[key]=pid;
+          newProducts[pid]=[maker,name,varName,code,price];
+          ALL_PRODUCTS[pid]=newProducts[pid];
+        }
+        newRecords.push([date,store,pid,qty,amount]);
+        count++;
+      }
+      if(!count){
+        setMN('err', `${file.name}: 有効な明細行が見つかりませんでした`);
+        return;
+      }
+      const batches=loadUploads();
+      batches.push({makers:newMakers, products:newProducts, records:newRecords});
+      saveUploads(batches);
+      buildData();
+      buildSelects();
+      applyFilter();
+      document.getElementById('dz').classList.add('done');
+      document.getElementById('dz-files').innerHTML += `<div>✓ ${x(file.name)}（${count}件取込）</div>`;
+      setMN('ok', `${file.name}: ${count}件のデータを追加しました`);
+      openModal();
+    }catch(err){
+      console.error(err);
+      setMN('err', `${file.name}: 読み込みに失敗しました（${err.message||err}）`);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+document.getElementById('file-input').addEventListener('change', e=>{
+  Array.from(e.target.files).forEach(processFile);
+  e.target.value='';
+});
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', ()=>dz.classList.remove('over'));
+dz.addEventListener('drop', e=>{
+  e.preventDefault(); dz.classList.remove('over');
+  Array.from(e.dataTransfer.files).forEach(processFile);
+});
+
+// ── モバイルメニュー ──────────────────────────────────────
+document.getElementById('hd-menu').addEventListener('click', ()=>{
+  document.querySelector('.sb').classList.toggle('open');
+  document.getElementById('sb-overlay').classList.toggle('open');
+});
+document.getElementById('sb-overlay').addEventListener('click', ()=>{
+  document.querySelector('.sb').classList.remove('open');
+  document.getElementById('sb-overlay').classList.remove('open');
+});
+
+// ── 初期化 ────────────────────────────────────────────────
+buildSelects();
+setQBtnActive('qbtn-all');
+applyFilter();
+
+// ── PWAバージョンチェック（自動リロード） ────────────────
+(function(){
+  function isBusy(){
+    if(document.activeElement && document.activeElement.id==='hd-search') return true;
+    return [...document.querySelectorAll('.modal-bg')].some(m=>getComputedStyle(m).display!=='none');
+  }
+  function getCurVer(){
+    const m=document.querySelector('.hd-sub span');
+    const mm=m && m.textContent.match(/v(\d+)/);
+    return mm ? parseInt(mm[1],10) : 0;
+  }
+  function scheduleReload(){
+    if(isBusy()){ setTimeout(scheduleReload, 3000); return; }
+    location.replace(location.pathname+'?_v='+Date.now());
+  }
+  let lastCheck=0;
+  function checkVersion(){
+    const now=Date.now();
+    if(now-lastCheck<10000) return;
+    lastCheck=now;
+    fetch(location.pathname+'?_v='+now, {cache:'no-store', headers:{'Range':'bytes=0-65535'}})
+      .then(r=>r.text())
+      .then(html=>{
+        const m=html.match(/v(\d+)<\/span>/);
+        if(!m) return;
+        const freshVer=parseInt(m[1],10);
+        const curVer=getCurVer();
+        if(freshVer>curVer){
+          const guard=sessionStorage.getItem('ecSupRankReloadedTo');
+          if(guard && parseInt(guard,10)>=freshVer) return;
+          sessionStorage.setItem('ecSupRankReloadedTo', String(freshVer));
+          scheduleReload();
+        }
+      }).catch(()=>{});
+  }
+  setTimeout(checkVersion, 2000);
+  setInterval(checkVersion, 30000);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='visible') checkVersion(); });
+  window.addEventListener('focus', checkVersion);
+})();
+</script>
+</body>
+</html>
