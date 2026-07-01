@@ -124,6 +124,11 @@
   table.prev .mono{font-family:var(--mono);font-size:.7rem;color:var(--text2)}
   .prevmore{padding:8px 10px;font-size:.74rem;color:var(--text2);text-align:center}
 
+  .subtle-link{display:block;text-align:center;margin-top:10px;font-size:.74rem;color:var(--text2);
+       text-decoration:underline;text-decoration-color:var(--border-hover);text-underline-offset:2px;
+       cursor:pointer;background:none;border:none;padding:2px}
+  .subtle-link:hover{color:var(--text)}
+
   .info{font-size:.82rem;color:var(--text2)}
   .info ul{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:7px}
   .info li{display:flex;gap:9px;align-items:flex-start}
@@ -141,7 +146,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v6</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v7</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -192,6 +197,7 @@
       <div class="dlrow">
         <button class="dl" id="dlBtn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>変換テーブル（メーカーのみ）CSV をダウンロード・Shift-JIS</button>
       </div>
+      <button class="subtle-link" id="propDlBtn">削除されたプロパー(自社)行を確認（元の列のままCSVダウンロード）</button>
       <div id="prevWrap" class="prev-wrap hidden"></div>
     </div>
   </div>
@@ -443,7 +449,7 @@ async function loadMasterXlsx(f){
 
 /* ---------- generate ---------- */
 const OUT_FIELDS=['店舗','出荷日','商品名','商品番号','税抜単価','数量','小計（税抜）','メーカー','掛け率'];
-let outRows=null,srcName='受注データ';
+let outRows=null,propRows=null,srcFields=null,srcName='受注データ';
 const intOf=v=>{const n=parseInt(String(v==null?'':v).replace(/[^\d-]/g,''),10);return isNaN(n)?0:n;};
 
 document.getElementById('goBtn').onclick=async()=>{
@@ -458,13 +464,14 @@ document.getElementById('goBtn').onclick=async()=>{
     srcName=(files.sales.name||'受注データ').replace(/\.[^.]*$/,'');
 
     const out=[];
+    const propOut=[];
     let maker=0,prop=0,noMaker=0,empty=0;
     rows.forEach(r=>{
       const pn=(r['商品番号']||'').trim();
       const sku=(r['SKU管理番号']||'');
       const store=(r['販売店舗']||'').trim();
       if(!pn){empty++;return;}
-      if(isOwn(pn,sku,store)){prop++;return;}          // プロパー(自社) → 削除
+      if(isOwn(pn,sku,store)){prop++;propOut.push(r);return;}  // プロパー(自社) → 削除（元の列のまま保持）
       maker++;                                          // メーカー → 残す＆変換
       // 税抜単価: 税込別が「込」なら 商品単価÷1.1（四捨五入）
       const rawPrice=intOf(r['商品単価']);
@@ -486,7 +493,7 @@ document.getElementById('goBtn').onclick=async()=>{
       });
     });
 
-    outRows=out;
+    outRows=out;propRows=propOut;srcFields=fields;
 
     document.getElementById('result').classList.remove('hidden');
     document.getElementById('keepCount').textContent=out.length.toLocaleString();
@@ -527,6 +534,17 @@ document.getElementById('dlBtn').onclick=()=>{
   const blob=new Blob([new Uint8Array(sjis)],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=`${srcName}_メーカー変換.csv`;
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+};
+
+// download — 削除されたプロパー(自社)行を元のCSV列のまま出力（確認用）
+document.getElementById('propDlBtn').onclick=()=>{
+  if(!propRows||!propRows.length){showMsg('プロパー(自社)として削除された行はありませんでした','warning');return;}
+  const csv=Papa.unparse({fields:srcFields,data:propRows},{newline:'\r\n'});
+  const sjis=Encoding.convert(Encoding.stringToCode(csv),{to:'SJIS',from:'UNICODE'});
+  const blob=new Blob([new Uint8Array(sjis)],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`${srcName}_プロパー削除分.csv`;
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 };
 </script>
