@@ -225,7 +225,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v4</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v6</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -321,6 +321,7 @@ function doLogin(){
         </tr></thead>
         <tbody id="rank-tbody"></tbody>
       </table></div>
+      <div id="rank-note" style="font-size:11px;color:var(--ink4);margin-top:8px"></div>
     </div>
     <div id="search-view" style="display:none">
       <div class="cat-hd">
@@ -339,6 +340,7 @@ function doLogin(){
         </tr></thead>
         <tbody id="search-tbody"></tbody>
       </table></div>
+      <div id="search-note" style="font-size:11px;color:var(--ink4);margin-top:8px"></div>
     </div>
   </main>
 </div>
@@ -384,19 +386,19 @@ function groupKeyOf(p){ return groupMode==='category' ? p[5] : p[0]; }
 const CATEGORY_RULES=[
   ['額縁・フレーム',['フレーム','額縁','FRAME','PANEL','ポロック']],
   ['バッグ・ポーチ・巾着',['バッグ','ポーチ','トート','エコバッグ','リュック','巾着','Tote']],
-  ['ファブリック・マット',['クッション','Cushion','ガーゼ','ブランケット','マット','ラグ','タペストリー','タッセルクロス','スローケット','カットクロス']],
-  ['タオル・ハンカチ・ソックス',['タオル','ハンカチ','ソックス','靴下','ふきん']],
-  ['ランチョンマット・キッチン雑貨',['ランチョンマット','コースター','キッチン','エプロン']],
+  ['ファブリック・マット',['クッション','Cushion','ガーゼ','ブランケット','マット','ラグ','タペストリー','タッセルクロス','スローケット','カットクロス','アップリケ']],
+  ['タオル・ハンカチ・ソックス',['タオル','ハンカチ','ソックス','靴下','ふきん','スリッパ']],
+  ['ランチョンマット・キッチン雑貨',['ランチョンマット','コースター','キッチン','エプロン','ランチボックス','弁当','アイスパック','取り皿']],
   ['マグカップ・食器',['マグ','カップ','プレート','Plate','Mug','食器','スプーン','フォーク','グラス','タンブラー','ボウル','Bowl','耐熱ガラス','豆皿']],
   ['アクセサリー・キーホルダー',['ブローチ','ピン','アクセサリー','リング','イヤリング','ネックレス','キーホルダー','ヘアコーム','ヘアクリップ','Hair Clip','Comb','Watch']],
-  ['インテリア雑貨',['ミラー','鏡','時計','CLOCK','フック','壁掛け','飾り','カードスタンド','ウォールピン','ホルダー','スタンド','ベース','トレー','Art Clip','トッパー']],
+  ['インテリア雑貨',['ミラー','鏡','時計','CLOCK','フック','壁掛け','飾り','カードスタンド','ウォールピン','ホルダー','スタンド','ベース','トレー','トレイ','イーゼル','Art Clip','トッパー']],
   ['ライト・照明',['ネオン','LED','ライト','照明','ランプ']],
   ['文具',['ペン','レター','一筆箋','メモ','ノート','シール','スタンプ','マスキング','KITTA','付箋','ふせん','クリップ','テープ','マーカー']],
   ['マグネット',['マグネット','MAGNET','磁石']],
-  ['アロマ・お香・生活雑貨',['ディフューザー','お香','アロマ','DIFFUSER','スプレー','フラワーライフ','フラワーベース']],
+  ['アロマ・お香・生活雑貨',['ディフューザー','お香','アロマ','DIFFUSER','スプレー','フラワーライフ','フラワーベース','スツール','フォールディング','FOLDING','ブロワー','BLOWER','扇風機','バケット','加湿器']],
   ['財布・小物入れ',['財布','がま口','ケース','小物入れ']],
   ['ぬいぐるみ・マスコット',['ぬいぐるみ','マスコット','人形']],
-  ['傘',['傘']],
+  ['傘',['傘','UMBRELLA']],
 ];
 function categorizeProduct(name){
   const lname=(name||'').toLowerCase();
@@ -404,6 +406,28 @@ function categorizeProduct(name){
     for(const kw of kws){ if(lname.includes(kw.toLowerCase())) return cat; }
   }
   return 'その他';
+}
+const CUT_KEYWORDS=['オーダーメイドOK','オーダーメイド','お見積もり','お見積り','受注生産','製作期間','発送までに','同送不可','別注専用ページ','＊仮金額','銀行振込の場合','ご決済確認から発送'];
+const TRAIL_RE=/[\s　・／/＊*,、。：:；;\-－【（(☆]+$/;
+const CODE_TAIL_RE=/[\(（][A-Za-z0-9][A-Za-z0-9_\-]*[\)）]\s*$/;
+const STRIP_WORDS=['インテリア雑貨','インテリア','おしゃれ','個性的','リビング','お部屋','寝室'];
+const SPACE_RE=/[ 　]+/g;
+function cleanProductName(name){
+  let s=name||'';
+  while(true){
+    if(!CODE_TAIL_RE.test(s)) break;
+    s=s.replace(CODE_TAIL_RE,'');
+  }
+  let cutIdx=-1;
+  for(const kw of CUT_KEYWORDS){
+    const idx=s.indexOf(kw);
+    if(idx>=0 && (cutIdx===-1 || idx<cutIdx)) cutIdx=idx;
+  }
+  if(cutIdx>0) s=s.slice(0,cutIdx);
+  s=s.replace(TRAIL_RE,'').trim();
+  for(const w of STRIP_WORDS){ s=s.split(w).join(' '); }
+  s=s.replace(SPACE_RE,' ').trim();
+  return s || name;
 }
 function setGroupMode(mode){
   groupMode=mode;
@@ -602,13 +626,17 @@ function showGroup(g){
   document.getElementById('cat-stats').innerHTML=`<span class="cs">全体の <b>${(agg.amount/(ALL_TOTAL.amount||1)*100).toFixed(1)}%</b></span>`;
   renderRankTable(rows, agg.amount, groupMode==='category');
 }
+const ROW_LIMIT=300;
 function renderRankTable(rows, totalAmount, showMakerTag){
+  const note=document.getElementById('rank-note');
   if(!rows.length){
     document.getElementById('rank-tbody').innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">📭</div>この期間の販売データはありません</div></td></tr>';
+    note.textContent='';
     return;
   }
   const maxAmt=Math.max(1,...rows.map(r=>r.amount));
-  document.getElementById('rank-tbody').innerHTML=rows.map((r,i)=>{
+  const shown=rows.slice(0,ROW_LIMIT);
+  document.getElementById('rank-tbody').innerHTML=shown.map((r,i)=>{
     const rank=i+1;
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
     const pct=(r.amount/(totalAmount||1)*100);
@@ -623,6 +651,7 @@ function renderRankTable(rows, totalAmount, showMakerTag){
       <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
     </tr>`;
   }).join('');
+  note.textContent = rows.length>ROW_LIMIT ? `上位${ROW_LIMIT}件を表示中（全${rows.length.toLocaleString()}件）` : '';
 }
 
 // ── 検索 ──────────────────────────────────────────────────
@@ -648,11 +677,14 @@ function renderSearch(){
   });
   sortItems(rows);
   document.getElementById('search-stats').innerHTML=`<span class="cs">一致件数 <b>${rows.length}</b> 件</span>`;
+  const searchNote=document.getElementById('search-note');
   if(!rows.length){
     document.getElementById('search-tbody').innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔍</div>該当する商品が見つかりません</div></td></tr>';
+    searchNote.textContent='';
     return;
   }
-  document.getElementById('search-tbody').innerHTML=rows.map((r,i)=>{
+  const shown=rows.slice(0,ROW_LIMIT);
+  document.getElementById('search-tbody').innerHTML=shown.map((r,i)=>{
     const rank=i+1;
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
     return `<tr>
@@ -665,6 +697,7 @@ function renderSearch(){
       <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
     </tr>`;
   }).join('');
+  searchNote.textContent = rows.length>ROW_LIMIT ? `上位${ROW_LIMIT}件を表示中（全${rows.length.toLocaleString()}件）` : '';
 }
 document.getElementById('hd-search').addEventListener('input', e=>{
   searchQuery=e.target.value;
@@ -757,12 +790,13 @@ function processFile(file){
         if(!date||!qty) continue;
 
         if(!(maker in ALL_MAKERS) && !(maker in newMakers)) newMakers[maker]=rate;
-        const key=maker+''+name+''+varName;
+        const cleanedName=cleanProductName(name);
+        const key=maker+''+cleanedName+''+varName;
         let pid=PRODUCT_INDEX[key];
         if(!pid){
           pid=uploadTag+'p'+(count+1);
           PRODUCT_INDEX[key]=pid;
-          newProducts[pid]=[maker,name,varName,code,price,categorizeProduct(name)];
+          newProducts[pid]=[maker,cleanedName,varName,code,price,categorizeProduct(name)];
           ALL_PRODUCTS[pid]=newProducts[pid];
         }
         newRecords.push([date,store,pid,qty,amount]);
