@@ -122,6 +122,11 @@ input[type=file]{display:none}
 .cc{font-size:11px;color:var(--ink3);font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
 .nc{max-width:400px}
 .nc .var{display:block;font-size:11px;color:var(--ink3);margin-top:2px}
+.cmp-col{display:none}
+.show-cmp .cmp-col{display:table-cell}
+.cmp-up{color:var(--green)}
+.cmp-down{color:var(--red)}
+.cmp-new{color:var(--accent);font-size:11px}
 .rn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
 .r1{background:#2B6CB0;color:#fff}
 .r2{background:#888;color:#fff}
@@ -225,7 +230,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v8</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v9</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -265,10 +270,6 @@ function doLogin(){
 <div class="sb-overlay" id="sb-overlay"></div>
 <div class="layout">
   <aside class="sb">
-    <div class="sb-tog" style="border-bottom:1px solid var(--border2)">
-      <button class="sb-tbtn on" id="tog-mode-maker" onclick="setGroupMode('maker')">メーカー別</button>
-      <button class="sb-tbtn" id="tog-mode-category" onclick="setGroupMode('category')">カテゴリ別</button>
-    </div>
     <div class="sb-flt">
       <div class="sb-flt-sec">
         <div class="sb-flt-lbl">販売期間</div>
@@ -281,8 +282,9 @@ function doLogin(){
           <input type="date" class="fsel" id="f-date-to" onchange="setQBtnActive(null);applyFilter()">
         </div>
         <div style="display:flex;gap:4px;margin-top:6px">
-          <button id="qbtn-1m" onclick="setRecentPeriod(1)" class="qbtn">直近1ヶ月</button>
-          <button id="qbtn-3m" onclick="setRecentPeriod(3)" class="qbtn">直近3ヶ月</button>
+          <button id="qbtn-1" onclick="setYearsPeriod(1)" class="qbtn">1年</button>
+          <button id="qbtn-2" onclick="setYearsPeriod(2)" class="qbtn">2年</button>
+          <button id="qbtn-3" onclick="setYearsPeriod(3)" class="qbtn">3年</button>
           <button id="qbtn-all" onclick="setFullPeriod()" class="qbtn">全期間</button>
         </div>
       </div>
@@ -296,6 +298,14 @@ function doLogin(){
     <div class="sb-tog">
       <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty')">個数順</button>
       <button class="sb-tbtn" id="tog-amt" onclick="setSort('amount')">金額順</button>
+    </div>
+    <div class="sb-tog">
+      <button class="sb-tbtn on" id="tog-mode-maker" onclick="setGroupMode('maker')">メーカー別</button>
+      <button class="sb-tbtn" id="tog-mode-category" onclick="setGroupMode('category')">カテゴリ別</button>
+    </div>
+    <div class="sb-tog">
+      <button class="sb-tbtn" id="tog-cmp" onclick="toggleComparison()">前年比較</button>
+      <button class="sb-tbtn" id="tog-heat" onclick="toggleHeatmap()">ヒートマップ</button>
     </div>
     <div class="sb-list" id="sb-list"></div>
   </aside>
@@ -316,6 +326,8 @@ function doLogin(){
           <th class="name-col" style="min-width:280px">商品名</th>
           <th class="th-sort" onclick="setSort('price')" style="min-width:80px">税抜単価<span class="sort-ind" id="ri-price"></span></th>
           <th class="th-sort" onclick="setSort('qty')" style="min-width:70px">数量<span class="sort-ind" id="ri-qty"></span></th>
+          <th class="cmp-col" style="min-width:70px">前年同期</th>
+          <th class="cmp-col" style="min-width:70px">前年比</th>
           <th style="min-width:90px">売上比</th>
           <th class="th-sort" onclick="setSort('amount')" style="min-width:100px">小計金額<span class="sort-ind" id="ri-amount"></span></th>
         </tr></thead>
@@ -380,11 +392,13 @@ buildData();
 
 // ── 状態 ──────────────────────────────────────────────────
 let AGG={}; // group(メーカー名 or カテゴリ名) -> {qty,amount,items:{pid:{qty,amount}}}
+let PREV_AGG={}; // pid -> {qty,amount}（前年同期。前年比較ON時のみ計算）
 let ALL_TOTAL={qty:0,amount:0};
 let groupMode='maker'; // 'maker' | 'category'
 let currentGroup=null; // null = 全体
 let sortMode='qty', sortDir='desc';
 let searchQuery='';
+let comparisonMode=false, heatmapMode=false;
 function groupKeyOf(p){ return groupMode==='category' ? p[5] : p[0]; }
 const CATEGORY_RULES=[
   ['額縁・フレーム',['フレーム','額縁','FRAME','PANEL','ポロック']],
@@ -472,18 +486,18 @@ function setFullPeriod(){
   setQBtnActive('qbtn-all');
   applyFilter();
 }
-function setRecentPeriod(months){
+function setYearsPeriod(years){
   const to=PRELOADED.date_to;
   const d=new Date(to+'T00:00:00');
-  d.setMonth(d.getMonth()-months);
+  d.setFullYear(d.getFullYear()-years);
   const from=d.toISOString().slice(0,10);
   document.getElementById('f-date-from').value= from<PRELOADED.date_from?PRELOADED.date_from:from;
   document.getElementById('f-date-to').value=to;
-  setQBtnActive('qbtn-'+months+'m');
+  setQBtnActive('qbtn-'+years);
   applyFilter();
 }
 function setQBtnActive(id){
-  ['qbtn-1m','qbtn-3m','qbtn-all'].forEach(b=>{
+  ['qbtn-1','qbtn-2','qbtn-3','qbtn-all'].forEach(b=>{
     const el=document.getElementById(b);
     if(el) el.classList.toggle('on', b===id);
   });
@@ -508,6 +522,7 @@ function applyFilter(){
     it.qty+=qty; it.amount+=amount;
     ALL_TOTAL.qty+=qty; ALL_TOTAL.amount+=amount;
   }
+  PREV_AGG = comparisonMode ? buildPrevAgg(dF,dT,store) : {};
   updateHeaderDate(dF,dT);
   renderSidebar();
   if(searchQuery){ renderSearch(); }
@@ -516,6 +531,39 @@ function applyFilter(){
 }
 function updateHeaderDate(dF,dT){
   document.getElementById('hd-date').innerHTML='<b>'+dF+'</b> 〜 <b>'+dT+'</b>';
+}
+function shiftYear(dateStr,offset){
+  const d=new Date(dateStr+'T00:00:00');
+  d.setFullYear(d.getFullYear()+offset);
+  return d.toISOString().slice(0,10);
+}
+function buildPrevAgg(dF,dT,store){
+  const pF=shiftYear(dF,-1);
+  let pT=shiftYear(dT,-1);
+  // 選択期間が1年を超える場合、前年期間が現在の期間と重ならないようにクランプする
+  const dayBeforeDF=new Date(new Date(dF+'T00:00:00').getTime()-86400000).toISOString().slice(0,10);
+  if(pT>dayBeforeDF) pT=dayBeforeDF;
+  const agg={};
+  if(pF>pT) return agg;
+  for(const rec of ALL_RECORDS){
+    const [date,rStore,pid,qty,amount]=rec;
+    if(date<pF||date>pT) continue;
+    if(store!=='all'&&rStore!==store) continue;
+    const it=agg[pid]||(agg[pid]={qty:0,amount:0});
+    it.qty+=qty; it.amount+=amount;
+  }
+  return agg;
+}
+function toggleComparison(){
+  comparisonMode=!comparisonMode;
+  document.getElementById('tog-cmp').classList.toggle('on', comparisonMode);
+  document.getElementById('rank-tbl').classList.toggle('show-cmp', comparisonMode);
+  applyFilter();
+}
+function toggleHeatmap(){
+  heatmapMode=!heatmapMode;
+  document.getElementById('tog-heat').classList.toggle('on', heatmapMode);
+  if(currentGroup) showGroup(currentGroup); else showAllGroups();
 }
 
 // ── ソート ────────────────────────────────────────────────
@@ -636,26 +684,45 @@ function showGroup(g){
   renderRankTable(rows, agg.amount, groupMode==='category');
 }
 const ROW_LIMIT=300;
+function heatBg(val,maxVal){
+  if(!maxVal) return '';
+  const ratio=Math.min(1,val/maxVal);
+  return `background:rgba(43,108,176,${(ratio*0.55).toFixed(2)})`;
+}
 function renderRankTable(rows, totalAmount, showMakerTag){
   const note=document.getElementById('rank-note');
   if(!rows.length){
-    document.getElementById('rank-tbody').innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">📭</div>この期間の販売データはありません</div></td></tr>';
+    document.getElementById('rank-tbody').innerHTML='<tr><td colspan="9"><div class="empty"><div class="empty-icon">📭</div>この期間の販売データはありません</div></td></tr>';
     note.textContent='';
     return;
   }
   const maxAmt=Math.max(1,...rows.map(r=>r.amount));
+  const maxQty=Math.max(1,...rows.map(r=>r.qty));
   const shown=rows.slice(0,ROW_LIMIT);
   document.getElementById('rank-tbody').innerHTML=shown.map((r,i)=>{
     const rank=i+1;
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
     const pct=(r.amount/(totalAmount||1)*100);
     const barPct=Math.round(r.amount/maxAmt*100);
+    const qtyStyle=heatmapMode?` style="${heatBg(r.qty,maxQty)}"`:'';
+    const prev=PREV_AGG[r.pid];
+    const prevQty=prev?prev.qty:0;
+    let cmpHtml;
+    if(!prevQty){
+      cmpHtml=`<td class="num cmp-col">—</td><td class="num cmp-col"><span class="cmp-new">NEW</span></td>`;
+    } else {
+      const diffPct=((r.qty-prevQty)/prevQty*100);
+      const cls=diffPct>0?'cmp-up':diffPct<0?'cmp-down':'';
+      const sign=diffPct>0?'+':'';
+      cmpHtml=`<td class="num cmp-col">${prevQty.toLocaleString()}</td><td class="num cmp-col ${cls}">${sign}${diffPct.toFixed(0)}%</td>`;
+    }
     return `<tr>
       <td>${rankHtml}</td>
       <td class="cc">${x(r.code)}</td>
       <td class="nc">${showMakerTag?`<span class="ct">${x(r.maker)}</span>`:''}${x(r.name)}${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
       <td class="num">¥${r.price.toLocaleString()}</td>
-      <td class="num">${r.qty.toLocaleString()}</td>
+      <td class="num"${qtyStyle}>${r.qty.toLocaleString()}</td>
+      ${cmpHtml}
       <td><div class="bb"><div class="bf" style="width:${barPct}%"></div></div><div style="font-size:10px;color:var(--ink4);margin-top:2px">${pct.toFixed(1)}%</div></td>
       <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
     </tr>`;
