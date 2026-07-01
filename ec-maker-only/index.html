@@ -141,7 +141,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v5</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v6</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -363,6 +363,7 @@ const MAKER_MAP={
   '12818':['パドルビー',0.55],'13787':['パドルビー',0.55], // クルテク(DETOA)
   '303069-c':['志成販売シセイ',0.55],                      // 真鍮ボタニカル
   'aito-':['アイトー',0.5],                                // スイミー豆皿 等
+  'kj-':['カミオジャパン',0.6],'lfc-':['LFC',0.55],'chpo-':['ブリエ',0.5],
 };
 const MAKER_KEYS=Object.keys(MAKER_MAP).sort((a,b)=>b.length-a.length); // 長い接頭辞を優先
 // 商品番号の接頭辞からメーカー名・掛け率を引く（見つからなければ ['','']）
