@@ -141,7 +141,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">プロパー(自社)商品を削除し、メーカー商品だけ残す <span class="ver">v3</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v4</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -155,7 +155,7 @@
       <input type="file" accept=".csv" id="fileSales">
       <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       <div class="t" id="tSales">クリック または ドラッグでCSVを選択</div>
-      <div class="h">販売店舗・商品番号・SKU管理番号・商品名 などを含む受注/売上CSV（プロパー抽出アプリと同じ入力・Shift-JIS）</div>
+      <div class="h">販売店舗・出荷日・商品名・商品番号・SKU管理番号・個数・商品単価・税込別 を含む受注/売上CSV（Shift-JIS）</div>
     </label>
   </div>
 
@@ -176,7 +176,6 @@
       <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
       プロパー(自社)を削除してメーカーのみ出力
     </button>
-    <div class="toggle-row"><input type="checkbox" id="removeOrder"><label for="removeOrder" style="cursor:pointer">取り寄せ（<code>apj-</code> / <code>rft-</code>）を削除する（既定では販売数として残す）</label></div>
     <div class="msg" id="msg"></div>
 
     <div id="result" class="hidden">
@@ -185,13 +184,13 @@
           <div class="big" id="keepCount">0</div><div class="small" id="keepSub"></div></div>
         <div class="stat prop"><div class="lbl"><span class="dot"></span>プロパー（削除）</div>
           <div class="big" id="propCount">0</div><div class="small">自社商品</div></div>
-        <div class="stat order"><div class="lbl"><span class="dot"></span>取り寄せ</div>
-          <div class="big" id="orderCount">0</div><div class="small" id="orderSub">apj- / rft-（残す）</div></div>
+        <div class="stat order"><div class="lbl"><span class="dot"></span>掛け率未設定</div>
+          <div class="big" id="orderCount">0</div><div class="small" id="orderSub">メーカー名なし</div></div>
         <div class="stat skip"><div class="lbl"><span class="dot"></span>商品番号空</div>
           <div class="big" id="skipCount">0</div><div class="small">判定不可</div></div>
       </div>
       <div class="dlrow">
-        <button class="dl" id="dlBtn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>メーカー商品のみ CSV をダウンロード（元と同じ形式・Shift-JIS）</button>
+        <button class="dl" id="dlBtn"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>変換テーブル（メーカーのみ）CSV をダウンロード・Shift-JIS</button>
       </div>
       <div id="prevWrap" class="prev-wrap hidden"></div>
     </div>
@@ -202,10 +201,10 @@
     <div class="card-h"><span class="num">i</span><h2>処理ルール</h2></div>
     <div class="info">
       <ul>
-        <li><span class="b">A</span><span><b>判定</b>：各行の <code>商品番号</code> を内部品番に解決し（<code>item-data</code> 準拠の抽出・正規化）、<b>自社品番マスタ</b>（約<span id="genkaCount2">0</span>件）に一致するもの、または <code>elco-</code> <code>cal-</code> や自社確定接頭辞（<code>X?DR-</code> <code>CAL-</code> <code>EGP-</code> <code>WCL-</code> 等）を<b>プロパー（自社）として削除</b>します。</span></li>
-        <li><span class="b">B</span><span><b>メーカー（残す）</b>：自社と判定されなかった他社ブランド商品（<code>8mw-</code> <code>wh-</code> <code>ldw</code> <code>psm-</code> <code>ak-</code> <code>SLW-</code> 等）。</span></li>
-        <li><span class="b">C</span><span><b>取り寄せ</b>：<code>apj-</code> <code>rft-</code> は<b>既定で販売数として残します</b>（自社ではないため）。チェックを入れると削除できます。<code>商品番号</code>が空の行は判定不可として除外。</span></li>
-        <li><span class="b">D</span><span><b>出力</b>：アップロードした CSV と<b>同じ列・同じ並び順をそのまま維持</b>し、メーカー行だけを残した CSV（Shift-JIS・元の値は無加工）。</span></li>
+        <li><span class="b">A</span><span><b>判定</b>：各行の <code>商品番号</code> を内部品番に解決し（<code>item-data</code> 準拠）、<b>自社品番マスタ</b>（約<span id="genkaCount2">0</span>件）に一致、または <code>elco-</code> <code>cal-</code>・自社確定接頭辞（<code>X?DR-</code> <code>CAL-</code> <code>EGP-</code> <code>WCL-</code> 等）を<b>プロパー（自社）として削除</b>。それ以外をメーカーとして残します。</span></li>
+        <li><span class="b">B</span><span><b>税抜単価</b>：<code>税込別</code> が「込」の行は <code>商品単価 ÷ 1.1</code>（四捨五入）で税抜換算。それ以外は <code>商品単価</code> をそのまま使用。<b>小計（税抜）＝ 税抜単価 × 数量</b>。</span></li>
+        <li><span class="b">C</span><span><b>メーカー・掛け率</b>：<code>商品番号</code> の接頭辞を掛け率表（内蔵22件、例 <code>8mw-</code>→8000000works/0.5、<code>wh-</code>→MDS/0.55、<code>apj-</code>→APJ/0.45）と照合して入力。未登録の接頭辞は空欄（件数を下部に表示）。</span></li>
+        <li><span class="b">D</span><span><b>出力</b>：<code>店舗 / 出荷日 / 商品名 / 商品番号 / 税抜単価 / 数量 / 小計（税抜）/ メーカー / 掛け率</code> の9列の変換テーブル（Shift-JIS CSV）。</span></li>
       </ul>
     </div>
   </div>
@@ -349,8 +348,24 @@ function normalizeCode(code) {
   return code;
 }
 
+/* ---------- メーカー・掛け率マスタ（添付「掛け率」表・接頭辞別） ---------- */
+const MAKER_MAP={
+  '4on-':['4on',0.55],'8mw-':['8000000works',0.5],'ak-':['青山佳世アオヤマカヨ',0.6],
+  'alsk-':['アラスカ文具',0.6],'apj-':['APJ',0.45],'bm-':['BEEM',0.45],'cocochi-':['cocochi',0.5],
+  'cre-':['クレエ',0.5],'ky-':['京佑キョウユウ',0.6],'ldw001-':['LDW',0.42],'ma-':['未来アグリス',0.5],
+  'mgt-':['magnet',0.53],'nm-':['ナカモリ',0.55],'pb-':['パドルビー',0.55],'psm-':['ピズム',0.5],
+  'rft-':['Raffinart',0.45],'rio-':['リオグループ',0.6],'sh-':['志成販売シセイ',0.55],
+  'tp-':['テクノプライム',0.55],'tri-':['TRI',0.38],'uncm-':['ユニコン',0.53],'wh-':['MDS',0.55],
+};
+const MAKER_KEYS=Object.keys(MAKER_MAP).sort((a,b)=>b.length-a.length); // 長い接頭辞を優先
+// 商品番号の接頭辞からメーカー名・掛け率を引く（見つからなければ ['','']）
+function makerFor(pn){
+  const low=(pn||'').trim().toLowerCase();
+  for(const k of MAKER_KEYS){if(low.startsWith(k))return MAKER_MAP[k];}
+  return ['',''];
+}
+
 /* ---------- 自社/メーカー判定 ---------- */
-const EXCLUDE_PREFIXES=['apj-','rft-'];
 const OWN_PREFIX=/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-|WCL-|X?DR-|CAL-)/i;
 function resolveCode(pn,store){
   if(!pn)return '';
@@ -372,7 +387,6 @@ function isOwn(pn,sku,store){
   if(code&&(OWN_PREFIX.test(code)||/^AK-/.test(code)))return true;
   return false;
 }
-function isExcluded(pn){const low=(pn||'').trim().toLowerCase();return EXCLUDE_PREFIXES.some(p=>low.startsWith(p));}
 
 /* ---------- helpers ---------- */
 function cleanName(n){
@@ -420,7 +434,9 @@ async function loadMasterXlsx(f){
 }
 
 /* ---------- generate ---------- */
-let outFields=null,outRows=null,srcName='受注データ';
+const OUT_FIELDS=['店舗','出荷日','商品名','商品番号','税抜単価','数量','小計（税抜）','メーカー','掛け率'];
+let outRows=null,srcName='受注データ';
+const intOf=v=>{const n=parseInt(String(v==null?'':v).replace(/[^\d-]/g,''),10);return isNaN(n)?0:n;};
 
 document.getElementById('goBtn').onclick=async()=>{
   try{
@@ -433,60 +449,76 @@ document.getElementById('goBtn').onclick=async()=>{
     }
     srcName=(files.sales.name||'受注データ').replace(/\.[^.]*$/,'');
 
-    const removeOrder=document.getElementById('removeOrder').checked;
-    const kept=[];
-    let maker=0,prop=0,order=0,orderKept=0,empty=0;
+    const out=[];
+    let maker=0,prop=0,noMaker=0,empty=0;
     rows.forEach(r=>{
       const pn=(r['商品番号']||'').trim();
       const sku=(r['SKU管理番号']||'');
-      const store=(r['販売店舗']||'');
+      const store=(r['販売店舗']||'').trim();
       if(!pn){empty++;return;}
-      if(isExcluded(pn)){order++;if(!removeOrder){kept.push(r);orderKept++;}return;}  // 取り寄せ → 既定は残す
-      if(isOwn(pn,sku,store)){prop++;return;}  // プロパー(自社) → 削除
-      maker++;kept.push(r);                     // メーカー → 残す
+      if(isOwn(pn,sku,store)){prop++;return;}          // プロパー(自社) → 削除
+      maker++;                                          // メーカー → 残す＆変換
+      // 税抜単価: 税込別が「込」なら 商品単価÷1.1（四捨五入）
+      const rawPrice=intOf(r['商品単価']);
+      const taxType=(r['税込別']||'').trim();
+      const net=(taxType==='込')?Math.round(rawPrice/1.1):rawPrice;
+      const qty=intOf(r['個数']);
+      const [mk,rate]=makerFor(pn);
+      if(!mk)noMaker++;
+      out.push({
+        '店舗':store,
+        '出荷日':(r['出荷日']||'').trim()||(r['注文日時']||'').trim().slice(0,10),
+        '商品名':cleanName(r['商品名']),
+        '商品番号':pn,
+        '税抜単価':net,
+        '数量':qty,
+        '小計（税抜）':net*qty,
+        'メーカー':mk,
+        '掛け率':rate===''?'':rate,
+      });
     });
 
-    outFields=fields;outRows=kept;
+    outRows=out;
 
     document.getElementById('result').classList.remove('hidden');
-    document.getElementById('keepCount').textContent=kept.length.toLocaleString();
-    document.getElementById('keepSub').textContent=orderKept
-      ? `メーカー ${maker.toLocaleString()} ＋ 取り寄せ ${orderKept.toLocaleString()}`
-      : `メーカー商品 ${maker.toLocaleString()}件`;
+    document.getElementById('keepCount').textContent=out.length.toLocaleString();
+    document.getElementById('keepSub').textContent=`メーカー商品 ${maker.toLocaleString()}行`;
     document.getElementById('propCount').textContent=prop.toLocaleString();
-    document.getElementById('orderCount').textContent=order.toLocaleString();
-    document.getElementById('orderSub').textContent=removeOrder?'apj- / rft-（削除）':'apj- / rft-（残す）';
+    document.getElementById('orderCount').textContent=noMaker.toLocaleString();
+    document.getElementById('orderSub').textContent=noMaker?'接頭辞が掛け率表に未登録':'すべて設定済み';
     document.getElementById('skipCount').textContent=empty.toLocaleString();
 
     const pw=document.getElementById('prevWrap');
-    if(kept.length){
+    if(out.length){
       const PREVIEW=150;
-      let html='<table class="prev"><thead><tr><th>商品名</th><th>商品番号</th><th>販売店舗</th><th>個数</th></tr></thead><tbody>';
-      kept.slice(0,PREVIEW).forEach(r=>{
-        html+=`<tr><td class="nm">${esc(cleanName(r['商品名']))}</td>`+
-          `<td class="mono">${esc((r['商品番号']||'').trim())}</td>`+
-          `<td>${esc((r['販売店舗']||'').trim())}</td>`+
-          `<td class="mono">${esc(r['個数']||'')}</td></tr>`;
+      let html='<table class="prev"><thead><tr>'+OUT_FIELDS.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr></thead><tbody>';
+      out.slice(0,PREVIEW).forEach(o=>{
+        html+='<tr>'+OUT_FIELDS.map(h=>{
+          const v=o[h];
+          const cls=(h==='商品名')?'nm':(h==='店舗'||h==='メーカー')?'':'mono';
+          const disp=(h==='税抜単価'||h==='小計（税抜）')?(v===''?'':Number(v).toLocaleString()):v;
+          return `<td class="${cls}">${esc(disp)}</td>`;
+        }).join('')+'</tr>';
       });
       html+='</tbody></table>';
-      if(kept.length>PREVIEW)html+=`<div class="prevmore">プレビューは先頭 ${PREVIEW} 件のみ表示（全 ${kept.length.toLocaleString()} 件はダウンロードで確認できます）</div>`;
+      if(out.length>PREVIEW)html+=`<div class="prevmore">プレビューは先頭 ${PREVIEW} 件のみ表示（全 ${out.length.toLocaleString()} 件はダウンロードで確認できます）</div>`;
       pw.innerHTML=html;pw.classList.remove('hidden');
     }else{pw.innerHTML='';pw.classList.add('hidden');}
 
-    showMsg(`完了！　プロパー(自社) ${prop.toLocaleString()}件を削除し、${kept.length.toLocaleString()}件を残しました`+
-      `${order?(removeOrder?`　／ 取り寄せ(apj-・rft-) ${order.toLocaleString()}件も削除`:`（うちメーカー ${maker.toLocaleString()}・取り寄せ ${order.toLocaleString()}）`):''}`+
-      `${empty?`　／ 商品番号空 ${empty.toLocaleString()}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
+    showMsg(`完了！　プロパー(自社) ${prop.toLocaleString()}行を削除し、メーカー ${maker.toLocaleString()}行を変換しました`+
+      `${noMaker?`　／ うち掛け率表に未登録の接頭辞 ${noMaker.toLocaleString()}行（メーカー・掛け率は空欄）`:''}`+
+      `${empty?`　／ 商品番号空 ${empty.toLocaleString()}行は除外`:''}。下のボタンからダウンロードできます。`,'success');
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
 
-// download — 元と同じ列構成のまま、Shift-JIS(CP932) CSV で出力
+// download — 9列の変換テーブルを Shift-JIS(CP932) CSV で出力
 document.getElementById('dlBtn').onclick=()=>{
-  if(!outRows||!outFields)return;
-  const csv=Papa.unparse({fields:outFields,data:outRows},{newline:'\r\n'});
+  if(!outRows)return;
+  const csv=Papa.unparse({fields:OUT_FIELDS,data:outRows},{newline:'\r\n'});
   const sjis=Encoding.convert(Encoding.stringToCode(csv),{to:'SJIS',from:'UNICODE'});
   const blob=new Blob([new Uint8Array(sjis)],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`${srcName}_メーカーのみ.csv`;
+  const a=document.createElement('a');a.href=url;a.download=`${srcName}_メーカー変換.csv`;
   document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 };
 </script>
