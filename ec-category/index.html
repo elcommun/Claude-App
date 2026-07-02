@@ -698,7 +698,7 @@ async function processData(download = true) {
     // auPAY優先処理
     if (storeName==='EL COMMUN auPAYマーケット店') {
       if (pn.match(/^cal-.+-CAL-.+$/))               { pn=pn.replace(/^cal-.+-(CAL-.+)$/,'$1');           row['商品番号']=pn; return; }
-      if (pn.match(/^elco-(LLN|ECL)-.+$/))           { pn=pn.replace(/^elco-/,'');                        row['商品番号']=pn; return; }
+      if (pn.match(/^elco-[A-Z]{2,}-.+$/))           { pn=pn.replace(/^elco-/,'');                        row['商品番号']=pn; return; }
       const m1=pn.match(/-((?:X)?DR-[A-Z]+-[^-]+)$/);
       if (m1)                                         { pn=m1[1];                                          row['商品番号']=pn; return; }
       pn=pn.replace(/elco-[^-]+-/g,'');
@@ -709,7 +709,7 @@ async function processData(download = true) {
     if      (pn.match(/^cal-.+-CAL-.+$/))              pn=pn.replace(/^cal-.+-(CAL-.+)$/,'$1');
     else if (pn.match(/GYR/))                          pn=pn.replace(/^.*?(GYR.*)$/,'$1');
     else if (pn.match(/^elco-ampc(\d+)-/))             pn=pn.replace(/^elco-ampc(\d+)-.*$/,'AMP-C$1');
-    else if (pn.match(/^elco-(LLN|ECL)-.+$/))          { pn=pn.replace(/^elco-/,''); row['商品番号']=pn; return; }
+    else if (pn.match(/^elco-[A-Z]{2,}-.+$/))          { pn=pn.replace(/^elco-/,''); row['商品番号']=pn; return; }  // elco-PNT-001→PNT-001 等、elco-<大文字コード>-… は elco- を剥がすだけ
     else if (pn.match(/^elco-(.+?)wf-(natural|brown)$/)) pn=pn.replace(/^elco-(.+?)wf-(natural|brown)$/,'$1');
     else if (pn.match(/^elco-lln(.+?)-/))              pn=pn.replace(/^elco-lln(.+?)-.*$/,'LLN-$1');
     else if (pn.match(/^elco-ecl(.+?)-/))              pn=pn.replace(/^elco-ecl(.+?)-.*$/,'ECL-$1');
