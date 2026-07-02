@@ -204,7 +204,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v17</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v18</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -545,13 +545,16 @@ document.getElementById('goBtn').onclick=async()=>{
       }
     });
 
-    const ownTotal=own.reduce((s,r)=>s+(typeof r['合計']==='number'?r['合計']:0),0);
-    const makerTotal=maker.reduce((s,r)=>s+(typeof r['合計']==='number'?r['合計']:0),0);
+    // 合計を算出できなかった商品（エラー箇所には別途記録済み）は棚卸しデータから除外する
+    const ownIncluded=own.filter(r=>typeof r['合計']==='number');
+    const makerIncluded=maker.filter(r=>typeof r['合計']==='number');
+    const ownTotal=ownIncluded.reduce((s,r)=>s+r['合計'],0);
+    const makerTotal=makerIncluded.reduce((s,r)=>s+r['合計'],0);
 
     // append total rows
-    const ownOut=own.concat([{'商品名':'合計','品番':'','原価':'','在庫数':own.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(ownTotal*100)/100}]);
-    const makerOut=maker.concat([{'商品名':'合計','JANコード':'','商品管理番号（商品URL）':'','商品番号':'','SKU管理番号':'',
-      'システム連携用SKU番号':'','バリエーション項目選択肢1':'','上代':'','掛け率':'','在庫数':maker.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(makerTotal)}]);
+    const ownOut=ownIncluded.concat([{'商品名':'合計','品番':'','原価':'','在庫数':ownIncluded.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(ownTotal*100)/100}]);
+    const makerOut=makerIncluded.concat([{'商品名':'合計','JANコード':'','商品管理番号（商品URL）':'','商品番号':'','SKU管理番号':'',
+      'システム連携用SKU番号':'','バリエーション項目選択肢1':'','上代':'','掛け率':'','在庫数':makerIncluded.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(makerTotal)}]);
 
     // build workbook（自社 / メーカー / 掛け率 を1ファイルにまとめる）
     const wb=XLSX.utils.book_new();
@@ -561,13 +564,14 @@ document.getElementById('goBtn').onclick=async()=>{
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rateSheet),'掛け率');
     outWb=wb;
 
-    // stats
+    // stats（棚卸しデータに含まれる件数=合計算出できたもののみ）
+    const ownExcluded=own.length-ownIncluded.length, makerExcluded=maker.length-makerIncluded.length;
     document.getElementById('result').classList.remove('hidden');
-    document.getElementById('ownCount').textContent=own.length.toLocaleString();
-    document.getElementById('ownSub').textContent='原価あり '+own.filter(r=>typeof r['合計']==='number').length.toLocaleString()+'件';
+    document.getElementById('ownCount').textContent=ownIncluded.length.toLocaleString();
+    document.getElementById('ownSub').textContent=ownExcluded?`合計未算出 ${ownExcluded.toLocaleString()}件を除外`:'';
     document.getElementById('ownYen').textContent='棚卸額 '+yen(ownTotal);
-    document.getElementById('makerCount').textContent=maker.length.toLocaleString();
-    document.getElementById('makerSub').textContent='合計算出 '+maker.filter(r=>typeof r['合計']==='number').length.toLocaleString()+'件';
+    document.getElementById('makerCount').textContent=makerIncluded.length.toLocaleString();
+    document.getElementById('makerSub').textContent=makerExcluded?`合計未算出 ${makerExcluded.toLocaleString()}件を除外`:'';
     document.getElementById('makerYen').textContent='棚卸額 '+yen(makerTotal);
 
     // warnings
@@ -601,7 +605,7 @@ document.getElementById('goBtn').onclick=async()=>{
       errBlock.classList.add('hidden');errTableWrap.innerHTML='';
     }
 
-    showMsg(`生成完了！　自社 ${own.length}件・メーカー ${maker.length}件${errors.length?`（うち合計未算出 ${errors.length}件）`:''}${excluded?`　／ 取り寄せ(apj-・rft-) ${excluded}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
+    showMsg(`生成完了！　自社 ${ownIncluded.length}件・メーカー ${makerIncluded.length}件${errors.length?`（合計未算出 ${errors.length}件は棚卸しデータから除外）`:''}${excluded?`　／ 取り寄せ(apj-・rft-) ${excluded}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
 
