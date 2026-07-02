@@ -81,11 +81,11 @@
   .drop.has .t{color:var(--green)}
   .fname{font-family:var(--mono);font-size:.74rem;word-break:break-all}
 
-  .rms-note{margin-top:12px;padding:11px 13px;border:1px solid var(--blue-border);background:var(--blue-dim);border-radius:var(--radius-sm)}
-  .rms-note-h{font-size:.76rem;font-weight:600;color:var(--blue);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .rms-note{margin-top:12px;padding:11px 13px;border:1px solid var(--green-border);background:var(--green-dim);border-radius:var(--radius-sm)}
+  .rms-note-h{font-size:.76rem;font-weight:600;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:6px}
   .rms-note-h svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
   .rms-tags{display:flex;flex-wrap:wrap;gap:6px}
-  .rms-tags span{font-size:.72rem;font-family:var(--mono);background:var(--surface);border:1px solid var(--blue-border);
+  .rms-tags span{font-size:.72rem;font-family:var(--mono);background:var(--surface);border:1px solid var(--green-border);
        color:var(--text);padding:3px 9px;border-radius:999px}
 
   .dl-steps{margin-top:12px;padding:11px 13px;border:1px solid var(--green-border);background:var(--green-dim);border-radius:var(--radius-sm)}
@@ -204,7 +204,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v15</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v16</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -215,7 +215,7 @@
     <span class="ic-wrap"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
     <div class="body">
       <div class="ttl">未入荷の予約商品はご注意ください</div>
-      <div class="txt">手帳・カレンダーなど、<b>まだ入荷していない予約商品</b>が itemdata に含まれている場合は、棚卸しデータを生成する<b>前</b>に、該当行を itemdata CSV から削除してください。入荷前の在庫数がそのまま棚卸し対象に含まれてしまいます。</div>
+      <div class="txt">手帳・カレンダーなど、<b>まだ入荷していない予約商品</b>が <b>itemdata CSV</b> に含まれている場合は、棚卸しデータを生成する<b>前</b>に、該当行を <b>itemdata CSV</b> から削除してください。入荷前の在庫数がそのまま棚卸し対象に含まれてしまいます。</div>
     </div>
   </div>
 
