@@ -99,6 +99,8 @@
   .dl-steps a:hover{border-bottom-color:var(--green)}
   .dl-steps b{font-weight:600}
 
+  .app-purpose{font-size:.84rem;color:var(--text2);line-height:1.6;margin:2px 0 20px}
+
   .alert-banner{display:flex;gap:13px;align-items:flex-start;padding:16px 18px;margin-bottom:22px;
        border:1.5px solid var(--red-border);background:var(--red-dim);border-radius:var(--radius);
        box-shadow:0 4px 18px rgba(220,38,38,0.08)}
@@ -204,12 +206,14 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v19</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v20</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
     </button>
   </div>
+
+  <div class="app-purpose">楽天のitemdata・dl-normal-item CSVを取り込み、EC在庫を「自社」「メーカー」に自動振り分けして棚卸し用Excelを作成するアプリです。</div>
 
   <div class="alert-banner">
     <span class="ic-wrap"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
@@ -221,7 +225,7 @@
 
   <!-- STEP 1: itemdata -->
   <div class="card">
-    <div class="card-h"><span class="num">1</span><h2>itemdata CSV（在庫・商品名）</h2><span class="opt req">必須</span></div>
+    <div class="card-h"><span class="num">1</span><h2>itemdata CSV（GoQ System・在庫取得）</h2><span class="opt req">必須</span></div>
     <label class="drop" id="dropItem">
       <input type="file" accept=".csv" id="fileItem">
       <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -241,7 +245,7 @@
 
   <!-- STEP 2: dl-normal-item -->
   <div class="card">
-    <div class="card-h"><span class="num">2</span><h2>dl-normal-item CSV（楽天・上代）</h2><span class="opt req">必須</span></div>
+    <div class="card-h"><span class="num">2</span><h2>dl-normal-item CSV（メーカー上代取得）</h2><span class="opt req">必須</span></div>
     <label class="drop" id="dropDl">
       <input type="file" accept=".csv" id="fileDl">
       <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -249,7 +253,7 @@
       <div class="h">通常購入販売価格 を含む楽天ダウンロードデータ（メーカー商品の上代）</div>
     </label>
     <div class="rms-note">
-      <div class="rms-note-h"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>RMSでダウンロードする際の必須項目</div>
+      <div class="rms-note-h"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>楽天RMSでダウンロードする際の必須項目</div>
       <div class="rms-tags">
         <span>商品番号</span><span>システム連携用SKU番号</span><span>通常購入販売価格</span><span>商品名</span><span>バリエーション項目名・選択肢</span>
       </div>
