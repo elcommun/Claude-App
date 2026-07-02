@@ -193,7 +193,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span>EC棚卸し</h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v13</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v14</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -325,6 +325,8 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.getAttribute('data-them
 /* ---------- constants ---------- */
 // 取り寄せ（非在庫）商品: 棚卸し対象外として完全に除外する
 const EXCLUDE_PREFIXES=['apj-','rft-'];
+// 個別に棚卸し対象外とする商品（連携SKU 先頭一致・小文字）
+const EXCLUDE_SKU_PREFIXES=['elco-crb111','elco-wpk101'];  // elco-crb111-, WPK-101(elco-wpk101)
 const MAKER_PREFIXES=['4on-','8mw-','af','ai-','aito-','ak-','alsk-','bm-','cocochi-','cre-','ef','ldw',
   'ma-','mgt-','MO','nlf','nm-','pb-','psm-','rio-','sh-','SLW-','tp-','tri-','wf','wh-','ky-'];
 const DEFAULT_RATES={'4on-':0.55,'8mw-':0.5,'ak-':0.6,'alsk-':0.6,'bm-':0.45,'cocochi-':0.5,'cre-':0.5,'ky-':0.6,
@@ -376,6 +378,7 @@ function cleanName(n){
   return n.trim();
 }
 function isExcluded(sku){return EXCLUDE_PREFIXES.some(p=>sku.startsWith(p));}
+function isDropped(sku){const s=sku.toLowerCase();return EXCLUDE_SKU_PREFIXES.some(p=>s.startsWith(p));}
 function isMaker(sku){return MAKER_PREFIXES.some(p=>sku.startsWith(p))||sku==='303069-C';}
 function rateFor(sku){
   let best=null;
@@ -492,6 +495,7 @@ document.getElementById('goBtn').onclick=async()=>{
     itemRows.forEach(r=>{
       const sku=(r['システム連携用SKU番号']||'').trim();if(!sku)return;
       if(isExcluded(sku)){excluded++;return;}  // 取り寄せ(apj-/rft-)は除外
+      if(isDropped(sku))return;                // 個別除外(elco-crb111-, WPK-101)
       const qty=parseInt(r['総在庫数']||r['在庫数']||'0',10)||0;
       if(hideZero&&qty===0)return;
       const name=cleanName(r['商品名']);
