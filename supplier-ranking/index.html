@@ -114,7 +114,7 @@ input[type=file]{display:none}
 .cs b{color:var(--ink2);font-weight:700}
 .sort-lbl{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--accent);text-transform:uppercase}
 .tw{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow-x:auto;box-shadow:0 2px 12px rgba(28,25,23,.04)}
-.tbl{width:auto;border-collapse:collapse;table-layout:fixed}
+.tbl{width:100%;border-collapse:collapse;table-layout:fixed}
 .tbl td{overflow:hidden}
 .th-resize{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;z-index:5}
 .th-resize:hover,.th-resize.resizing{background:rgba(255,255,255,.35)}
@@ -240,7 +240,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v12</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v13</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -334,7 +334,7 @@ function doLogin(){
         <thead><tr>
           <th style="width:50px">順位</th>
           <th class="code-col" style="width:92px">商品番号</th>
-          <th class="name-col" style="width:200px">商品名</th>
+          <th class="name-col">商品名</th>
           <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" id="ri-price"></span></th>
           <th class="th-sort" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" id="ri-qty"></span></th>
           <th class="cmp-col" style="width:70px">前年同期</th>
@@ -356,7 +356,7 @@ function doLogin(){
           <th style="width:50px">順位</th>
           <th style="width:80px">メーカー</th>
           <th style="width:92px">商品番号</th>
-          <th class="name-col" style="width:190px">商品名</th>
+          <th class="name-col">商品名</th>
           <th style="width:80px">税抜単価</th>
           <th style="width:70px">数量</th>
           <th style="width:100px">小計金額</th>
@@ -577,7 +577,6 @@ function toggleComparison(){
   comparisonMode=!comparisonMode;
   document.getElementById('tog-cmp').classList.toggle('on', comparisonMode);
   document.getElementById('rank-tbl').classList.toggle('show-cmp', comparisonMode);
-  recalcTableWidth('rank-tbl');
   applyFilter();
 }
 function toggleHeatmap(){
@@ -971,15 +970,6 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
 })();
 
 // ── テーブル列幅リサイズ ──────────────────────────────────
-function recalcTableWidth(tableId){
-  const table=document.getElementById(tableId);
-  if(!table) return;
-  let sum=0;
-  table.querySelectorAll('thead th').forEach(th=>{
-    if(getComputedStyle(th).display!=='none') sum+=th.offsetWidth;
-  });
-  table.style.width=sum+'px';
-}
 function makeColumnsResizable(tableId, storageKey){
   const table=document.getElementById(tableId);
   if(!table) return;
@@ -987,6 +977,7 @@ function makeColumnsResizable(tableId, storageKey){
   let saved={};
   try{ saved=JSON.parse(localStorage.getItem(storageKey)||'{}'); }catch(e){}
   ths.forEach((th,i)=>{
+    if(th.classList.contains('name-col')) return; // 商品名列は残り幅を埋める可変列にする
     if(saved[i]) th.style.width=saved[i]+'px';
     const handle=document.createElement('span');
     handle.className='th-resize';
@@ -998,14 +989,13 @@ function makeColumnsResizable(tableId, storageKey){
       const startX=e.clientX,startW=th.offsetWidth;
       function onMove(e){
         th.style.width=Math.max(40,startW+(e.clientX-startX))+'px';
-        recalcTableWidth(tableId);
       }
       function onUp(){
         handle.classList.remove('resizing');
         document.removeEventListener('mousemove',onMove);
         document.removeEventListener('mouseup',onUp);
         const widths={};
-        ths.forEach((t,j)=>{ widths[j]=t.offsetWidth; });
+        ths.forEach((t,j)=>{ if(!t.classList.contains('name-col')) widths[j]=t.offsetWidth; });
         localStorage.setItem(storageKey,JSON.stringify(widths));
       }
       document.addEventListener('mousemove',onMove);
@@ -1016,8 +1006,6 @@ function makeColumnsResizable(tableId, storageKey){
 }
 makeColumnsResizable('rank-tbl','ec_supplier_rank_col_w');
 makeColumnsResizable('search-tbl','ec_supplier_search_col_w');
-recalcTableWidth('rank-tbl');
-recalcTableWidth('search-tbl');
 
 // ── 初期化 ────────────────────────────────────────────────
 buildSelects();
