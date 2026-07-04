@@ -43,6 +43,7 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 .hd-btn:hover{background:rgba(255,255,255,.2);color:#fff}
 a.hd-link{text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0;background:#E85D26;border-color:#E85D26;color:#fff}
 a.hd-link:hover{background:#d14e1b;border-color:#d14e1b;color:#fff}
+a.hd-manual{text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0}
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:none;align-items:center;justify-content:center}
 .modal-bg.show{display:flex}
@@ -261,7 +262,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v43</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v44</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -271,6 +272,7 @@ function doLogin(){
     <button type="button" id="hd-search-clear" aria-label="検索をクリア" title="検索をクリア">×</button>
   </div>
   <a class="hd-btn hd-link" href="https://elcommun.github.io/Claude-App/ranking/" title="EC事業部 販売データ：自社商品">自社商品</a>
+  <a class="hd-btn hd-manual" href="manual.html" target="_blank" title="使い方マニュアル">📖 使い方</a>
   <button class="hd-btn" id="hd-update-btn" onclick="openModal()">⬆ データ更新</button>
 </header>
 
