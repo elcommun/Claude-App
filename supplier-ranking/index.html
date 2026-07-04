@@ -146,6 +146,8 @@ input[type=file]{display:none}
 .nc .var{display:block;font-size:12px;color:var(--ink3);margin-top:2px}
 .cmp-col{display:none}
 .show-cmp .cmp-col{display:table-cell}
+@media(max-width:1180px){.rate-col{display:none}}
+@media(max-width:980px){.amt-col{display:none}}
 .cmp-up{color:var(--green)}
 .cmp-down{color:var(--red)}
 .cmp-new{color:var(--accent);font-size:11px}
@@ -252,7 +254,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v31</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v32</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -353,15 +355,15 @@ function doLogin(){
         <thead><tr>
           <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
           <th class="th-sort cat-col" onclick="setSort('category')" style="width:200px">カテゴリ<span class="sort-ind" data-sind="category"></span></th>
-          <th class="tag-col" style="width:122px">メーカー</th>
+          <th class="tag-col" style="width:88px">メーカー</th>
           <th class="th-sort code-col" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
           <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
           <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
           <th class="th-sort" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" data-sind="qty"></span></th>
           <th class="cmp-col" style="width:70px">前年同期</th>
           <th class="cmp-col" style="width:70px">前年比</th>
-          <th style="width:90px">売上比</th>
-          <th class="th-sort" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
+          <th class="rate-col" style="width:90px">売上比</th>
+          <th class="th-sort amt-col" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
         </tr></thead>
         <tbody id="rank-tbody"></tbody>
       </table></div>
@@ -384,7 +386,7 @@ function doLogin(){
           <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
           <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
           <th class="th-sort" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" data-sind="qty"></span></th>
-          <th class="th-sort" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
+          <th class="th-sort amt-col" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
         </tr></thead>
         <tbody id="search-tbody"></tbody>
       </table></div>
@@ -727,6 +729,7 @@ function applyFilter(){
   if(searchQuery){ renderSearch(); }
   else if(currentGroup && groupHasData(currentGroup)){ showGroup(currentGroup); }
   else { showAllGroups(); }
+  scheduleExportPrebuild();
 }
 function updateHeaderDate(dF,dT){
   document.getElementById('hd-date').innerHTML='<b>'+dF+'</b> 〜 <b>'+dT+'</b>';
@@ -846,6 +849,7 @@ function toggleCheck(name){
   }
   updateExportBtns();
   renderSidebar();
+  scheduleExportPrebuild();
 }
 function hasCheckedLeaf(name){
   const cats=getGroupCats(name);
@@ -948,13 +952,42 @@ function selectGroup(g){
 }
 
 // ── Excelダウンロード（チェックしたメーカー/カテゴリごとに別シート） ──
+// チェック変更のたびにバックグラウンドでExcelを事前生成しておくことで、
+// ダウンロードボタンを押した瞬間から実際のファイル保存操作までの遅延を極力短くする
+// （遅延が大きいと、ブラウザがユーザー操作に基づかない自動ダウンロードとみなして
+//  2回目以降のダウンロードを保留・ブロックすることがあるため）
+let exportPrebuild={key:null, promise:null};
+let exportPrebuildTimer=null;
+function currentExportKey(){
+  const dF=document.getElementById('f-date-from').value||PRELOADED.date_from;
+  const dT=document.getElementById('f-date-to').value||PRELOADED.date_to;
+  const store=document.getElementById('f-store').value;
+  return JSON.stringify([[...exportChecks].sort(), groupMode, rankMetric, dF, dT, store, comparisonMode]);
+}
+function scheduleExportPrebuild(){
+  clearTimeout(exportPrebuildTimer);
+  if(!exportChecks.size) return;
+  exportPrebuildTimer=setTimeout(()=>{
+    const key=currentExportKey();
+    if(exportPrebuild.key===key) return;
+    exportPrebuild={key, promise:buildExportBlob().catch(e=>{ console.error('Excel事前生成に失敗しました', e); return null; })};
+  }, 400);
+}
 async function downloadCheckedGroups(){
   if(!exportChecks.size) return;
   const eb=document.getElementById('export-btn');
   if(eb && eb.disabled) return;
   if(eb) eb.disabled=true;
   try{
-    await downloadCheckedGroupsInner();
+    const key=currentExportKey();
+    let result = (exportPrebuild.key===key && exportPrebuild.promise) ? await exportPrebuild.promise : null;
+    if(!result) result=await buildExportBlob();
+    if(!result) return;
+    const url=URL.createObjectURL(result.blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=result.filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }catch(e){
     console.error('Excelダウンロードに失敗しました', e);
     alert('Excelダウンロードに失敗しました。もう一度お試し下さい。\n('+(e&&e.message||e)+')');
@@ -962,7 +995,7 @@ async function downloadCheckedGroups(){
     updateExportBtns();
   }
 }
-async function downloadCheckedGroupsInner(){
+async function buildExportBlob(){
   const dF=document.getElementById('f-date-from').value||PRELOADED.date_from;
   const dT=document.getElementById('f-date-to').value||PRELOADED.date_to;
   const periodStr=`${dF}〜${dT}`;
@@ -980,12 +1013,33 @@ async function downloadCheckedGroupsInner(){
   wb.creator='仕入れメーカー販売ランキング'; wb.created=new Date();
 
   const checkedList=[...exportChecks].filter(g=>AGG[g]).sort((a,b)=>AGG[b][rankMetric]-AGG[a][rankMetric]);
-  const usedSheetNames=new Set();
+  // メーカー別モードでは、各メーカーのシートをさらにカテゴリごとに分割する
+  // （カテゴリ別モードでは、チェックした時点で既にカテゴリ単位なので分割不要）
+  const sheetTasks=[];
   for(const gname of checkedList){
     const agg=AGG[gname];
     const rows=itemRows(agg.items);
     if(!rows.length) continue;
-    const totalQty=agg.qty, totalAmt=agg.amount;
+    if(groupMode==='maker'){
+      const byCat={};
+      const metric=r=>rankMetric==='amount'?r.amount:r.qty;
+      rows.forEach(r=>{ (byCat[r.category]||(byCat[r.category]=[])).push(r); });
+      const cats=Object.keys(byCat).sort((a,b)=>{
+        const av=byCat[a].reduce((s,r)=>s+metric(r),0);
+        const bv=byCat[b].reduce((s,r)=>s+metric(r),0);
+        return bv-av;
+      });
+      cats.forEach(cat=>{
+        sheetTasks.push({title:gname, subtitle:cat, displayName:(MAKER_ABBR[gname]||gname)+'_'+cat, rows:byCat[cat]});
+      });
+    } else {
+      sheetTasks.push({title:gname, subtitle:null, displayName:gname, rows});
+    }
+  }
+  const usedSheetNames=new Set();
+  for(const task of sheetTasks){
+    const rows=task.rows;
+    const totalQty=rows.reduce((s,r)=>s+r.qty,0), totalAmt=rows.reduce((s,r)=>s+r.amount,0);
     const prevQty=comparisonMode ? rows.reduce((s,r)=>s+(PREV_AGG[r.pid]?.qty||0),0) : 0;
     const prevAmt=comparisonMode ? rows.reduce((s,r)=>s+(PREV_AGG[r.pid]?.amount||0),0) : 0;
     const hasPrev=comparisonMode && (prevQty>0 || prevAmt>0);
@@ -999,7 +1053,7 @@ async function downloadCheckedGroupsInner(){
     const rankMap={};
     byRank.forEach((r,i)=>{ rankMap[r.pid]=i+1; });
 
-    const displayName = groupMode==='maker' ? (MAKER_ABBR[gname]||gname) : gname;
+    const displayName=task.displayName;
     let sheetName=displayName.substring(0,31).replace(/[[\]*?:/\\]/g,'_').trim()||'Sheet';
     let dedupeN=2;
     while(usedSheetNames.has(sheetName.toLowerCase())){ sheetName=((displayName.substring(0,28)||'Sheet')+'_'+dedupeN).replace(/[[\]*?:/\\]/g,'_'); dedupeN++; }
@@ -1011,7 +1065,8 @@ async function downloadCheckedGroupsInner(){
     ws.getRow(1).height=24;
     ws.mergeCells(1,1,1,6);
     const r1=ws.getCell(1,1);
-    r1.value=gname; r1.font={bold:true,size:16,color:{argb:C.WHT},name:'Yu Gothic'};
+    r1.value=task.subtitle ? `${task.title}　―　${task.subtitle}` : task.title;
+    r1.font={bold:true,size:16,color:{argb:C.WHT},name:'Yu Gothic'};
     r1.fill=fill(C.NAV); r1.alignment={vertical:'middle',horizontal:'left',indent:1};
     ws.mergeCells(1,8,1,13);
     const r1b=ws.getCell(1,8);
@@ -1087,7 +1142,7 @@ async function downloadCheckedGroupsInner(){
     ws.views=[{state:'frozen',ySplit:4,topLeftCell:'A5',activeCell:'A5'}];
   }
 
-  if(!wb.worksheets.length) return;
+  if(!wb.worksheets.length) return null;
   let labelPart;
   if(checkedList.length===1){
     labelPart = groupMode==='maker' ? (MAKER_ABBR[checkedList[0]]||checkedList[0]) : checkedList[0];
@@ -1098,11 +1153,7 @@ async function downloadCheckedGroupsInner(){
   const filename=`仕入れ販売数（${safeName}）${dF.replace(/-/g,'')}-${dT.replace(/-/g,'')}.xlsx`;
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return {blob, filename};
 }
 
 // ── KPIカード ─────────────────────────────────────────────
@@ -1234,8 +1285,8 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
     <td class="num">¥${r.price.toLocaleString()}</td>
     <td class="num"${qtyStyle}>${r.qty.toLocaleString()}</td>
     ${cmpHtml}
-    <td><div class="bb"><div class="bf" style="width:${barPct}%"></div></div><div style="font-size:10px;color:var(--ink4);margin-top:2px">${pct.toFixed(1)}%</div></td>
-    <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
+    <td class="rate-col"><div class="bb"><div class="bf" style="width:${barPct}%"></div></div><div style="font-size:10px;color:var(--ink4);margin-top:2px">${pct.toFixed(1)}%</div></td>
+    <td class="num amt-col">¥${Math.round(r.amount).toLocaleString()}</td>
   </tr>`;
 }
 function renderRankTable(rows, totalAmount, showMakerTag, showCatCol, ranks){
@@ -1330,7 +1381,7 @@ function renderSearch(){
       <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
       <td class="num">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
-      <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
+      <td class="num amt-col">¥${Math.round(r.amount).toLocaleString()}</td>
     </tr>`;
   };
   // メーカー表示・カテゴリ表示のどちらでも、カテゴリごとにグループ化しカテゴリ内でランキング付けする
@@ -1522,6 +1573,10 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
     document.documentElement.style.setProperty('--sb',w+'px');
     handle.style.left=w+'px';
     localStorage.setItem('ec_supplier_sb_width',w);
+    ['rank-tbl','search-tbl'].forEach(id=>{
+      const t=document.getElementById(id);
+      if(t) fillRemainingWidth(t);
+    });
   }
   const saved=parseInt(localStorage.getItem('ec_supplier_sb_width'));
   if(saved&&saved>=MIN&&saved<=MAX) applyW(saved);
@@ -1543,26 +1598,29 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
 
 // ── テーブル列幅リサイズ ──────────────────────────────────
 // table-layout:fixed の列幅は、table自体に明示的な幅（auto以外）が設定されていないと
-// JSでの<th>幅変更が反映されないため、列幅を変えるたびに表全体の幅も明示的に同期する
+// JSでの<th>幅変更が反映されないため、列幅を変えるたびに表全体の幅も明示的に同期する。
+// offsetWidthは、tableの幅が列幅合計より大きいと比例配分で伸びてしまい当てにならないため、
+// 各列の「意図した幅」はstyle.widthから読む（未設定の商品名列だけoffsetWidthにフォールバック）
+function colIntendedWidth(th){
+  const w=parseInt(th.style.width);
+  return isNaN(w) ? th.offsetWidth : w;
+}
 function syncTableWidth(table){
   const ths=[...table.querySelectorAll('thead th')].filter(th=>getComputedStyle(th).display!=='none');
-  const total=ths.reduce((sum,th)=>sum+th.offsetWidth,0);
+  const total=ths.reduce((sum,th)=>sum+colIntendedWidth(th),0);
   if(total>0) table.style.width=total+'px';
 }
-// 画面幅が広がって表の右側に余白ができた場合、商品名列を伸ばして埋める
-// （ユーザーが手動で縮めた幅より狭くすることはしない。画面が狭くなった場合は横スクロールに任せる）
+// 商品名列は、他の固定幅列を除いた残りの幅を常に埋める（画面が狭くなれば縮み、広がれば伸びる）
 function fillRemainingWidth(table){
   const wrapper=table.closest('.tw');
   const nameTh=table.querySelector('thead th.name-col');
   if(!wrapper||!nameTh) return;
   const otherThs=[...table.querySelectorAll('thead th')].filter(th=>th!==nameTh && getComputedStyle(th).display!=='none');
-  const othersWidth=otherThs.reduce((sum,th)=>sum+th.offsetWidth,0);
+  const othersWidth=otherThs.reduce((sum,th)=>sum+colIntendedWidth(th),0);
   const avail=wrapper.clientWidth;
   const needed=Math.max(120, avail-othersWidth);
-  if(needed>nameTh.offsetWidth){
-    nameTh.style.width=needed+'px';
-    syncTableWidth(table);
-  }
+  nameTh.style.width=needed+'px';
+  syncTableWidth(table);
 }
 function initTableWidth(tableId){
   const table=document.getElementById(tableId);
