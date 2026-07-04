@@ -127,9 +127,6 @@ input[type=file]{display:none}
 .tw{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow-x:auto;box-shadow:0 2px 12px rgba(28,25,23,.04)}
 .tbl{width:auto;border-collapse:collapse;table-layout:fixed}
 .tbl td{overflow:hidden}
-.th-resize{position:absolute;top:0;right:0;width:8px;height:100%;cursor:col-resize;z-index:5}
-.th-resize:hover,.th-resize.resizing{background:rgba(255,255,255,.35)}
-@media(max-width:768px){.th-resize{display:none}}
 .tbl thead{position:sticky;top:0;z-index:10}
 .tbl th{position:relative;background:#f0ece8;color:#5a4540;padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:center;border-right:1px solid #e0dbd5;border-bottom:1px solid #e0dbd5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:#2d2926}.sort-ind{margin-left:3px;font-size:9px;opacity:.7}
@@ -255,7 +252,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v30</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v31</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -411,6 +408,41 @@ function loadUploads(){
 function saveUploads(batches){
   localStorage.setItem(UPLOAD_KEY, JSON.stringify(batches));
 }
+const CANONICAL_STORE='EL COMMUN 楽天市場店';
+function dedupeProductsByCode(){
+  const byCode={};
+  Object.keys(ALL_PRODUCTS).forEach(pid=>{
+    const code=ALL_PRODUCTS[pid][3];
+    if(!code) return;
+    (byCode[code]||(byCode[code]=[])).push(pid);
+  });
+  const recordsByPid={};
+  ALL_RECORDS.forEach(r=>{ (recordsByPid[r[2]]||(recordsByPid[r[2]]=[])).push(r); });
+  const pidRemap={};
+  Object.keys(byCode).forEach(code=>{
+    const pids=byCode[code];
+    if(pids.length<=1) return;
+    let allRecs=[];
+    pids.forEach(pid=>{ allRecs=allRecs.concat(recordsByPid[pid]||[]); });
+    const targetRecs=allRecs.filter(r=>r[1]===CANONICAL_STORE);
+    const pool=targetRecs.length?targetRecs:allRecs;
+    let survivor=pids[0];
+    if(pool.length){
+      let winner=pool[0];
+      for(const r of pool){ if(r[0]>winner[0]) winner=r; }
+      if(ALL_PRODUCTS[winner[2]]) survivor=winner[2];
+    }
+    const canonical=ALL_PRODUCTS[survivor];
+    const macroCat=categorizeProduct(canonical[1]);
+    canonical[5]=subcategorize(macroCat, canonical[1]);
+    pids.forEach(pid=>{
+      if(pid!==survivor){ pidRemap[pid]=survivor; delete ALL_PRODUCTS[pid]; }
+    });
+  });
+  if(Object.keys(pidRemap).length){
+    ALL_RECORDS.forEach(r=>{ if(pidRemap[r[2]]) r[2]=pidRemap[r[2]]; });
+  }
+}
 function buildData(){
   ALL_MAKERS=Object.assign({}, PRELOADED.makers);
   ALL_PRODUCTS=Object.assign({}, PRELOADED.products);
@@ -421,10 +453,11 @@ function buildData(){
     Object.assign(ALL_PRODUCTS, b.products||{});
     ALL_RECORDS=ALL_RECORDS.concat(b.records||[]);
   });
+  dedupeProductsByCode();
   PRODUCT_INDEX={};
   Object.keys(ALL_PRODUCTS).forEach(pid=>{
     const p=ALL_PRODUCTS[pid];
-    PRODUCT_INDEX[p[0]+''+p[1]+''+p[2]]=pid;
+    PRODUCT_INDEX[p[3]||(p[0]+''+p[1]+''+p[2])]=pid;
   });
 }
 buildData();
@@ -917,6 +950,19 @@ function selectGroup(g){
 // ── Excelダウンロード（チェックしたメーカー/カテゴリごとに別シート） ──
 async function downloadCheckedGroups(){
   if(!exportChecks.size) return;
+  const eb=document.getElementById('export-btn');
+  if(eb && eb.disabled) return;
+  if(eb) eb.disabled=true;
+  try{
+    await downloadCheckedGroupsInner();
+  }catch(e){
+    console.error('Excelダウンロードに失敗しました', e);
+    alert('Excelダウンロードに失敗しました。もう一度お試し下さい。\n('+(e&&e.message||e)+')');
+  }finally{
+    updateExportBtns();
+  }
+}
+async function downloadCheckedGroupsInner(){
   const dF=document.getElementById('f-date-from').value||PRELOADED.date_from;
   const dT=document.getElementById('f-date-to').value||PRELOADED.date_to;
   const periodStr=`${dF}〜${dT}`;
@@ -954,10 +1000,10 @@ async function downloadCheckedGroups(){
     byRank.forEach((r,i)=>{ rankMap[r.pid]=i+1; });
 
     const displayName = groupMode==='maker' ? (MAKER_ABBR[gname]||gname) : gname;
-    let sheetName=displayName.substring(0,31).replace(/[[\]*?:/\\]/g,'_');
+    let sheetName=displayName.substring(0,31).replace(/[[\]*?:/\\]/g,'_').trim()||'Sheet';
     let dedupeN=2;
-    while(usedSheetNames.has(sheetName)){ sheetName=(displayName.substring(0,28)+'_'+dedupeN).replace(/[[\]*?:/\\]/g,'_'); dedupeN++; }
-    usedSheetNames.add(sheetName);
+    while(usedSheetNames.has(sheetName.toLowerCase())){ sheetName=((displayName.substring(0,28)||'Sheet')+'_'+dedupeN).replace(/[[\]*?:/\\]/g,'_'); dedupeN++; }
+    usedSheetNames.add(sheetName.toLowerCase());
     const ws=wb.addWorksheet(sheetName);
     ws.columns=[{width:7},{width:16},{width:32},{width:9},{width:8},{width:13},{width:2},
       {width:7},{width:16},{width:32},{width:9},{width:8},{width:13}];
@@ -1412,7 +1458,7 @@ function processFile(file){
         let cleanedName=cleanProductName(name);
         if(macroCat==='額縁・フレーム') cleanedName=cutFullwidthSlash(cleanedName);
         const category=subcategorize(macroCat,name);
-        const key=maker+''+cleanedName+''+varName;
+        const key=code||(maker+''+cleanedName+''+varName);
         let pid=PRODUCT_INDEX[key];
         if(!pid){
           pid=uploadTag+'p'+(count+1);
@@ -1518,52 +1564,14 @@ function fillRemainingWidth(table){
     syncTableWidth(table);
   }
 }
-function makeColumnsResizable(tableId, storageKey){
+function initTableWidth(tableId){
   const table=document.getElementById(tableId);
   if(!table) return;
-  const ths=[...table.querySelectorAll('thead th')];
-  let saved={};
-  try{ saved=JSON.parse(localStorage.getItem(storageKey)||'{}'); }catch(e){}
-  ths.forEach((th,i)=>{
-    if(saved[i]) th.style.width=saved[i]+'px';
-    const handle=document.createElement('span');
-    handle.className='th-resize';
-    th.appendChild(handle);
-    handle.addEventListener('mousedown',e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      handle.classList.add('resizing');
-      const startX=e.clientX,startW=th.offsetWidth;
-      let moved=false;
-      function onMove(e){
-        if(Math.abs(e.clientX-startX)>2) moved=true;
-        th.style.width=Math.max(40,startW+(e.clientX-startX))+'px';
-        syncTableWidth(table);
-      }
-      function onUp(){
-        handle.classList.remove('resizing');
-        document.removeEventListener('mousemove',onMove);
-        document.removeEventListener('mouseup',onUp);
-        if(moved){
-          // ドラッグでリサイズした直後、th の onclick（ソート）が誤発火するのを防ぐ
-          document.addEventListener('click',e=>{ e.stopPropagation(); e.preventDefault(); }, {capture:true, once:true});
-        }
-        if(!th.classList.contains('name-col')) fillRemainingWidth(table);
-        syncTableWidth(table);
-        const widths={};
-        ths.forEach((t,j)=>{ widths[j]=t.offsetWidth; });
-        localStorage.setItem(storageKey,JSON.stringify(widths));
-      }
-      document.addEventListener('mousemove',onMove);
-      document.addEventListener('mouseup',onUp);
-    });
-    handle.addEventListener('click',e=>e.stopPropagation());
-  });
   syncTableWidth(table);
   fillRemainingWidth(table);
 }
-makeColumnsResizable('rank-tbl','ec_supplier_rank_col_w');
-makeColumnsResizable('search-tbl','ec_supplier_search_col_w');
+initTableWidth('rank-tbl');
+initTableWidth('search-tbl');
 let resizeDebounce=null;
 window.addEventListener('resize',()=>{
   clearTimeout(resizeDebounce);
