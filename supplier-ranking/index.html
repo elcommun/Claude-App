@@ -248,7 +248,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v23</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v24</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -344,17 +344,17 @@ function doLogin(){
       </div>
       <div class="tw"><table class="tbl" id="rank-tbl">
         <thead><tr>
-          <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" id="ri-rank"></span></th>
+          <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
           <th class="cat-col" style="width:200px">カテゴリー</th>
           <th class="tag-col" style="width:122px">メーカー</th>
-          <th class="th-sort code-col" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" id="ri-code"></span></th>
-          <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" id="ri-name"></span></th>
-          <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" id="ri-price"></span></th>
-          <th class="th-sort" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" id="ri-qty"></span></th>
+          <th class="th-sort code-col" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
+          <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
+          <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
+          <th class="th-sort" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" data-sind="qty"></span></th>
           <th class="cmp-col" style="width:70px">前年同期</th>
           <th class="cmp-col" style="width:70px">前年比</th>
           <th style="width:90px">売上比</th>
-          <th class="th-sort" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" id="ri-amount"></span></th>
+          <th class="th-sort" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
         </tr></thead>
         <tbody id="rank-tbody"></tbody>
       </table></div>
@@ -367,13 +367,13 @@ function doLogin(){
       </div>
       <div class="tw"><table class="tbl" id="search-tbl">
         <thead><tr>
-          <th class="rank-col" style="width:64px">順位</th>
+          <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
           <th style="width:80px">メーカー</th>
-          <th style="width:156px">商品番号</th>
-          <th class="name-col">商品名</th>
-          <th style="width:80px">税抜単価</th>
-          <th style="width:70px">数量</th>
-          <th style="width:100px">小計金額</th>
+          <th class="th-sort" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
+          <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
+          <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
+          <th class="th-sort" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" data-sind="qty"></span></th>
+          <th class="th-sort" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
         </tr></thead>
         <tbody id="search-tbody"></tbody>
       </table></div>
@@ -632,13 +632,17 @@ function setSort(mode){
     document.getElementById('sort-lbl').textContent = mode==='amount' ? '金額ランキング' : mode==='price' ? '単価ランキング' : '個数ランキング';
   }
   ['price','qty','amount',...TEXT_SORT_MODES].forEach(m=>{
-    const el=document.getElementById('ri-'+m);
-    if(el) el.textContent = (sortMode===m) ? (sortDir==='desc'?'▼':'▲') : '';
+    document.querySelectorAll('[data-sind="'+m+'"]').forEach(el=>{
+      el.textContent = (sortMode===m) ? (sortDir==='desc'?'▼':'▲') : '';
+    });
   });
-  const rankEl=document.getElementById('ri-rank');
-  if(rankEl) rankEl.textContent = sortDir==='desc' ? '▼' : '▲';
+  document.querySelectorAll('[data-sind="rank"]').forEach(el=>{
+    el.textContent = sortDir==='desc' ? '▼' : '▲';
+  });
   renderSidebar();
-  if(currentGroup) showGroup(currentGroup); else showAllGroups();
+  if(searchQuery){ renderSearch(); }
+  else if(currentGroup){ showGroup(currentGroup); }
+  else { showAllGroups(); }
 }
 function sortByRank(){ setSort(sortMode); }
 
