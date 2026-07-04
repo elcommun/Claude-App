@@ -242,7 +242,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v19</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v20</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -709,7 +709,7 @@ function showGroup(g){
   document.getElementById('cat-name').textContent=g;
   document.getElementById('cat-rate').textContent = (groupMode==='maker'&&ALL_MAKERS[g]!=null) ? '掛け率 '+ALL_MAKERS[g] : '';
   document.getElementById('cat-stats').innerHTML=`<span class="cs">全体の <b>${(agg.amount/(ALL_TOTAL.amount||1)*100).toFixed(1)}%</b></span>`;
-  renderRankTable(rows, agg.amount, false);
+  renderRankTable(rows, agg.amount, groupMode==='category');
 }
 const ROW_LIMIT=300;
 function heatBg(val,maxVal){
