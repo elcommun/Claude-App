@@ -240,7 +240,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v13</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v14</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -470,6 +470,11 @@ function cleanVarName(v){
   v=(v||'').trim();
   if(v==='在庫') return '';
   return v.replace(VAR_STOCK_PREFIX_RE,'');
+}
+function cutFullwidthSlash(name){
+  const idx=name.indexOf('／');
+  if(idx>0) return name.slice(0,idx).trimEnd();
+  return name;
 }
 function setGroupMode(mode){
   groupMode=mode;
@@ -885,13 +890,15 @@ function processFile(file){
         if(!date||!qty) continue;
 
         if(!(maker in ALL_MAKERS) && !(maker in newMakers)) newMakers[maker]=rate;
-        const cleanedName=cleanProductName(name);
+        const category=categorizeProduct(name);
+        let cleanedName=cleanProductName(name);
+        if(category==='額縁・フレーム') cleanedName=cutFullwidthSlash(cleanedName);
         const key=maker+''+cleanedName+''+varName;
         let pid=PRODUCT_INDEX[key];
         if(!pid){
           pid=uploadTag+'p'+(count+1);
           PRODUCT_INDEX[key]=pid;
-          newProducts[pid]=[maker,cleanedName,varName,code,price,categorizeProduct(name)];
+          newProducts[pid]=[maker,cleanedName,varName,code,price,category];
           ALL_PRODUCTS[pid]=newProducts[pid];
         }
         newRecords.push([date,store,pid,qty,amount]);
