@@ -99,6 +99,9 @@ input[type=file]{display:none}
 .sbi-bar{position:absolute;bottom:0;left:17px;right:14px;height:2px;background:var(--border2);border-radius:1px}
 .sbi-bar-fill{height:100%;background:var(--accent);border-radius:1px;opacity:.5;transition:width .3s}
 .sbi-all{border-bottom:1px solid var(--border2);margin-bottom:2px;padding-bottom:9px}
+.sbi-chev{font-size:9px;color:var(--ink4);padding:0 2px;flex-shrink:0}
+.sbi-sub{padding-left:26px;font-size:11px}
+.sbi-sub .sbi-bar{left:31px}
 /* Main */
 .main{margin-left:var(--sb);flex:1;padding:22px 26px 60px;min-width:0}
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
@@ -248,7 +251,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v25</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v26</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -427,17 +430,16 @@ let rankMetric='qty'; // 'qty' | 'amount' — 個数順/金額順で選んだ「
 let searchQuery='';
 let comparisonMode=false, heatmapMode=false;
 function groupKeyOf(p){ return groupMode==='category' ? p[5] : p[0]; }
+// 大分類の判定ルール（品番により最初にマッチしたものを採用）
 const CATEGORY_RULES=[
   ['額縁・フレーム',['フレーム','額縁','FRAME','PANEL','ポロック']],
-  ['ランチョンマット・キッチン雑貨',['ランチョンマット','プレイスマット','プレースマット','コースター','キッチン','エプロン','ランチボックス','弁当','アイスパック','取り皿']],
   ['バッグ・トートバッグ',['バッグ','トート','エコバッグ','リュック','Tote']],
+  ['キッチン雑貨',['ランチョンマット','プレイスマット','プレースマット','コースター','キッチン','エプロン','ランチボックス','弁当','アイスパック','取り皿','プレート','Plate','食器','スプーン','フォーク','ボウル','Bowl','耐熱ガラス','豆皿','マグカップ','カップ','Mug','タンブラー','グラス','ボトル','Bottle']],
   ['ポーチ・巾着・小物入れ',['ポーチ','巾着','がま口','小物入れ','メガネケース','眼鏡ケース','ケース']],
   ['クッションカバー',['クッション','Cushion']],
   ['ワッペン・アップリケ',['アップリケ','ワッペン']],
   ['ラグ・マット・ブランケット',['マット','ラグ','タペストリー','タッセルクロス','スローケット','カットクロス','ブランケット','カーペット','ガーゼケット']],
   ['タオル・ハンカチ・ソックス',['タオル','ハンカチ','ソックス','靴下','ふきん','スリッパ']],
-  ['マグカップ・カップ',['マグ','カップ','Mug','タンブラー','グラス','ボトル','Bottle']],
-  ['食器・プレート',['プレート','Plate','食器','スプーン','フォーク','ボウル','Bowl','耐熱ガラス','豆皿']],
   ['ブローチ・ピンバッジ',['ブローチ','Brooch','ピン']],
   ['キーホルダー',['キーホルダー']],
   ['ヘアアクセサリー',['ヘアコーム','ヘアクリップ','Hair Clip','Comb']],
@@ -452,6 +454,76 @@ const CATEGORY_RULES=[
   ['ぬいぐるみ・マスコット',['ぬいぐるみ','マスコット','人形']],
   ['傘',['傘','UMBRELLA']],
 ];
+// 大分類の中をさらに細分化するルール（小分類名がそのまま「カテゴリ別」表示上のカテゴリ名になる）
+// どのルールにも一致しない商品は、大分類名そのものを小分類名として使う（フォールバック）
+const SUBCATEGORY_RULES={
+  '額縁・フレーム':[
+    ['STAIN PANEL',['STAIN PANEL','STAIN FRAME','ステインパネル','ステインフレーム']],
+    ['FIT FRAME',['FIT FRAME','FITFRAME','フィットフレーム']],
+  ],
+  'キッチン雑貨':[
+    ['ランチョンマット',['ランチョンマット','プレイスマット','プレースマット']],
+    ['エプロン',['エプロン']],
+    ['ランチボックス',['ランチボックス','BENTOU','弁当箱','弁当']],
+    ['アイスパック',['アイスパック','ICE PACK']],
+    ['マグカップ・カップ',['マグカップ','カップ','Mug','タンブラー','グラス','ボトル','Bottle']],
+    ['食器・プレート',['プレート','Plate','食器','スプーン','フォーク','ボウル','Bowl','耐熱ガラス','豆皿','取り皿','コースター']],
+  ],
+  'バッグ・トートバッグ':[
+    ['エコバッグ・その他バッグ',['エコバッグ','リュック']],
+  ],
+  'ポーチ・巾着・小物入れ':[
+    ['ポーチ',['ポーチ','がま口']],
+    ['巾着',['巾着']],
+    ['ケース類',['メガネケース','眼鏡ケース','小物入れ','ケース']],
+  ],
+  'ラグ・マット・ブランケット':[
+    ['ブランケット',['ブランケット','スローケット','ガーゼケット']],
+    ['タペストリー',['タペストリー','タッセルクロス','カットクロス']],
+    ['ラグ・マット',['マット','ラグ','カーペット']],
+  ],
+  'タオル・ハンカチ・ソックス':[
+    ['ソックス',['ソックス','靴下']],
+    ['ふきん・スリッパ',['ふきん','スリッパ']],
+    ['タオル・ハンカチ',['タオル','ハンカチ']],
+  ],
+  '時計・ミラー':[
+    ['時計',['時計','クロック','CLOCK']],
+    ['ミラー',['ミラー','鏡']],
+  ],
+  'フック・スタンド・トレー':[
+    ['トレー',['トレー','トレイ']],
+    ['スタンド',['スタンド','イーゼル','カードスタンド','ホルダー','ベース']],
+    ['フック・クリップ',['フック','壁掛け','飾り','ウォールピン','Art Clip','トッパー','クリップ']],
+  ],
+  'シール・マスキングテープ':[
+    ['マスキングテープ',['マスキング','KITTA','テープ']],
+    ['スタンプ・マーカー',['スタンプ','マーカー']],
+    ['シール',['シール']],
+  ],
+  '生活雑貨・アウトドア':[
+    ['アウトドア家具',['スツール','フォールディング','FOLDING','バケット','HANG STOCK']],
+    ['生活雑貨',['ブロワー','BLOWER','扇風機','加湿器','スプレー','扇子']],
+  ],
+  'ブローチ・ピンバッジ':[
+    ['ピンバッジ',['ピンズ','ピンバッジ','ピンバッチ']],
+    ['ブローチ',['ブローチ','Brooch']],
+  ],
+};
+// カテゴリ別サイドバーで親カテゴリとしてまとめて表示するグループ（小分類名の一覧）
+const MACRO_GROUPS=Object.keys(SUBCATEGORY_RULES).map(name=>({
+  name,
+  cats:[...new Set(SUBCATEGORY_RULES[name].map(r=>r[0]).concat([name]))],
+}));
+function subcategorize(macroCat,name){
+  const rules=SUBCATEGORY_RULES[macroCat];
+  if(!rules) return macroCat;
+  const lname=(name||'').toLowerCase();
+  for(const [sub,kws] of rules){
+    for(const kw of kws){ if(lname.includes(kw.toLowerCase())) return sub; }
+  }
+  return macroCat;
+}
 function categorizeProduct(name){
   const lname=(name||'').toLowerCase();
   for(const [cat,kws] of CATEGORY_RULES){
@@ -582,7 +654,7 @@ function applyFilter(){
   updateHeaderDate(dF,dT);
   renderSidebar();
   if(searchQuery){ renderSearch(); }
-  else if(currentGroup && AGG[currentGroup]){ showGroup(currentGroup); }
+  else if(currentGroup && groupHasData(currentGroup)){ showGroup(currentGroup); }
   else { showAllGroups(); }
 }
 function updateHeaderDate(dF,dT){
@@ -660,13 +732,39 @@ function setRankMetric(metric){
 }
 
 // ── サイドバー ────────────────────────────────────────────
+// カテゴリ別モードでは、MACRO_GROUPSに属する小分類を親カテゴリの下にまとめて表示する
+let expandedMacros=new Set();
+function toggleMacro(name){
+  if(expandedMacros.has(name)) expandedMacros.delete(name); else expandedMacros.add(name);
+  renderSidebar();
+}
+function getGroupCats(name){
+  const mg=MACRO_GROUPS.find(m=>m.name===name);
+  return mg ? mg.cats.filter(c=>AGG[c]) : null;
+}
+function groupTotal(name){
+  const cats=getGroupCats(name);
+  if(cats) return cats.reduce((acc,c)=>({qty:acc.qty+AGG[c].qty, amount:acc.amount+AGG[c].amount}), {qty:0,amount:0});
+  return AGG[name] ? {qty:AGG[name].qty, amount:AGG[name].amount} : {qty:0,amount:0};
+}
+function resolveGroupItems(g){
+  const cats=getGroupCats(g);
+  if(cats){
+    const items={};
+    let qty=0, amount=0;
+    cats.forEach(c=>{ Object.assign(items, AGG[c].items); qty+=AGG[c].qty; amount+=AGG[c].amount; });
+    return {items, qty, amount};
+  }
+  return AGG[g];
+}
+function groupHasData(g){
+  if(AGG[g]) return true;
+  const cats=getGroupCats(g);
+  return !!(cats && cats.length);
+}
 function renderSidebar(){
   const list=document.getElementById('sb-list');
-  const groupNames=Object.keys(AGG);
   const metric = rankMetric;
-  const maxVal=Math.max(1, ...groupNames.map(g=>AGG[g][metric]));
-  groupNames.sort((a,b)=>AGG[b][metric]-AGG[a][metric]);
-
   const allLabel = groupMode==='category' ? '🗂 全カテゴリ' : '🏷 全メーカー';
   const allBadge = metric==='amount' ? '¥'+Math.round(ALL_TOTAL.amount).toLocaleString() : ALL_TOTAL.qty.toLocaleString()+'個';
   let html = `<div class="sbi sbi-all${currentGroup===null?' active':''}" onclick="selectGroup(null)">
@@ -674,17 +772,66 @@ function renderSidebar(){
       <span class="sbi-badge">${allBadge}</span>
     </div>`;
 
-  html += groupNames.map(g=>{
-    const v=AGG[g][metric];
-    const badge = metric==='amount' ? '¥'+Math.round(v).toLocaleString() : v.toLocaleString()+'個';
-    const pct = Math.round(v/maxVal*100);
-    const active = currentGroup===g;
-    return `<div class="sbi${active?' active':''}" onclick="selectGroup('${esc(g)}')">
-      <span class="sbi-name">${groupMode==='maker'?makerHtml(g):x(g)}</span>
-      <span class="sbi-badge">${badge}</span>
-      <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
-    </div>`;
-  }).join('');
+  if(groupMode==='category'){
+    const macroMatchAny=c=>MACRO_GROUPS.some(m=>m.cats.includes(c));
+    const orphanCats=Object.keys(AGG).filter(c=>!macroMatchAny(c));
+    const entries=[
+      ...MACRO_GROUPS.filter(mg=>mg.cats.some(c=>AGG[c])).map(mg=>({name:mg.name, isMacro:true, val:groupTotal(mg.name)[metric]})),
+      ...orphanCats.map(c=>({name:c, isMacro:false, val:AGG[c][metric]})),
+    ];
+    const maxVal=Math.max(1, ...entries.map(e=>e.val));
+    entries.sort((a,b)=>b.val-a.val);
+    html += entries.map(e=>{
+      const pct=Math.round(e.val/maxVal*100);
+      const badge = metric==='amount' ? '¥'+Math.round(e.val).toLocaleString() : e.val.toLocaleString()+'個';
+      const active=currentGroup===e.name;
+      if(!e.isMacro){
+        return `<div class="sbi${active?' active':''}" onclick="selectGroup('${esc(e.name)}')">
+          <span class="sbi-name">${x(e.name)}</span>
+          <span class="sbi-badge">${badge}</span>
+          <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+      }
+      const expanded=expandedMacros.has(e.name);
+      const chevron=expanded?'▼':'▶';
+      let h=`<div class="sbi${active?' active':''}" onclick="selectGroup('${esc(e.name)}')">
+        <span class="sbi-chev" onclick="event.stopPropagation();toggleMacro('${esc(e.name)}')">${chevron}</span>
+        <span class="sbi-name">${x(e.name)}</span>
+        <span class="sbi-badge">${badge}</span>
+        <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+      if(expanded){
+        const subCats=getGroupCats(e.name).sort((a,b)=>AGG[b][metric]-AGG[a][metric]);
+        h += subCats.map(c=>{
+          const v=AGG[c][metric];
+          const subBadge = metric==='amount' ? '¥'+Math.round(v).toLocaleString() : v.toLocaleString()+'個';
+          const subPct=Math.round(v/maxVal*100);
+          const subActive=currentGroup===c;
+          return `<div class="sbi sbi-sub${subActive?' active':''}" onclick="selectGroup('${esc(c)}')">
+            <span class="sbi-name">${x(c)}</span>
+            <span class="sbi-badge">${subBadge}</span>
+            <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${subPct}%"></div></div>
+          </div>`;
+        }).join('');
+      }
+      return h;
+    }).join('');
+  } else {
+    const groupNames=Object.keys(AGG);
+    const maxVal=Math.max(1, ...groupNames.map(g=>AGG[g][metric]));
+    groupNames.sort((a,b)=>AGG[b][metric]-AGG[a][metric]);
+    html += groupNames.map(g=>{
+      const v=AGG[g][metric];
+      const badge = metric==='amount' ? '¥'+Math.round(v).toLocaleString() : v.toLocaleString()+'個';
+      const pct = Math.round(v/maxVal*100);
+      const active = currentGroup===g;
+      return `<div class="sbi${active?' active':''}" onclick="selectGroup('${esc(g)}')">
+        <span class="sbi-name">${makerHtml(g)}</span>
+        <span class="sbi-badge">${badge}</span>
+        <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+  }
   list.innerHTML=html;
 }
 function esc(s){ return String(s).replace(/'/g,"\\'"); }
@@ -757,7 +904,14 @@ function showAllGroups(){
   document.getElementById('cat-name').textContent = groupMode==='category' ? '全カテゴリ' : '全メーカー';
   document.getElementById('cat-rate').textContent='';
   const cntLabel = groupMode==='category' ? 'カテゴリ数' : 'メーカー数';
-  document.getElementById('cat-stats').innerHTML=`<span class="cs">${cntLabel} <b>${Object.keys(AGG).length}</b></span>`;
+  let cnt;
+  if(groupMode==='category'){
+    const macroMatchAny=c=>MACRO_GROUPS.some(m=>m.cats.includes(c));
+    cnt = MACRO_GROUPS.filter(mg=>mg.cats.some(c=>AGG[c])).length + Object.keys(AGG).filter(c=>!macroMatchAny(c)).length;
+  } else {
+    cnt = Object.keys(AGG).length;
+  }
+  document.getElementById('cat-stats').innerHTML=`<span class="cs">${cntLabel} <b>${cnt}</b></span>`;
   document.getElementById('col-tog').style.display='flex';
   syncColTogButtons();
   renderRankTable(rows, ALL_TOTAL.amount, listCol==='maker', listCol==='category', ranks);
@@ -766,7 +920,7 @@ function showGroup(g){
   document.getElementById('cat-view').style.display='';
   document.getElementById('search-view').style.display='none';
   document.getElementById('col-tog').style.display='none';
-  const agg=AGG[g];
+  const agg=resolveGroupItems(g);
   if(!agg){
     document.getElementById('cat-name').innerHTML = groupMode==='maker' ? makerHtml(g) : x(g);
     document.getElementById('cat-rate').textContent='';
@@ -972,9 +1126,10 @@ function processFile(file){
         if(!date||!qty) continue;
 
         if(!(maker in ALL_MAKERS) && !(maker in newMakers)) newMakers[maker]=rate;
-        const category=categorizeProduct(name);
+        const macroCat=categorizeProduct(name);
         let cleanedName=cleanProductName(name);
-        if(category==='額縁・フレーム') cleanedName=cutFullwidthSlash(cleanedName);
+        if(macroCat==='額縁・フレーム') cleanedName=cutFullwidthSlash(cleanedName);
+        const category=subcategorize(macroCat,name);
         const key=maker+''+cleanedName+''+varName;
         let pid=PRODUCT_INDEX[key];
         if(!pid){
