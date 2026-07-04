@@ -261,7 +261,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v42</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v43</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -502,6 +502,18 @@ const SUBCAT_CODE_OVERRIDE=[/^apj-cff/i];
 // APJ（額縁）の商品番号を楽天市場側の表記に統一するための例外補正
 // （サイズだけでは楽天市場側の実際の商品番号と一致しないもの。末尾に枝番が付く）
 const APJ_CODE_FIXUPS={'apj-wf61_91':'apj-wf61_91_1'};
+// 商品名クリーニング用の定数（normalizeProducts()がbuildData()の初回同期実行から参照するため、ここで初期化）
+const CUT_KEYWORDS=['オーダーメイドOK','オーダーメイド','お見積もり','お見積り','受注生産','製作期間','発送までに','同送不可','別注専用ページ','＊仮金額','銀行振込の場合','ご決済確認から発送'];
+const TRAIL_RE=/[\s　・／/＊*,、。：:；;\-－【（(☆]+$/;
+const CODE_TAIL_RE=/[\(（][A-Za-z0-9_\-]*(?:在庫)?[A-Za-z0-9_\-]*[\)）]\s*$/;
+const STRIP_WORDS=['インテリア雑貨','インテリア','おしゃれ','個性的','リビング','お部屋','寝室'];
+const MAKER_RENAME={'青山佳世アオヤマカヨ':'青山佳世','志成販売シセイ':'志成販売','京佑キョウユウ':'京佑'};
+const SPACE_RE=/[ 　]+/g;
+// 商品名の先頭に付く装飾文字・タグ（＼キャンペーン文言／、[メーカー名]、m.m など）を繰り返し除去
+const LEAD_DECOR_RE=/^(?:＼[^／]*／|\[[^\]]*\]|m\.m)[\s　]*/i;
+// 商品名の先頭が「＜交換＞」の商品は交換品のため取り込み対象から除外する
+const EXCHANGE_PREFIX_RE=/^＜交換＞/;
+const VAR_STOCK_PREFIX_RE=/^在庫\s*\/\s*/;
 
 const UPLOAD_KEY='ec_supplier_uploads_v1';
 let ALL_MAKERS={}, ALL_PRODUCTS={}, ALL_RECORDS=[], PRODUCT_INDEX={};
@@ -511,6 +523,23 @@ function loadUploads(){
 }
 function saveUploads(batches){
   localStorage.setItem(UPLOAD_KEY, JSON.stringify(batches));
+}
+// 全商品に現行のクリーニングルールを毎回適用する。
+// 過去の古いバージョンで取り込まれlocalStorageに残っているデータ（装飾文字や検索ワード付きの
+// 商品名のまま保存されているもの）も、読み込みのたびに現行ルールで自動修復される
+function normalizeProducts(){
+  Object.keys(ALL_PRODUCTS).forEach(pid=>{
+    const p=ALL_PRODUCTS[pid];
+    if(isExchangeItem(p[1])){ delete ALL_PRODUCTS[pid]; return; }
+    p[0]=MAKER_RENAME[p[0]]||p[0];
+    const cleaned=cleanProductName(p[1]);
+    if(cleaned.name!==p[1]){
+      p[1]=cleaned.name;
+      if(cleaned.searchExtra) p[6]=p[6]?(p[6]+' '+cleaned.searchExtra):cleaned.searchExtra;
+    }
+    if(categorizeProduct(p[1])==='その他・額縁') p[1]=cutFullwidthSlash(p[1]);
+    p[2]=cleanVarName(p[2]||'');
+  });
 }
 const CANONICAL_STORE='EL COMMUN 楽天市場店';
 function dedupeProductsByCode(){
@@ -562,6 +591,7 @@ function buildData(){
     Object.assign(ALL_PRODUCTS, b.products||{});
     ALL_RECORDS=ALL_RECORDS.concat(b.records||[]);
   });
+  normalizeProducts();
   dedupeProductsByCode();
   PRODUCT_INDEX={};
   Object.keys(ALL_PRODUCTS).forEach(pid=>{
@@ -600,14 +630,6 @@ function categorizeProduct(name){
   }
   return 'その他';
 }
-const CUT_KEYWORDS=['オーダーメイドOK','オーダーメイド','お見積もり','お見積り','受注生産','製作期間','発送までに','同送不可','別注専用ページ','＊仮金額','銀行振込の場合','ご決済確認から発送'];
-const TRAIL_RE=/[\s　・／/＊*,、。：:；;\-－【（(☆]+$/;
-const CODE_TAIL_RE=/[\(（][A-Za-z0-9_\-]*(?:在庫)?[A-Za-z0-9_\-]*[\)）]\s*$/;
-const STRIP_WORDS=['インテリア雑貨','インテリア','おしゃれ','個性的','リビング','お部屋','寝室'];
-const MAKER_RENAME={'青山佳世アオヤマカヨ':'青山佳世','志成販売シセイ':'志成販売','京佑キョウユウ':'京佑'};
-const SPACE_RE=/[ 　]+/g;
-// 商品名の先頭に付く装飾文字・タグ（＼キャンペーン文言／、[メーカー名]、m.m など）を繰り返し除去
-const LEAD_DECOR_RE=/^(?:＼[^／]*／|\[[^\]]*\]|m\.m)[\s　]*/i;
 function stripLeadingDecoration(s){
   while(true){
     const next=s.replace(LEAD_DECOR_RE,'');
@@ -616,8 +638,6 @@ function stripLeadingDecoration(s){
   }
   return s;
 }
-// 商品名の先頭が「＜交換＞」の商品は交換品のため取り込み対象から除外する
-const EXCHANGE_PREFIX_RE=/^＜交換＞/;
 function isExchangeItem(name){
   return EXCHANGE_PREFIX_RE.test((name||'').trim());
 }
@@ -641,7 +661,6 @@ function cleanProductName(name){
   s=s.replace(SPACE_RE,' ').trim();
   return {name: s || name, searchExtra};
 }
-const VAR_STOCK_PREFIX_RE=/^在庫\s*\/\s*/;
 function cleanVarName(v){
   v=(v||'').trim();
   if(v==='在庫') return '';
@@ -1259,6 +1278,7 @@ function showAllGroups(){
   document.getElementById('col-tog').style.display='flex';
   syncColTogButtons();
   renderRankTable(rows, ALL_TOTAL.amount, listCol==='maker', listCol==='category', ranks);
+  refreshVisibleTableWidth();
 }
 function showGroup(g){
   document.getElementById('cat-view').style.display='';
@@ -1286,6 +1306,7 @@ function showGroup(g){
     sortItems(rows);
     renderRankTable(rows, agg.amount, groupMode==='category', groupMode==='maker', ranks);
   }
+  refreshVisibleTableWidth();
 }
 const ROW_LIMIT=300;
 function heatBg(val,maxVal){
@@ -1400,6 +1421,7 @@ function renderSearch(){
   document.getElementById('search-stats').innerHTML=`<span class="cs">一致件数 <b>${rows.length}</b> 件</span>`;
   const searchNote=document.getElementById('search-note');
   const colspan=7;
+  refreshVisibleTableWidth();
   if(!rows.length){
     document.getElementById('search-tbody').innerHTML=`<tr><td colspan="${colspan}"><div class="empty"><div class="empty-icon">🔍</div>該当する商品が見つかりません</div></td></tr>`;
     searchNote.textContent='';
@@ -1650,12 +1672,20 @@ function fillRemainingWidth(table){
   const wrapper=table.closest('.tw');
   const nameTh=table.querySelector('thead th.name-col');
   if(!wrapper||!nameTh) return;
+  const avail=wrapper.clientWidth;
+  if(avail<=0) return; // 非表示のビュー（clientWidth=0）で計算すると商品名列が最小幅に潰れるためスキップ
   const otherThs=[...table.querySelectorAll('thead th')].filter(th=>th!==nameTh && getComputedStyle(th).display!=='none');
   const othersWidth=otherThs.reduce((sum,th)=>sum+colIntendedWidth(th),0);
-  const avail=wrapper.clientWidth;
   const needed=Math.max(120, avail-othersWidth);
   nameTh.style.width=needed+'px';
   syncTableWidth(table);
+}
+// ビューの表示切り替え直後に、表示中のテーブルの列幅を実際の画面幅に合わせ直す
+function refreshVisibleTableWidth(){
+  ['rank-tbl','search-tbl'].forEach(id=>{
+    const t=document.getElementById(id);
+    if(t) fillRemainingWidth(t);
+  });
 }
 function initTableWidth(tableId){
   const table=document.getElementById(tableId);
