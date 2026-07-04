@@ -121,7 +121,9 @@ input[type=file]{display:none}
 .num{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
 .cc{font-size:11px;color:var(--ink3);font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
 .nc{max-width:400px}
-.nc .var{display:block;font-size:11px;color:var(--ink3);margin-top:2px}
+.nc .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.nc .nm.nm-expand{white-space:normal;overflow:visible;text-overflow:clip}
+.nc .var{display:block;font-size:12px;color:var(--ink3);margin-top:2px}
 .cmp-col{display:none}
 .show-cmp .cmp-col{display:table-cell}
 .cmp-up{color:var(--green)}
@@ -230,7 +232,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v9</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v10</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -719,7 +721,7 @@ function renderRankTable(rows, totalAmount, showMakerTag){
     return `<tr>
       <td>${rankHtml}</td>
       <td class="cc">${x(r.code)}</td>
-      <td class="nc">${showMakerTag?`<span class="ct">${x(r.maker)}</span>`:''}${x(r.name)}${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
+      <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${showMakerTag?`<span class="ct">${x(r.maker)}</span>`:''}${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
       <td class="num">¥${r.price.toLocaleString()}</td>
       <td class="num"${qtyStyle}>${r.qty.toLocaleString()}</td>
       ${cmpHtml}
@@ -767,7 +769,7 @@ function renderSearch(){
       <td>${rankHtml}</td>
       <td><span class="ct">${x(r.maker)}</span></td>
       <td class="cc">${x(r.code)}</td>
-      <td class="nc">${x(r.name)}${r.varName?`<span class="var">${x(r.varName)}</span>`:''}<span class="var">${x(r.category)}</span></td>
+      <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}<span class="var">${x(r.category)}</span></td>
       <td class="num">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
       <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
