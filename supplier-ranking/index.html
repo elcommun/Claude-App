@@ -255,7 +255,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v29</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v30</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1145,19 +1145,52 @@ function showGroup(g){
     return;
   }
   const rows=itemRows(agg.items);
-  const ranks=computeRanks(rows);
-  sortItems(rows);
   renderKPI(agg.qty, agg.amount, costOf(rows), rows.length);
   document.getElementById('cat-name').innerHTML = groupMode==='maker' ? makerHtml(g) : x(g);
   document.getElementById('cat-rate').textContent = (groupMode==='maker'&&ALL_MAKERS[g]!=null) ? '掛け率 '+ALL_MAKERS[g] : '';
   document.getElementById('cat-stats').innerHTML=`<span class="cs">全体の <b>${(agg.amount/(ALL_TOTAL.amount||1)*100).toFixed(1)}%</b></span>`;
-  renderRankTable(rows, agg.amount, groupMode==='category', groupMode==='maker', ranks);
+  if(groupMode==='maker'){
+    renderRankTableGroupedByCategory(rows, agg.amount);
+  } else {
+    const ranks=computeRanks(rows);
+    sortItems(rows);
+    renderRankTable(rows, agg.amount, groupMode==='category', groupMode==='maker', ranks);
+  }
 }
 const ROW_LIMIT=300;
 function heatBg(val,maxVal){
   if(!maxVal) return '';
   const ratio=Math.min(1,val/maxVal);
   return `background:rgba(43,108,176,${(ratio*0.55).toFixed(2)})`;
+}
+function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
+  const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
+  const pct=(r.amount/(totalAmount||1)*100);
+  const barPct=Math.round(r.amount/maxAmt*100);
+  const qtyStyle=heatmapMode?` style="${heatBg(r.qty,maxQty)}"`:'';
+  const prev=PREV_AGG[r.pid];
+  const prevQty=prev?prev.qty:0;
+  let cmpHtml;
+  if(!prevQty){
+    cmpHtml=`<td class="num cmp-col">—</td><td class="num cmp-col"><span class="cmp-new">NEW</span></td>`;
+  } else {
+    const diffPct=((r.qty-prevQty)/prevQty*100);
+    const cls=diffPct>0?'cmp-up':diffPct<0?'cmp-down':'';
+    const sign=diffPct>0?'+':'';
+    cmpHtml=`<td class="num cmp-col">${prevQty.toLocaleString()}</td><td class="num cmp-col ${cls}">${sign}${diffPct.toFixed(0)}%</td>`;
+  }
+  return `<tr>
+    <td class="rank-col">${rankHtml}</td>
+    <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
+    <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
+    <td class="cc">${x(r.code)}</td>
+    <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
+    <td class="num">¥${r.price.toLocaleString()}</td>
+    <td class="num"${qtyStyle}>${r.qty.toLocaleString()}</td>
+    ${cmpHtml}
+    <td><div class="bb"><div class="bf" style="width:${barPct}%"></div></div><div style="font-size:10px;color:var(--ink4);margin-top:2px">${pct.toFixed(1)}%</div></td>
+    <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
+  </tr>`;
 }
 function renderRankTable(rows, totalAmount, showMakerTag, showCatCol, ranks){
   document.getElementById('rank-tbl').classList.toggle('hide-tag', !showMakerTag);
@@ -1171,37 +1204,45 @@ function renderRankTable(rows, totalAmount, showMakerTag, showCatCol, ranks){
   const maxAmt=Math.max(1,...rows.map(r=>r.amount));
   const maxQty=Math.max(1,...rows.map(r=>r.qty));
   const shown=rows.slice(0,ROW_LIMIT);
-  document.getElementById('rank-tbody').innerHTML=shown.map(r=>{
-    const rank=ranks[r.pid];
-    const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
-    const pct=(r.amount/(totalAmount||1)*100);
-    const barPct=Math.round(r.amount/maxAmt*100);
-    const qtyStyle=heatmapMode?` style="${heatBg(r.qty,maxQty)}"`:'';
-    const prev=PREV_AGG[r.pid];
-    const prevQty=prev?prev.qty:0;
-    let cmpHtml;
-    if(!prevQty){
-      cmpHtml=`<td class="num cmp-col">—</td><td class="num cmp-col"><span class="cmp-new">NEW</span></td>`;
-    } else {
-      const diffPct=((r.qty-prevQty)/prevQty*100);
-      const cls=diffPct>0?'cmp-up':diffPct<0?'cmp-down':'';
-      const sign=diffPct>0?'+':'';
-      cmpHtml=`<td class="num cmp-col">${prevQty.toLocaleString()}</td><td class="num cmp-col ${cls}">${sign}${diffPct.toFixed(0)}%</td>`;
-    }
-    return `<tr>
-      <td class="rank-col">${rankHtml}</td>
-      <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
-      <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
-      <td class="cc">${x(r.code)}</td>
-      <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
-      <td class="num">¥${r.price.toLocaleString()}</td>
-      <td class="num"${qtyStyle}>${r.qty.toLocaleString()}</td>
-      ${cmpHtml}
-      <td><div class="bb"><div class="bf" style="width:${barPct}%"></div></div><div style="font-size:10px;color:var(--ink4);margin-top:2px">${pct.toFixed(1)}%</div></td>
-      <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
-    </tr>`;
-  }).join('');
+  document.getElementById('rank-tbody').innerHTML=shown.map(r=>mainRowHtml(r, ranks[r.pid], totalAmount, maxAmt, maxQty, showMakerTag)).join('');
   note.textContent = rows.length>ROW_LIMIT ? `上位${ROW_LIMIT}件を表示中（全${rows.length.toLocaleString()}件）` : '';
+}
+// メーカー別で特定メーカーを選択した際、カテゴリごとにグループ化してカテゴリ内でランキング付けする
+// （順位は表示中のグループ全体ではなく、そのカテゴリの中での個数順/金額順）
+function renderRankTableGroupedByCategory(rows, totalAmount){
+  document.getElementById('rank-tbl').classList.toggle('hide-tag', true);
+  document.getElementById('rank-tbl').classList.toggle('show-catcol', false);
+  const note=document.getElementById('rank-note');
+  if(!rows.length){
+    document.getElementById('rank-tbody').innerHTML='<tr><td colspan="11"><div class="empty"><div class="empty-icon">📭</div>この期間の販売データはありません</div></td></tr>';
+    note.textContent='';
+    return;
+  }
+  const maxAmt=Math.max(1,...rows.map(r=>r.amount));
+  const maxQty=Math.max(1,...rows.map(r=>r.qty));
+  const groups=new Map();
+  rows.forEach(r=>{
+    if(!groups.has(r.category)) groups.set(r.category,[]);
+    groups.get(r.category).push(r);
+  });
+  const metric=rankMetric;
+  const catTotal=items=>items.reduce((s,r)=>s+(metric==='amount'?r.amount:r.qty),0);
+  const cats=[...groups.entries()].sort((a,b)=>catTotal(b[1])-catTotal(a[1]));
+  const parts=[];
+  let count=0;
+  for(const [cat,items] of cats){
+    if(count>=ROW_LIMIT) break;
+    const localRanks=computeRanks(items);
+    sortItems(items);
+    parts.push(`<tr class="fmt-hdr"><td colspan="11">▌ ${x(cat)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${items.length}種)</span></td></tr>`);
+    for(const r of items){
+      if(count>=ROW_LIMIT) break;
+      parts.push(mainRowHtml(r, localRanks[r.pid], totalAmount, maxAmt, maxQty, false));
+      count++;
+    }
+  }
+  document.getElementById('rank-tbody').innerHTML=parts.join('');
+  note.textContent = rows.length>count ? `上位${count}件を表示中（全${rows.length.toLocaleString()}件）` : '';
 }
 
 // ── 検索 ──────────────────────────────────────────────────
@@ -1216,9 +1257,7 @@ function renderSearch(){
   document.getElementById('search-view').style.display='';
   syncSearchColTogButtons();
   const rows=[];
-  const allItems={};
   Object.keys(AGG).forEach(m=>{
-    Object.assign(allItems, AGG[m].items);
     Object.keys(AGG[m].items).forEach(pid=>{
       const p=ALL_PRODUCTS[pid];
       const hay=normalize(p[0]+p[1]+p[2]+p[3]);
@@ -1228,8 +1267,6 @@ function renderSearch(){
       }
     });
   });
-  // 順位は表示順・グループ分けによらず商品固有の値（個数順/金額順の全体順位）を使う
-  const ranks=computeRanks(itemRows(allItems));
   document.getElementById('search-stats').innerHTML=`<span class="cs">一致件数 <b>${rows.length}</b> 件</span>`;
   const searchNote=document.getElementById('search-note');
   const colspan=7;
@@ -1238,55 +1275,45 @@ function renderSearch(){
     searchNote.textContent='';
     return;
   }
-  const rowHtml=r=>{
-    const rank=ranks[r.pid];
+  const rowHtml=(r,rank)=>{
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
     return `<tr>
       <td class="rank-col">${rankHtml}</td>
       <td><span class="ct">${makerHtml(r.maker)}</span></td>
       <td class="cc">${x(r.code)}</td>
-      <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}${searchListCol==='maker'?`<span class="var">${x(r.category)}</span>`:''}</td>
+      <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
       <td class="num">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
       <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
     </tr>`;
   };
-  let shownCount, html;
-  if(searchListCol==='category'){
-    // カテゴリ別にグループ化し、カテゴリ合計（個数順/金額順の基準）でカテゴリ自体をランキング順に並べる
-    // （グループ内は現在選択中のソート列に従う）。コピー元の ranking アプリの検索結果と同じ考え方。
-    const metric=rankMetric;
-    const groups=new Map();
-    rows.forEach(r=>{
-      if(!groups.has(r.category)) groups.set(r.category,{items:[],total:0});
-      const g=groups.get(r.category);
-      g.items.push(r);
-      g.total += (metric==='amount' ? r.amount : r.qty);
-    });
-    const cats=[...groups.entries()].sort((a,b)=>b[1].total-a[1].total);
-    const totalLabel=amt => metric==='amount' ? '¥'+Math.round(amt).toLocaleString() : amt.toLocaleString()+'個';
-    const shown=[];
-    let count=0;
-    for(const [cat,g] of cats){
+  // メーカー表示・カテゴリ表示のどちらでも、カテゴリごとにグループ化しカテゴリ内でランキング付けする
+  // （順位は全体順位ではなく、そのカテゴリの中での個数順/金額順）。コピー元の ranking アプリと同じ考え方。
+  const metric=rankMetric;
+  const groups=new Map();
+  rows.forEach(r=>{
+    if(!groups.has(r.category)) groups.set(r.category,{items:[],total:0});
+    const g=groups.get(r.category);
+    g.items.push(r);
+    g.total += (metric==='amount' ? r.amount : r.qty);
+  });
+  const cats=[...groups.entries()].sort((a,b)=>b[1].total-a[1].total);
+  const totalLabel=amt => metric==='amount' ? '¥'+Math.round(amt).toLocaleString() : amt.toLocaleString()+'個';
+  const shown=[];
+  let count=0;
+  for(const [cat,g] of cats){
+    if(count>=ROW_LIMIT) break;
+    const localRanks=computeRanks(g.items);
+    sortItems(g.items);
+    shown.push(`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(cat)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${g.items.length}種 / ${totalLabel(g.total)})</span></td></tr>`);
+    for(const r of g.items){
       if(count>=ROW_LIMIT) break;
-      sortItems(g.items);
-      shown.push(`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(cat)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${g.items.length}種 / ${totalLabel(g.total)})</span></td></tr>`);
-      for(const r of g.items){
-        if(count>=ROW_LIMIT) break;
-        shown.push(rowHtml(r));
-        count++;
-      }
+      shown.push(rowHtml(r, localRanks[r.pid]));
+      count++;
     }
-    shownCount=count;
-    html=shown.join('');
-  } else {
-    sortItems(rows);
-    const shown=rows.slice(0,ROW_LIMIT);
-    shownCount=shown.length;
-    html=shown.map(rowHtml).join('');
   }
-  document.getElementById('search-tbody').innerHTML=html;
-  searchNote.textContent = rows.length>shownCount ? `上位${shownCount}件を表示中（全${rows.length.toLocaleString()}件）` : '';
+  document.getElementById('search-tbody').innerHTML=shown.join('');
+  searchNote.textContent = rows.length>count ? `上位${count}件を表示中（全${rows.length.toLocaleString()}件）` : '';
 }
 document.getElementById('hd-search').addEventListener('input', e=>{
   searchQuery=e.target.value;
