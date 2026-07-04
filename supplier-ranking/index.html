@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>仕入れメーカー別 販売ランキング | EL COMMUN</title>
+<title>EC事業部 販売データ：仕入れ商品 | EL COMMUN</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
@@ -24,7 +24,8 @@ html{scroll-behavior:smooth}
 body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(--paper);color:var(--ink);font-size:13px;line-height:1.6;min-height:100vh}
 /* Header */
 .hdr{position:fixed;top:0;left:0;right:0;height:var(--hh);background:#2d2926;display:flex;align-items:center;padding:0 18px;gap:12px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-.hd-logo{font-size:15px;font-weight:700;color:#fff;letter-spacing:.04em;white-space:nowrap;cursor:pointer}
+.hd-logo{font-size:15px;font-weight:700;color:#fff;letter-spacing:.04em;white-space:nowrap;cursor:pointer;overflow:hidden;text-overflow:ellipsis}
+.hd-title-box{min-width:0}
 .hd-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase}
 .hd-sep{width:1px;height:18px;background:rgba(255,255,255,.12);flex-shrink:0}
 .hd-date{font-size:11px;color:rgba(255,255,255,.45);white-space:nowrap}
@@ -40,6 +41,7 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 .search-wrap.has-text #hd-search-clear{display:block}
 .hd-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;white-space:nowrap}
 .hd-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+a.hd-link{text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0}
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:none;align-items:center;justify-content:center}
 .modal-bg.show{display:flex}
@@ -105,6 +107,8 @@ input[type=file]{display:none}
 .sbi-sub .sbi-bar{left:31px}
 .sbi-chk{margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:var(--accent)}
 .sb-export{padding:8px;border-top:1px solid var(--border2)}
+.sb-sister{display:none;padding:8px;border-top:1px solid var(--border2)}
+.sb-sister a{display:block;text-align:center;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;color:var(--ink3);text-decoration:none;background:var(--white)}
 #export-btn{width:100%;padding:7px 8px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;opacity:.4;transition:opacity .2s}
 #export-btn:not(:disabled){opacity:1}
 /* Main */
@@ -181,6 +185,8 @@ input[type=file]{display:none}
   #hd-search{width:130px}
   .hd-btn{padding:5px 9px;font-size:10px}
   .hd-date{display:none}
+  a.hd-link{display:none}
+  .sb-sister{display:block}
 }
 @media(max-width:480px){
   #hd-search{width:100px;font-size:16px}
@@ -206,7 +212,7 @@ input[type=file]{display:none}
 <div id="login-overlay">
   <form class="login-box" onsubmit="doLogin();return false;" action="#">
     <div class="login-logo">EL COMMUN</div>
-    <div class="login-title">仕入れメーカー 販売データ</div>
+    <div class="login-title">EC事業部 販売データ：仕入れ商品</div>
     <div class="login-field">
       <label>ID</label>
       <input type="text" id="login-id" name="username" autocomplete="username" autocapitalize="off" spellcheck="false">
@@ -254,7 +260,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v40</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v41</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -263,6 +269,7 @@ function doLogin(){
     <input type="text" id="hd-search" placeholder="商品名・品番・メーカーで検索…" autocomplete="off">
     <button type="button" id="hd-search-clear" aria-label="検索をクリア" title="検索をクリア">×</button>
   </div>
+  <a class="hd-btn hd-link" href="https://elcommun.github.io/Claude-App/ranking/" title="EC事業部 販売データ：自社商品">自社商品 ↗</a>
   <button class="hd-btn" id="hd-update-btn" onclick="openModal()">⬆ データ更新</button>
 </header>
 
@@ -333,6 +340,7 @@ function doLogin(){
       <button class="sb-tbtn" id="tog-heat" onclick="toggleHeatmap()">ヒートマップ</button>
     </div>
     <div class="sb-list" id="sb-list"></div>
+    <div class="sb-sister"><a href="https://elcommun.github.io/Claude-App/ranking/">EC事業部 販売データ：自社商品 ↗</a></div>
     <div class="sb-export">
       <button id="export-btn" onclick="downloadCheckedGroups()" disabled>📥 選択してExcelダウンロード</button>
     </div>
