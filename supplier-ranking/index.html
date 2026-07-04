@@ -248,7 +248,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v24</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v25</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -315,8 +315,8 @@ function doLogin(){
       </div>
     </div>
     <div class="sb-tog">
-      <button class="sb-tbtn on" id="tog-qty" onclick="setSort('qty')">個数順</button>
-      <button class="sb-tbtn" id="tog-amt" onclick="setSort('amount')">金額順</button>
+      <button class="sb-tbtn on" id="tog-qty" onclick="setRankMetric('qty')">個数順</button>
+      <button class="sb-tbtn" id="tog-amt" onclick="setRankMetric('amount')">金額順</button>
     </div>
     <div class="sb-tog">
       <button class="sb-tbtn on" id="tog-mode-maker" onclick="setGroupMode('maker')">メーカー別</button>
@@ -338,14 +338,14 @@ function doLogin(){
         <div class="cat-stats" id="cat-stats"></div>
         <div class="col-tog" id="col-tog" style="display:none">
           <button class="col-tbtn" id="col-tog-maker" onclick="setListCol('maker')">メーカー</button>
-          <button class="col-tbtn" id="col-tog-category" onclick="setListCol('category')">カテゴリー</button>
+          <button class="col-tbtn" id="col-tog-category" onclick="setListCol('category')">カテゴリ</button>
         </div>
         <div class="sort-lbl" id="sort-lbl">個数ランキング</div>
       </div>
       <div class="tw"><table class="tbl" id="rank-tbl">
         <thead><tr>
           <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
-          <th class="cat-col" style="width:200px">カテゴリー</th>
+          <th class="th-sort cat-col" onclick="setSort('category')" style="width:200px">カテゴリ<span class="sort-ind" data-sind="category"></span></th>
           <th class="tag-col" style="width:122px">メーカー</th>
           <th class="th-sort code-col" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
           <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
@@ -423,6 +423,7 @@ let groupMode='maker'; // 'maker' | 'category'
 let currentGroup=null; // null = 全体
 let listCol='maker'; // 'maker' | 'category' — 全体一覧表で表示する列（タブで切替）
 let sortMode='qty', sortDir='desc';
+let rankMetric='qty'; // 'qty' | 'amount' — 個数順/金額順で選んだ「順位」算出基準。表示ソート(sortMode)とは独立
 let searchQuery='';
 let comparisonMode=false, heatmapMode=false;
 function groupKeyOf(p){ return groupMode==='category' ? p[5] : p[0]; }
@@ -622,35 +623,47 @@ function toggleHeatmap(){
 }
 
 // ── ソート ────────────────────────────────────────────────
-const TEXT_SORT_MODES=['code','name'];
-function setSort(mode){
-  if(sortMode===mode){ sortDir = sortDir==='desc' ? 'asc' : 'desc'; }
-  else { sortMode=mode; sortDir = TEXT_SORT_MODES.includes(mode) ? 'asc' : 'desc'; }
-  if(!TEXT_SORT_MODES.includes(mode)){
-    document.getElementById('tog-qty').classList.toggle('on', mode==='qty');
-    document.getElementById('tog-amt').classList.toggle('on', mode==='amount');
-    document.getElementById('sort-lbl').textContent = mode==='amount' ? '金額ランキング' : mode==='price' ? '単価ランキング' : '個数ランキング';
-  }
+// 「順位」は個数順/金額順（rankMetric）で決まる商品固有の値で、商品番号・商品名・税抜単価などの
+// 列見出しで表示順（sortMode）を変えても値は変わらない（商品に連動し続ける）
+const TEXT_SORT_MODES=['code','name','category'];
+function updateSortIndicators(){
   ['price','qty','amount',...TEXT_SORT_MODES].forEach(m=>{
     document.querySelectorAll('[data-sind="'+m+'"]').forEach(el=>{
       el.textContent = (sortMode===m) ? (sortDir==='desc'?'▼':'▲') : '';
     });
   });
   document.querySelectorAll('[data-sind="rank"]').forEach(el=>{
-    el.textContent = sortDir==='desc' ? '▼' : '▲';
+    el.textContent = (sortMode===rankMetric) ? (sortDir==='desc'?'▼':'▲') : '';
   });
+}
+function setSort(mode){
+  if(sortMode===mode){ sortDir = sortDir==='desc' ? 'asc' : 'desc'; }
+  else { sortMode=mode; sortDir = TEXT_SORT_MODES.includes(mode) ? 'asc' : 'desc'; }
+  updateSortIndicators();
+  if(searchQuery){ renderSearch(); }
+  else if(currentGroup){ showGroup(currentGroup); }
+  else { showAllGroups(); }
+}
+function sortByRank(){ setSort(rankMetric); }
+function setRankMetric(metric){
+  rankMetric=metric;
+  sortMode=metric;
+  sortDir='desc';
+  document.getElementById('tog-qty').classList.toggle('on', metric==='qty');
+  document.getElementById('tog-amt').classList.toggle('on', metric==='amount');
+  document.getElementById('sort-lbl').textContent = metric==='amount' ? '金額ランキング' : '個数ランキング';
+  updateSortIndicators();
   renderSidebar();
   if(searchQuery){ renderSearch(); }
   else if(currentGroup){ showGroup(currentGroup); }
   else { showAllGroups(); }
 }
-function sortByRank(){ setSort(sortMode); }
 
 // ── サイドバー ────────────────────────────────────────────
 function renderSidebar(){
   const list=document.getElementById('sb-list');
   const groupNames=Object.keys(AGG);
-  const metric = sortMode==='amount' ? 'amount' : 'qty';
+  const metric = rankMetric;
   const maxVal=Math.max(1, ...groupNames.map(g=>AGG[g][metric]));
   groupNames.sort((a,b)=>AGG[b][metric]-AGG[a][metric]);
 
@@ -705,6 +718,16 @@ function itemRows(items){
 function costOf(rows){
   return rows.reduce((sum,r)=>sum+r.amount*(ALL_MAKERS[r.maker]||0),0);
 }
+function computeRanks(rows){
+  const ranked=rows.slice().sort((a,b)=>{
+    const av = rankMetric==='amount' ? a.amount : a.qty;
+    const bv = rankMetric==='amount' ? b.amount : b.qty;
+    return (bv-av) || (b.amount-a.amount);
+  });
+  const ranks={};
+  ranked.forEach((r,i)=>{ ranks[r.pid]=i+1; });
+  return ranks;
+}
 function sortItems(rows){
   rows.sort((a,b)=>{
     let d;
@@ -727,7 +750,9 @@ function showAllGroups(){
   document.getElementById('search-view').style.display='none';
   const items={};
   Object.keys(AGG).forEach(g=>Object.assign(items, AGG[g].items));
-  const rows=sortItems(itemRows(items));
+  const rows=itemRows(items);
+  const ranks=computeRanks(rows);
+  sortItems(rows);
   renderKPI(ALL_TOTAL.qty, ALL_TOTAL.amount, costOf(rows), rows.length);
   document.getElementById('cat-name').textContent = groupMode==='category' ? '全カテゴリ' : '全メーカー';
   document.getElementById('cat-rate').textContent='';
@@ -735,7 +760,7 @@ function showAllGroups(){
   document.getElementById('cat-stats').innerHTML=`<span class="cs">${cntLabel} <b>${Object.keys(AGG).length}</b></span>`;
   document.getElementById('col-tog').style.display='flex';
   syncColTogButtons();
-  renderRankTable(rows, ALL_TOTAL.amount, listCol==='maker', listCol==='category');
+  renderRankTable(rows, ALL_TOTAL.amount, listCol==='maker', listCol==='category', ranks);
 }
 function showGroup(g){
   document.getElementById('cat-view').style.display='';
@@ -750,12 +775,14 @@ function showGroup(g){
     renderKPI(0,0,0,0);
     return;
   }
-  const rows=sortItems(itemRows(agg.items));
+  const rows=itemRows(agg.items);
+  const ranks=computeRanks(rows);
+  sortItems(rows);
   renderKPI(agg.qty, agg.amount, costOf(rows), rows.length);
   document.getElementById('cat-name').innerHTML = groupMode==='maker' ? makerHtml(g) : x(g);
   document.getElementById('cat-rate').textContent = (groupMode==='maker'&&ALL_MAKERS[g]!=null) ? '掛け率 '+ALL_MAKERS[g] : '';
   document.getElementById('cat-stats').innerHTML=`<span class="cs">全体の <b>${(agg.amount/(ALL_TOTAL.amount||1)*100).toFixed(1)}%</b></span>`;
-  renderRankTable(rows, agg.amount, groupMode==='category', groupMode==='maker');
+  renderRankTable(rows, agg.amount, groupMode==='category', groupMode==='maker', ranks);
 }
 const ROW_LIMIT=300;
 function heatBg(val,maxVal){
@@ -763,7 +790,7 @@ function heatBg(val,maxVal){
   const ratio=Math.min(1,val/maxVal);
   return `background:rgba(43,108,176,${(ratio*0.55).toFixed(2)})`;
 }
-function renderRankTable(rows, totalAmount, showMakerTag, showCatCol){
+function renderRankTable(rows, totalAmount, showMakerTag, showCatCol, ranks){
   document.getElementById('rank-tbl').classList.toggle('hide-tag', !showMakerTag);
   document.getElementById('rank-tbl').classList.toggle('show-catcol', showCatCol);
   const note=document.getElementById('rank-note');
@@ -775,8 +802,8 @@ function renderRankTable(rows, totalAmount, showMakerTag, showCatCol){
   const maxAmt=Math.max(1,...rows.map(r=>r.amount));
   const maxQty=Math.max(1,...rows.map(r=>r.qty));
   const shown=rows.slice(0,ROW_LIMIT);
-  document.getElementById('rank-tbody').innerHTML=shown.map((r,i)=>{
-    const rank=i+1;
+  document.getElementById('rank-tbody').innerHTML=shown.map(r=>{
+    const rank=ranks[r.pid];
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
     const pct=(r.amount/(totalAmount||1)*100);
     const barPct=Math.round(r.amount/maxAmt*100);
@@ -1039,7 +1066,6 @@ function makeColumnsResizable(tableId, storageKey){
   let saved={};
   try{ saved=JSON.parse(localStorage.getItem(storageKey)||'{}'); }catch(e){}
   ths.forEach((th,i)=>{
-    if(th.classList.contains('name-col')) return; // 商品名列は残り幅を埋める可変列にする
     if(saved[i]) th.style.width=saved[i]+'px';
     const handle=document.createElement('span');
     handle.className='th-resize';
@@ -1057,7 +1083,7 @@ function makeColumnsResizable(tableId, storageKey){
         document.removeEventListener('mousemove',onMove);
         document.removeEventListener('mouseup',onUp);
         const widths={};
-        ths.forEach((t,j)=>{ if(!t.classList.contains('name-col')) widths[j]=t.offsetWidth; });
+        ths.forEach((t,j)=>{ widths[j]=t.offsetWidth; });
         localStorage.setItem(storageKey,JSON.stringify(widths));
       }
       document.addEventListener('mousemove',onMove);
