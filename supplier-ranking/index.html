@@ -68,6 +68,10 @@ input[type=file]{display:none}
 /* Layout */
 .layout{display:flex;padding-top:var(--hh)}
 .sb{width:var(--sb);flex-shrink:0;position:fixed;top:var(--hh);bottom:0;left:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior:contain;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sb-resize{width:5px;cursor:col-resize;position:fixed;top:var(--hh);bottom:0;left:var(--sb);z-index:170;transition:background .15s}
+.sb-resize:hover,.sb-resize.dragging{background:var(--accent);opacity:.45}
+@media(max-width:768px){.sb-resize{display:none}}
+@media(max-width:900px) and (orientation:portrait){.sb-resize{display:none}}
 .sb::-webkit-scrollbar{width:4px}
 .sb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 .sb-flt{padding:10px 12px;border-bottom:1px solid var(--border2);display:flex;flex-direction:column;gap:0}
@@ -232,7 +236,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v10</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v11</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -270,6 +274,7 @@ function doLogin(){
 </div>
 
 <div class="sb-overlay" id="sb-overlay"></div>
+<div class="sb-resize" id="sb-resize"></div>
 <div class="layout">
   <aside class="sb">
     <div class="sb-flt">
@@ -404,18 +409,26 @@ let comparisonMode=false, heatmapMode=false;
 function groupKeyOf(p){ return groupMode==='category' ? p[5] : p[0]; }
 const CATEGORY_RULES=[
   ['額縁・フレーム',['フレーム','額縁','FRAME','PANEL','ポロック']],
-  ['バッグ・ポーチ・巾着',['バッグ','ポーチ','トート','エコバッグ','リュック','巾着','Tote']],
-  ['ファブリック・マット',['クッション','Cushion','ガーゼ','ブランケット','マット','ラグ','タペストリー','タッセルクロス','スローケット','カットクロス','アップリケ']],
+  ['ランチョンマット・キッチン雑貨',['ランチョンマット','プレイスマット','プレースマット','コースター','キッチン','エプロン','ランチボックス','弁当','アイスパック','取り皿']],
+  ['バッグ・トートバッグ',['バッグ','トート','エコバッグ','リュック','Tote']],
+  ['ポーチ・巾着・小物入れ',['ポーチ','巾着','がま口','小物入れ','メガネケース','眼鏡ケース','ケース']],
+  ['クッションカバー',['クッション','Cushion']],
+  ['ワッペン・アップリケ',['アップリケ','ワッペン']],
+  ['ラグ・マット・ブランケット',['マット','ラグ','タペストリー','タッセルクロス','スローケット','カットクロス','ブランケット','カーペット','ガーゼケット']],
   ['タオル・ハンカチ・ソックス',['タオル','ハンカチ','ソックス','靴下','ふきん','スリッパ']],
-  ['ランチョンマット・キッチン雑貨',['ランチョンマット','コースター','キッチン','エプロン','ランチボックス','弁当','アイスパック','取り皿']],
-  ['マグカップ・食器',['マグ','カップ','プレート','Plate','Mug','食器','スプーン','フォーク','グラス','タンブラー','ボウル','Bowl','耐熱ガラス','豆皿']],
-  ['アクセサリー・キーホルダー',['ブローチ','ピン','アクセサリー','リング','イヤリング','ネックレス','キーホルダー','ヘアコーム','ヘアクリップ','Hair Clip','Comb','Watch']],
-  ['インテリア雑貨',['ミラー','鏡','時計','CLOCK','フック','壁掛け','飾り','カードスタンド','ウォールピン','ホルダー','スタンド','ベース','トレー','トレイ','イーゼル','Art Clip','トッパー']],
+  ['マグカップ・カップ',['マグ','カップ','Mug','タンブラー','グラス','ボトル','Bottle']],
+  ['食器・プレート',['プレート','Plate','食器','スプーン','フォーク','ボウル','Bowl','耐熱ガラス','豆皿']],
+  ['ブローチ・ピンバッジ',['ブローチ','Brooch','ピン']],
+  ['キーホルダー',['キーホルダー']],
+  ['ヘアアクセサリー',['ヘアコーム','ヘアクリップ','Hair Clip','Comb']],
+  ['アクセサリー',['アクセサリー','リング','イヤリング','ネックレス','Watch']],
+  ['時計・ミラー',['時計','クロック','CLOCK','ミラー','鏡']],
+  ['フック・スタンド・トレー',['フック','壁掛け','飾り','カードスタンド','ウォールピン','ホルダー','スタンド','ベース','トレー','トレイ','イーゼル','Art Clip','トッパー','クリップ']],
   ['ライト・照明',['ネオン','LED','ライト','照明','ランプ']],
-  ['文具',['ペン','レター','一筆箋','メモ','ノート','シール','スタンプ','マスキング','KITTA','付箋','ふせん','クリップ','テープ','マーカー']],
-  ['マグネット',['マグネット','MAGNET','磁石']],
-  ['アロマ・お香・生活雑貨',['ディフューザー','お香','アロマ','DIFFUSER','スプレー','フラワーライフ','フラワーベース','スツール','フォールディング','FOLDING','ブロワー','BLOWER','扇風機','バケット','加湿器']],
-  ['財布・小物入れ',['財布','がま口','ケース','小物入れ']],
+  ['紙製品・筆記具',['レター','一筆箋','メモ','ノート','ふせん','付箋','ペン']],
+  ['シール・マスキングテープ',['シール','スタンプ','マスキング','KITTA','テープ','マーカー']],
+  ['生活雑貨・アウトドア',['スツール','フォールディング','FOLDING','ブロワー','BLOWER','扇風機','バケット','加湿器','スプレー','扇子','HANG STOCK']],
+  ['アロマ・お香',['ディフューザー','お香','アロマ','DIFFUSER','フラワーライフ','フラワーベース']],
   ['ぬいぐるみ・マスコット',['ぬいぐるみ','マスコット','人形']],
   ['傘',['傘','UMBRELLA']],
 ];
@@ -428,7 +441,7 @@ function categorizeProduct(name){
 }
 const CUT_KEYWORDS=['オーダーメイドOK','オーダーメイド','お見積もり','お見積り','受注生産','製作期間','発送までに','同送不可','別注専用ページ','＊仮金額','銀行振込の場合','ご決済確認から発送'];
 const TRAIL_RE=/[\s　・／/＊*,、。：:；;\-－【（(☆]+$/;
-const CODE_TAIL_RE=/[\(（][A-Za-z0-9][A-Za-z0-9_\-]*[\)）]\s*$/;
+const CODE_TAIL_RE=/[\(（][A-Za-z0-9_\-]*(?:在庫)?[A-Za-z0-9_\-]*[\)）]\s*$/;
 const STRIP_WORDS=['インテリア雑貨','インテリア','おしゃれ','個性的','リビング','お部屋','寝室'];
 const SPACE_RE=/[ 　]+/g;
 function cleanProductName(name){
@@ -922,6 +935,35 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
   document.querySelector('.sb').classList.remove('open');
   document.getElementById('sb-overlay').classList.remove('open');
 });
+
+// ── サイドバー幅リサイズ（デスクトップのみ） ──────────────
+(function(){
+  const MIN=140,MAX=480;
+  const handle=document.getElementById('sb-resize');
+  if(!handle) return;
+  function applyW(w){
+    w=Math.max(MIN,Math.min(MAX,w));
+    document.documentElement.style.setProperty('--sb',w+'px');
+    handle.style.left=w+'px';
+    localStorage.setItem('ec_supplier_sb_width',w);
+  }
+  const saved=parseInt(localStorage.getItem('ec_supplier_sb_width'));
+  if(saved&&saved>=MIN&&saved<=MAX) applyW(saved);
+  handle.addEventListener('mousedown',e=>{
+    if(window.innerWidth<=768||(window.innerWidth<=900&&window.matchMedia('(orientation:portrait)').matches)) return;
+    e.preventDefault();
+    handle.classList.add('dragging');
+    const startX=e.clientX,startW=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb'))||220;
+    function onMove(e){ applyW(startW+(e.clientX-startX)); }
+    function onUp(){
+      handle.classList.remove('dragging');
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+    }
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
+})();
 
 // ── 初期化 ────────────────────────────────────────────────
 buildSelects();
