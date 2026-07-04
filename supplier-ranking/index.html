@@ -254,7 +254,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v32</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v33</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -412,6 +412,7 @@ function saveUploads(batches){
 }
 const CANONICAL_STORE='EL COMMUN 楽天市場店';
 function dedupeProductsByCode(){
+  Object.values(ALL_PRODUCTS).forEach(p=>{ p[3]=normalizeApjCode(p[3]); });
   const byCode={};
   Object.keys(ALL_PRODUCTS).forEach(pid=>{
     const code=ALL_PRODUCTS[pid][3];
@@ -436,7 +437,7 @@ function dedupeProductsByCode(){
     }
     const canonical=ALL_PRODUCTS[survivor];
     const macroCat=categorizeProduct(canonical[1]);
-    canonical[5]=subcategorize(macroCat, canonical[1]);
+    canonical[5]=subcategorize(macroCat, canonical[1], canonical[3]);
     pids.forEach(pid=>{
       if(pid!==survivor){ pidRemap[pid]=survivor; delete ALL_PRODUCTS[pid]; }
     });
@@ -478,7 +479,7 @@ let comparisonMode=false, heatmapMode=false;
 function groupKeyOf(p){ return groupMode==='category' ? p[5] : p[0]; }
 // 大分類の判定ルール（品番により最初にマッチしたものを採用）
 const CATEGORY_RULES=[
-  ['額縁・フレーム',['フレーム','額縁','FRAME','PANEL','ポロック']],
+  ['その他・額縁',['フレーム','額縁','FRAME','PANEL','ポロック']],
   ['バッグ・トートバッグ',['バッグ','トート','エコバッグ','リュック','Tote']],
   ['キッチン雑貨',['ランチョンマット','プレイスマット','プレースマット','コースター','キッチン','エプロン','ランチボックス','弁当','アイスパック','取り皿','プレート','Plate','食器','スプーン','フォーク','ボウル','Bowl','耐熱ガラス','豆皿','マグカップ','カップ','Mug','タンブラー','グラス','ボトル','Bottle']],
   ['ポーチ・巾着・小物入れ',['ポーチ','巾着','がま口','小物入れ','メガネケース','眼鏡ケース','ケース']],
@@ -503,7 +504,7 @@ const CATEGORY_RULES=[
 // 大分類の中をさらに細分化するルール（小分類名がそのまま「カテゴリ別」表示上のカテゴリ名になる）
 // どのルールにも一致しない商品は、大分類名そのものを小分類名として使う（フォールバック）
 const SUBCATEGORY_RULES={
-  '額縁・フレーム':[
+  'その他・額縁':[
     ['STAIN PANEL',['STAIN PANEL','STAIN FRAME','ステインパネル','ステインフレーム']],
     ['FIT FRAME',['FIT FRAME','FITFRAME','フィットフレーム']],
   ],
@@ -561,7 +562,10 @@ const MACRO_GROUPS=Object.keys(SUBCATEGORY_RULES).map(name=>({
   name,
   cats:[...new Set(SUBCATEGORY_RULES[name].map(r=>r[0]).concat([name]))],
 }));
-function subcategorize(macroCat,name){
+// 商品番号のパターンで小分類を強制的に上書きするルール（名前のキーワード一致より優先）
+const SUBCAT_CODE_OVERRIDE=[/^apj-cff/i];
+function subcategorize(macroCat,name,code){
+  if(code && SUBCAT_CODE_OVERRIDE.some(re=>re.test(code))) return macroCat;
   const rules=SUBCATEGORY_RULES[macroCat];
   if(!rules) return macroCat;
   const lname=(name||'').toLowerCase();
@@ -625,6 +629,21 @@ function cutFullwidthSlash(name){
   const idx=name.indexOf('／');
   if(idx>0) return name.slice(0,idx).trimEnd();
   return name;
+}
+// APJ（額縁）の商品番号を楽天市場側の表記に統一する。
+// ・EL COMMUN Yahoo店は商品番号の頭に「apj-」が付かず、末尾に固有の管理番号が付くため、
+//   サイズ部分（af##x##/af##_##）だけを取り出して「apj-af##_##」に統一する
+// ・既にapj-が付いている商品番号でも、数字の間の「x」表記は「_」に統一する
+function normalizeApjCode(code){
+  if(!code) return code;
+  const c=String(code).trim();
+  if(/^af\d/i.test(c)){
+    const m=c.match(/^af(\d+)[x_](\d+)/i);
+    if(m) return `apj-af${m[1]}_${m[2]}`;
+    return 'apj-'+c;
+  }
+  if(/^apj-/i.test(c)) return c.replace(/(\d)x(\d)/gi,'$1_$2');
+  return c;
 }
 function setGroupMode(mode){
   groupMode=mode;
@@ -1496,7 +1515,7 @@ function processFile(file){
         if(!store||!maker||!name) continue;
         if(isExchangeItem(name)) continue;
         const varName=cleanVarName(String(row[colIdx['項目・選択肢']]||'').trim());
-        const code=String(row[colIdx['商品番号']]||'').trim();
+        const code=normalizeApjCode(String(row[colIdx['商品番号']]||'').trim());
         const price=num(row[colIdx['税抜単価']]);
         const qty=num(row[colIdx['数量']]);
         const amount=num(row[colIdx['小計（税抜）']]);
@@ -1507,8 +1526,8 @@ function processFile(file){
         if(!(maker in ALL_MAKERS) && !(maker in newMakers)) newMakers[maker]=rate;
         const macroCat=categorizeProduct(name);
         let cleanedName=cleanProductName(name);
-        if(macroCat==='額縁・フレーム') cleanedName=cutFullwidthSlash(cleanedName);
-        const category=subcategorize(macroCat,name);
+        if(macroCat==='その他・額縁') cleanedName=cutFullwidthSlash(cleanedName);
+        const category=subcategorize(macroCat,name,code);
         const key=code||(maker+''+cleanedName+''+varName);
         let pid=PRODUCT_INDEX[key];
         if(!pid){
