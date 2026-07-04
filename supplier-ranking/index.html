@@ -113,6 +113,9 @@ input[type=file]{display:none}
 .cs{font-size:12px;color:var(--ink3)}
 .cs b{color:var(--ink2);font-weight:700}
 .sort-lbl{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--accent);text-transform:uppercase}
+.col-tog{display:flex;gap:4px}
+.col-tbtn{padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:10px;font-weight:700;cursor:pointer;background:var(--white);color:var(--ink3);transition:all .15s}
+.col-tbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .tw{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow-x:auto;box-shadow:0 2px 12px rgba(28,25,23,.04)}
 .tbl{width:100%;border-collapse:collapse;table-layout:fixed}
 .tbl td{overflow:hidden}
@@ -244,7 +247,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v21</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v22</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -332,6 +335,10 @@ function doLogin(){
         <div class="cat-name" id="cat-name"></div>
         <div class="cat-rate" id="cat-rate"></div>
         <div class="cat-stats" id="cat-stats"></div>
+        <div class="col-tog" id="col-tog" style="display:none">
+          <button class="col-tbtn" id="col-tog-maker" onclick="setListCol('maker')">メーカー</button>
+          <button class="col-tbtn" id="col-tog-category" onclick="setListCol('category')">カテゴリー</button>
+        </div>
         <div class="sort-lbl" id="sort-lbl">個数ランキング</div>
       </div>
       <div class="tw"><table class="tbl" id="rank-tbl">
@@ -413,6 +420,7 @@ let PREV_AGG={}; // pid -> {qty,amount}（前年同期。前年比較ON時のみ
 let ALL_TOTAL={qty:0,amount:0};
 let groupMode='maker'; // 'maker' | 'category'
 let currentGroup=null; // null = 全体
+let listCol='maker'; // 'maker' | 'category' — 全体一覧表で表示する列（タブで切替）
 let sortMode='qty', sortDir='desc';
 let searchQuery='';
 let comparisonMode=false, heatmapMode=false;
@@ -486,10 +494,25 @@ function cutFullwidthSlash(name){
 function setGroupMode(mode){
   groupMode=mode;
   currentGroup=null;
+  listCol=mode;
   document.getElementById('tog-mode-maker').classList.toggle('on', mode==='maker');
   document.getElementById('tog-mode-category').classList.toggle('on', mode==='category');
   clearSearch();
   applyFilter();
+}
+function setListCol(col){
+  listCol=col;
+  syncColTogButtons();
+  showAllGroups();
+}
+function syncColTogButtons(){
+  document.getElementById('col-tog-maker').classList.toggle('on', listCol==='maker');
+  document.getElementById('col-tog-category').classList.toggle('on', listCol==='category');
+}
+const MAKER_ABBR={'8000000works':'8mw'};
+function makerHtml(name){
+  const abbr=MAKER_ABBR[name];
+  return abbr ? `<span title="${x(name)}">${x(abbr)}</span>` : x(name);
 }
 
 function normalize(s){
@@ -639,7 +662,7 @@ function renderSidebar(){
     const pct = Math.round(v/maxVal*100);
     const active = currentGroup===g;
     return `<div class="sbi${active?' active':''}" onclick="selectGroup('${esc(g)}')">
-      <span class="sbi-name">${x(g)}</span>
+      <span class="sbi-name">${groupMode==='maker'?makerHtml(g):x(g)}</span>
       <span class="sbi-badge">${badge}</span>
       <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${pct}%"></div></div>
     </div>`;
@@ -705,14 +728,17 @@ function showAllGroups(){
   document.getElementById('cat-rate').textContent='';
   const cntLabel = groupMode==='category' ? 'カテゴリ数' : 'メーカー数';
   document.getElementById('cat-stats').innerHTML=`<span class="cs">${cntLabel} <b>${Object.keys(AGG).length}</b></span>`;
-  renderRankTable(rows, ALL_TOTAL.amount, true);
+  document.getElementById('col-tog').style.display='flex';
+  syncColTogButtons();
+  renderRankTable(rows, ALL_TOTAL.amount, listCol==='maker', listCol==='category');
 }
 function showGroup(g){
   document.getElementById('cat-view').style.display='';
   document.getElementById('search-view').style.display='none';
+  document.getElementById('col-tog').style.display='none';
   const agg=AGG[g];
   if(!agg){
-    document.getElementById('cat-name').textContent=g;
+    document.getElementById('cat-name').innerHTML = groupMode==='maker' ? makerHtml(g) : x(g);
     document.getElementById('cat-rate').textContent='';
     document.getElementById('cat-stats').innerHTML='';
     document.getElementById('rank-tbody').innerHTML='<tr><td colspan="11"><div class="empty"><div class="empty-icon">📭</div>この期間の販売データはありません</div></td></tr>';
@@ -721,10 +747,10 @@ function showGroup(g){
   }
   const rows=sortItems(itemRows(agg.items));
   renderKPI(agg.qty, agg.amount, costOf(rows), rows.length);
-  document.getElementById('cat-name').textContent=g;
+  document.getElementById('cat-name').innerHTML = groupMode==='maker' ? makerHtml(g) : x(g);
   document.getElementById('cat-rate').textContent = (groupMode==='maker'&&ALL_MAKERS[g]!=null) ? '掛け率 '+ALL_MAKERS[g] : '';
   document.getElementById('cat-stats').innerHTML=`<span class="cs">全体の <b>${(agg.amount/(ALL_TOTAL.amount||1)*100).toFixed(1)}%</b></span>`;
-  renderRankTable(rows, agg.amount, groupMode==='category');
+  renderRankTable(rows, agg.amount, groupMode==='category', groupMode==='maker');
 }
 const ROW_LIMIT=300;
 function heatBg(val,maxVal){
@@ -732,9 +758,9 @@ function heatBg(val,maxVal){
   const ratio=Math.min(1,val/maxVal);
   return `background:rgba(43,108,176,${(ratio*0.55).toFixed(2)})`;
 }
-function renderRankTable(rows, totalAmount, showMakerTag){
+function renderRankTable(rows, totalAmount, showMakerTag, showCatCol){
   document.getElementById('rank-tbl').classList.toggle('hide-tag', !showMakerTag);
-  document.getElementById('rank-tbl').classList.toggle('show-catcol', groupMode==='maker');
+  document.getElementById('rank-tbl').classList.toggle('show-catcol', showCatCol);
   const note=document.getElementById('rank-note');
   if(!rows.length){
     document.getElementById('rank-tbody').innerHTML='<tr><td colspan="11"><div class="empty"><div class="empty-icon">📭</div>この期間の販売データはありません</div></td></tr>';
@@ -764,7 +790,7 @@ function renderRankTable(rows, totalAmount, showMakerTag){
     return `<tr>
       <td>${rankHtml}</td>
       <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
-      <td class="tag-col">${showMakerTag?`<span class="ct">${x(r.maker)}</span>`:''}</td>
+      <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
       <td class="cc">${x(r.code)}</td>
       <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
       <td class="num">¥${r.price.toLocaleString()}</td>
@@ -812,7 +838,7 @@ function renderSearch(){
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
     return `<tr>
       <td>${rankHtml}</td>
-      <td><span class="ct">${x(r.maker)}</span></td>
+      <td><span class="ct">${makerHtml(r.maker)}</span></td>
       <td class="cc">${x(r.code)}</td>
       <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}<span class="var">${x(r.category)}</span></td>
       <td class="num">¥${r.price.toLocaleString()}</td>
