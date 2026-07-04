@@ -254,7 +254,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v33</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v34</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -401,82 +401,8 @@ function doLogin(){
 </script>
 <script>
 // ── データマージ ──────────────────────────────────────────
-const UPLOAD_KEY='ec_supplier_uploads_v1';
-let ALL_MAKERS={}, ALL_PRODUCTS={}, ALL_RECORDS=[], PRODUCT_INDEX={};
-
-function loadUploads(){
-  try{ return JSON.parse(localStorage.getItem(UPLOAD_KEY)||'[]'); }catch(e){ return []; }
-}
-function saveUploads(batches){
-  localStorage.setItem(UPLOAD_KEY, JSON.stringify(batches));
-}
-const CANONICAL_STORE='EL COMMUN 楽天市場店';
-function dedupeProductsByCode(){
-  Object.values(ALL_PRODUCTS).forEach(p=>{ p[3]=normalizeApjCode(p[3]); });
-  const byCode={};
-  Object.keys(ALL_PRODUCTS).forEach(pid=>{
-    const code=ALL_PRODUCTS[pid][3];
-    if(!code) return;
-    (byCode[code]||(byCode[code]=[])).push(pid);
-  });
-  const recordsByPid={};
-  ALL_RECORDS.forEach(r=>{ (recordsByPid[r[2]]||(recordsByPid[r[2]]=[])).push(r); });
-  const pidRemap={};
-  Object.keys(byCode).forEach(code=>{
-    const pids=byCode[code];
-    if(pids.length<=1) return;
-    let allRecs=[];
-    pids.forEach(pid=>{ allRecs=allRecs.concat(recordsByPid[pid]||[]); });
-    const targetRecs=allRecs.filter(r=>r[1]===CANONICAL_STORE);
-    const pool=targetRecs.length?targetRecs:allRecs;
-    let survivor=pids[0];
-    if(pool.length){
-      let winner=pool[0];
-      for(const r of pool){ if(r[0]>winner[0]) winner=r; }
-      if(ALL_PRODUCTS[winner[2]]) survivor=winner[2];
-    }
-    const canonical=ALL_PRODUCTS[survivor];
-    const macroCat=categorizeProduct(canonical[1]);
-    canonical[5]=subcategorize(macroCat, canonical[1], canonical[3]);
-    pids.forEach(pid=>{
-      if(pid!==survivor){ pidRemap[pid]=survivor; delete ALL_PRODUCTS[pid]; }
-    });
-  });
-  if(Object.keys(pidRemap).length){
-    ALL_RECORDS.forEach(r=>{ if(pidRemap[r[2]]) r[2]=pidRemap[r[2]]; });
-  }
-}
-function buildData(){
-  ALL_MAKERS=Object.assign({}, PRELOADED.makers);
-  ALL_PRODUCTS=Object.assign({}, PRELOADED.products);
-  ALL_RECORDS=PRELOADED.records.slice();
-  const batches=loadUploads();
-  batches.forEach(b=>{
-    Object.assign(ALL_MAKERS, b.makers||{});
-    Object.assign(ALL_PRODUCTS, b.products||{});
-    ALL_RECORDS=ALL_RECORDS.concat(b.records||[]);
-  });
-  dedupeProductsByCode();
-  PRODUCT_INDEX={};
-  Object.keys(ALL_PRODUCTS).forEach(pid=>{
-    const p=ALL_PRODUCTS[pid];
-    PRODUCT_INDEX[p[3]||(p[0]+''+p[1]+''+p[2])]=pid;
-  });
-}
-buildData();
-
-// ── 状態 ──────────────────────────────────────────────────
-let AGG={}; // group(メーカー名 or カテゴリ名) -> {qty,amount,items:{pid:{qty,amount}}}
-let PREV_AGG={}; // pid -> {qty,amount}（前年同期。前年比較ON時のみ計算）
-let ALL_TOTAL={qty:0,amount:0};
-let groupMode='maker'; // 'maker' | 'category'
-let currentGroup=null; // null = 全体
-let listCol='maker'; // 'maker' | 'category' — 全体一覧表で表示する列（タブで切替）
-let sortMode='qty', sortDir='desc';
-let rankMetric='qty'; // 'qty' | 'amount' — 個数順/金額順で選んだ「順位」算出基準。表示ソート(sortMode)とは独立
-let searchQuery='';
-let comparisonMode=false, heatmapMode=false;
-function groupKeyOf(p){ return groupMode==='category' ? p[5] : p[0]; }
+// カテゴリ判定・商品番号正規化ルール（buildData()の初回同期実行より前に初期化されている必要があるため、
+// dedupeProductsByCode()より前にまとめて定義する）
 // 大分類の判定ルール（品番により最初にマッチしたものを採用）
 const CATEGORY_RULES=[
   ['その他・額縁',['フレーム','額縁','FRAME','PANEL','ポロック']],
@@ -564,6 +490,86 @@ const MACRO_GROUPS=Object.keys(SUBCATEGORY_RULES).map(name=>({
 }));
 // 商品番号のパターンで小分類を強制的に上書きするルール（名前のキーワード一致より優先）
 const SUBCAT_CODE_OVERRIDE=[/^apj-cff/i];
+// APJ（額縁）の商品番号を楽天市場側の表記に統一するための例外補正
+// （サイズだけでは楽天市場側の実際の商品番号と一致しないもの。末尾に枝番が付く）
+const APJ_CODE_FIXUPS={'apj-wf61_91':'apj-wf61_91_1'};
+
+const UPLOAD_KEY='ec_supplier_uploads_v1';
+let ALL_MAKERS={}, ALL_PRODUCTS={}, ALL_RECORDS=[], PRODUCT_INDEX={};
+
+function loadUploads(){
+  try{ return JSON.parse(localStorage.getItem(UPLOAD_KEY)||'[]'); }catch(e){ return []; }
+}
+function saveUploads(batches){
+  localStorage.setItem(UPLOAD_KEY, JSON.stringify(batches));
+}
+const CANONICAL_STORE='EL COMMUN 楽天市場店';
+function dedupeProductsByCode(){
+  Object.values(ALL_PRODUCTS).forEach(p=>{ p[3]=normalizeApjCode(p[3]); });
+  const byCode={};
+  Object.keys(ALL_PRODUCTS).forEach(pid=>{
+    const code=ALL_PRODUCTS[pid][3];
+    if(!code) return;
+    (byCode[code]||(byCode[code]=[])).push(pid);
+  });
+  const recordsByPid={};
+  ALL_RECORDS.forEach(r=>{ (recordsByPid[r[2]]||(recordsByPid[r[2]]=[])).push(r); });
+  const pidRemap={};
+  Object.keys(byCode).forEach(code=>{
+    const pids=byCode[code];
+    if(pids.length<=1) return;
+    let allRecs=[];
+    pids.forEach(pid=>{ allRecs=allRecs.concat(recordsByPid[pid]||[]); });
+    const targetRecs=allRecs.filter(r=>r[1]===CANONICAL_STORE);
+    const pool=targetRecs.length?targetRecs:allRecs;
+    let survivor=pids[0];
+    if(pool.length){
+      let winner=pool[0];
+      for(const r of pool){ if(r[0]>winner[0]) winner=r; }
+      if(ALL_PRODUCTS[winner[2]]) survivor=winner[2];
+    }
+    const canonical=ALL_PRODUCTS[survivor];
+    const macroCat=categorizeProduct(canonical[1]);
+    canonical[5]=subcategorize(macroCat, canonical[1], canonical[3]);
+    pids.forEach(pid=>{
+      if(pid!==survivor){ pidRemap[pid]=survivor; delete ALL_PRODUCTS[pid]; }
+    });
+  });
+  if(Object.keys(pidRemap).length){
+    ALL_RECORDS.forEach(r=>{ if(pidRemap[r[2]]) r[2]=pidRemap[r[2]]; });
+  }
+}
+function buildData(){
+  ALL_MAKERS=Object.assign({}, PRELOADED.makers);
+  ALL_PRODUCTS=Object.assign({}, PRELOADED.products);
+  ALL_RECORDS=PRELOADED.records.slice();
+  const batches=loadUploads();
+  batches.forEach(b=>{
+    Object.assign(ALL_MAKERS, b.makers||{});
+    Object.assign(ALL_PRODUCTS, b.products||{});
+    ALL_RECORDS=ALL_RECORDS.concat(b.records||[]);
+  });
+  dedupeProductsByCode();
+  PRODUCT_INDEX={};
+  Object.keys(ALL_PRODUCTS).forEach(pid=>{
+    const p=ALL_PRODUCTS[pid];
+    PRODUCT_INDEX[p[3]||(p[0]+''+p[1]+''+p[2])]=pid;
+  });
+}
+buildData();
+
+// ── 状態 ──────────────────────────────────────────────────
+let AGG={}; // group(メーカー名 or カテゴリ名) -> {qty,amount,items:{pid:{qty,amount}}}
+let PREV_AGG={}; // pid -> {qty,amount}（前年同期。前年比較ON時のみ計算）
+let ALL_TOTAL={qty:0,amount:0};
+let groupMode='maker'; // 'maker' | 'category'
+let currentGroup=null; // null = 全体
+let listCol='maker'; // 'maker' | 'category' — 全体一覧表で表示する列（タブで切替）
+let sortMode='qty', sortDir='desc';
+let rankMetric='qty'; // 'qty' | 'amount' — 個数順/金額順で選んだ「順位」算出基準。表示ソート(sortMode)とは独立
+let searchQuery='';
+let comparisonMode=false, heatmapMode=false;
+function groupKeyOf(p){ return groupMode==='category' ? p[5] : p[0]; }
 function subcategorize(macroCat,name,code){
   if(code && SUBCAT_CODE_OVERRIDE.some(re=>re.test(code))) return macroCat;
   const rules=SUBCATEGORY_RULES[macroCat];
@@ -632,17 +638,18 @@ function cutFullwidthSlash(name){
 }
 // APJ（額縁）の商品番号を楽天市場側の表記に統一する。
 // ・EL COMMUN Yahoo店は商品番号の頭に「apj-」が付かず、末尾に固有の管理番号が付くため、
-//   サイズ部分（af##x##/af##_##）だけを取り出して「apj-af##_##」に統一する
+//   サイズ部分（af##x##・wf##x##など）だけを取り出して「apj-af##_##」「apj-wf##_##」に統一する
 // ・既にapj-が付いている商品番号でも、数字の間の「x」表記は「_」に統一する
+// ・サイズだけでは楽天市場側の実際の商品番号と一致しない例外（末尾に枝番が付くもの）は個別に補正する
 function normalizeApjCode(code){
   if(!code) return code;
   const c=String(code).trim();
-  if(/^af\d/i.test(c)){
-    const m=c.match(/^af(\d+)[x_](\d+)/i);
-    if(m) return `apj-af${m[1]}_${m[2]}`;
+  if(/^(af|wf)\d/i.test(c)){
+    const m=c.match(/^(af|wf)(\d+)[x_](\d+)/i);
+    if(m){ const base=`apj-${m[1].toLowerCase()}${m[2]}_${m[3]}`; return APJ_CODE_FIXUPS[base]||base; }
     return 'apj-'+c;
   }
-  if(/^apj-/i.test(c)) return c.replace(/(\d)x(\d)/gi,'$1_$2');
+  if(/^apj-/i.test(c)){ const norm=c.replace(/(\d)x(\d)/gi,'$1_$2'); return APJ_CODE_FIXUPS[norm]||norm; }
   return c;
 }
 function setGroupMode(mode){
