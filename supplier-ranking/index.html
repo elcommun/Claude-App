@@ -254,7 +254,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v37</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v38</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -531,6 +531,10 @@ function dedupeProductsByCode(){
     const canonical=ALL_PRODUCTS[survivor];
     const macroCat=categorizeProduct(canonical[1]);
     canonical[5]=subcategorize(macroCat, canonical[1], canonical[3]);
+    // 統合される商品が持つ非表示検索ワードも失われないよう統合先に引き継ぐ
+    const extras=new Set();
+    pids.forEach(pid=>{ const e=(ALL_PRODUCTS[pid][6]||'').trim(); if(e) extras.add(e); });
+    canonical[6]=[...extras].join(' ');
     pids.forEach(pid=>{
       if(pid!==survivor){ pidRemap[pid]=survivor; delete ALL_PRODUCTS[pid]; }
     });
@@ -608,6 +612,8 @@ const EXCHANGE_PREFIX_RE=/^＜交換＞/;
 function isExchangeItem(name){
   return EXCHANGE_PREFIX_RE.test((name||'').trim());
 }
+// 商品名からCUT_KEYWORDS以降（受注生産の注意書きなど）を切り落とす際、
+// 切り落とした文言は商品名には表示しないが、検索ではヒットするよう非表示の検索ワードとして返す
 function cleanProductName(name){
   let s=stripLeadingDecoration(name||'');
   while(true){
@@ -619,11 +625,12 @@ function cleanProductName(name){
     const idx=s.indexOf(kw);
     if(idx>=0 && (cutIdx===-1 || idx<cutIdx)) cutIdx=idx;
   }
-  if(cutIdx>0) s=s.slice(0,cutIdx);
+  let searchExtra='';
+  if(cutIdx>0){ searchExtra=s.slice(cutIdx).trim(); s=s.slice(0,cutIdx); }
   s=s.replace(TRAIL_RE,'').trim();
   for(const w of STRIP_WORDS){ s=s.split(w).join(' '); }
   s=s.replace(SPACE_RE,' ').trim();
-  return s || name;
+  return {name: s || name, searchExtra};
 }
 const VAR_STOCK_PREFIX_RE=/^在庫\s*\/\s*/;
 function cleanVarName(v){
@@ -1373,7 +1380,7 @@ function renderSearch(){
   Object.keys(AGG).forEach(m=>{
     Object.keys(AGG[m].items).forEach(pid=>{
       const p=ALL_PRODUCTS[pid];
-      const hay=normalize(p[0]+p[1]+p[2]+p[3]);
+      const hay=normalize(p[0]+p[1]+p[2]+p[3]+(p[6]||''));
       if(hay.includes(qn)){
         const it=AGG[m].items[pid];
         rows.push({pid, maker:p[0], name:p[1], varName:p[2], code:p[3], price:p[4], category:p[5], qty:it.qty, amount:it.amount});
@@ -1522,7 +1529,9 @@ function processFile(file){
 
         if(!(maker in ALL_MAKERS) && !(maker in newMakers)) newMakers[maker]=rate;
         const macroCat=categorizeProduct(name);
-        let cleanedName=cleanProductName(name);
+        const cleaned=cleanProductName(name);
+        let cleanedName=cleaned.name;
+        const searchExtra=cleaned.searchExtra;
         if(macroCat==='その他・額縁') cleanedName=cutFullwidthSlash(cleanedName);
         const category=subcategorize(macroCat,name,code);
         const key=code||(maker+''+cleanedName+''+varName);
@@ -1530,7 +1539,7 @@ function processFile(file){
         if(!pid){
           pid=uploadTag+'p'+(count+1);
           PRODUCT_INDEX[key]=pid;
-          newProducts[pid]=[maker,cleanedName,varName,code,price,category];
+          newProducts[pid]=[maker,cleanedName,varName,code,price,category,searchExtra];
           ALL_PRODUCTS[pid]=newProducts[pid];
         }
         newRecords.push([date,store,pid,qty,amount]);
