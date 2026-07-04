@@ -41,7 +41,8 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 .search-wrap.has-text #hd-search-clear{display:block}
 .hd-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;white-space:nowrap}
 .hd-btn:hover{background:rgba(255,255,255,.2);color:#fff}
-a.hd-link{text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0}
+a.hd-link{text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0;background:#E85D26;border-color:#E85D26;color:#fff}
+a.hd-link:hover{background:#d14e1b;border-color:#d14e1b;color:#fff}
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:600;display:none;align-items:center;justify-content:center}
 .modal-bg.show{display:flex}
@@ -108,7 +109,7 @@ input[type=file]{display:none}
 .sbi-chk{margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:var(--accent)}
 .sb-export{padding:8px;border-top:1px solid var(--border2)}
 .sb-sister{display:none;padding:8px;border-top:1px solid var(--border2)}
-.sb-sister a{display:block;text-align:center;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;color:var(--ink3);text-decoration:none;background:var(--white)}
+.sb-sister a{display:block;text-align:center;padding:7px 8px;border:none;border-radius:6px;font-size:12px;font-weight:700;color:#fff;text-decoration:none;background:#E85D26}
 #export-btn{width:100%;padding:7px 8px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;opacity:.4;transition:opacity .2s}
 #export-btn:not(:disabled){opacity:1}
 /* Main */
@@ -260,7 +261,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v41</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v42</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -269,7 +270,7 @@ function doLogin(){
     <input type="text" id="hd-search" placeholder="商品名・品番・メーカーで検索…" autocomplete="off">
     <button type="button" id="hd-search-clear" aria-label="検索をクリア" title="検索をクリア">×</button>
   </div>
-  <a class="hd-btn hd-link" href="https://elcommun.github.io/Claude-App/ranking/" title="EC事業部 販売データ：自社商品">自社商品 ↗</a>
+  <a class="hd-btn hd-link" href="https://elcommun.github.io/Claude-App/ranking/" title="EC事業部 販売データ：自社商品">自社商品</a>
   <button class="hd-btn" id="hd-update-btn" onclick="openModal()">⬆ データ更新</button>
 </header>
 
@@ -340,7 +341,7 @@ function doLogin(){
       <button class="sb-tbtn" id="tog-heat" onclick="toggleHeatmap()">ヒートマップ</button>
     </div>
     <div class="sb-list" id="sb-list"></div>
-    <div class="sb-sister"><a href="https://elcommun.github.io/Claude-App/ranking/">EC事業部 販売データ：自社商品 ↗</a></div>
+    <div class="sb-sister"><a href="https://elcommun.github.io/Claude-App/ranking/">EC事業部 販売データ：自社商品</a></div>
     <div class="sb-export">
       <button id="export-btn" onclick="downloadCheckedGroups()" disabled>📥 選択してExcelダウンロード</button>
     </div>
