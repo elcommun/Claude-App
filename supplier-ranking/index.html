@@ -120,7 +120,7 @@ input[type=file]{display:none}
 .col-tbtn{padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:10px;font-weight:700;cursor:pointer;background:var(--white);color:var(--ink3);transition:all .15s}
 .col-tbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .tw{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow-x:auto;box-shadow:0 2px 12px rgba(28,25,23,.04)}
-.tbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.tbl{width:auto;border-collapse:collapse;table-layout:fixed}
 .tbl td{overflow:hidden}
 .th-resize{position:absolute;top:0;right:0;width:8px;height:100%;cursor:col-resize;z-index:5}
 .th-resize:hover,.th-resize.resizing{background:rgba(255,255,255,.35)}
@@ -139,7 +139,6 @@ input[type=file]{display:none}
 .hide-tag .tag-col{display:none}
 .cat-col{text-align:center;display:none}
 .show-catcol .cat-col{display:table-cell}
-.nc{max-width:400px}
 .nc .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .nc .nm.nm-expand{white-space:normal;overflow:visible;text-overflow:clip}
 .nc .var{display:block;font-size:12px;color:var(--ink3);margin-top:2px}
@@ -251,7 +250,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v26</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v27</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -367,6 +366,10 @@ function doLogin(){
       <div class="cat-hd">
         <div class="cat-name">検索結果</div>
         <div class="cat-stats" id="search-stats"></div>
+        <div class="col-tog" id="search-col-tog">
+          <button class="col-tbtn" id="search-col-tog-maker" onclick="setSearchListCol('maker')">メーカー</button>
+          <button class="col-tbtn" id="search-col-tog-category" onclick="setSearchListCol('category')">カテゴリ</button>
+        </div>
       </div>
       <div class="tw"><table class="tbl" id="search-tbl">
         <thead><tr>
@@ -569,6 +572,7 @@ function setGroupMode(mode){
   groupMode=mode;
   currentGroup=null;
   listCol=mode;
+  searchListCol=mode;
   document.getElementById('tog-mode-maker').classList.toggle('on', mode==='maker');
   document.getElementById('tog-mode-category').classList.toggle('on', mode==='category');
   clearSearch();
@@ -582,6 +586,16 @@ function setListCol(col){
 function syncColTogButtons(){
   document.getElementById('col-tog-maker').classList.toggle('on', listCol==='maker');
   document.getElementById('col-tog-category').classList.toggle('on', listCol==='category');
+}
+let searchListCol='maker'; // 'maker' | 'category' — 検索結果表でメーカー列表示/カテゴリ別グループ表示のどちらを使うか
+function setSearchListCol(col){
+  searchListCol=col;
+  syncSearchColTogButtons();
+  renderSearch();
+}
+function syncSearchColTogButtons(){
+  document.getElementById('search-col-tog-maker').classList.toggle('on', searchListCol==='maker');
+  document.getElementById('search-col-tog-category').classList.toggle('on', searchListCol==='category');
 }
 const MAKER_ABBR={'8000000works':'8mw'};
 function makerHtml(name){
@@ -999,8 +1013,11 @@ function renderSearch(){
   const qn=normalize(searchQuery);
   document.getElementById('cat-view').style.display='none';
   document.getElementById('search-view').style.display='';
+  syncSearchColTogButtons();
   const rows=[];
+  const allItems={};
   Object.keys(AGG).forEach(m=>{
+    Object.assign(allItems, AGG[m].items);
     Object.keys(AGG[m].items).forEach(pid=>{
       const p=ALL_PRODUCTS[pid];
       const hay=normalize(p[0]+p[1]+p[2]+p[3]);
@@ -1010,29 +1027,65 @@ function renderSearch(){
       }
     });
   });
-  sortItems(rows);
+  // 順位は表示順・グループ分けによらず商品固有の値（個数順/金額順の全体順位）を使う
+  const ranks=computeRanks(itemRows(allItems));
   document.getElementById('search-stats').innerHTML=`<span class="cs">一致件数 <b>${rows.length}</b> 件</span>`;
   const searchNote=document.getElementById('search-note');
+  const colspan=7;
   if(!rows.length){
-    document.getElementById('search-tbody').innerHTML='<tr><td colspan="7"><div class="empty"><div class="empty-icon">🔍</div>該当する商品が見つかりません</div></td></tr>';
+    document.getElementById('search-tbody').innerHTML=`<tr><td colspan="${colspan}"><div class="empty"><div class="empty-icon">🔍</div>該当する商品が見つかりません</div></td></tr>`;
     searchNote.textContent='';
     return;
   }
-  const shown=rows.slice(0,ROW_LIMIT);
-  document.getElementById('search-tbody').innerHTML=shown.map((r,i)=>{
-    const rank=i+1;
+  const rowHtml=r=>{
+    const rank=ranks[r.pid];
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
     return `<tr>
       <td class="rank-col">${rankHtml}</td>
       <td><span class="ct">${makerHtml(r.maker)}</span></td>
       <td class="cc">${x(r.code)}</td>
-      <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}<span class="var">${x(r.category)}</span></td>
+      <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}${searchListCol==='maker'?`<span class="var">${x(r.category)}</span>`:''}</td>
       <td class="num">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
       <td class="num">¥${Math.round(r.amount).toLocaleString()}</td>
     </tr>`;
-  }).join('');
-  searchNote.textContent = rows.length>ROW_LIMIT ? `上位${ROW_LIMIT}件を表示中（全${rows.length.toLocaleString()}件）` : '';
+  };
+  let shownCount, html;
+  if(searchListCol==='category'){
+    // カテゴリ別にグループ化し、カテゴリ合計（個数順/金額順の基準）でカテゴリ自体をランキング順に並べる
+    // （グループ内は現在選択中のソート列に従う）。コピー元の ranking アプリの検索結果と同じ考え方。
+    const metric=rankMetric;
+    const groups=new Map();
+    rows.forEach(r=>{
+      if(!groups.has(r.category)) groups.set(r.category,{items:[],total:0});
+      const g=groups.get(r.category);
+      g.items.push(r);
+      g.total += (metric==='amount' ? r.amount : r.qty);
+    });
+    const cats=[...groups.entries()].sort((a,b)=>b[1].total-a[1].total);
+    const totalLabel=amt => metric==='amount' ? '¥'+Math.round(amt).toLocaleString() : amt.toLocaleString()+'個';
+    const shown=[];
+    let count=0;
+    for(const [cat,g] of cats){
+      if(count>=ROW_LIMIT) break;
+      sortItems(g.items);
+      shown.push(`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(cat)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${g.items.length}種 / ${totalLabel(g.total)})</span></td></tr>`);
+      for(const r of g.items){
+        if(count>=ROW_LIMIT) break;
+        shown.push(rowHtml(r));
+        count++;
+      }
+    }
+    shownCount=count;
+    html=shown.join('');
+  } else {
+    sortItems(rows);
+    const shown=rows.slice(0,ROW_LIMIT);
+    shownCount=shown.length;
+    html=shown.map(rowHtml).join('');
+  }
+  document.getElementById('search-tbody').innerHTML=html;
+  searchNote.textContent = rows.length>shownCount ? `上位${shownCount}件を表示中（全${rows.length.toLocaleString()}件）` : '';
 }
 document.getElementById('hd-search').addEventListener('input', e=>{
   searchQuery=e.target.value;
@@ -1214,6 +1267,28 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
 })();
 
 // ── テーブル列幅リサイズ ──────────────────────────────────
+// table-layout:fixed の列幅は、table自体に明示的な幅（auto以外）が設定されていないと
+// JSでの<th>幅変更が反映されないため、列幅を変えるたびに表全体の幅も明示的に同期する
+function syncTableWidth(table){
+  const ths=[...table.querySelectorAll('thead th')].filter(th=>getComputedStyle(th).display!=='none');
+  const total=ths.reduce((sum,th)=>sum+th.offsetWidth,0);
+  if(total>0) table.style.width=total+'px';
+}
+// 画面幅が広がって表の右側に余白ができた場合、商品名列を伸ばして埋める
+// （ユーザーが手動で縮めた幅より狭くすることはしない。画面が狭くなった場合は横スクロールに任せる）
+function fillRemainingWidth(table){
+  const wrapper=table.closest('.tw');
+  const nameTh=table.querySelector('thead th.name-col');
+  if(!wrapper||!nameTh) return;
+  const otherThs=[...table.querySelectorAll('thead th')].filter(th=>th!==nameTh && getComputedStyle(th).display!=='none');
+  const othersWidth=otherThs.reduce((sum,th)=>sum+th.offsetWidth,0);
+  const avail=wrapper.clientWidth;
+  const needed=Math.max(120, avail-othersWidth);
+  if(needed>nameTh.offsetWidth){
+    nameTh.style.width=needed+'px';
+    syncTableWidth(table);
+  }
+}
 function makeColumnsResizable(tableId, storageKey){
   const table=document.getElementById(tableId);
   if(!table) return;
@@ -1232,11 +1307,14 @@ function makeColumnsResizable(tableId, storageKey){
       const startX=e.clientX,startW=th.offsetWidth;
       function onMove(e){
         th.style.width=Math.max(40,startW+(e.clientX-startX))+'px';
+        syncTableWidth(table);
       }
       function onUp(){
         handle.classList.remove('resizing');
         document.removeEventListener('mousemove',onMove);
         document.removeEventListener('mouseup',onUp);
+        if(!th.classList.contains('name-col')) fillRemainingWidth(table);
+        syncTableWidth(table);
         const widths={};
         ths.forEach((t,j)=>{ widths[j]=t.offsetWidth; });
         localStorage.setItem(storageKey,JSON.stringify(widths));
@@ -1246,9 +1324,21 @@ function makeColumnsResizable(tableId, storageKey){
     });
     handle.addEventListener('click',e=>e.stopPropagation());
   });
+  syncTableWidth(table);
+  fillRemainingWidth(table);
 }
 makeColumnsResizable('rank-tbl','ec_supplier_rank_col_w');
 makeColumnsResizable('search-tbl','ec_supplier_search_col_w');
+let resizeDebounce=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeDebounce);
+  resizeDebounce=setTimeout(()=>{
+    ['rank-tbl','search-tbl'].forEach(id=>{
+      const t=document.getElementById(id);
+      if(t) fillRemainingWidth(t);
+    });
+  },150);
+});
 
 // ── 初期化 ────────────────────────────────────────────────
 buildSelects();
