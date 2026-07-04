@@ -131,6 +131,7 @@ input[type=file]{display:none}
 .tbl tr:hover td{background:#fdf9f4}
 .num{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
 .cc{font-size:11px;color:var(--ink3);font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
+.rank-col{text-align:center}
 .tag-col{text-align:center}
 .hide-tag .tag-col{display:none}
 .cat-col{text-align:center;display:none}
@@ -247,7 +248,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v22</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v23</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -343,9 +344,9 @@ function doLogin(){
       </div>
       <div class="tw"><table class="tbl" id="rank-tbl">
         <thead><tr>
-          <th class="th-sort" onclick="sortByRank()" style="width:50px">順位<span class="sort-ind" id="ri-rank"></span></th>
-          <th class="th-sort cat-col" onclick="setSort('category')" style="width:200px">カテゴリー<span class="sort-ind" id="ri-category"></span></th>
-          <th class="th-sort tag-col" onclick="setSort('maker')" style="width:122px">メーカー<span class="sort-ind" id="ri-maker"></span></th>
+          <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" id="ri-rank"></span></th>
+          <th class="cat-col" style="width:200px">カテゴリー</th>
+          <th class="tag-col" style="width:122px">メーカー</th>
           <th class="th-sort code-col" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" id="ri-code"></span></th>
           <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" id="ri-name"></span></th>
           <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" id="ri-price"></span></th>
@@ -366,7 +367,7 @@ function doLogin(){
       </div>
       <div class="tw"><table class="tbl" id="search-tbl">
         <thead><tr>
-          <th style="width:50px">順位</th>
+          <th class="rank-col" style="width:64px">順位</th>
           <th style="width:80px">メーカー</th>
           <th style="width:156px">商品番号</th>
           <th class="name-col">商品名</th>
@@ -621,7 +622,7 @@ function toggleHeatmap(){
 }
 
 // ── ソート ────────────────────────────────────────────────
-const TEXT_SORT_MODES=['maker','category','code','name'];
+const TEXT_SORT_MODES=['code','name'];
 function setSort(mode){
   if(sortMode===mode){ sortDir = sortDir==='desc' ? 'asc' : 'desc'; }
   else { sortMode=mode; sortDir = TEXT_SORT_MODES.includes(mode) ? 'asc' : 'desc'; }
@@ -788,7 +789,7 @@ function renderRankTable(rows, totalAmount, showMakerTag, showCatCol){
       cmpHtml=`<td class="num cmp-col">${prevQty.toLocaleString()}</td><td class="num cmp-col ${cls}">${sign}${diffPct.toFixed(0)}%</td>`;
     }
     return `<tr>
-      <td>${rankHtml}</td>
+      <td class="rank-col">${rankHtml}</td>
       <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
       <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
       <td class="cc">${x(r.code)}</td>
@@ -837,7 +838,7 @@ function renderSearch(){
     const rank=i+1;
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
     return `<tr>
-      <td>${rankHtml}</td>
+      <td class="rank-col">${rankHtml}</td>
       <td><span class="ct">${makerHtml(r.maker)}</span></td>
       <td class="cc">${x(r.code)}</td>
       <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}<span class="var">${x(r.category)}</span></td>
@@ -1066,8 +1067,7 @@ makeColumnsResizable('search-tbl','ec_supplier_search_col_w');
 
 // ── 初期化 ────────────────────────────────────────────────
 buildSelects();
-setQBtnActive('qbtn-all');
-applyFilter();
+setYearsPeriod(1);
 
 // ── PWAバージョンチェック（自動リロード） ────────────────
 (function(){
