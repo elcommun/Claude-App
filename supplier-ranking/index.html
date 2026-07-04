@@ -254,7 +254,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v35</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">仕入れメーカー 販売ランキング</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v36</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1021,6 +1021,17 @@ async function downloadCheckedGroups(){
     updateExportBtns();
   }
 }
+// 全角文字を2、半角文字を1として数えた表示幅をもとに、内容が収まる列幅を返す（min/maxで下限・上限を設定）
+function excelColWidth(items,getText,min,max){
+  let w=min;
+  items.forEach(it=>{
+    const s=getText(it)||'';
+    let len=0;
+    for(const ch of s){ len+=(ch.charCodeAt(0)>0xFF)?2:1; }
+    if(len>w) w=len;
+  });
+  return Math.min(max, w+2);
+}
 async function buildExportBlob(){
   const dF=document.getElementById('f-date-from').value||PRELOADED.date_from;
   const dT=document.getElementById('f-date-to').value||PRELOADED.date_to;
@@ -1085,8 +1096,11 @@ async function buildExportBlob(){
     while(usedSheetNames.has(sheetName.toLowerCase())){ sheetName=((displayName.substring(0,28)||'Sheet')+'_'+dedupeN).replace(/[[\]*?:/\\]/g,'_'); dedupeN++; }
     usedSheetNames.add(sheetName.toLowerCase());
     const ws=wb.addWorksheet(sheetName);
-    ws.columns=[{width:7},{width:16},{width:32},{width:9},{width:8},{width:13},{width:2},
-      {width:7},{width:16},{width:32},{width:9},{width:8},{width:13}];
+    // 商品番号・商品名は、手動で幅を広げなくても内容が読める幅に自動調整する
+    const codeW=excelColWidth(rows, r=>r.code, 10, 36);
+    const nameW=excelColWidth(rows, r=>r.name+(r.varName?`（${r.varName}）`:''), 20, 60);
+    ws.columns=[{width:7},{width:codeW},{width:nameW},{width:9},{width:8},{width:13},{width:2},
+      {width:7},{width:codeW},{width:nameW},{width:9},{width:8},{width:13}];
 
     ws.getRow(1).height=24;
     ws.mergeCells(1,1,1,6);
@@ -1094,9 +1108,10 @@ async function buildExportBlob(){
     r1.value=task.subtitle ? `${task.title}　―　${task.subtitle}` : task.title;
     r1.font={bold:true,size:16,color:{argb:C.WHT},name:'Yu Gothic'};
     r1.fill=fill(C.NAV); r1.alignment={vertical:'middle',horizontal:'left',indent:1};
+    ws.getCell(1,7).fill=fill(C.NAV); // タイトルバーの隙間（区切り列）も塗って見出し行を1本の帯に見せる
     ws.mergeCells(1,8,1,13);
     const r1b=ws.getCell(1,8);
-    r1b.value=periodStr; r1b.font={italic:true,size:9,color:{argb:C.WHT},name:'Yu Gothic'};
+    r1b.value=periodStr; r1b.font={size:13,color:{argb:C.WHT},name:'Yu Gothic'};
     r1b.fill=fill(C.NAV); r1b.alignment={vertical:'middle',horizontal:'right',indent:1};
 
     ws.getRow(2).height=19;
