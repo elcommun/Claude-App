@@ -40,6 +40,8 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 .search-wrap.has-text #hd-search-clear{display:block}
 .hd-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;white-space:nowrap}
 .hd-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+.hd-btn-blue{background:#2563eb;border-color:#2563eb;color:#fff}
+.hd-btn-blue:hover{background:#1d4ed8;color:#fff}
 .hd-saved{font-size:10px;color:rgba(255,255,255,.4);white-space:nowrap;display:none}
 .hd-saved.show{display:block}
 /* Modal */
@@ -436,7 +438,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：自社商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v212</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：自社商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v213</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -445,7 +447,7 @@ function doLogin(){
     <input type="text" id="hd-search" placeholder="商品名・品番で検索…" autocomplete="off">
     <button type="button" id="hd-search-clear" aria-label="検索をクリア" title="検索をクリア">×</button>
   </div>
-  <a href="https://elcommun.github.io/Claude-App/supplier-ranking/" class="hd-btn" style="text-decoration:none">🏭 仕入れ商品</a>
+  <a href="https://elcommun.github.io/Claude-App/supplier-ranking/" class="hd-btn hd-btn-blue" style="text-decoration:none">仕入れ商品</a>
   <a href="manual.html" target="_blank" class="hd-btn" style="text-decoration:none">📖 使い方</a>
   <button class="hd-btn" id="hd-update-btn">⚙ 設定</button>
 </header>
