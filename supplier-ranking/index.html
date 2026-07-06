@@ -79,6 +79,9 @@ input[type=file]{display:none}
 @media(max-width:900px) and (orientation:portrait){.sb-resize{display:none}}
 .sb::-webkit-scrollbar{width:4px}
 .sb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sb-hd{padding:12px 12px 10px;border-bottom:1px solid var(--border2)}
+.sb-total{font-size:11px;color:var(--ink3);line-height:1.6}
+.sb-total b{color:var(--ink2);font-weight:700}
 .sb-flt{padding:10px 12px;border-bottom:1px solid var(--border2);display:flex;flex-direction:column;gap:0}
 .sb-flt-sec{padding:10px 0;border-bottom:1px solid var(--border2)}
 .sb-flt-sec:last-child{border-bottom:none}
@@ -262,7 +265,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v46</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v47</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -305,6 +308,9 @@ function doLogin(){
 <div class="sb-resize" id="sb-resize"></div>
 <div class="layout">
   <aside class="sb">
+    <div class="sb-hd">
+      <div class="sb-total" id="sb-total"></div>
+    </div>
     <div class="sb-flt">
       <div class="sb-flt-sec">
         <div class="sb-flt-lbl">販売期間</div>
@@ -787,11 +793,30 @@ function applyFilter(){
   }
   PREV_AGG = comparisonMode ? buildPrevAgg(dF,dT,store) : {};
   updateHeaderDate(dF,dT);
+  updateSidebarTotal(dF,dT);
   renderSidebar();
   if(searchQuery){ renderSearch(); }
   else if(currentGroup && groupHasData(currentGroup)){ showGroup(currentGroup); }
   else { showAllGroups(); }
   scheduleExportPrebuild();
+}
+// サイドバー最上部に、選択期間全体の合計（個数・金額・SKU数・メーカー/カテゴリ数）を表示する
+function updateSidebarTotal(dF,dT){
+  const fmtDate=d=>{const p=d.split('-');return p[0]+'年'+parseInt(p[1],10)+'月'+parseInt(p[2],10)+'日';};
+  const skus=new Set(Object.values(AGG).flatMap(g=>Object.keys(g.items))).size;
+  let cntLabel, cnt;
+  if(groupMode==='category'){
+    const macroMatchAny=c=>MACRO_GROUPS.some(m=>m.cats.includes(c));
+    cnt = MACRO_GROUPS.filter(mg=>mg.cats.some(c=>AGG[c])).length + Object.keys(AGG).filter(c=>!macroMatchAny(c)).length;
+    cntLabel='カテゴリ';
+  } else {
+    cnt = Object.keys(AGG).length;
+    cntLabel='メーカー';
+  }
+  document.getElementById('sb-total').innerHTML =
+    `<b>${fmtDate(dF)}〜${fmtDate(dT)}</b><br>`+
+    `${ALL_TOTAL.qty.toLocaleString()}個 / ¥${Math.round(ALL_TOTAL.amount).toLocaleString()}<br>`+
+    `SKU ${skus.toLocaleString()}種 / ${cnt}${cntLabel}`;
 }
 function updateHeaderDate(dF,dT){
   document.getElementById('hd-date').innerHTML='<b>'+dF+'</b> 〜 <b>'+dT+'</b>';
