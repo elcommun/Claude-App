@@ -265,7 +265,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v49</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v50</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -521,6 +521,8 @@ const LEAD_DECOR_RE=/^(?:＼[^／]*／|\[[^\]]*\]|m\.m)[\s　]*/i;
 // 商品名の先頭が「＜交換＞」の商品は交換品のため取り込み対象から除外する
 const EXCHANGE_PREFIX_RE=/^＜交換＞/;
 const VAR_STOCK_PREFIX_RE=/^在庫\s*\/\s*/;
+// 「（額縁内寸）」の削除用（直前1文字をキャプチャして、スペースを入れるか判定する）
+const FRAME_DIM_RE=/(^|[\s\S])（額縁内寸）/g;
 
 const UPLOAD_KEY='ec_supplier_uploads_v1';
 let ALL_MAKERS={}, ALL_PRODUCTS={}, ALL_RECORDS=[], PRODUCT_INDEX={};
@@ -652,6 +654,9 @@ function isExchangeItem(name){
 // 切り落とした文言は商品名には表示しないが、検索ではヒットするよう非表示の検索ワードとして返す
 function cleanProductName(name){
   let s=stripLeadingDecoration(name||'');
+  // 「（額縁内寸）」は削除する。直前が英数字・かな・漢字なら半角スペースで置き換え、
+  // 「】」などの記号の直後ならスペースを入れずに詰める
+  s=s.replace(FRAME_DIM_RE,(m,prev)=>prev+(/[0-9A-Za-zぁ-んァ-ヶ一-龠ｦ-ﾟー]/.test(prev)?' ':''));
   while(true){
     if(!CODE_TAIL_RE.test(s)) break;
     s=s.replace(CODE_TAIL_RE,'');
