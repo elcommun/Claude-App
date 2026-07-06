@@ -265,7 +265,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v54</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v55</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1729,7 +1729,7 @@ function syncTableWidth(table){
   if(total>0) table.style.width=total+'px';
 }
 // 商品名列・商品番号列は、他の固定幅列を除いた残りの幅を埋める（画面が狭くなれば縮み、広がれば伸びる）
-// 余った幅は 商品名:商品番号 = 2:1 で配分し、商品番号は上限320pxまで（超過分は商品名へ）
+// 余った幅は 商品名:商品番号 = 4:1 で配分し、商品番号は上限260pxまで（超過分は商品名へ）
 function fillRemainingWidth(table){
   const wrapper=table.closest('.tw');
   const nameTh=table.querySelector('thead th.name-col');
@@ -1737,7 +1737,7 @@ function fillRemainingWidth(table){
   const avail=wrapper.clientWidth;
   if(avail<=0) return; // 非表示のビュー（clientWidth=0）で計算すると商品名列が最小幅に潰れるためスキップ
   const codeTh=table.querySelector('thead th.code-col');
-  const NAME_MIN=120, CODE_BASE=156, CODE_MAX=320;
+  const NAME_MIN=120, CODE_BASE=156, CODE_MAX=260;
   const otherThs=[...table.querySelectorAll('thead th')].filter(th=>th!==nameTh && th!==codeTh && getComputedStyle(th).display!=='none');
   const othersWidth=otherThs.reduce((sum,th)=>sum+colIntendedWidth(th),0);
   const remaining=avail-othersWidth;
@@ -1745,7 +1745,7 @@ function fillRemainingWidth(table){
   let nameW=Math.max(NAME_MIN, remaining-codeW);
   const extra=remaining-codeW-NAME_MIN;
   if(codeTh && extra>0){
-    codeW=Math.min(CODE_MAX, CODE_BASE+Math.round(extra/3));
+    codeW=Math.min(CODE_MAX, CODE_BASE+Math.round(extra/5));
     nameW=remaining-codeW;
   }
   if(codeTh) codeTh.style.width=codeW+'px';
