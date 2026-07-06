@@ -145,6 +145,8 @@ input[type=file]{display:none}
 .tbl tr:hover td{background:#fdf9f4}
 .num{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
 .cc{font-size:11px;color:var(--ink3);font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
+.code-link{color:var(--accent);text-decoration:none}
+.code-link:hover{text-decoration:underline}
 .rank-col{text-align:center}
 .tag-col{text-align:center}
 td.tag-col{text-align:left}
@@ -267,7 +269,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v60</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v61</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -809,6 +811,16 @@ const MAKER_ABBR={'8000000works':'8mw'};
 function makerHtml(name){
   const abbr=MAKER_ABBR[name];
   return abbr ? `<span title="${x(name)}">${x(abbr)}</span>` : x(name);
+}
+// 8mw-で始まる商品番号は楽天市場の商品ページへのリンクにする
+// （例: 8mw-mm110031-110031 → https://item.rakuten.co.jp/elcommun/8mw-mm110031-）
+function codeHtml(code){
+  const c=code||'';
+  const m=c.match(/^8mw-[^-]+-/i);
+  if(m){
+    return `<a class="code-link" href="https://item.rakuten.co.jp/elcommun/${encodeURIComponent(m[0])}" target="_blank" rel="noopener" title="楽天市場の商品ページを開く">${x(c)}</a>`;
+  }
+  return x(c);
 }
 
 function normalize(s){
@@ -1441,7 +1453,7 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
     <td class="rank-col">${rankHtml}</td>
     <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
     <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
-    <td class="cc">${x(r.code)}</td>
+    <td class="cc">${codeHtml(r.code)}</td>
     <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
     <td class="num">¥${r.price.toLocaleString()}</td>
     <td class="num"${qtyStyle}>${r.qty.toLocaleString()}</td>
@@ -1539,7 +1551,7 @@ function renderSearch(){
     return `<tr>
       <td class="rank-col">${rankHtml}</td>
       <td><span class="ct">${makerHtml(r.maker)}</span></td>
-      <td class="cc">${x(r.code)}</td>
+      <td class="cc">${codeHtml(r.code)}</td>
       <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
       <td class="num">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
