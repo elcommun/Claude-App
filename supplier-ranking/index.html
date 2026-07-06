@@ -154,9 +154,10 @@ td.tag-col{text-align:left}
 .cat-col{text-align:center;display:none}
 td.cat-col{text-align:left}
 .show-catcol .cat-col{display:table-cell}
-.nc .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-.nc .nm.nm-expand{white-space:normal;overflow:visible;text-overflow:clip}
-.nc .var{display:block;font-size:12px;color:var(--ink3);margin-top:2px}
+.nc .nc-row{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}
+.nc .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-width:0;max-width:100%}
+.nc .nm.nm-expand{white-space:normal;overflow:visible;text-overflow:clip;flex-basis:100%}
+.nc .var{color:var(--ink3);white-space:nowrap}
 .cmp-col{display:none}
 .show-cmp .cmp-col{display:table-cell}
 @media(max-width:1180px){.rate-col{display:none}}
@@ -269,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v62</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v63</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -816,12 +817,15 @@ function makerHtml(name){
 // 基本ルール: 末尾のセグメント（枝番）を除いた「prefix-item-」
 // （例: ma-letterset01-94416 → ma-letterset01- / 8mw-mm110031-110031 → 8mw-mm110031-）
 // 例外処理:
+// ・apj-から始まる商品番号は「apj-」を除いた残り全体をそのままリンク先にする
 // ・前方セグメントの繰り返し・大文字違いの再掲が途中に現れる場合（aito-0278601-aito-0278606、
 //   tri-slw500-SLW-501 等）は、そこからが枝番とみなして手前までを採用
 // ・大文字始まりのコード（Amazon系のWH-0CZQ-UDW1等）とハイフン2個未満のコードはリンクしない
 function rakutenCodeBase(code){
   const c=(code||'').trim();
   if(!/^[a-z0-9]/.test(c)) return null;
+  const mApj=c.match(/^apj-(.+)$/i);
+  if(mApj) return mApj[1];
   const m8=c.match(/^8mw-[^-]+-/i);
   if(m8) return m8[0];
   const segs=c.split('-');
@@ -838,7 +842,7 @@ function codeHtml(code){
   const c=code||'';
   const base=rakutenCodeBase(c);
   if(base){
-    return `<a class="code-link" href="https://item.rakuten.co.jp/elcommun/${encodeURIComponent(base)}/" target="_blank" rel="noopener" title="楽天市場の商品ページを開く">${x(c)}</a>`;
+    return `<a class="code-link" href="https://item.rakuten.co.jp/elcommun/${encodeURIComponent(base)}/" target="rakuten_item" rel="noopener" title="楽天市場の商品ページを開く">${x(c)}</a>`;
   }
   return x(c);
 }
@@ -1474,7 +1478,7 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
     <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
     <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
     <td class="cc">${codeHtml(r.code)}</td>
-    <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
+    <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
     <td class="num">¥${r.price.toLocaleString()}</td>
     <td class="num"${qtyStyle}>${r.qty.toLocaleString()}</td>
     ${cmpHtml}
@@ -1572,7 +1576,7 @@ function renderSearch(){
       <td class="rank-col">${rankHtml}</td>
       <td><span class="ct">${makerHtml(r.maker)}</span></td>
       <td class="cc">${codeHtml(r.code)}</td>
-      <td class="nc"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</td>
+      <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
       <td class="num">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
       <td class="num amt-col">¥${Math.round(r.amount).toLocaleString()}</td>
