@@ -265,7 +265,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v52</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v53</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -528,8 +528,11 @@ const VAR_STOCK_PREFIX_RE=/^在庫\s*\/\s*/;
 //   【610mm×915mm：ポスターサイズ】のようなサイズ表記の中は残す（削除すると表記が壊れるため）
 const NAME_DELETE_RES=[/(^|[\s\S])（額縁内寸）/g, /(^|[\s\S])ポスターサイズ(?:[ 　]+|$)/g];
 // 商品番号パターンに応じて、商品名の特定キーワード以降を切り落として非表示検索ワードに回すルール
-// （例: apj-cff = クリアフィットフレームは「フォトフレーム」以降を商品名に表示しない）
-const CODE_NAME_CUT=[[/^apj-cff/i,'フォトフレーム']];
+// （例: apj-cff = クリアフィットフレーム、apj-ncb = NEW カラーボードフレームは「フォトフレーム」以降を商品名に表示しない）
+const CODE_NAME_CUT=[[/^apj-cff/i,'フォトフレーム'],[/^apj-ncb/i,'フォトフレーム']];
+// 商品番号パターンに応じて、商品名から特定の語句を単純に削除するルール（検索ワードにも残さない）
+// [商品番号の正規表現, メーカー名（apj-が付かない旧形式の商品番号の救済用）, 削除する語句]
+const CODE_NAME_STRIP=[[/^apj-/i,'APJ',[' / 木製ポスターフレーム',' / ポスターフレーム']]];
 
 const UPLOAD_KEY='ec_supplier_uploads_v1';
 let ALL_MAKERS={}, ALL_PRODUCTS={}, ALL_RECORDS=[], PRODUCT_INDEX={};
@@ -563,6 +566,13 @@ function normalizeProducts(){
           p[1]=p[1].slice(0,idx).replace(TRAIL_RE,'').trim();
           p[6]=p[6]?(p[6]+' '+extra):extra;
         }
+      }
+    }
+    // 商品番号パターン別の語句削除（表示・検索ワードのどちらにも残さない）
+    for(const [re,maker,words] of CODE_NAME_STRIP){
+      if(re.test(p[3]||'') || p[0]===maker){
+        for(const w of words){ p[1]=p[1].split(w).join(''); }
+        p[1]=p[1].replace(SPACE_RE,' ').trim();
       }
     }
     p[2]=cleanVarName(p[2]||'');
