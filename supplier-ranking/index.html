@@ -265,7 +265,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v51</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v52</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -510,7 +510,8 @@ const SUBCAT_CODE_OVERRIDE=[/^apj-cff/i];
 // （サイズだけでは楽天市場側の実際の商品番号と一致しないもの。末尾に枝番が付く）
 const APJ_CODE_FIXUPS={'apj-wf61_91':'apj-wf61_91_1'};
 // 商品名クリーニング用の定数（normalizeProducts()がbuildData()の初回同期実行から参照するため、ここで初期化）
-const CUT_KEYWORDS=['オーダーメイドOK','オーダーメイド','お見積もり','お見積り','受注生産','製作期間','発送までに','同送不可','別注専用ページ','＊仮金額','銀行振込の場合','ご決済確認から発送'];
+// 「|」「｜」以降は検索ワードの羅列のため、商品名には表示せず非表示検索ワードに回す
+const CUT_KEYWORDS=['オーダーメイドOK','オーダーメイド','お見積もり','お見積り','受注生産','製作期間','発送までに','同送不可','別注専用ページ','＊仮金額','銀行振込の場合','ご決済確認から発送','|','｜'];
 const TRAIL_RE=/[\s　・／/＊*,、。：:；;\-－【（(☆]+$/;
 const CODE_TAIL_RE=/[\(（][A-Za-z0-9_\-]*(?:在庫)?[A-Za-z0-9_\-]*[\)）]\s*$/;
 const STRIP_WORDS=['インテリア雑貨','インテリア','おしゃれ','個性的','リビング','お部屋','寝室'];
@@ -521,8 +522,11 @@ const LEAD_DECOR_RE=/^(?:＼[^／]*／|\[[^\]]*\]|m\.m)[\s　]*/i;
 // 商品名の先頭が「＜交換＞」の商品は交換品のため取り込み対象から除外する
 const EXCHANGE_PREFIX_RE=/^＜交換＞/;
 const VAR_STOCK_PREFIX_RE=/^在庫\s*\/\s*/;
-// 「（額縁内寸）」の削除用（直前1文字をキャプチャして、スペースを入れるか判定する）
-const FRAME_DIM_RE=/(^|[\s\S])（額縁内寸）/g;
+// 商品名から削除する語のパターン（直前1文字をキャプチャし、英数字・かな・漢字なら半角スペースに置き換え、記号直後なら詰める）
+// ・「（額縁内寸）」は常に削除
+// ・「ポスターサイズ」は後ろに空白が続く（または末尾の）単独の語だけ削除し、
+//   【610mm×915mm：ポスターサイズ】のようなサイズ表記の中は残す（削除すると表記が壊れるため）
+const NAME_DELETE_RES=[/(^|[\s\S])（額縁内寸）/g, /(^|[\s\S])ポスターサイズ(?:[ 　]+|$)/g];
 // 商品番号パターンに応じて、商品名の特定キーワード以降を切り落として非表示検索ワードに回すルール
 // （例: apj-cff = クリアフィットフレームは「フォトフレーム」以降を商品名に表示しない）
 const CODE_NAME_CUT=[[/^apj-cff/i,'フォトフレーム']];
@@ -668,9 +672,11 @@ function isExchangeItem(name){
 // 切り落とした文言は商品名には表示しないが、検索ではヒットするよう非表示の検索ワードとして返す
 function cleanProductName(name){
   let s=stripLeadingDecoration(name||'');
-  // 「（額縁内寸）」は削除する。直前が英数字・かな・漢字なら半角スペースで置き換え、
-  // 「】」などの記号の直後ならスペースを入れずに詰める
-  s=s.replace(FRAME_DIM_RE,(m,prev)=>prev+(/[0-9A-Za-zぁ-んァ-ヶ一-龠ｦ-ﾟー]/.test(prev)?' ':''));
+  // 削除対象語（額縁内寸・ポスターサイズ等）を除去する。直前が英数字・かな・漢字なら
+  // 半角スペースで置き換え、「】」などの記号の直後ならスペースを入れずに詰める
+  for(const re of NAME_DELETE_RES){
+    s=s.replace(re,(m,prev)=>prev+(/[0-9A-Za-zぁ-んァ-ヶ一-龠ｦ-ﾟー]/.test(prev)?' ':''));
+  }
   while(true){
     if(!CODE_TAIL_RE.test(s)) break;
     s=s.replace(CODE_TAIL_RE,'');
