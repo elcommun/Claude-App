@@ -269,7 +269,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v61</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v62</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -812,13 +812,33 @@ function makerHtml(name){
   const abbr=MAKER_ABBR[name];
   return abbr ? `<span title="${x(name)}">${x(abbr)}</span>` : x(name);
 }
-// 8mw-で始まる商品番号は楽天市場の商品ページへのリンクにする
-// （例: 8mw-mm110031-110031 → https://item.rakuten.co.jp/elcommun/8mw-mm110031-）
+// 商品番号から楽天市場（elcommun）の商品ページURLの元になる部分を求める。
+// 基本ルール: 末尾のセグメント（枝番）を除いた「prefix-item-」
+// （例: ma-letterset01-94416 → ma-letterset01- / 8mw-mm110031-110031 → 8mw-mm110031-）
+// 例外処理:
+// ・前方セグメントの繰り返し・大文字違いの再掲が途中に現れる場合（aito-0278601-aito-0278606、
+//   tri-slw500-SLW-501 等）は、そこからが枝番とみなして手前までを採用
+// ・大文字始まりのコード（Amazon系のWH-0CZQ-UDW1等）とハイフン2個未満のコードはリンクしない
+function rakutenCodeBase(code){
+  const c=(code||'').trim();
+  if(!/^[a-z0-9]/.test(c)) return null;
+  const m8=c.match(/^8mw-[^-]+-/i);
+  if(m8) return m8[0];
+  const segs=c.split('-');
+  if(segs.length<3) return null;
+  for(let i=2;i<segs.length-1;i++){
+    const s=segs[i].toLowerCase();
+    if(s && segs.slice(0,i).some(t=>{const u=t.toLowerCase();return u===s||u.startsWith(s);})){
+      return segs.slice(0,i).join('-')+'-';
+    }
+  }
+  return c.replace(/[^-]*$/,'');
+}
 function codeHtml(code){
   const c=code||'';
-  const m=c.match(/^8mw-[^-]+-/i);
-  if(m){
-    return `<a class="code-link" href="https://item.rakuten.co.jp/elcommun/${encodeURIComponent(m[0])}" target="_blank" rel="noopener" title="楽天市場の商品ページを開く">${x(c)}</a>`;
+  const base=rakutenCodeBase(c);
+  if(base){
+    return `<a class="code-link" href="https://item.rakuten.co.jp/elcommun/${encodeURIComponent(base)}/" target="_blank" rel="noopener" title="楽天市場の商品ページを開く">${x(c)}</a>`;
   }
   return x(c);
 }
@@ -1790,7 +1810,7 @@ function syncTableWidth(table){
 // （画面が狭くなれば縮み、広がれば伸びる）。余った幅は重みに応じて配分し、
 // 商品名以外は上限あり（上限を超えた分は商品名列へ回る）
 // [列クラス, 余り配分の重み, 上限px]。基本幅はHTMLのstyle widthを初回に記憶して使う
-const FLEX_COLS=[['code-col',15,260],['cat-col',10,230],['tag-col',5,124]];
+const FLEX_COLS=[['code-col',15,260],['cat-col',5,195],['tag-col',5,124]];
 const FLEX_NAME_WEIGHT=70, FLEX_NAME_MIN=120;
 function fillRemainingWidth(table){
   const wrapper=table.closest('.tw');
