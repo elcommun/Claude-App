@@ -265,7 +265,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v50</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v51</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -523,6 +523,9 @@ const EXCHANGE_PREFIX_RE=/^＜交換＞/;
 const VAR_STOCK_PREFIX_RE=/^在庫\s*\/\s*/;
 // 「（額縁内寸）」の削除用（直前1文字をキャプチャして、スペースを入れるか判定する）
 const FRAME_DIM_RE=/(^|[\s\S])（額縁内寸）/g;
+// 商品番号パターンに応じて、商品名の特定キーワード以降を切り落として非表示検索ワードに回すルール
+// （例: apj-cff = クリアフィットフレームは「フォトフレーム」以降を商品名に表示しない）
+const CODE_NAME_CUT=[[/^apj-cff/i,'フォトフレーム']];
 
 const UPLOAD_KEY='ec_supplier_uploads_v1';
 let ALL_MAKERS={}, ALL_PRODUCTS={}, ALL_RECORDS=[], PRODUCT_INDEX={};
@@ -547,6 +550,17 @@ function normalizeProducts(){
       if(cleaned.searchExtra) p[6]=p[6]?(p[6]+' '+cleaned.searchExtra):cleaned.searchExtra;
     }
     if(categorizeProduct(p[1])==='その他・額縁') p[1]=cutFullwidthSlash(p[1]);
+    // 商品番号パターン別の切り落とし（切った部分は非表示検索ワードとして保持）
+    for(const [re,kw] of CODE_NAME_CUT){
+      if(re.test(p[3]||'')){
+        const idx=p[1].indexOf(kw);
+        if(idx>0){
+          const extra=p[1].slice(idx).trim();
+          p[1]=p[1].slice(0,idx).replace(TRAIL_RE,'').trim();
+          p[6]=p[6]?(p[6]+' '+extra):extra;
+        }
+      }
+    }
     p[2]=cleanVarName(p[2]||'');
   });
 }
