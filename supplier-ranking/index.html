@@ -270,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v66</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v67</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1765,50 +1765,14 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
   document.getElementById('sb-overlay').classList.remove('open');
 });
 
-// ── サイドバー幅リサイズ（デスクトップのみ） ──────────────
-(function(){
-  const MIN=140,MAX=480;
-  const handle=document.getElementById('sb-resize');
-  if(!handle) return;
-  function applyW(w){
-    w=Math.max(MIN,Math.min(MAX,w));
-    document.documentElement.style.setProperty('--sb',w+'px');
-    handle.style.left=w+'px';
-    localStorage.setItem('ec_supplier_sb_width',w);
-    ['rank-tbl','search-tbl'].forEach(id=>{
-      const t=document.getElementById(id);
-      if(t) fillRemainingWidth(t);
-    });
-  }
-  const saved=parseInt(localStorage.getItem('ec_supplier_sb_width'));
-  if(saved&&saved>=MIN&&saved<=MAX) applyW(saved);
-  // pointer capture を使うことで、ウィンドウ外でボタンを離した場合でも
-  // 確実に終了イベントを受け取れるようにする（mouseup取りこぼしで
-  // ドラッグ状態が残り続け、以後のマウス移動で幅が暴走する不具合の対策）
-  handle.addEventListener('pointerdown',e=>{
-    if(window.innerWidth<=768||(window.innerWidth<=900&&window.matchMedia('(orientation:portrait)').matches)) return;
-    e.preventDefault();
-    handle.classList.add('dragging');
-    handle.setPointerCapture(e.pointerId);
-    const startX=e.clientX,startW=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb'))||220;
-    function onMove(e){ applyW(startW+(e.clientX-startX)); }
-    function onUp(){
-      handle.classList.remove('dragging');
-      handle.removeEventListener('pointermove',onMove);
-      handle.removeEventListener('pointerup',onUp);
-      handle.removeEventListener('pointercancel',onUp);
-    }
-    handle.addEventListener('pointermove',onMove);
-    handle.addEventListener('pointerup',onUp);
-    handle.addEventListener('pointercancel',onUp);
-  });
-})();
-
 // ── テーブル列幅リサイズ ──────────────────────────────────
 // table-layout:fixed の列幅は、table自体に明示的な幅（auto以外）が設定されていないと
 // JSでの<th>幅変更が反映されないため、列幅を変えるたびに表全体の幅も明示的に同期する。
 // offsetWidthは、tableの幅が列幅合計より大きいと比例配分で伸びてしまい当てにならないため、
 // 各列の「意図した幅」はstyle.widthから読む（未設定の商品名列だけoffsetWidthにフォールバック）
+// ※ FLEX_COLS等のconstは、後述のサイドバー幅リサイズが初期化時に保存済みの幅を
+// 即座に適用する際（fillRemainingWidth呼び出し）より前に定義しておく必要がある
+// （TDZ対策。先に定義しないとページ読み込み時にReferenceErrorで以降の処理が全て止まる）
 function colIntendedWidth(th){
   const w=parseInt(th.style.width);
   return isNaN(w) ? th.offsetWidth : w;
@@ -1885,6 +1849,45 @@ window.addEventListener('resize',()=>{
     });
   },150);
 });
+
+// ── サイドバー幅リサイズ（デスクトップのみ） ──────────────
+(function(){
+  const MIN=140,MAX=480;
+  const handle=document.getElementById('sb-resize');
+  if(!handle) return;
+  function applyW(w){
+    w=Math.max(MIN,Math.min(MAX,w));
+    document.documentElement.style.setProperty('--sb',w+'px');
+    handle.style.left=w+'px';
+    localStorage.setItem('ec_supplier_sb_width',w);
+    ['rank-tbl','search-tbl'].forEach(id=>{
+      const t=document.getElementById(id);
+      if(t) fillRemainingWidth(t);
+    });
+  }
+  const saved=parseInt(localStorage.getItem('ec_supplier_sb_width'));
+  if(saved&&saved>=MIN&&saved<=MAX) applyW(saved);
+  // pointer capture を使うことで、ウィンドウ外でボタンを離した場合でも
+  // 確実に終了イベントを受け取れるようにする（mouseup取りこぼしで
+  // ドラッグ状態が残り続け、以後のマウス移動で幅が暴走する不具合の対策）
+  handle.addEventListener('pointerdown',e=>{
+    if(window.innerWidth<=768||(window.innerWidth<=900&&window.matchMedia('(orientation:portrait)').matches)) return;
+    e.preventDefault();
+    handle.classList.add('dragging');
+    handle.setPointerCapture(e.pointerId);
+    const startX=e.clientX,startW=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb'))||220;
+    function onMove(e){ applyW(startW+(e.clientX-startX)); }
+    function onUp(){
+      handle.classList.remove('dragging');
+      handle.removeEventListener('pointermove',onMove);
+      handle.removeEventListener('pointerup',onUp);
+      handle.removeEventListener('pointercancel',onUp);
+    }
+    handle.addEventListener('pointermove',onMove);
+    handle.addEventListener('pointerup',onUp);
+    handle.addEventListener('pointercancel',onUp);
+  });
+})();
 
 // ── 初期化 ────────────────────────────────────────────────
 buildSelects();
