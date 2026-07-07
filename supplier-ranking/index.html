@@ -270,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v64</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v65</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -818,6 +818,7 @@ function makerHtml(name){
 // （例: ma-letterset01-94416 → ma-letterset01- / 8mw-mm110031-110031 → 8mw-mm110031-）
 // 例外処理:
 // ・apj-から始まる商品番号は「apj-」を除いた残り全体をそのままリンク先にする
+// ・ldw001-から始まる商品番号は、後ろに何が続いても常に「ldw001-」固定をリンク先にする
 // ・前方セグメントの繰り返し・大文字違いの再掲が途中に現れる場合（aito-0278601-aito-0278606、
 //   tri-slw500-SLW-501 等）は、そこからが枝番とみなして手前までを採用
 // ・大文字始まりのコード（Amazon系のWH-0CZQ-UDW1等）とハイフン2個未満のコードはリンクしない
@@ -826,6 +827,7 @@ function rakutenCodeBase(code){
   if(!/^[a-z0-9]/.test(c)) return null;
   const mApj=c.match(/^apj-(.+)$/i);
   if(mApj) return mApj[1];
+  if(/^ldw001-/i.test(c)) return 'ldw001-';
   const m8=c.match(/^8mw-[^-]+-/i);
   if(m8) return m8[0];
   const segs=c.split('-');
