@@ -270,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v65</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v66</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1782,19 +1782,25 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
   }
   const saved=parseInt(localStorage.getItem('ec_supplier_sb_width'));
   if(saved&&saved>=MIN&&saved<=MAX) applyW(saved);
-  handle.addEventListener('mousedown',e=>{
+  // pointer capture を使うことで、ウィンドウ外でボタンを離した場合でも
+  // 確実に終了イベントを受け取れるようにする（mouseup取りこぼしで
+  // ドラッグ状態が残り続け、以後のマウス移動で幅が暴走する不具合の対策）
+  handle.addEventListener('pointerdown',e=>{
     if(window.innerWidth<=768||(window.innerWidth<=900&&window.matchMedia('(orientation:portrait)').matches)) return;
     e.preventDefault();
     handle.classList.add('dragging');
+    handle.setPointerCapture(e.pointerId);
     const startX=e.clientX,startW=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb'))||220;
     function onMove(e){ applyW(startW+(e.clientX-startX)); }
     function onUp(){
       handle.classList.remove('dragging');
-      document.removeEventListener('mousemove',onMove);
-      document.removeEventListener('mouseup',onUp);
+      handle.removeEventListener('pointermove',onMove);
+      handle.removeEventListener('pointerup',onUp);
+      handle.removeEventListener('pointercancel',onUp);
     }
-    document.addEventListener('mousemove',onMove);
-    document.addEventListener('mouseup',onUp);
+    handle.addEventListener('pointermove',onMove);
+    handle.addEventListener('pointerup',onUp);
+    handle.addEventListener('pointercancel',onUp);
   });
 })();
 
