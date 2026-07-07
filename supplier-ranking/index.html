@@ -270,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v70</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v71</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -880,6 +880,10 @@ function rakutenCodeBase(code){
 }
 function codeHtml(code){
   const c=code||'';
+  // ak-から始まる商品番号は、商品番号をそのまま（末尾に / を付けず）URLに使う
+  if(/^ak-/i.test(c)){
+    return `<a class="code-link" href="https://item.rakuten.co.jp/elcommun/${encodeURIComponent(c)}" target="rakuten_item" title="楽天市場の商品ページを開く">${x(c)}</a>`;
+  }
   const base=rakutenCodeBase(c);
   if(base){
     return `<a class="code-link" href="https://item.rakuten.co.jp/elcommun/${encodeURIComponent(base)}/" target="rakuten_item" title="楽天市場の商品ページを開く">${x(c)}</a>`;
