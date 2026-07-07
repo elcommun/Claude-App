@@ -270,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v71</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v72</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -377,7 +377,7 @@ function doLogin(){
         <thead><tr>
           <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
           <th class="th-sort cat-col" onclick="setSort('category')" style="width:165px">カテゴリ<span class="sort-ind" data-sind="category"></span></th>
-          <th class="tag-col" style="width:88px">メーカー</th>
+          <th class="th-sort tag-col" onclick="setSort('maker')" style="width:88px">メーカー<span class="sort-ind" data-sind="maker"></span></th>
           <th class="th-sort code-col" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
           <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
           <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
@@ -403,7 +403,7 @@ function doLogin(){
       <div class="tw"><table class="tbl" id="search-tbl">
         <thead><tr>
           <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
-          <th class="tag-col" style="width:80px">メーカー</th>
+          <th class="th-sort tag-col" onclick="setSort('maker')" style="width:80px">メーカー<span class="sort-ind" data-sind="maker"></span></th>
           <th class="th-sort code-col" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
           <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
           <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
@@ -1019,7 +1019,7 @@ function toggleHeatmap(){
 // ── ソート ────────────────────────────────────────────────
 // 「順位」は個数順/金額順（rankMetric）で決まる商品固有の値で、商品番号・商品名・税抜単価などの
 // 列見出しで表示順（sortMode）を変えても値は変わらない（商品に連動し続ける）
-const TEXT_SORT_MODES=['code','name','category'];
+const TEXT_SORT_MODES=['code','name','category','maker'];
 function updateSortIndicators(){
   ['price','qty','amount',...TEXT_SORT_MODES].forEach(m=>{
     document.querySelectorAll('[data-sind="'+m+'"]').forEach(el=>{
