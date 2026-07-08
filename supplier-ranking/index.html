@@ -270,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v82</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v83</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -880,12 +880,20 @@ function makerHtml(name){
 // ・前方セグメントの繰り返し・大文字違いの再掲が途中に現れる場合（aito-0278601-aito-0278606、
 //   tri-slw500-SLW-501 等）は、そこからが枝番とみなして手前までを採用
 // ・大文字始まりのコード（Amazon系のWH-0CZQ-UDW1等）とハイフン2個未満のコードはリンクしない
+// ・pb-の後にハイフン区切りなしで大文字の枝番コードが続く場合（pb-mo65001MO65001A、
+//   pb-mo65001cMO65001C等）は、大文字部分の末尾1文字（枝番記号）を除いたものを
+//   小文字化してグループIDとする（例: どちらもpb-mo65001）
 function rakutenCodeBase(code){
   const c=(code||'').trim();
   if(!/^[a-z0-9]/.test(c)) return null;
   const mApj=c.match(/^apj-(.+)$/i);
   if(mApj) return mApj[1];
   if(/^ldw001-/i.test(c)) return 'ldw001-';
+  const mPb=c.match(/^pb-[a-z0-9]*([A-Z][A-Z0-9]*)$/);
+  if(mPb){
+    const pbBase=mPb[1].slice(0,-1).toLowerCase();
+    if(pbBase) return 'pb-'+pbBase;
+  }
   const m8=c.match(/^8mw-[^-]+-/i);
   if(m8) return m8[0];
   const segs=c.split('-');
