@@ -270,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v85</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v86</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -591,7 +591,15 @@ const VARIANT_LIST_RE=/（[^（）]*\/[^（）]*）/;
 // [商品番号の正規表現, メーカー名（apj-が付かない旧形式の商品番号の救済用）, 削除する語句]
 const CODE_NAME_STRIP=[[/^apj-/i,'APJ',[' / 木製ポスターフレーム',' / ポスターフレーム']]];
 // 商品番号ごとの商品名の手動上書き（クリーニングルールでは整えられない個別指定。常にこの表記を採用する）
-const NAME_OVERRIDES={'apj-af00_01':'FIT FRAME専用・吊下げパーツ＋ひも付き','apj-af00_02':'FIT FRAME専用・ロックプラパーツ','apj-art25_25':'アートボックスフレーム（深さ25mm）【250mm×250mm：25角サイズ】','wh-kg-kitp005-9340':'キングジム KITTA SPECIAL マスキングテープマステ'};
+// 値が配列の場合は [商品名, 非表示検索ワード] とする
+const NAME_OVERRIDES={
+  'apj-af00_01':'FIT FRAME専用・吊下げパーツ＋ひも付き',
+  'apj-af00_02':'FIT FRAME専用・ロックプラパーツ',
+  'apj-art25_25':'アートボックスフレーム（深さ25mm）【250mm×250mm：25角サイズ】',
+  'wh-kg-kitp005-9340':'キングジム KITTA SPECIAL マスキングテープマステ',
+  'tri-slw243-11366':['TRI SLOWER PUMP SPRAY BOTTLE MISTRAL スロウワー ポンプスプレーボトル ミストラル','アルコール消毒液対応 詰替え式ボトル 衛生用品 アウトドア キャンプ 行楽 コロ'],
+  'tri-slw243-11365':['TRI SLOWER PUMP SPRAY BOTTLE MISTRAL スロウワー ポンプスプレーボトル ミストラル','アルコール消毒液対応 詰替え式ボトル 衛生用品 アウトドア キャンプ 行楽 コロ'],
+};
 
 const UPLOAD_KEY='ec_supplier_uploads_v1';
 let ALL_MAKERS={}, ALL_PRODUCTS={}, ALL_RECORDS=[], PRODUCT_INDEX={};
@@ -679,7 +687,15 @@ function normalizeProducts(){
       }
     }
     // 商品番号ごとの手動上書き（最優先。今後の取り込みで別表記が来ても常にこの表記に統一）
-    if(NAME_OVERRIDES[p[3]]) p[1]=NAME_OVERRIDES[p[3]];
+    const nameOv=NAME_OVERRIDES[p[3]];
+    if(nameOv){
+      if(Array.isArray(nameOv)){
+        p[1]=nameOv[0];
+        if(nameOv[1] && !(p[6]||'').includes(nameOv[1])) p[6]=p[6]?(p[6]+' '+nameOv[1]):nameOv[1];
+      } else {
+        p[1]=nameOv;
+      }
+    }
     p[2]=cleanVarName(p[2]||'');
   });
 }
