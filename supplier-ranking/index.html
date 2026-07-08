@@ -270,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v74</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v75</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -591,7 +591,7 @@ const VARIANT_LIST_RE=/（[^（）]*\/[^（）]*）/;
 // [商品番号の正規表現, メーカー名（apj-が付かない旧形式の商品番号の救済用）, 削除する語句]
 const CODE_NAME_STRIP=[[/^apj-/i,'APJ',[' / 木製ポスターフレーム',' / ポスターフレーム']]];
 // 商品番号ごとの商品名の手動上書き（クリーニングルールでは整えられない個別指定。常にこの表記を採用する）
-const NAME_OVERRIDES={'apj-af00_01':'FIT FRAME / アルミポスターフレーム 専用・吊り下げパーツ＋ひも付き'};
+const NAME_OVERRIDES={'apj-af00_01':'FIT FRAME専用・吊下げパーツ＋ひも付き','apj-af00_02':'FIT FRAME専用・ロックプラパーツ'};
 
 const UPLOAD_KEY='ec_supplier_uploads_v1';
 let ALL_MAKERS={}, ALL_PRODUCTS={}, ALL_RECORDS=[], PRODUCT_INDEX={};
