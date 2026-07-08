@@ -82,6 +82,15 @@
   .drop.has .t{color:var(--green)}
   .fname{font-family:var(--mono);font-size:.74rem;word-break:break-all}
 
+  .purpose{margin-bottom:18px;padding:14px 16px;border:1px solid var(--blue-border);background:var(--blue-dim);border-radius:var(--radius-sm)}
+  .purpose-h{font-size:.82rem;font-weight:700;color:var(--blue);display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  .purpose-h svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;flex-shrink:0}
+  .purpose p{font-size:.8rem;color:var(--text);line-height:1.7}
+  .purpose p+p{margin-top:6px}
+  .purpose a{color:var(--blue);font-weight:600;text-decoration:none;border-bottom:1px solid var(--blue-border)}
+  .purpose a:hover{border-bottom-color:var(--blue)}
+  .purpose code{font-family:var(--mono);font-size:.76rem;background:var(--surface);padding:1px 5px;border-radius:4px;color:var(--blue)}
+
   .go{width:100%;padding:15px;border:none;border-radius:var(--radius-sm);font-size:.98rem;font-weight:700;
        font-family:var(--font);cursor:pointer;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));
        box-shadow:0 6px 22px var(--accent-glow);transition:.25s;display:flex;align-items:center;justify-content:center;gap:9px}
@@ -147,11 +156,18 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v20</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v21</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
     </button>
+  </div>
+
+  <!-- 用途説明 -->
+  <div class="purpose">
+    <div class="purpose-h"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>このアプリの目的</div>
+    <p>受注・売上データCSVから<b>プロパー（自社）商品を除外</b>し、<b>仕入れメーカー商品のみ</b>を税抜・掛け率付きの変換テーブルに整形する、<a href="https://elcommun.github.io/Claude-App/supplier-ranking/" target="_blank" rel="noopener">仕入れ商品の販売データ集計アプリ（supplier-ranking）</a>に取り込む前の<b>事前変換アプリ</b>です。</p>
+    <p><b>使い方</b>：① 下のStep1にCSVをアップロード → ② 「生成」を押す → ③ 出力される<code>メーカー変換CSV</code>をダウンロード → ④ supplier-rankingアプリのヘッダー「⬆ データ更新」からそのCSVをアップロードして取り込む。</p>
   </div>
 
   <!-- STEP 1: 受注/売上 CSV -->
