@@ -95,6 +95,40 @@
       margin-bottom: 14px;
     }
 
+    /* ══ App description ═════════════════════════════════════════════════════ */
+    .app-desc {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: var(--gold-lt);
+      border: 1px solid #dfd0b4;
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+    }
+    .app-desc-icon {
+      font-size: 22px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .app-desc-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+    .app-desc-text {
+      font-size: 12px;
+      color: var(--ink-2);
+      line-height: 1.7;
+    }
+    .app-desc-text a {
+      color: var(--gold);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .app-desc-text a:hover { text-decoration: underline; }
+
     /* ══ Upload cards ════════════════════════════════════════════════════════ */
     .upload-grid {
       display: grid;
@@ -533,6 +567,15 @@
 
 <!-- ── Page ── -->
 <div class="page">
+
+  <!-- App description -->
+  <div class="app-desc">
+    <div class="app-desc-icon">📋</div>
+    <div class="app-desc-body">
+      <div class="app-desc-title">GoQ System 受注CSVの事前変換ツール</div>
+      <div class="app-desc-text">GoQ System からダウンロードした受注CSV（Shift-JIS）と商品マスターExcel（.xlsx）を読み込み、販売データを整形・集計します。出力したXLSXファイルを <a href="https://claude.ai/code/session_018jrV4dRycjDwds5Wimxkid" target="_blank" rel="noopener noreferrer">EC販売ランキングアプリ</a> に取り込むことで、商品別・カテゴリ別の売上ランキングを確認できます。</div>
+    </div>
+  </div>
 
   <!-- Upload -->
   <p class="section-label">Step 1 — ファイルをアップロード</p>
