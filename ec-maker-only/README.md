@@ -4,6 +4,9 @@
 **受注・売上データ CSV** を取り込み、**プロパー（自社）商品を除外**したうえで、メーカー商品の販売データを
 **税抜単価・小計・メーカー名・掛け率・バリエーション情報を付与した10列の変換テーブル**として出力する。
 
+**[supplier-ranking](https://elcommun.github.io/Claude-App/supplier-ranking/)（仕入れ商品の販売データ集計アプリ）に取り込む前の事前変換アプリ**。
+本アプリが出力する「メーカー変換CSV」は、そのまま supplier-ranking のヘッダー「⬆ データ更新」からアップロードして取り込める形式になっている。
+
 公開URL: `https://elcommun.github.io/Claude-App/ec-maker-only/`
 
 ## 入力データ
