@@ -270,7 +270,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v75</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v76</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -823,9 +823,11 @@ function cutFullwidthSlash(name){
 //   サイズ部分（af##x##・wf##x##など）だけを取り出して「apj-af##_##」「apj-wf##_##」に統一する
 // ・既にapj-が付いている商品番号でも、数字の間の「x」表記は「_」に統一する
 // ・サイズだけでは楽天市場側の実際の商品番号と一致しない例外（末尾に枝番が付くもの）は個別に補正する
+// ・「apj-mgt-」は誤って登録された品番のため、「apj-」を外して「mgt-」として扱う
 function normalizeApjCode(code){
   if(!code) return code;
   const c=String(code).trim();
+  if(/^apj-mgt-/i.test(c)) return c.replace(/^apj-/i,'');
   if(/^(af|wf)\d/i.test(c)){
     const m=c.match(/^(af|wf)(\d+)[x_](\d+)/i);
     if(m){ const base=`apj-${m[1].toLowerCase()}${m[2]}_${m[3]}`; return APJ_CODE_FIXUPS[base]||base; }
