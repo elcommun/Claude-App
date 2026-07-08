@@ -438,7 +438,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：自社商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v214</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：自社商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v215</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -744,6 +744,7 @@ const CODE_PREFIX_TO_CAT=[
   {prefix:'XEC-',cat:'ブックカバー'},
   // 時計 (DCL=デスクアラーム→置き時計, WCL=ウォールクロック→掛け時計, NXT=テーブルクロック→置き時計; WCL-018のみCODE_REMAP_CATで上書き済)
   {prefix:'DCL-',cat:'置き時計'},{prefix:'WCL-',cat:'掛け時計'},{prefix:'NXT-',cat:'置き時計'},
+  {prefix:'BBX-',cat:'ポーチ・ケース'}, // BOOK BOX
   // グリーティングカード系
   {prefix:'GC-',cat:'メッセージカード'},
   // ALA- (Ah la la): ALA-0xxはミニカード、ALA-1xxはマスキングテープ、ALA-2xxはフレークシール、ALA-3xxはスタンプ(上で定義済み)、ALA-4xxはペンケース(上で定義済み)、ALA-5xxはブックカバー
@@ -764,7 +765,7 @@ const CODE_PREFIX_TO_CAT=[
 // Rename old/broken codes to correct codes
 const CODE_REMAP={'WCL-017WCL-018':'WCL-018','B6-1J7F-DA1E':'CPC-004'};
 // Category for remapped codes (assigned explicitly)
-const CODE_REMAP_CAT={'WCL-018':'ペンケース','CPC-004':'ペンケース','AMP-C037':'掛け時計','AMP-C038':'掛け時計','AMP-C040':'掛け時計','AMP-C061':'掛け時計','AMP-C062':'掛け時計','AMP-C063':'掛け時計','WPK-101':'その他','LNC-130':'箸セット','SM-05':'その他','SM-03':'ポーチ・ケース','MUS-014':'コースター他','MUS-016':'コースター他','XEC-004':'2022年 10月始まりダイアリー','XEC-005':'2022年 10月始まりダイアリー','XEC-006':'2022年 10月始まりダイアリー','CLB-110':'保冷バッグ','CLB-111':'保冷バッグ','CLB-112':'保冷バッグ','CLB-113':'保冷バッグ','CLB-114':'保冷バッグ','CLB-115':'保冷バッグ','CLB-116':'保冷バッグ','CLB-117':'保冷バッグ','CLB-118':'保冷バッグ','CLB-119':'保冷バッグ','SVT-001':'ブックカバー','SVT-002':'ブックカバー','SVT-003':'ブックカバー','PNT-001':'ネオンライト','PNT-002':'ネオンライト','PNT-003':'ネオンライト','PNT-005':'ネオンライト','KRT-001':'デスクトップ','KRT-002':'デスクトップ','KRT-003':'デスクトップ','KRT-004':'デスクトップ','KRT-005':'デスクトップ','KRT-006':'デスクトップ','KRT-007':'デスクトップ','KRT-008':'デスクトップ','KRT-011':'デスクトップ','KRT-012':'デスクトップ','KRT-013':'デスクトップ','KRT-014':'デスクトップ','KRT-015':'デスクトップ','KRT-016':'デスクトップ','KRT-017':'デスクトップ','KRT-018':'デスクトップ','KRT-021':'デスクトップ','KRT-022':'デスクトップ','KRT-023':'デスクトップ','KRT-025':'デスクトップ','KRT-026':'デスクトップ','LNC-413':'ランチボックス'};
+const CODE_REMAP_CAT={'WCL-018':'ペンケース','CPC-004':'ペンケース','AMP-C037':'掛け時計','AMP-C038':'掛け時計','AMP-C040':'掛け時計','AMP-C061':'掛け時計','AMP-C062':'掛け時計','AMP-C063':'掛け時計','WPK-101':'その他','LNC-130':'箸セット','SM-05':'その他','SM-03':'ポーチ・ケース','MUS-014':'コースター他','MUS-016':'コースター他','XEC-004':'2022年 10月始まりダイアリー','XEC-005':'2022年 10月始まりダイアリー','XEC-006':'2022年 10月始まりダイアリー','CLB-110':'保冷バッグ','CLB-111':'保冷バッグ','CLB-112':'保冷バッグ','CLB-113':'保冷バッグ','CLB-114':'保冷バッグ','CLB-115':'保冷バッグ','CLB-116':'保冷バッグ','CLB-117':'保冷バッグ','CLB-118':'保冷バッグ','CLB-119':'保冷バッグ','SVT-001':'ブックカバー','SVT-002':'ブックカバー','SVT-003':'ブックカバー','PNT-001':'ネオンライト','PNT-002':'ネオンライト','PNT-003':'ネオンライト','PNT-005':'ネオンライト','PNT-006':'ネオンライト','JYX-041':'メモ','JYX-043':'メモ','JYX-044':'メモ','JYX-045':'メモ','JYX-047':'メモ','KRT-001':'デスクトップ','KRT-002':'デスクトップ','KRT-003':'デスクトップ','KRT-004':'デスクトップ','KRT-005':'デスクトップ','KRT-006':'デスクトップ','KRT-007':'デスクトップ','KRT-008':'デスクトップ','KRT-011':'デスクトップ','KRT-012':'デスクトップ','KRT-013':'デスクトップ','KRT-014':'デスクトップ','KRT-015':'デスクトップ','KRT-016':'デスクトップ','KRT-017':'デスクトップ','KRT-018':'デスクトップ','KRT-021':'デスクトップ','KRT-022':'デスクトップ','KRT-023':'デスクトップ','KRT-025':'デスクトップ','KRT-026':'デスクトップ','LNC-413':'ランチボックス'};
 // Code prefixes to exclude (non-EC products)
 const CODE_SKIP_PREFIXES=['SLW-','DR-MM-'];
 // Returns overridden category for a code by prefix/remap, or null
@@ -2386,7 +2387,7 @@ const TRANS_GROUPS=[
   ['Djur','ユール','小池ふみ'],
   ['Memoire','メモワール','大槻優美'],
   ['Duck and Bear','アヒルとクマ'],
-  ['Dino','恐竜'],
+  ['Dino','Dinosaur','恐竜','きょうりゅう'],
   ['Okojo','オコジョ'],
   ['Seahorse','タツノオトシゴ'],
   ['Trio','トリオ'],
@@ -2476,6 +2477,15 @@ const TRANS_GROUPS=[
   ['navy','紺','こん','ネイビー'],
   ['beige','ベージュ'],
   ['Mameshiba','豆柴','まめしば'],
+  ['Kissa','喫茶','きっさ'],
+  ['Aquarium','水族館','すいぞくかん'],
+  ['Space','宇宙','うちゅう'],
+  ['Picnic','ピクニック'],
+  ['Fruits','フルーツ','果物','くだもの'],
+  ['Herbs','ハーブ'],
+  ['Munch','ムンク'],
+  ['Chuya','中也','ちゅうや'],
+  ['Map','地図','ちず'],
 ];
 for(const g of TRANS_GROUPS){
   const ng=g.map(normalize);
