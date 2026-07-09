@@ -20,8 +20,10 @@ header{background:white;border-bottom:3px solid var(--primary);padding:16px 32px
 header h1{font-size:18px;font-weight:700;}
 header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
 .container{max-width:960px;margin:0 auto;padding:32px 16px;}
-.info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.7;}
-.info-box strong{color:#78350F;}
+.about-lead{font-size:14px;color:var(--gray-600);line-height:1.8;margin-bottom:14px;}
+.about-steps{padding-left:20px;font-size:13px;color:var(--gray-800);line-height:2;}
+.about-steps li{margin-bottom:4px;}
+.about-note{margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-200);font-size:12px;color:var(--gray-400);line-height:1.7;}
 .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
 .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
 .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
@@ -77,8 +79,22 @@ header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
 
 <div class="container">
 
-  <div class="info-box">
-    <strong>処理概要：</strong>楽天 <code>normal-item</code> CSVの「配送方法セット管理番号」と「送料区分1」を参照し、Yahoo <code>data_add</code> CSVの <code>ship-weight</code> / <code>postage-set</code> を書き換えます。リードタイムは無条件で <code>lead-time-instock=1000</code>・<code>lead-time-outstock=（空白）</code> に設定します。出力はShift_JISで元データのバイト列を保持します。
+  <!-- このツールについて -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step rule">i</div>
+      <h2>このツールについて</h2>
+    </div>
+    <div class="card-body">
+      <p class="about-lead">Yahoo!ショッピングの出品データ（<code>data_add</code> CSV）に、楽天市場の配送設定（<code>normal-item</code> CSV）を自動反映するツールです。配送方法・送料区分・リードタイムの手入力ミスを防ぎ、Yahoo側の配送設定を楽天と揃えます。</p>
+      <ol class="about-steps">
+        <li>下の「①Yahoo data_add CSV」「②楽天 normal-item CSV」にそれぞれファイルをアップロード</li>
+        <li>「変換する」ボタンを押す</li>
+        <li>「data_add（配送補完済）をダウンロード」ボタンから変換済みファイルを保存</li>
+        <li>保存したCSVをそのままYahoo!ショッピングにアップロード</li>
+      </ol>
+      <p class="about-note">配送ルールは下表のとおり自動判定されます。リードタイムは全商品一律で instock=1000／outstock=空白に設定し、出力はShift_JISのまま保持されます。</p>
+    </div>
   </div>
 
   <!-- ルール表 -->
