@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yahoo data_add 配送補完ツール | EL COMMUN</title>
+<style>
+:root {
+  --primary:#E85D26;--primary-light:#FFF3EE;--primary-dark:#C4461B;
+  --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+  --gray-400:#9CA3AF;--gray-600:#4B5563;--gray-800:#1F2937;
+  --green:#10B981;--green-light:#ECFDF5;
+  --red:#EF4444;--red-light:#FEF2F2;
+  --yellow-light:#FFFBEB;--blue-light:#EFF6FF;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Sans','Noto Sans JP','Meiryo',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh;}
+header{background:white;border-bottom:3px solid var(--primary);padding:16px 32px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+.logo{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;}
+header h1{font-size:18px;font-weight:700;}
+header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
+.container{max-width:960px;margin:0 auto;padding:32px 16px;}
+.info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.7;}
+.info-box strong{color:#78350F;}
+.card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
+.step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
+.step.rule{background:var(--gray-600);font-size:11px;}
+.card-header h2{font-size:15px;font-weight:700;}
+.sub{font-size:12px;color:var(--gray-400);margin-left:4px;}
+.card-body{padding:20px;}
+.upload-zone{border:2px dashed var(--gray-200);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--primary);background:var(--primary-light);}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.upload-icon{font-size:32px;margin-bottom:8px;}
+.upload-zone p{font-size:14px;color:var(--gray-600);margin-bottom:4px;}
+.upload-zone small{font-size:12px;color:var(--gray-400);}
+.file-status{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;}
+.file-status.ok{background:var(--green-light);color:#065F46;}
+.file-status.err{background:var(--red-light);color:#991B1B;}
+.rule-box{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:8px;padding:14px 18px;font-size:12px;color:#1E40AF;line-height:2.2;margin-top:0;}
+.rule-box table{width:100%;border-collapse:collapse;margin-top:8px;}
+.rule-box th{background:#DBEAFE;padding:6px 10px;text-align:left;font-size:11px;font-weight:700;}
+.rule-box td{padding:6px 10px;border-bottom:1px solid #BFDBFE;font-size:11px;vertical-align:middle;}
+.rule-box tr:last-child td{border-bottom:none;}
+.badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;flex-shrink:0;}
+.badge-orange{background:#FED7AA;color:#C2410C;}
+.badge-blue{background:#DBEAFE;color:#1D4ED8;}
+.badge-green{background:#D1FAE5;color:#065F46;}
+.badge-empty{width:36px;border-radius:14px;font-size:10px;}
+.primary-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.primary-btn:hover:not(:disabled){background:var(--primary-dark);}
+.primary-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+.log-box{margin-top:16px;background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;max-height:360px;overflow-y:auto;display:none;}
+.log-box.show{display:block;}
+.log-ok{color:#6EE7B7;}.log-warn{color:#FCD34D;}.log-err{color:#FCA5A5;}.log-info{color:#93C5FD;}
+.log-sep{color:#4B5563;border-top:1px solid #374151;margin:4px 0;}
+.result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:20px;margin-top:20px;text-align:center;}
+.result-section.show{display:block;}
+.result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
+.dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
+.dl-btn:hover{background:#059669;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+.stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
+.stat .num{font-size:22px;font-weight:800;color:var(--primary);}
+.stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+@media(max-width:600px){.two-col{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">YH</div>
+  <div><h1>Yahoo data_add 配送補完ツール <span>EL COMMUN</span></h1></div>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    <strong>処理概要：</strong>楽天 <code>normal-item</code> CSVの「配送方法セット管理番号」と「送料区分1」を参照し、Yahoo <code>data_add</code> CSVの <code>ship-weight</code> / <code>postage-set</code> を書き換えます。リードタイムは無条件で <code>lead-time-instock=1000</code>・<code>lead-time-outstock=（空白）</code> に設定します。出力はShift_JISで元データのバイト列を保持します。
+  </div>
+
+  <!-- ルール表 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step rule">配</div>
+      <h2>配送設定ルール <span class="sub">6パターン</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="rule-box">
+        <table>
+          <thead>
+            <tr>
+              <th>配送方法セット管理番号</th>
+              <th>送料区分1</th>
+              <th>ship-weight</th>
+              <th>postage-set</th>
+              <th>配送方法</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="badge badge-orange">2</span></td><td>1</td><td>1000</td><td>2</td><td>ゆうパケ送料無料</td></tr>
+            <tr><td><span class="badge badge-orange">5</span></td><td>5, 6</td><td>1000</td><td>2</td><td>ゆうパケ送料無料</td></tr>
+            <tr><td><span class="badge badge-orange">2</span> <span class="badge badge-orange">5</span></td><td>2, 4</td><td>20</td><td>2</td><td>ゆうパケ通常</td></tr>
+            <tr><td><span class="badge badge-blue">1</span> <span class="badge badge-blue badge-empty">空欄</span></td><td>4</td><td>20</td><td>1</td><td>佐川通常</td></tr>
+            <tr><td><span class="badge badge-blue">1</span> <span class="badge badge-blue badge-empty">空欄</span></td><td>6</td><td>5000</td><td>1</td><td>佐川送料無料</td></tr>
+            <tr><td><span class="badge badge-green">4</span></td><td>4</td><td>2000</td><td>4</td><td>西濃運輸</td></tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;padding-top:10px;border-top:1px solid #BFDBFE;">
+          📦 <strong>リードタイム（全商品無条件）</strong>：lead-time-instock = <strong>1000</strong>　／　lead-time-outstock = <strong>（空白）</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1・2 -->
+  <div class="two-col">
+    <div class="card">
+      <div class="card-header">
+        <div class="step">1</div>
+        <h2>Yahoo data_add CSV <span class="sub">元データ</span></h2>
+      </div>
+      <div class="card-body">
+        <div class="upload-zone" id="zoneData">
+          <input type="file" accept=".csv" id="fileData" onchange="loadData(this)">
+          <div class="upload-icon">📦</div>
+          <p>data_add CSVをドロップ</p>
+          <small>またはクリックして選択</small>
+        </div>
+        <div id="statusData"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="step">2</div>
+        <h2>楽天 normal-item CSV <span class="sub">参照データ</span></h2>
+      </div>
+      <div class="card-body">
+        <div class="upload-zone" id="zoneNormal">
+          <input type="file" accept=".csv" id="fileNormal" onchange="loadNormal(this)">
+          <div class="upload-icon">🏪</div>
+          <p>normal-item CSVをドロップ</p>
+          <small>またはクリックして選択</small>
+        </div>
+        <div id="statusNormal"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 実行 -->
+  <div class="card">
+    <div class="card-header"><div class="step">3</div><h2>変換実行</h2></div>
+    <div class="card-body">
+      <button class="primary-btn" id="actionBtn" disabled onclick="doConvert()">
+        ⚙️ 変換する
+      </button>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="result-section" id="resultSection">
+    <h3>✅ 変換完了！</h3>
+    <button class="dl-btn" id="dlBtn">⬇️ data_add（変換済み）をダウンロード</button>
+    <div class="stats-grid" id="statsGrid"></div>
+  </div>
+
+</div>
+
+<script>
+function log(msg, cls=''){
+  const box = document.getElementById('logBox');
+  box.classList.add('show');
+  box.innerHTML += '<div class="' + cls + '">' + msg + '</div>';
+  box.scrollTop = box.scrollHeight;
+}
+function setStatus(id, ok, msg){
+  document.getElementById(id).innerHTML =
+    '<div class="file-status ' + (ok?'ok':'err') + '">' + (ok?'✅':'❌') + ' ' + msg + '</div>';
+}
+function readAsArrayBuffer(file){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = e => resolve(e.target.result);
+    r.onerror = reject;
+    r.readAsArrayBuffer(file);
+  });
+}
+function bytesToStr(u8){ return new TextDecoder('shift_jis').decode(u8); }
+async function strToSJIS(str){
+  const blob = new Blob([str], {type:'text/plain;charset=shift_jis'});
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+// ---- バイト単位CSVパーサー（Shift_JIS 2バイト文字対応） ----
+function parseCSVBytes(buffer){
+  const bytes = new Uint8Array(buffer);
+  const rows = [];
+  let row = [], cell = [], inQ = false;
+  let i = 0;
+  while(i < bytes.length){
+    const b = bytes[i];
+    // Shift_JIS 2バイト文字先頭バイト
+    if(!inQ && ((b>=0x81&&b<=0x9F)||(b>=0xE0&&b<=0xFC)) && i+1<bytes.length){
+      cell.push(b); cell.push(bytes[i+1]); i+=2; continue;
+    }
+    if(inQ){
+      if(b===0x22 && i+1<bytes.length && bytes[i+1]===0x22){ cell.push(0x22); i+=2; }
+      else if(b===0x22){ inQ=false; i++; }
+      else { cell.push(b); i++; }
+    } else {
+      if(b===0x22){ inQ=true; i++; }
+      else if(b===0x2C){ row.push(new Uint8Array(cell)); cell=[]; i++; }
+      else if(b===0x0D && i+1<bytes.length && bytes[i+1]===0x0A){
+        row.push(new Uint8Array(cell)); rows.push(row); row=[]; cell=[]; i+=2;
+      } else if(b===0x0D){ row.push(new Uint8Array(cell)); rows.push(row); row=[]; cell=[]; i++; }
+      else { cell.push(b); i++; }
+    }
+  }
+  if(cell.length>0||row.length>0){ row.push(new Uint8Array(cell)); rows.push(row); }
+  return rows;
+}
+
+// ---- CSV再構築（Shift_JISバイト列 → Blob） ----
+function buildCSVBlob(rows){
+  const parts=[], CM=new Uint8Array([0x2C]), CR=new Uint8Array([0x0D,0x0A]), DQ=new Uint8Array([0x22]);
+  for(let ri=0;ri<rows.length;ri++){
+    const row=rows[ri];
+    for(let ci=0;ci<row.length;ci++){
+      const cell=row[ci];
+      let needQ=false;
+      for(let bi=0;bi<cell.length;bi++){
+        if(cell[bi]===0x2C||cell[bi]===0x22||cell[bi]===0x0D||cell[bi]===0x0A){needQ=true;break;}
+      }
+      if(needQ){
+        const esc=[];
+        for(let bi=0;bi<cell.length;bi++){ if(cell[bi]===0x22) esc.push(0x22); esc.push(cell[bi]); }
+        parts.push(DQ); parts.push(new Uint8Array(esc)); parts.push(DQ);
+      } else { parts.push(cell); }
+      if(ci<row.length-1) parts.push(CM);
+    }
+    if(ri<rows.length-1) parts.push(CR);
+  }
+  const len=parts.reduce((s,p)=>s+p.length,0);
+  const out=new Uint8Array(len); let off=0;
+  for(const p of parts){ out.set(p,off); off+=p.length; }
+  return new Blob([out],{type:'text/csv;charset=shift_jis'});
+}
+
+// ---- normal-item 読み込み（テキスト） ----
+function parseCSVText(text){
+  const rows=[]; let row=[],cur='',inQ=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(inQ){
+      if(c==='"'&&text[i+1]==='"'){cur+='"';i++;}
+      else if(c==='"'){inQ=false;}
+      else cur+=c;
+    } else {
+      if(c==='"'){inQ=true;}
+      else if(c===','){row.push(cur);cur='';}
+      else if(c==='\r'&&text[i+1]==='\n'){row.push(cur);rows.push(row);row=[];cur='';i++;}
+      else if(c==='\r'){row.push(cur);rows.push(row);row=[];cur='';}
+      else cur+=c;
+    }
+  }
+  if(cur!==''||row.length>0){row.push(cur);rows.push(row);}
+  return rows;
+}
+
+let normalData=null, addData=null;
+
+async function loadNormal(input){
+  const file=input.files[0]; if(!file) return;
+  try {
+    const buf=await readAsArrayBuffer(file);
+    const text=bytesToStr(new Uint8Array(buf));
+    const rows=parseCSVText(text).filter(r=>r.some(c=>c.trim()!==''));
+    const header=rows[0], dataRows=rows.slice(1);
+    const idxHaiso=header.indexOf('配送方法セット管理番号');
+    const idxSoryo=header.indexOf('送料区分1');
+    const idxCode=header.indexOf('商品管理番号（商品URL）');
+    if(idxHaiso<0||idxSoryo<0||idxCode<0){
+      setStatus('statusNormal',false,'必要な列が見つかりません'); return;
+    }
+    normalData={rows:dataRows,idxHaiso,idxSoryo,idxCode};
+    setStatus('statusNormal',true,'読み込み完了：'+dataRows.length+'件');
+    checkReady();
+  } catch(e){ setStatus('statusNormal',false,'読み込みエラー：'+e.message); }
+}
+
+async function loadData(input){
+  const file=input.files[0]; if(!file) return;
+  try {
+    const buf=await readAsArrayBuffer(file);
+    const byteRows=parseCSVBytes(buf);
+    if(byteRows.length<2){setStatus('statusData',false,'データが空です');return;}
+    const headerStrs=byteRows[0].map(b=>bytesToStr(b));
+    const idxCode=headerStrs.indexOf('code');
+    const idxShipW=headerStrs.indexOf('ship-weight');
+    const idxPost=headerStrs.indexOf('postage-set');
+    const idxLTin=headerStrs.indexOf('lead-time-instock');
+    const idxLTout=headerStrs.indexOf('lead-time-outstock');
+    if(idxCode<0||idxShipW<0||idxPost<0||idxLTin<0||idxLTout<0){
+      setStatus('statusData',false,'必要な列が見つかりません'); return;
+    }
+    const dataRows=byteRows.slice(1).filter(r=>r.some(b=>b.length>0));
+    addData={headerRow:byteRows[0],rows:dataRows,idxCode,idxShipW,idxPost,idxLTin,idxLTout};
+    setStatus('statusData',true,'読み込み完了：'+dataRows.length+'件');
+    checkReady();
+  } catch(e){ setStatus('statusData',false,'読み込みエラー：'+e.message); }
+}
+
+function checkReady(){
+  document.getElementById('actionBtn').disabled=!(normalData&&addData);
+}
+
+function getShippingConfig(h,s){
+  if(h==='2'&&s==='1')                           return {w:'1000',p:'2',label:'ゆうパケ送料無料'};
+  if(h==='5'&&(s==='5'||s==='6'))                return {w:'1000',p:'2',label:'ゆうパケ送料無料'};
+  if((h==='2'||h==='5')&&(s==='2'||s==='4'))     return {w:'20',  p:'2',label:'ゆうパケ通常'};
+  if((h==='1'||h==='')&&s==='4')                 return {w:'20',  p:'1',label:'佐川通常'};
+  if((h==='1'||h==='')&&s==='6')                 return {w:'5000',p:'1',label:'佐川送料無料'};
+  if(h==='4'&&s==='4')                           return {w:'2000',p:'4',label:'西濃運輸'};
+  return null;
+}
+
+async function doConvert(){
+  document.getElementById('logBox').innerHTML='';
+  document.getElementById('resultSection').classList.remove('show');
+  document.getElementById('actionBtn').disabled=true;
+  log('━━━━━━━━━ 変換処理開始 ━━━━━━━━━','log-sep');
+
+  // 配送マップ構築
+  const shipMap={};
+  for(const row of normalData.rows){
+    const code=(row[normalData.idxCode]||'').trim();
+    const haiso=(row[normalData.idxHaiso]||'').trim();
+    const soryo=(row[normalData.idxSoryo]||'').trim();
+    if(!code) continue;
+    const cfg=getShippingConfig(haiso,soryo);
+    if(cfg&&!shipMap[code]) shipMap[code]=cfg;
+  }
+  log('📋 楽天 配送マップ構築：'+Object.keys(shipMap).length+'件','log-info');
+
+  let cntOk=0,cntSkip=0;
+  const outRows=[addData.headerRow];
+
+  for(const row of addData.rows){
+    const newRow=row.map(b=>new Uint8Array(b));
+    const code=bytesToStr(row[addData.idxCode]).trim();
+    // リードタイム（無条件）
+    newRow[addData.idxLTin]=await strToSJIS('1000');
+    newRow[addData.idxLTout]=new Uint8Array(0);
+    // 配送設定
+    const cfg=shipMap[code];
+    if(cfg){
+      newRow[addData.idxShipW]=await strToSJIS(cfg.w);
+      newRow[addData.idxPost]=await strToSJIS(cfg.p);
+      log('✅ ['+code+'] → ship-weight:'+cfg.w+' / postage-set:'+cfg.p+'（'+cfg.label+'）','log-ok');
+      cntOk++;
+    } else {
+      log('⚠️ ['+code+'] 配送ルール未マッチ','log-warn');
+      cntSkip++;
+    }
+    outRows.push(newRow);
+  }
+
+  log('──────────','log-sep');
+  log('✅ 配送変換：'+cntOk+'件　⚠️ スキップ：'+cntSkip+'件','log-ok');
+  log('━━━━━━━━━ 変換処理完了 ━━━━━━━━━','log-sep');
+
+  const blob=buildCSVBlob(outRows);
+  const url=URL.createObjectURL(blob);
+  document.getElementById('dlBtn').onclick=()=>{
+    const a=document.createElement('a'); a.href=url; a.download='data_add（配送補完済）.csv'; a.click();
+  };
+  document.getElementById('statsGrid').innerHTML=
+    '<div class="stat"><div class="num">'+addData.rows.length+'</div><div class="label">総商品数</div></div>'+
+    '<div class="stat"><div class="num">'+cntOk+'</div><div class="label">配送設定変換</div></div>'+
+    '<div class="stat"><div class="num">'+cntSkip+'</div><div class="label">ルール未マッチ</div></div>'+
+    '<div class="stat"><div class="num">'+addData.rows.length+'</div><div class="label">リードタイム更新</div></div>';
+  document.getElementById('resultSection').classList.add('show');
+  document.getElementById('actionBtn').disabled=false;
+}
+
+['zoneNormal','zoneData'].forEach(id=>{
+  const zone=document.getElementById(id);
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+  zone.addEventListener('drop',e=>{
+    e.preventDefault();zone.classList.remove('drag');
+    const file=e.dataTransfer.files[0]; if(!file) return;
+    if(id==='zoneNormal') loadNormal({files:[file]});
+    else loadData({files:[file]});
+  });
+});
+</script>
+</body>
+</html>
