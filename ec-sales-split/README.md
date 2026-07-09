@@ -32,13 +32,13 @@
 
 ファイル名は実データの出荷日（無ければ注文日時）の範囲から自動生成（例: `2026年EC販売データ（7月1日〜7月7日）.xlsx`）。[ranking](https://elcommun.github.io/Claude-App/ranking/) アプリへの取込用（`item-data/update_sales.py` で `PRELOADED` に反映）。
 
-## 出力②: メーカー変換データ（`ec-maker-only` ルール・Shift-JIS CSV）
+## 出力②: メーカー変換データ（`ec-maker-only` ルール・XLSX）
 
-メーカー商品として振り分けられた行のみを対象に、`商品番号` の接頭辞を内蔵の掛け率表（37件、未登録時はブランド名・作家名等のキーワードからフォールバック推定）と照合してメーカー名・掛け率を付与し、`項目・選択肢` 列から「デザイン:」「カラー:」の値だけを抽出、以下10列のShift-JIS CSVとして出力する。
+メーカー商品として振り分けられた行のみを対象に、`商品番号` の接頭辞を内蔵の掛け率表（37件、未登録時はブランド名・作家名等のキーワードからフォールバック推定）と照合してメーカー名・掛け率を付与し、`項目・選択肢` 列から「デザイン:」「カラー:」の値だけを抽出、以下10列のXLSX（シート名「メーカー変換」）として出力する。
 
 `店舗 / 出荷日 / 商品名 / 項目・選択肢 / 商品番号 / 税抜単価 / 数量 / 小計（税抜）/ メーカー / 掛け率`
 
-税抜単価・掛け率表・フォールバック推定ルールの詳細は `ec-maker-only/README.md` を参照（本アプリも同じ `MAKER_MAP` / `makerFallback` を使用）。ファイル名は `{年}年EC販売データ（{開始月}月{開始日}日〜{終了月}月{終了日}日）_メーカー変換.csv`。[supplier-ranking](https://elcommun.github.io/Claude-App/supplier-ranking/) アプリへの取込用。
+税抜単価・掛け率表・フォールバック推定ルールの詳細は `ec-maker-only/README.md` を参照（本アプリも同じ `MAKER_MAP` / `makerFallback` を使用）。ファイル名は `{年}年EC販売データ（{開始月}月{開始日}日〜{終了月}月{終了日}日）_メーカー変換.xlsx`。[supplier-ranking](https://elcommun.github.io/Claude-App/supplier-ranking/) アプリへの取込用。
 
 ## 確認用Excel
 
