@@ -66,10 +66,11 @@
   .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
   .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
   .dl-btn:hover{background:#059669;}
-  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:14px;}
   .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
   .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
   .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
+  @media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
 </style>
 </head>
 <body>
@@ -94,7 +95,7 @@
         <li>「変換してダウンロード」ボタンを押し、補完済みファイルを保存</li>
         <li>保存した .xlsx をそのままQoo10管理画面にアップロード</li>
       </ol>
-      <p class="about-note">送料・原産地のマッピングは下の「変換ルール一覧」カードのとおり自動判定されます。楽天データに対応商品がない場合や、ルールに未定義の組み合わせがある場合はログに警告として表示されるので、アップロード前に必ず確認してください。</p>
+      <p class="about-note">送料・原産地のマッピングは下の「変換ルール一覧」カードのとおり自動判定されます。楽天データに対応商品がない場合や、ルールに未定義の組み合わせがある場合はログに警告として表示されるので、アップロード前に必ず確認してください。<br>また、変換後に<strong>category_number（カテゴリ）が空欄</strong>の商品は、商品名に含まれるキーワードから自動でカテゴリ番号を設定します（詳細は「🗂️ カテゴリ自動設定」タブを参照）。</p>
     </div>
   </div>
 
@@ -120,6 +121,7 @@
       <div class="rule-tabs">
         <button class="tab-btn active" onclick="switchTab(this,'ship')">🚚 送料マッピング</button>
         <button class="tab-btn" onclick="switchTab(this,'origin')">🌏 原産地マッピング</button>
+        <button class="tab-btn" onclick="switchTab(this,'category')">🗂️ カテゴリ自動設定</button>
         <button class="tab-btn" onclick="switchTab(this,'fixed')">📌 一律入力項目</button>
       </div>
       <div class="tab-content active" id="tab-ship">
@@ -146,6 +148,18 @@
           </tbody>
         </table>
         <p style="margin-top:10px;font-size:12px;color:var(--gray-600);">※「商品属性（項目）1〜100」を全件走査し、「原産国／製造国」を含む項目の対応値を使用します。</p>
+      </div>
+      <div class="tab-content" id="tab-category">
+        <table class="mapping-table">
+          <thead><tr><th>商品名（item_name）に含まれるキーワード</th><th>→ カテゴリ番号（category_number）</th></tr></thead>
+          <tbody>
+            <tr><td>ラグ / カーペット / マルチマット</td><td>300003262</td></tr>
+            <tr><td>マグカップ / ティーカップ</td><td>300000503</td></tr>
+            <tr><td>メモパッド</td><td>320000547</td></tr>
+            <tr><td>ポーチ</td><td>300002863</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:10px;font-size:12px;color:var(--gray-600);">※ 変換後に <code>category_number</code> が<strong>空欄の商品のみ</strong>が対象です。すでに値が入力されている商品は上書きしません。上から順に判定し、最初に一致したキーワードのカテゴリ番号を設定します。</p>
       </div>
       <div class="tab-content" id="tab-fixed">
         <div class="fixed-rules">
@@ -202,6 +216,19 @@ const ORIGIN_MAP={
   'タイ':{type:'2',region:'TH',country:'TH'},
   'インド':{type:'2',region:'IN',country:'IN'}
 };
+// category_numberが空欄の場合のみ、商品名キーワードから自動判定（上から順に最初の一致を採用）
+const CATEGORY_KEYWORD_MAP=[
+  {keywords:['ラグ','カーペット','マルチマット'],category:'300003262'},
+  {keywords:['マグカップ','ティーカップ'],category:'300000503'},
+  {keywords:['メモパッド'],category:'320000547'},
+  {keywords:['ポーチ'],category:'300002863'}
+];
+function matchCategory(name){
+  for(const rule of CATEGORY_KEYWORD_MAP){
+    if(rule.keywords.some(k=>name.includes(k)))return rule.category;
+  }
+  return null;
+}
 
 function switchTab(btn,name){
   document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
@@ -335,7 +362,10 @@ function convert(){
     const SID=idx('seller_unique_item_id'),QTY=idx('quantity'),OPT=idx('option_info'),
           SHIP=idx('Shipping_number'),OPTS=idx('option_number'),AVAIL=idx('available_shipping_date'),
           COND=idx('item_condition_type'),END=idx('end_date'),NAME=idx('item_name'),
-          ORIG=idx('origin_type'),ORIGR=idx('origin_region_id'),ORIGC=idx('origin_country_id');
+          ORIG=idx('origin_type'),ORIGR=idx('origin_region_id'),ORIGC=idx('origin_country_id'),
+          CAT=idx('category_number');
+
+    if(CAT<0)log('⚠️ category_number列が見つからないため、カテゴリ自動設定はスキップされます','log-warn');
 
     // 商品名の先頭装飾語を除去（【限定】は保持）
     const DECO_UNIT=/^(?:[\\＼][^\\＼／\/\n]{1,30}[／\/]|【(?!限定】)[^】\n]{1,30}】|[★☆◆◇●○▼▽▲△♦♥♡❤]+[^★☆◆◇●○▼▽▲△♦♥♡❤\n]{0,30}[★☆◆◇●○▼▽▲△♦♥♡❤]+|[★☆◆◇●○▼▽▲△♦♥♡❤]+(?=\s|【|[\\＼]))\s*/;
@@ -347,7 +377,7 @@ function convert(){
     };
     const getCell=(r,c)=>{const a=XLSX.utils.encode_cell({r,c});return ws[a]?String(ws[a].v||''):''};
 
-    let cntTotal=0,cntShip=0,cntOriginForeign=0,cntOriginDomestic=0;
+    let cntTotal=0,cntShip=0,cntOriginForeign=0,cntOriginDomestic=0,cntCategory=0;
 
     for(let ri=4;ri<=rng.e.r;ri++){
       const sid=getCell(ri,SID).trim();
@@ -366,6 +396,18 @@ function convert(){
       if(cleanedName!==rawName){
         setCell(ri,NAME,cleanedName);
         log(`✏️ [商品名] ${sid} → 装飾語を削除`, 'log-ok');
+      }
+
+      // カテゴリ：category_numberが空欄の場合のみ、商品名キーワードから自動設定
+      if(CAT>=0&&!getCell(ri,CAT).trim()){
+        const matchedCat=matchCategory(cleanedName);
+        if(matchedCat){
+          setCell(ri,CAT,matchedCat);
+          log(`🗂️ [カテゴリ] ${sid} → 空欄のため「${matchedCat}」を自動設定`, 'log-ok');
+          cntCategory++;
+        }else{
+          log(`━ [カテゴリ] ${sid} → 空欄だが該当キーワードなし`, 'log-warn');
+        }
       }
 
       // 送料
@@ -400,7 +442,7 @@ function convert(){
     }
 
     log('','log-sep');
-    log(`📊 完了 — 総商品 ${cntTotal} 件 | 送料設定 ${cntShip} 件 | 原産地（海外） ${cntOriginForeign} 件 | 原産地（国内） ${cntOriginDomestic} 件`, 'log-info');
+    log(`📊 完了 — 総商品 ${cntTotal} 件 | 送料設定 ${cntShip} 件 | 原産地（海外） ${cntOriginForeign} 件 | 原産地（国内） ${cntOriginDomestic} 件 | カテゴリ自動設定 ${cntCategory} 件`, 'log-info');
 
     const wbout=XLSX.write(qoo10Wb,{bookType:'xlsx',type:'array'});
     const url=URL.createObjectURL(new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
@@ -412,6 +454,7 @@ function convert(){
       <div class="stat"><div class="num">${cntShip}</div><div class="label">送料設定済み</div></div>
       <div class="stat"><div class="num">${cntOriginForeign}</div><div class="label">原産地（海外）</div></div>
       <div class="stat"><div class="num">${cntOriginDomestic}</div><div class="label">原産地（国内）</div></div>
+      <div class="stat"><div class="num">${cntCategory}</div><div class="label">カテゴリ自動設定</div></div>
     `;
     document.getElementById('resultSection').classList.add('show');
   }catch(err){
