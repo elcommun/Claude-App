@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EC販売データ振り分け — 自社／メーカー変換｜EL COMMUN EC事業部</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.0.0/encoding.min.js"></script>
+<script src="../ec-inventory/genka_master.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:#f8f9fc; --bg2:#f1f3f8;
+    --surface:rgba(255,255,255,0.75); --surface-hover:rgba(255,255,255,0.92);
+    --border:rgba(0,0,0,0.08); --border-hover:rgba(0,0,0,0.14);
+    --accent:#7c3aed; --accent2:#6d28d9; --accent-glow:rgba(124,58,237,0.20); --accent-dim:rgba(124,58,237,0.06);
+    --green:#059669; --green-dim:rgba(5,150,105,0.08); --green-border:rgba(5,150,105,0.20);
+    --amber:#b45309; --amber-dim:rgba(180,83,9,0.07); --amber-border:rgba(180,83,9,0.20);
+    --red:#dc2626; --red-dim:rgba(220,38,38,0.06); --red-border:rgba(220,38,38,0.18);
+    --blue:#2563eb; --blue-dim:rgba(37,99,235,0.06); --blue-border:rgba(37,99,235,0.18);
+    --text:#1e293b; --text2:#64748b; --text3:#94a3b8;
+    --glow1:rgba(124,58,237,0.06); --glow2:rgba(37,99,235,0.04);
+    --radius:16px; --radius-sm:10px; --radius-xs:6px;
+    --font:'Inter','Noto Sans JP',sans-serif; --mono:'JetBrains Mono',monospace;
+  }
+  [data-theme="dark"]{
+    --bg:#0f0f11; --bg2:#18181b;
+    --surface:rgba(255,255,255,0.04); --surface-hover:rgba(255,255,255,0.07);
+    --border:rgba(255,255,255,0.08); --border-hover:rgba(255,255,255,0.16);
+    --accent:#8b5cf6; --accent2:#a78bfa; --accent-glow:rgba(139,92,246,0.30); --accent-dim:rgba(139,92,246,0.10);
+    --green:#34d399; --green-dim:rgba(52,211,153,0.10); --green-border:rgba(52,211,153,0.22);
+    --amber:#fbbf24; --amber-dim:rgba(251,191,36,0.10); --amber-border:rgba(251,191,36,0.22);
+    --red:#f87171; --red-dim:rgba(248,113,113,0.10); --red-border:rgba(248,113,113,0.22);
+    --blue:#60a5fa; --blue-dim:rgba(96,165,250,0.10); --blue-border:rgba(96,165,250,0.22);
+    --text:#e4e4e7; --text2:#a1a1aa; --text3:#71717a;
+    --glow1:rgba(139,92,246,0.10); --glow2:rgba(96,165,250,0.06);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh;
+       transition:background .4s,color .4s}
+  .wrap{max-width:900px;margin:0 auto;padding:40px 24px 80px}
+  .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:32px}
+  .brand{display:flex;flex-direction:column;gap:6px}
+  .brand h1{font-size:1.4rem;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+  .brand .logo{width:28px;height:28px;border-radius:8px;background:var(--accent);
+       display:flex;align-items:center;justify-content:center}
+  .brand .logo svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2.2}
+  .brand .sub{font-size:.8rem;color:var(--text2);display:flex;align-items:center;gap:8px}
+  .brand .sub .ver{font-family:var(--mono);font-size:.7rem;background:var(--accent-dim);color:var(--accent);
+       padding:1px 7px;border-radius:999px}
+  .theme-btn{flex-shrink:0;width:38px;height:38px;border-radius:10px;border:1px solid var(--border);
+       background:var(--surface);color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:center;
+       transition:.2s}
+  .theme-btn:hover{border-color:var(--border-hover)}
+  .theme-btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+       padding:22px;margin-bottom:16px}
+  .card-h{display:flex;align-items:center;gap:11px;margin-bottom:16px}
+  .card-h .num{width:24px;height:24px;border-radius:50%;background:var(--accent);
+       color:#fff;font-size:.76rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .card-h h2{font-size:1rem;font-weight:600}
+  .card-h .opt{font-size:.68rem;font-weight:600;color:var(--text2);background:var(--bg2);border:1px solid var(--border);
+       padding:1px 8px;border-radius:999px;margin-left:auto}
+  .card-h .opt.req{color:var(--accent);background:var(--accent-dim);border-color:transparent}
+
+  .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:700px){.upload-grid{grid-template-columns:1fr}}
+
+  .drop{display:block;position:relative;border:2px dashed var(--border);border-radius:var(--radius-sm);padding:22px 18px;
+       text-align:center;cursor:pointer;transition:.25s;background:var(--bg2)}
+  .drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-dim)}
+  .drop.has{border-style:solid;border-color:var(--green-border);background:var(--green-dim)}
+  .drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .drop .ic{width:30px;height:30px;margin:0 auto 8px;stroke:var(--text3);fill:none;stroke-width:1.8;display:block}
+  .drop.has .ic{stroke:var(--green)}
+  .drop .t{font-size:.86rem;font-weight:500}
+  .drop .h{font-size:.74rem;color:var(--text2);margin-top:3px}
+  .drop.has .t{color:var(--green)}
+  .fname{font-family:var(--mono);font-size:.74rem;word-break:break-all}
+
+  .purpose{margin-bottom:16px;padding:20px 22px;border:1px solid var(--blue-border);background:var(--blue-dim);border-radius:var(--radius-sm)}
+  .purpose-h{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:8px}
+  .purpose>p{font-size:.86rem;color:var(--text);line-height:1.75;margin-bottom:14px}
+  .purpose a{color:var(--blue);font-weight:600;text-decoration:none;border-bottom:1px solid var(--blue-border)}
+  .purpose a:hover{border-bottom-color:var(--blue)}
+  .purpose code{font-family:var(--mono);font-size:.78rem;background:var(--surface);padding:1px 5px;border-radius:4px;color:var(--blue)}
+  .steps{list-style:none;counter-reset:step}
+  .steps li{counter-increment:step;position:relative;padding-left:34px;font-size:.84rem;color:var(--text);line-height:1.6}
+  .steps li+li{margin-top:10px}
+  .steps li::before{content:counter(step);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:50%;
+       background:var(--blue);color:#fff;font-size:.74rem;font-weight:700;text-align:center;line-height:22px}
+
+  details.goq{margin-top:2px}
+  details.goq summary{cursor:pointer;font-size:.78rem;color:var(--text2);font-weight:600;list-style:none}
+  details.goq summary::-webkit-details-marker{display:none}
+  details.goq summary::before{content:'▸ ';color:var(--blue)}
+  details.goq[open] summary::before{content:'▾ '}
+  details.goq ol{margin:8px 0 0 20px;font-size:.78rem;color:var(--ink-2,var(--text));color:var(--text2)}
+  details.goq ol li{margin-bottom:4px;line-height:1.6}
+  details.goq b{color:var(--text)}
+
+  .go{width:100%;padding:15px;border:none;border-radius:var(--radius-sm);font-size:.98rem;font-weight:700;
+       font-family:var(--font);cursor:pointer;color:#fff;background:var(--accent);
+       transition:.2s;display:flex;align-items:center;justify-content:center;gap:9px}
+  .go:hover:not(:disabled){background:var(--accent2)}
+  .go:disabled{opacity:.5;cursor:not-allowed}
+  .go svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2}
+
+  .msg{margin-top:14px;padding:12px 15px;border-radius:var(--radius-sm);font-size:.84rem;display:none;white-space:pre-wrap}
+  .msg.show{display:block;animation:fade .4s cubic-bezier(.4,0,.2,1)}
+  .msg.success{background:var(--green-dim);border:1px solid var(--green-border);color:var(--green)}
+  .msg.error{background:var(--red-dim);border:1px solid var(--red-border);color:var(--red)}
+  .msg.warning{background:var(--amber-dim);border:1px solid var(--amber-border);color:var(--amber)}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:4px}
+  @media(max-width:700px){.stats{grid-template-columns:1fr 1fr}}
+  .stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 14px}
+  .stat .lbl{font-size:.7rem;color:var(--text2);font-weight:600;display:flex;align-items:center;gap:6px}
+  .stat .lbl .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .stat .big{font-size:1.4rem;font-weight:700;font-family:var(--mono);margin-top:5px}
+  .stat .small{font-size:.7rem;color:var(--text2);margin-top:2px}
+  .stat.own{border-color:var(--green-border);background:var(--green-dim)}
+  .stat.own .dot{background:var(--green)} .stat.own .big{color:var(--green)}
+  .stat.maker{border-color:var(--blue-border);background:var(--blue-dim)}
+  .stat.maker .dot{background:var(--blue)} .stat.maker .big{color:var(--blue)}
+  .stat.order .dot{background:var(--amber)}
+  .stat.skip .dot{background:var(--text3)}
+  .stat.match .dot{background:var(--accent)}
+
+  .dlrow{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:700px){.dlrow{grid-template-columns:1fr}}
+  .dl{padding:13px;border-radius:var(--radius-sm);font-weight:700;font-size:.86rem;cursor:pointer;
+       display:flex;align-items:center;justify-content:center;gap:8px;transition:.2s;color:#fff;text-decoration:none;
+       border:1px solid transparent}
+  .dl small{font-weight:500;opacity:.85;font-size:.72rem}
+  .dl.own{background:var(--green)}
+  .dl.own:hover{filter:brightness(1.08)}
+  .dl.maker{background:var(--blue)}
+  .dl.maker:hover{filter:brightness(1.08)}
+  .dl svg{width:16px;height:16px;fill:none;stroke-width:2;stroke:currentColor;flex-shrink:0}
+  .dl-label{display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+
+  .subtle-link{display:block;text-align:center;margin-top:10px;font-size:.74rem;color:var(--text2);
+       text-decoration:underline;text-decoration-color:var(--border-hover);text-underline-offset:2px;
+       cursor:pointer;background:none;border:none;padding:2px}
+  .subtle-link:hover{color:var(--text)}
+
+  .tabs{display:flex;gap:6px;margin-top:18px;border-bottom:1px solid var(--border)}
+  .tab{padding:9px 16px;font-size:.82rem;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;
+       margin-bottom:-1px;transition:.15s}
+  .tab:hover{color:var(--text)}
+  .tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab .n{font-family:var(--mono);font-size:.72rem;background:var(--bg2);padding:1px 6px;border-radius:999px;margin-left:6px}
+
+  .prev-wrap{margin-top:12px;max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius-sm)}
+  .prev-wrap.hidden{display:none}
+  table.prev{width:max-content;min-width:100%;border-collapse:collapse;font-size:.74rem;white-space:nowrap}
+  table.prev th{position:sticky;top:0;background:var(--bg2);color:var(--text2);font-weight:600;font-size:.68rem;
+       text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);z-index:1}
+  table.prev td{padding:6px 10px;border-bottom:1px solid rgba(125,125,125,.12)}
+  table.prev tr:hover td{background:var(--accent-dim)}
+  table.prev .nm{white-space:normal;max-width:300px}
+  table.prev .mono{font-family:var(--mono);font-size:.7rem;color:var(--text2)}
+  .prevmore{padding:8px 10px;font-size:.74rem;color:var(--text2);text-align:center}
+  .tag-unmatched{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.05em;padding:2px 6px;border-radius:3px;
+       background:var(--red-dim);color:var(--red);vertical-align:middle;margin-left:5px;text-transform:uppercase}
+
+  .info{font-size:.82rem;color:var(--text2)}
+  .info ul{list-style:none;margin-top:8px;display:flex;flex-direction:column;gap:7px}
+  .info li{display:flex;gap:9px;align-items:flex-start}
+  .info li .b{width:18px;height:18px;border-radius:5px;background:var(--accent-dim);color:var(--accent);font-size:.64rem;
+       font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+  .info code{font-family:var(--mono);font-size:.78rem;background:var(--bg2);padding:1px 5px;border-radius:4px;color:var(--accent)}
+  .hidden{display:none}
+  @media(max-width:600px){.wrap{padding:28px 16px 60px}.stats{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>EC販売データ振り分け</h1>
+      <div class="sub">受注CSVを自社商品／メーカー商品に自動判定して2ファイル生成 <span class="ver">v1</span></div>
+    </div>
+    <button class="theme-btn" id="themeBtn" title="テーマ切替">
+      <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </div>
+
+  <!-- 用途説明 -->
+  <div class="purpose">
+    <div class="purpose-h">このアプリでできること</div>
+    <p>受注・売上データCSVを1回アップロードするだけで、<b>自社商品</b>と<b>メーカー（仕入れ）商品</b>を自動で振り分け、それぞれ専用の形式に変換した2つのファイルを同時に作成します。商品番号から、自社品番マスタ・自社の品番ルール・商品名「エルコミューン」を手がかりに判定します（商品番号が空の行はどちらにも含めず「要確認」として別に集計します）。</p>
+    <ol class="steps">
+      <li>「受注・売上データCSV」と「商品データxlsx」をアップロードする</li>
+      <li>「生成」ボタンを押す（自社商品とメーカー商品に自動で振り分けられます）</li>
+      <li><b>自社データ（XLSX）</b>は<a href="https://elcommun.github.io/Claude-App/ranking/" target="_blank" rel="noopener">ranking</a>アプリへ、<b>メーカー変換データ（CSV）</b>は<a href="https://elcommun.github.io/Claude-App/supplier-ranking/" target="_blank" rel="noopener">supplier-ranking</a>アプリへ、それぞれダウンロードして取り込む</li>
+    </ol>
+  </div>
+
+  <!-- STEP 1+2: uploads -->
+  <div class="card">
+    <div class="card-h"><span class="num">1</span><h2>ファイルをアップロード</h2></div>
+    <div class="upload-grid">
+      <label class="drop" id="dropSales">
+        <input type="file" accept=".csv" id="fileSales">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="t" id="tSales">受注・売上データ CSV<span class="opt-req" style="color:var(--accent)">（必須）</span></div>
+        <div class="h">販売店舗・出荷日・商品名・商品番号・SKU管理番号・個数・商品単価・税込別 を含む受注/売上CSV（Shift-JIS）</div>
+      </label>
+      <label class="drop" id="dropMaster">
+        <input type="file" accept=".xlsx,.xls" id="fileMaster">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="t" id="tMaster">商品データ xlsx<span style="color:var(--accent)">（必須）</span></div>
+        <div class="h">自社品番マスタ・商品名・カテゴリ（「商品データ」「plaisir別注」シート）</div>
+      </label>
+    </div>
+    <details class="goq" style="margin-top:14px">
+      <summary>受注CSV（GoQ System）のダウンロード方法</summary>
+      <ol>
+        <li>GoQ System にログインし「受注管理」を開く</li>
+        <li>「<b>全て</b>」のタブを選択する</li>
+        <li>「絞込みパネル」のプルダウンで「出荷日」を選択し、期間を選んで「絞り込む」</li>
+        <li>「処理パネル」内の「CSVの出力」を開き「全ての受注」にチェック</li>
+        <li>「その他データ」のプルダウンから「CSV」を選び「出力」を押す</li>
+      </ol>
+    </details>
+  </div>
+
+  <!-- Generate -->
+  <div class="card">
+    <div class="card-h"><span class="num">2</span><h2>生成</h2></div>
+    <button class="go" id="goBtn" disabled>
+      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      自社／メーカーに振り分けて生成
+    </button>
+    <div class="msg" id="msg"></div>
+
+    <div id="result" class="hidden">
+      <div class="stats">
+        <div class="stat own"><div class="lbl"><span class="dot"></span>自社商品</div>
+          <div class="big" id="ownCount">0</div><div class="small">行</div></div>
+        <div class="stat maker"><div class="lbl"><span class="dot"></span>メーカー商品</div>
+          <div class="big" id="makerCount">0</div><div class="small">行</div></div>
+        <div class="stat match"><div class="lbl"><span class="dot"></span>マスター一致率</div>
+          <div class="big" id="matchRate">0%</div><div class="small">自社データ内</div></div>
+        <div class="stat order"><div class="lbl"><span class="dot"></span>掛け率未設定</div>
+          <div class="big" id="orderCount">0</div><div class="small">メーカー名なし</div></div>
+        <div class="stat skip"><div class="lbl"><span class="dot"></span>商品番号空</div>
+          <div class="big" id="skipCount">0</div><div class="small">要確認・未集計</div></div>
+      </div>
+
+      <div class="dlrow">
+        <a class="dl own" id="dlOwnBtn" href="#" download>
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="dl-label">自社データ<small>XLSX・ranking用</small></span>
+        </a>
+        <a class="dl maker" id="dlMakerBtn" href="#" download>
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span class="dl-label">メーカー変換<small>CSV・Shift-JIS・supplier-ranking用</small></span>
+        </a>
+      </div>
+      <a class="subtle-link" id="confirmDlBtn" href="#" download>確認用（掛け率未設定・商品番号空）をまとめてExcelダウンロード</a>
+
+      <div class="tabs">
+        <div class="tab on" data-tab="own">自社プレビュー <span class="n" id="ownTabN">0</span></div>
+        <div class="tab" data-tab="maker">メーカープレビュー <span class="n" id="makerTabN">0</span></div>
+      </div>
+      <div id="prevOwn" class="prev-wrap"></div>
+      <div id="prevMaker" class="prev-wrap hidden"></div>
+    </div>
+  </div>
+
+  <!-- info -->
+  <div class="card">
+    <div class="card-h"><span class="num">i</span><h2>処理ルール</h2></div>
+    <div class="info">
+      <ul>
+        <li><span class="b">A</span><span><b>振り分け</b>：各行の<code>商品番号</code>を内部品番に解決し（<code>item-data</code> 準拠のロジック）、<b>自社品番マスタ</b>（商品データxlsxの品番一覧）に一致、<code>elco-</code> <code>cal-</code>・自社確定接頭辞（<code>X?DR-</code> <code>CAL-</code> <code>EGP-</code> <code>LBG-</code> <code>AMP-C</code> <code>SFD-</code> <code>MK-</code> <code>CRB-</code> <code>WCL-</code>、大文字<code>AK-</code>）に一致、または<b>商品名に「エルコミューン」を含む</b>行を<b>自社商品</b>として、それ以外を<b>メーカー商品</b>として振り分けます。<code>商品番号</code>が空の行はどちらにも含めず「要確認」として除外します。</span></li>
+        <li><span class="b">B</span><span><b>自社データ</b>（<code>item-data</code> ルール）：商品データxlsxの品番マスタ・商品分類シートから商品名・大分類/中分類/小分類・楽天商品URLベースの検索コードを付与し、<code>販売日・大分類・中分類・小分類・商品名・商品番号・税抜単価・数量・小計（税抜）・店舗・検索コード・マスター一致</code> の12列XLSXとして出力（<a href="https://elcommun.github.io/Claude-App/ranking/" target="_blank" rel="noopener">ranking</a>アプリへの取込用）。</span></li>
+        <li><span class="b">C</span><span><b>メーカー変換データ</b>（<code>ec-maker-only</code> ルール）：<code>商品番号</code>の接頭辞を内蔵の掛け率表（37件）と照合してメーカー名・掛け率を付与（未登録時はブランド名・作家名等のキーワードからフォールバック推定）。項目・選択肢列から「デザイン:」「カラー:」の値だけを抽出。<code>店舗・出荷日・商品名・項目・選択肢・商品番号・税抜単価・数量・小計（税抜）・メーカー・掛け率</code> の10列Shift-JIS CSVとして出力（<a href="https://elcommun.github.io/Claude-App/supplier-ranking/" target="_blank" rel="noopener">supplier-ranking</a>アプリへの取込用）。</span></li>
+        <li><span class="b">D</span><span><b>税抜単価</b>：<code>税込別</code>が「込」の行は<code>商品単価 ÷ 1.1</code>（四捨五入）で税抜換算。それ以外は<code>商品単価</code>をそのまま使用。両ファイル共通のルールです。</span></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------- theme ---------- */
+const themeBtn=document.getElementById('themeBtn'),themeIcon=document.getElementById('themeIcon');
+const SUN='<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.2" y1="4.2" x2="5.6" y2="5.6"/><line x1="18.4" y1="18.4" x2="19.8" y2="19.8"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.2" y1="19.8" x2="5.6" y2="18.4"/><line x1="18.4" y1="5.6" x2="19.8" y2="4.2"/>';
+const MOON='<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);themeIcon.innerHTML=t==='dark'?SUN:MOON;localStorage.setItem('ec_split_theme',t);}
+applyTheme(localStorage.getItem('ec_split_theme')||'light');
+themeBtn.onclick=()=>applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark');
+
+/* ---------- 自社品番マスタの内蔵フォールバック（ec-inventory の genka_master） ---------- */
+const GENKA_KEYS=Object.keys(window.GENKA_MASTER||{}).map(k=>k.trim());
+
+/* ── 商品番号→品番 ハードコードマップ（item-data / ec-maker-only 共通） ───────────── */
+const PN_OVERRIDE = {
+  'Z6-ZRJM-E460':'CLB-226','FX-N2ER-PH3F':'CLB-504','H7-LXP2-BH31':'CLB-505','NQ-4UGF-AHYD':'FC-05',
+  'PBC-002.':'PBC-002','PBC-003.':'PBC-003','PBC-005.':'PBC-005','PBC-006.':'PBC-006',
+  'QO-4W6M-NLX3':'CLB-503','RDL-011':'RGL-011','T0-AJFH-JQKL':'FC-06','V5-SGBZ-OU7C':'FC-07',
+  'WY-T0RV-OQRQ':'FC-08','XN-I1C9-HG7Y':'FC-03','GYR-51':'GYR-051','GYR-52':'GYR-052','GYR-53':'GYR-053',
+  'GYR-54':'GYR-054','GYR-55':'GYR-055','GYR-56':'GYR-056','1T-BV4P-C8SS':'CPC-007','3O-Z747-CB0C':'PPC-054',
+  '6I-3MK8-XBTJ':'FC-01','1L-29S5-4M45':'CLB-501','7O-HOPN-LCJ7':'CPC-014','7U-9U6Y-LE5C':'SLV-502',
+  '9Y-ICHO-LN2M':'CPC-001','AC-GXJG-CK78':'CLB-202','B6-1J7F-DA1E':'B6-1J7F-DA1E','EL-VZLO-THM2':'WCL-001',
+  'H9-JXV2-AIUK':'CPC-016','HI-MB14-92DB':'CPC-012','IC-QG26-4DD3':'RGL-021','IE-I6GU-BIQV':'KIT-003',
+  'IS-WB3X-Y17O':'PPC-001','JC-BDBM-8OXZ':'PPC-011','K3-N7L5-OV6G':'PPC-010','KG-JDDN-COL3':'CLB-102',
+  'MJ-ZBYY-1VUO':'CLB-205','PBC-001.':'PBC-001','T9-7A7U-HRDS':'CLB-206','WQ-NRJO-FWH3':'KIT-101',
+  'XS-5IIC-P4CZ':'CLB-204','Y2-D3UX-K7OT':'CPC-008','YW-RI9H-WNH7':'CLB-606','Z1-YSGL-E2AI':'WCL-010',
+  'DRWK-306':'DR-WK-306','DRMH-306':'DR-MH-306','CT-K3PB-93HB':'WCL-011','CV-B543-60EE':'TCL-302',
+  'VV-ZLOI-O4F6':'CPC-018','NT-LK0T-8EW4':'SLV-503','OA-CO5U-F6XK':'CPC-006','PBC-004.':'PBC-004',
+  'VH-6MJV-QFCE':'CPC-002','ZN-MSL4-0GQJ':'CPC-013','CA-MQ83-4X1N':'CLB-224',
+  'elco-lnc311-10244':'LNC-313','elco-lnc311-13248':'LNC-321','elco-pbc001-10523':'PBC-027',
+  'elco-pnb001-13238':'PNB-003','elco-leaf24-10133':'CLB-723',
+};
+const QOO10_PN_OVERRIDE = {
+  '10109':'CLB-205','10116':'CLB-420','10241':'LNC-320','10242':'LNC-311','10497':'PBC-007','10499':'PBC-009',
+  '10501':'PBC-011','10515':'PBC-022','10699':'SKL-002','10700':'SKL-003','10971':'YGC-062','10977':'YGC-068',
+  '11365':'SLW-243','11366':'SLW-244','10111':'CLB-214','10245':'LNC-314','10505':'PBC-015','10506':'PBC-016',
+  '10517':'XEC-007','10524':'PBC-028','13011':'PRT-303','13097':'CPC-024','13099':'CPC-026','13239':'PNB-004',
+  '13245':'LNC-024','13250':'LNC-124','13265':'MTP-001','13270':'MTP-006','13273':'MTP-008',
+};
+
+// ── 商品番号から内部品番を抽出（item-data / ec-maker-only 共通ロジック） ──────────
+function extractProductCode(pn, store) {
+  if (!pn) return null;
+  if (/^在庫SFD-/i.test(pn)) return pn.slice(2);
+  if (/^DRMC-/i.test(pn)) return 'DR-MC-' + pn.slice(5);
+  if (/^DRMH-/i.test(pn)) return 'DR-MH-' + pn.slice(5);
+  if (/^DRMG-/i.test(pn)) return 'DR-MG-' + pn.slice(5);
+  if (/^DRWK-/i.test(pn)) return 'DR-WK-' + pn.slice(5);
+  const mbpfx = pn.match(/^mb-0[13]-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
+  if (mbpfx) return mbpfx[1].toUpperCase();
+  if (store && store.includes('Qoo10')) {
+    const mmpfx = pn.match(/^mm-\d+-(X?DR-.+)$/i);
+    if (mmpfx) return mmpfx[1];
+  }
+  if (/^elco-wcl-/i.test(pn)) return 'WCL-' + pn.slice(9);
+  if (/DR-MK-\d+/i.test(pn)) { const m = pn.match(/DR-MK-(\d+)/i); if (m) return 'MK-' + m[1]; }
+  const auPAY = store && store.includes('auPAY');
+  if (/^(?:ma|mg|mh|mc|mk|mb|wb|wk|ws|wv|wx|wl|mm)-/i.test(pn)) {
+    const hits = pn.match(/X?DR-[A-Z]{2,3}-\d+/g);
+    if (hits) return hits[hits.length - 1];
+    const bm = pn.match(/[（(]([A-Z]{2,3}-\d+)[）)]/);
+    if (bm) return 'DR-' + bm[1];
+    const dm = pn.match(/[A-Z]{2,3}-\d+/g);
+    if (dm) return 'DR-' + dm[dm.length - 1];
+    return null;
+  }
+  if (/^cal-/i.test(pn)) {
+    const m = pn.match(/^cal-[^-]+-(.+)$/i);
+    return m ? normalizeCode(m[1]) : null;
+  }
+  if (/^elco-/i.test(pn)) {
+    const bm = pn.match(/[（(]([A-Z]+-\d+)[）)]/);
+    if (bm) { const c = bm[1]; return normalizeCode(/^MC-\d+$/.test(c) ? 'DR-' + c : c); }
+    let rest = pn.slice(5);
+    const lowSeg = (rest.match(/^([a-z][a-z0-9]*)(?:-|$)/) || [])[1] || null;
+    rest = rest.replace(/^[a-z][a-z0-9]*-/, '');
+    rest = rest.replace(/^\d{3,}-?(?=[A-Z])/, '');
+    if (/^elco-/i.test(rest)) return extractProductCode(rest, store);
+    if (rest) return normalizeCode(rest);
+    return lowSeg ? normalizeCode(lowSeg) : null;
+  }
+  if (auPAY || pn.includes('（') || pn.includes('(')) {
+    const bm = pn.match(/[（(]([A-Z]+-\d+)[）)]/);
+    if (bm) { const c = bm[1]; return normalizeCode(/^MC-\d+$/.test(c) ? 'DR-' + c : c); }
+  }
+  const m5 = pn.match(/^[a-z][a-z0-9]*-([A-Z][A-Z0-9]+-\d+)$/);
+  if (m5) return normalizeCode(m5[1]);
+  const m6 = pn.match(/^[a-z0-9]+-[a-z0-9]+-(\d+)$/);
+  if (m6) return m6[1];
+  const drxx = pn.match(/^DR([A-Z]{2})-(.+)$/i);
+  if (drxx) return 'DR-' + drxx[1].toUpperCase() + '-' + drxx[2];
+  if (/^X?DR-[A-Z]{2,3}-\d+$/.test(pn)) return pn;
+  const m8 = pn.match(/^(WB|WK|WS|WV|WX|MA|MG|MH|MC|MB|MK|LB)-(\d+)$/i);
+  if (m8) return 'DR-' + m8[1].toUpperCase() + '-' + m8[2];
+  const m9a = pn.match(/^([A-Z]{2,4})-(\d+)\.00$/);
+  if (m9a) return m9a[1] + '-' + m9a[2].padStart(3, '0');
+  const m9b = pn.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
+  if (m9b) return m9b[1] + '-' + m9b[2].padStart(3, '0');
+  const dblm = pn.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/) || pn.match(/^[A-Z]{2,4}\d+-([A-Z]{2,4}-\d+.*)$/);
+  if (dblm) return dblm[1];
+  return null;
+}
+function normalizeCode(code) {
+  if (!code) return code;
+  const m = code.match(/^((?:LLN|ECL)-\d{3})/);
+  if (m) return m[1];
+  const sa = code.match(/^([A-Z]{2,4})-(\d+)\.00$/);
+  if (sa) return sa[1] + '-' + sa[2].padStart(3, '0');
+  const cm = code.match(/^-?([A-Z]{2,4})\?(\d+)\.00$/);
+  if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
+  const dbl = code.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/) || code.match(/^[A-Z]{2,4}\d+-([A-Z]{2,4}-\d+.*)$/);
+  if (dbl) return dbl[1];
+  if (/^elco-wcl-/i.test(code)) return 'WCL-' + code.slice(9);
+  if (/^DRMC-/i.test(code)) return 'DR-MC-' + code.slice(5);
+  if (/^DRMH-/i.test(code)) return 'DR-MH-' + code.slice(5);
+  if (/^DRMG-/i.test(code)) return 'DR-MG-' + code.slice(5);
+  if (/^DRWK-/i.test(code)) return 'DR-WK-' + code.slice(5);
+  const mbv = code.match(/^mb-\d+-(?:[a-z0-9]+-)*([A-Z]+-\d+)/i);
+  if (mbv) return mbv[1].toUpperCase();
+  if (/^CRB_/i.test(code)) return 'CRB-' + code.slice(4);
+  const crb = code.match(/^CRB(\d+)[-_]/i);
+  if (crb) return 'CRB-' + crb[1].padStart(3, '0');
+  const gyr = code.match(/^GYR-(\d{1,2})$/i);
+  if (gyr) return 'GYR-' + gyr[1].padStart(3, '0');
+  const drn = code.match(/^DR([A-Z]{2})-(.+)$/i);
+  if (drn) return 'DR-' + drn[1].toUpperCase() + '-' + drn[2];
+  if (/^在庫SFD-/i.test(code)) return code.slice(2);
+  const dm = code.match(/^(WB|WK|WS|WV|WX|WL|MA|MG|MH|MC|MB|MK)-(\d+)$/i);
+  if (dm) return 'DR-' + dm[1].toUpperCase() + '-' + dm[2];
+  const ac = code.match(/^[Aa][Mm][Pp][Cc]-?(\d+)$/);
+  if (ac) return 'AMP-C' + ac[1];
+  const lm = code.match(/^([a-z]{2,4})(\d+)$/);
+  if (lm) return lm[1].toUpperCase() + '-' + lm[2].padStart(3, '0');
+  return code;
+}
+
+/* ---------- メーカー・掛け率マスタ（ec-maker-only 準拠） ---------- */
+const MAKER_MAP={
+  '4on-':['4on',0.55],'8mw-':['8000000works',0.5],'ak-':['青山佳世',0.6],
+  'alsk-':['アラスカ文具',0.6],'apj-':['APJ',0.45],'bm-':['BEEM',0.45],'cocochi-':['cocochi',0.5],
+  'cre-':['クレエ',0.5],'ky-':['京佑キョウユウ',0.6],'ldw001-':['LDW',0.42],'ma-':['未来アグリス',0.5],
+  'mgt-':['magnet',0.53],'nm-':['ナカモリ',0.55],'pb-':['パドルビー',0.55],'psm-':['ピズム',0.5],
+  'rft-':['Raffinart',0.45],'rio-':['リオグループ',0.6],'sh-':['志成販売',0.55],
+  'tp-':['テクノプライム',0.55],'tri-':['TRI',0.38],'uncm-':['ユニコン',0.53],'wh-':['MDS',0.55],
+  'af':['APJ',0.45],'wf':['APJ',0.45],
+  'slw-':['TRI',0.38],
+  'mo':['パドルビー',0.55],'12816':['パドルビー',0.55],
+  '12818':['パドルビー',0.55],'13787':['パドルビー',0.55],
+  '303069-c':['志成販売',0.55],
+  'aito-':['アイトー',0.5],
+  'kj-':['カミオジャパン',0.6],'lfc-':['LFC',0.55],'chpo-':['ブリエ',0.5],
+  'nl-':['ユニコン',0.53],'ts-':['ユニコン',0.53],'yb':['ユニコン',0.53],
+};
+const MAKER_KEYS=Object.keys(MAKER_MAP).sort((a,b)=>b.length-a.length);
+function makerFor(pn){
+  const low=(pn||'').trim().toLowerCase();
+  for(const k of MAKER_KEYS){if(low.startsWith(k))return MAKER_MAP[k];}
+  return ['',''];
+}
+function makerFallback(pn,rawName){
+  const nm=rawName||'';
+  if(nm.includes('プラス')||nm.includes('キングジム'))return['MDS',0.55];
+  if(nm.includes('クルテク'))return['パドルビー',0.55];
+  if(nm.includes('cocochi'))return['cocochi',0.5];
+  if(nm.includes('くるみん')||nm.includes('竹久夢二'))return['京佑キョウユウ',0.6];
+  if(nm.includes('Alinea')||nm.includes('AND PACKABLE'))return['BEEM',0.45];
+  if(nm.includes('真鍮カードスタンド')||nm.includes('真鍮ボタニカル')||nm.includes('真鍮タオルハンガー')||nm.includes('真鍮シューホーン')||nm.includes('【sh-】'))return['志成販売',0.55];
+  if(nm.includes('mashu')||nm.includes('【ky-】'))return['京佑キョウユウ',0.6];
+  if(nm.includes('SCANDINAVIAN')||nm.includes('【lfc-】'))return['LFC',0.55];
+  if(['ローレルフレーム','エルバフレーム','フィアートフレーム','FLAT PANEL','FIT FRAME','Eフレーム','ニューライトフレーム'].some(k=>nm.includes(k)))return['APJ',0.45];
+  if(nm.includes('【tp-】'))return['テクノプライム',0.55];
+  if(nm.includes('【kj-】'))return['カミオジャパン',0.6];
+  const t=(pn||'').trim();
+  if(t.length===5&&/^(MM|KF)/.test(t))return['ユニコン',0.53];
+  return['',''];
+}
+
+/* ---------- 自社/メーカー判定（item-data + ec-maker-only 共通ルール） ---------- */
+const OWN_PREFIX=/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-|WCL-|X?DR-|CAL-)/i;
+function isOwn(pn,sku,rawName,code,ownSet){
+  const t=(pn||'').trim(),low=t.toLowerCase();
+  if(low.startsWith('elco-')||low.startsWith('cal-'))return true;
+  if((rawName||'').includes('エルコミューン'))return true;
+  if(code&&ownSet.has(code))return true;
+  const ns=sku?(normalizeCode(sku.trim())||sku.trim()):'';
+  if(ns&&ownSet.has(ns))return true;
+  if(sku&&ownSet.has(sku.trim()))return true;
+  if(t&&ownSet.has(t))return true;
+  if(code&&(OWN_PREFIX.test(code)||code==='LNC-413'))return true;
+  return false;
+}
+
+/* ---------- 商品名クリーニング ---------- */
+// 自社データ用（マスター未一致時のフォールバック。item-data 準拠）
+function cleanRawNameOwn(raw){
+  let s=(raw||'')
+    .replace(/^[＼\\][^＼\\／/]+[／/]\s*/, '')
+    .replace(/\([a-z0-9]+-[a-zA-Z0-9_-]+\)$/i, '')
+    .trim();
+  const pipe=s.indexOf('｜');
+  if(pipe>4)s=s.slice(0,pipe).trim();
+  return s||raw;
+}
+// メーカーデータ用（ec-maker-only 準拠）
+function cleanNameMaker(n){
+  n=(n||'').replace(/　/g,' ').trim();
+  while(true){const m=n.match(/^\s*(【[^】]*】|＼[^／]*／)\s*/);if(!m)break;n=n.slice(m[0].length);}
+  n=n.split(/｜|<br/)[0];
+  n=n.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ');
+  return n.trim();
+}
+// 項目・選択肢の生データから「デザイン:」「カラー:」等の値だけを抽出
+function extractOption(raw){
+  if(!raw)return'';
+  const vals=[];
+  raw.split(/\n/).forEach(line=>{
+    const m=line.trim().match(/^([^:：=]+)[:：=](.*)$/);
+    if(!m)return;
+    const label=m[1].trim();
+    if(label.includes('デザイン')||label.includes('カラー'))vals.push(m[2].trim());
+  });
+  return vals.join(' / ');
+}
+
+/* ---------- 商品データ xlsx: 品番→商品名マップ・品番→カテゴリマップ・自社品番セット ---------- */
+function buildProductMap(buf) {
+  const wb  = XLSX.read(new Uint8Array(buf), { type: 'array' });
+  const map = new Map();
+  const ownSet = new Set(GENKA_KEYS);
+  function load(sheetName) {
+    const ws = wb.Sheets[sheetName];
+    if (!ws) return;
+    const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+    for (let i = 2; i < data.length; i++) {
+      const r    = data[i];
+      const code = r[8] != null ? String(r[8]).trim() : '';
+      const name = r[9] != null ? String(r[9]).replace(/^[\s　]+|[\s　]+$/g, '') : '';
+      if (code && code !== 'None') ownSet.add(code);
+      if (code && name && code !== 'None') map.set(code, name);
+    }
+  }
+  load('商品データ');
+  load('plaisir別注');
+  return { map, ownSet };
+}
+
+function buildCategoryMap(buf) {
+  const wb  = XLSX.read(new Uint8Array(buf), { type: 'array' });
+  const catTree = new Map();
+  const cat1Map = new Map();
+  const cat2Map = new Map();
+  const wsCat   = wb.Sheets['商品分類'];
+  if (wsCat) {
+    const rows = XLSX.utils.sheet_to_json(wsCat, { header: 1, defval: null });
+    let hdrIdx = -1, c1c = -1, c2c = -1, c3c = -1;
+    for (let r = 0; r < Math.min(8, rows.length); r++) {
+      const row = rows[r].map(v => v != null ? String(v).trim() : '');
+      const i1 = row.indexOf('大分類'), i2 = row.indexOf('中分類'), i3 = row.indexOf('小分類');
+      if (i1 >= 0 && i2 >= 0) { hdrIdx = r; c1c = i1; c2c = i2; c3c = i3; break; }
+    }
+    if (hdrIdx >= 0) {
+      const dataRows = rows.slice(hdrIdx + 1).filter(r => r.some(v => v != null));
+      const val = (row, col) => col >= 0 && row[col] != null ? String(row[col]).trim() : '';
+      let lastC1v = '', lastC1n = '', lastC2v = '', lastC2n = '';
+      for (const row of dataRows) {
+        const c1v = val(row, c1c), c1n = val(row, c1c + 1);
+        const c2v = val(row, c2c), c2n = val(row, c2c + 1);
+        const c3v = val(row, c3c), c3n = val(row, c3c + 1);
+        if (c1v) { lastC1v = c1v; lastC1n = c1n; }
+        if (c2v) { lastC2v = c2v; lastC2n = c2n; }
+        const ec1v = c1v || lastC1v, ec1n = c1n || lastC1n;
+        const ec2v = c2v || lastC2v, ec2n = c2n || lastC2n;
+        if (ec1v) cat1Map.set(ec1v, ec1n);
+        if (ec1v && ec2v) cat2Map.set(ec1v + '|' + ec2v, ec2n);
+        if (ec1v && ec2v && c3v) catTree.set(ec1v + '|' + ec2v + '|' + c3v, { cat1: ec1n, cat2: ec2n, cat3: c3n });
+      }
+    }
+  }
+  const codeMap = new Map();
+  const wsData  = wb.Sheets['商品データ'];
+  if (wsData) {
+    const rows     = XLSX.utils.sheet_to_json(wsData, { header: 1, defval: null });
+    const piCol    = 8;
+    const dataRows = rows.slice(2).filter(r => r[piCol] != null);
+    const numCols = rows.reduce((m, r) => Math.max(m, r.length), 0);
+    const knownC1 = new Set(cat1Map.keys());
+    const knownC2 = new Set([...cat2Map.keys()].map(k => k.split('|')[1]));
+    const knownC3 = new Set([...catTree.keys()].map(k => k.split('|')[2]));
+    const colScores = [];
+    for (let col = 0; col < numCols; col++) {
+      const vals = dataRows.map(r => r[col] != null ? String(r[col]).trim() : '').filter(Boolean);
+      if (!vals.length) { colScores.push({ col, s1: 0, s2: 0, s3: 0 }); continue; }
+      colScores.push({
+        col,
+        s1: vals.filter(v => knownC1.has(v)).length / vals.length,
+        s2: vals.filter(v => knownC2.has(v)).length / vals.length,
+        s3: vals.filter(v => knownC3.has(v)).length / vals.length,
+      });
+    }
+    const bestExclusive = (key, exclude) => {
+      const sorted = [...colScores].sort((a, b) => b[key] - a[key]);
+      return sorted.find(e => !exclude.has(e.col) && e[key] > 0.3) || null;
+    };
+    const used = new Set();
+    const b1 = bestExclusive('s1', used); const c1Col = b1 ? (used.add(b1.col), b1.col) : -1;
+    const b2 = bestExclusive('s2', used); const c2Col = b2 ? (used.add(b2.col), b2.col) : -1;
+    const b3 = bestExclusive('s3', used); const c3Col = b3 ? (used.add(b3.col), b3.col) : -1;
+    if (c1Col >= 0 || c2Col >= 0 || c3Col >= 0) {
+      for (const row of dataRows) {
+        const code = String(row[piCol]).trim();
+        if (!code || code === 'None') continue;
+        const s = (ci) => ci >= 0 && row[ci] != null ? String(row[ci]).trim() : '';
+        const c1 = s(c1Col), c2 = s(c2Col), c3 = s(c3Col);
+        if (c1 || c2 || c3) codeMap.set(code, { c1, c2, c3 });
+      }
+    }
+  }
+  const map = new Map();
+  for (const [code, { c1, c2, c3 }] of codeMap) {
+    const tree = catTree.get(c1 + '|' + c2 + '|' + c3);
+    const cat1 = tree?.cat1 || cat1Map.get(c1) || '';
+    const cat2 = tree?.cat2 || cat2Map.get(c1 + '|' + c2) || '';
+    const cat3 = tree?.cat3 || '';
+    if (cat1 || cat2 || cat3) map.set(code, { cat1, cat2, cat3 });
+  }
+  return map;
+}
+
+/* ---------- CSV parser（Shift-JIS, quoted multiline対応） ---------- */
+function parseCSV(buf) {
+  const text = new TextDecoder('shift-jis').decode(new Uint8Array(buf));
+  const rows = [];
+  let cur = [], f = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQ && text[i+1] === '"') { f += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      cur.push(f); f = '';
+    } else if ((c === '\r' || c === '\n') && !inQ) {
+      if (c === '\r' && text[i+1] === '\n') i++;
+      cur.push(f); f = '';
+      if (cur.some(v => v)) rows.push(cur);
+      cur = [];
+    } else {
+      f += c;
+    }
+  }
+  if (f || cur.length) { cur.push(f); if (cur.some(v => v)) rows.push(cur); }
+  return rows;
+}
+const esc=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function showMsg(t,c){const m=document.getElementById('msg');m.innerHTML=t;m.className='msg show '+c;}
+
+/* ---------- file handling ---------- */
+const files={sales:null,master:null};
+function wireDrop(dropId,inputId,tId,key,label){
+  const drop=document.getElementById(dropId),input=document.getElementById(inputId),t=document.getElementById(tId);
+  function handle(f){files[key]=f;drop.classList.add('has');t.innerHTML='<span class="fname">'+f.name+'</span>';refreshGo();}
+  input.onchange=()=>{if(input.files[0])handle(input.files[0]);input.value='';};
+  drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+  drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+  drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');if(e.dataTransfer.files[0])handle(e.dataTransfer.files[0]);});
+}
+wireDrop('dropSales','fileSales','tSales','sales');
+wireDrop('dropMaster','fileMaster','tMaster','master');
+function refreshGo(){document.getElementById('goBtn').disabled=!(files.sales&&files.master);}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+    tab.classList.add('on');
+    const which=tab.dataset.tab;
+    document.getElementById('prevOwn').classList.toggle('hidden',which!=='own');
+    document.getElementById('prevMaker').classList.toggle('hidden',which!=='maker');
+  });
+});
+
+/* ---------- generate ---------- */
+const OWN_FIELDS=['販売日','大分類','中分類','小分類','商品名','商品番号','税抜単価','数量','小計（税抜）','店舗','検索コード','マスター一致'];
+const MAKER_FIELDS=['店舗','出荷日','商品名','項目・選択肢','商品番号','税抜単価','数量','小計（税抜）','メーカー','掛け率'];
+let ownRows=null,makerRows=null,noMakerRows=null,emptyRows=null,srcFields=null,srcName='受注データ';
+const intOf=v=>{const n=parseInt(String(v==null?'':v).replace(/[^\d-]/g,''),10);return isNaN(n)?0:n;};
+
+function formatPeriodName(dates){
+  if(!dates.length)return '受注データ';
+  const sorted=[...dates].sort();
+  const [y1,m1,d1]=sorted[0].split('-').map(s=>parseInt(s,10));
+  const [y2,m2,d2]=sorted[sorted.length-1].split('-').map(s=>parseInt(s,10));
+  return y1===y2
+    ? `${y1}年EC販売データ（${m1}月${d1}日〜${m2}月${d2}日）`
+    : `EC販売データ（${y1}年${m1}月${d1}日〜${y2}年${m2}月${d2}日）`;
+}
+
+document.getElementById('goBtn').onclick=async()=>{
+  try{
+    showMsg('処理中…','warning');
+    document.getElementById('goBtn').disabled=true;
+    await new Promise(r=>setTimeout(r,30));
+
+    const [salesBuf,masterBuf]=await Promise.all([files.sales.arrayBuffer(),files.master.arrayBuffer()]);
+    const { map: productMap, ownSet } = buildProductMap(masterBuf);
+    const categoryMap = buildCategoryMap(masterBuf);
+
+    const csvRows=parseCSV(salesBuf);
+    if(csvRows.length<2)throw new Error('CSVにデータがありません');
+    const headers=csvRows[0].map(h=>h.trim());
+    const ci={}; headers.forEach((h,i)=>ci[h]=i);
+    const need=['出荷日','注文日時','商品名','商品番号','SKU管理番号','個数','商品単価','税込別','販売店舗'];
+    const miss=need.filter(h=>ci[h]===undefined);
+    if(miss.length)throw new Error('必要な列がCSVにありません: '+miss.join(', '));
+    srcFields=headers;
+
+    // ── パス1: 楽天市場店の 品番→検索コード マップ ──
+    const rakutenSearchMap=new Map();
+    for(let i=1;i<csvRows.length;i++){
+      const r=csvRows[i]; const g=k=>ci[k]!==undefined?(r[ci[k]]||'').trim():'';
+      const store=g('販売店舗');
+      if(!store.includes('楽天市場'))continue;
+      const url=g('商品URL'); if(!url)continue;
+      const seg=url.replace(/\/$/,'').split('/').pop();
+      const sc=seg?seg.replace(/\.html?$/i,''):''; if(!sc)continue;
+      let pn=g('商品番号'); const sku=g('SKU管理番号');
+      if(pn.startsWith('#')&&sku)pn=sku;
+      const pnOv=(pn&&PN_OVERRIDE[pn.trim()])||null;
+      const rawExt=pnOv||extractProductCode(pn,store);
+      const extracted=rawExt||pn;
+      const code=normalizeCode(extracted)||extracted;
+      if(/^(?:X?DR-|CAL-)/i.test(code)&&!rakutenSearchMap.has(code))rakutenSearchMap.set(code,sc);
+    }
+
+    // ── パス2: 全行を自社／メーカー／要確認に振り分け ──
+    const own=[],maker=[],noMaker=[],empty=[];
+    const dates=[];
+    for(let i=1;i<csvRows.length;i++){
+      const r=csvRows[i]; const g=k=>ci[k]!==undefined?(r[ci[k]]||'').trim():'';
+      const date=g('出荷日')||g('注文日時').slice(0,10);
+      if(!date)continue;
+      const sku=g('SKU管理番号');
+      let pn=g('商品番号');
+      const rawName=g('商品名');
+      const store=g('販売店舗');
+      if(pn.startsWith('#')&&sku)pn=sku;
+      const qty=intOf(g('個数'));
+      const taxType=g('税込別');
+      const rawPrice=intOf(g('商品単価'));
+      const net=(taxType==='込')?Math.round(rawPrice/1.1):rawPrice;
+
+      if(!pn){ empty.push(headers.reduce((o,h,idx)=>{o[h]=r[idx]||'';return o;},{})); continue; }
+
+      const isQoo10=store&&store.includes('Qoo10');
+      const pnOverride=(pn&&PN_OVERRIDE[pn.trim()])||null;
+      const rawExtracted=pnOverride||extractProductCode(pn,store);
+      const qoo10Override=isQoo10?(QOO10_PN_OVERRIDE[pn.trim()]||(rawExtracted&&QOO10_PN_OVERRIDE[rawExtracted]))||null:null;
+      const overrideCode=pnOverride||qoo10Override;
+      const extracted=qoo10Override||rawExtracted;
+      const normSku=sku?normalizeCode(sku.trim()):null;
+
+      let name=null,matched=false;
+      let code=extracted||normalizeCode(pn)||pn;
+      if(overrideCode){ code=overrideCode; matched=true; if(productMap.has(overrideCode))name=productMap.get(overrideCode); }
+      if(!matched&&extracted&&productMap.has(extracted)){ name=productMap.get(extracted); matched=true; code=extracted; }
+      if(!matched&&normSku&&productMap.has(normSku)){ name=productMap.get(normSku); matched=true; code=normSku; }
+      if(!matched&&sku&&productMap.has(sku)){ name=productMap.get(sku); matched=true; code=normalizeCode(sku)||sku; }
+      if(!matched&&pn&&productMap.has(pn)){ name=productMap.get(pn); matched=true; code=pn; }
+      if(!matched){
+        const base=extracted||pn;
+        if(base){
+          const alt=/^DR-/.test(base)?'X'+base:/^XDR-/.test(base)?base.slice(1):null;
+          if(alt&&productMap.has(alt)){ name=productMap.get(alt); matched=true; code=alt; }
+        }
+      }
+      if(!matched&&(/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-|WCL-|X?DR-)/i.test(code)||/^AK-/.test(code)||code==='LNC-413')){ matched=true; }
+
+      dates.push(date);
+      const own_=isOwn(pn,sku,rawName,code,ownSet);
+
+      if(own_){
+        if(!name)name=cleanRawNameOwn(rawName);
+        const cats=categoryMap.get(code)||{cat1:'',cat2:'',cat3:''};
+        const searchCode=/^(?:X?DR-|CAL-)/i.test(code)?(rakutenSearchMap.get(code)||''):'';
+        own.push({
+          '販売日':date,'大分類':cats.cat1,'中分類':cats.cat2,'小分類':cats.cat3,
+          '商品名':name,'商品番号':code,'税抜単価':net,'数量':qty,'小計（税抜）':net*qty,
+          '店舗':store,'検索コード':searchCode,'マスター一致':matched?'○':'×',
+        });
+      }else{
+        let [mk,rate]=makerFor(pn);
+        if(!mk){ const fb=makerFallback(pn,rawName); if(fb[0]){ mk=fb[0]; rate=fb[1]; } }
+        const row={
+          '店舗':store,'出荷日':date,'商品名':cleanNameMaker(rawName),
+          '項目・選択肢':extractOption(g('項目・選択肢')),'商品番号':pn,
+          '税抜単価':net,'数量':qty,'小計（税抜）':net*qty,'メーカー':mk,'掛け率':rate===''?'':rate,
+        };
+        if(!mk)noMaker.push(row);
+        maker.push(row);
+      }
+    }
+
+    ownRows=own; makerRows=maker; noMakerRows=noMaker; emptyRows=empty;
+    srcName=formatPeriodName(dates);
+
+    // 自社データ XLSX
+    if(dlUrls['dlOwnBtn'])URL.revokeObjectURL(dlUrls['dlOwnBtn']);
+    const ownEl=document.getElementById('dlOwnBtn');
+    if(own.length){
+      const ws=XLSX.utils.json_to_sheet(own,{header:OWN_FIELDS});
+      ws['!cols']=[{wch:12},{wch:14},{wch:14},{wch:14},{wch:36},{wch:14},{wch:10},{wch:6},{wch:12},{wch:20},{wch:16},{wch:10}];
+      const wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,'販売明細');
+      const arr=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+      const url=URL.createObjectURL(new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+      dlUrls['dlOwnBtn']=url; ownEl.href=url; ownEl.download=`${srcName}.xlsx`; ownEl.dataset.ready='1';
+    }else{
+      dlUrls['dlOwnBtn']=null; ownEl.removeAttribute('href'); ownEl.dataset.ready=''; ownEl.dataset.emptyMsg='自社商品の行がありませんでした';
+    }
+
+    // メーカー変換 CSV（Shift-JIS）
+    updateMakerDownloadLink(maker);
+
+    // 確認用Excel（掛け率未設定・商品番号空）
+    const confirmEl=document.getElementById('confirmDlBtn');
+    if(dlUrls['confirmDlBtn'])URL.revokeObjectURL(dlUrls['confirmDlBtn']);
+    const confirmUrl=buildConfirmWbUrl();
+    if(confirmUrl){ dlUrls['confirmDlBtn']=confirmUrl; confirmEl.href=confirmUrl; confirmEl.download=`${srcName}_確認用.xlsx`; confirmEl.dataset.ready='1'; }
+    else{ dlUrls['confirmDlBtn']=null; confirmEl.removeAttribute('href'); confirmEl.dataset.ready=''; confirmEl.dataset.emptyMsg='掛け率未設定・商品番号空のいずれの行もありませんでした'; }
+
+    // 統計
+    document.getElementById('result').classList.remove('hidden');
+    const mc=own.filter(r=>r['マスター一致']==='○').length;
+    document.getElementById('ownCount').textContent=own.length.toLocaleString();
+    document.getElementById('makerCount').textContent=maker.length.toLocaleString();
+    document.getElementById('matchRate').textContent=own.length?Math.round(mc/own.length*100)+'%':'—';
+    document.getElementById('orderCount').textContent=noMaker.length.toLocaleString();
+    document.getElementById('skipCount').textContent=empty.length.toLocaleString();
+    document.getElementById('ownTabN').textContent=own.length.toLocaleString();
+    document.getElementById('makerTabN').textContent=maker.length.toLocaleString();
+
+    renderPreview('prevOwn',OWN_FIELDS,own,{'商品名':'nm'});
+    renderPreview('prevMaker',MAKER_FIELDS,maker,{'商品名':'nm','項目・選択肢':'nm'});
+
+    showMsg(`完了！　自社商品 ${own.length.toLocaleString()}行・メーカー商品 ${maker.length.toLocaleString()}行に振り分けました`+
+      `${noMaker.length?`　／ うち掛け率表に未登録の接頭辞 ${noMaker.length.toLocaleString()}行（メーカー・掛け率は空欄）`:''}`+
+      `${empty.length?`　／ 商品番号空 ${empty.length.toLocaleString()}行は要確認として除外`:''}。下のボタンからダウンロードできます。`,'success');
+  }catch(e){
+    console.error(e);
+    showMsg('エラー: '+e.message,'error');
+  }finally{
+    document.getElementById('goBtn').disabled=false;
+  }
+};
+
+function renderPreview(elId,fields,rows,numericLikeExclude){
+  const el=document.getElementById(elId);
+  if(!rows.length){ el.innerHTML='<div class="prevmore">該当する行がありません</div>'; return; }
+  const PREVIEW=150;
+  let html='<table class="prev"><thead><tr>'+fields.map(h=>`<th>${esc(h)}</th>`).join('')+'</tr></thead><tbody>';
+  rows.slice(0,PREVIEW).forEach(o=>{
+    html+='<tr>'+fields.map(h=>{
+      const v=o[h];
+      const isNum=(h==='税抜単価'||h==='小計（税抜）'||h==='数量'||h==='掛け率');
+      const cls=(numericLikeExclude&&numericLikeExclude[h])?numericLikeExclude[h]:(isNum?'mono':'');
+      const disp=(h==='税抜単価'||h==='小計（税抜）')?(v===''?'':Number(v).toLocaleString()):v;
+      return `<td class="${cls}">${esc(disp)}</td>`;
+    }).join('')+'</tr>';
+  });
+  html+='</tbody></table>';
+  if(rows.length>PREVIEW)html+=`<div class="prevmore">プレビューは先頭 ${PREVIEW} 件のみ表示（全 ${rows.length.toLocaleString()} 件はダウンロードで確認できます）</div>`;
+  el.innerHTML=html;
+}
+
+// Shift-JIS(CP932) CSV の Blob URL を作る（クオート・CRLF手組み）
+function buildSJISCsvUrl(fields,rows){
+  const q=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const lines=[fields.map(q).join(',')];
+  rows.forEach(r=>lines.push(fields.map(h=>q(r[h])).join(',')));
+  const csv=lines.join('\r\n');
+  const sjis=Encoding.convert(Encoding.stringToCode(csv),{to:'SJIS',from:'UNICODE'});
+  const blob=new Blob([new Uint8Array(sjis)],{type:'text/csv'});
+  return URL.createObjectURL(blob);
+}
+const dlUrls={};
+function updateMakerDownloadLink(rows){
+  const el=document.getElementById('dlMakerBtn');
+  if(dlUrls['dlMakerBtn'])URL.revokeObjectURL(dlUrls['dlMakerBtn']);
+  if(rows&&rows.length){
+    const url=buildSJISCsvUrl(MAKER_FIELDS,rows);
+    dlUrls['dlMakerBtn']=url; el.href=url; el.download=`${srcName}_メーカー変換.csv`; el.dataset.ready='1';
+  }else{
+    dlUrls['dlMakerBtn']=null; el.removeAttribute('href'); el.dataset.ready=''; el.dataset.emptyMsg='メーカー商品の行がありませんでした';
+  }
+}
+function buildConfirmWbUrl(){
+  const hasNoMaker=noMakerRows&&noMakerRows.length, hasEmpty=emptyRows&&emptyRows.length;
+  if(!hasNoMaker&&!hasEmpty)return null;
+  const wb=XLSX.utils.book_new();
+  if(hasNoMaker)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(noMakerRows,{header:MAKER_FIELDS}),'掛け率未設定');
+  if(hasEmpty)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(emptyRows,{header:srcFields}),'商品番号空');
+  const arr=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  return URL.createObjectURL(blob);
+}
+['dlOwnBtn','dlMakerBtn','confirmDlBtn'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{
+    if(!e.currentTarget.dataset.ready){ e.preventDefault(); const m=e.currentTarget.dataset.emptyMsg; if(m)showMsg(m,'warning'); }
+  });
+});
+</script>
+</body>
+</html>
