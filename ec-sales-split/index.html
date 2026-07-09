@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EC販売データ振り分け — 自社／メーカー変換｜EL COMMUN EC事業部</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.0.0/encoding.min.js"></script>
 <script src="../ec-inventory/genka_master.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -183,7 +182,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>EC販売データ振り分け</h1>
-      <div class="sub">受注CSVを自社商品／メーカー商品に自動判定して2ファイル生成 <span class="ver">v1</span></div>
+      <div class="sub">受注CSVを自社商品／メーカー商品に自動判定して2ファイル生成 <span class="ver">v2</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -197,7 +196,7 @@
     <ol class="steps">
       <li>「受注・売上データCSV」と「商品データxlsx」をアップロードする</li>
       <li>「生成」ボタンを押す（自社商品とメーカー商品に自動で振り分けられます）</li>
-      <li><b>自社データ（XLSX）</b>は<a href="https://elcommun.github.io/Claude-App/ranking/" target="_blank" rel="noopener">ranking</a>アプリへ、<b>メーカー変換データ（CSV）</b>は<a href="https://elcommun.github.io/Claude-App/supplier-ranking/" target="_blank" rel="noopener">supplier-ranking</a>アプリへ、それぞれダウンロードして取り込む</li>
+      <li><b>自社データ（XLSX）</b>は<a href="https://elcommun.github.io/Claude-App/ranking/" target="_blank" rel="noopener">ranking</a>アプリへ、<b>メーカー変換データ（XLSX）</b>は<a href="https://elcommun.github.io/Claude-App/supplier-ranking/" target="_blank" rel="noopener">supplier-ranking</a>アプリへ、それぞれダウンロードして取り込む</li>
     </ol>
   </div>
 
@@ -260,7 +259,7 @@
         </a>
         <a class="dl maker" id="dlMakerBtn" href="#" download>
           <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span class="dl-label">メーカー変換<small>CSV・Shift-JIS・supplier-ranking用</small></span>
+          <span class="dl-label">メーカー変換<small>XLSX・supplier-ranking用</small></span>
         </a>
       </div>
       <a class="subtle-link" id="confirmDlBtn" href="#" download>確認用（掛け率未設定・商品番号空）をまとめてExcelダウンロード</a>
@@ -281,7 +280,7 @@
       <ul>
         <li><span class="b">A</span><span><b>振り分け</b>：各行の<code>商品番号</code>を内部品番に解決し（<code>item-data</code> 準拠のロジック）、<b>自社品番マスタ</b>（商品データxlsxの品番一覧）に一致、<code>elco-</code> <code>cal-</code>・自社確定接頭辞（<code>X?DR-</code> <code>CAL-</code> <code>EGP-</code> <code>LBG-</code> <code>AMP-C</code> <code>SFD-</code> <code>MK-</code> <code>CRB-</code> <code>WCL-</code>、大文字<code>AK-</code>）に一致、または<b>商品名に「エルコミューン」を含む</b>行を<b>自社商品</b>として、それ以外を<b>メーカー商品</b>として振り分けます。<code>商品番号</code>が空の行はどちらにも含めず「要確認」として除外します。</span></li>
         <li><span class="b">B</span><span><b>自社データ</b>（<code>item-data</code> ルール）：商品データxlsxの品番マスタ・商品分類シートから商品名・大分類/中分類/小分類・楽天商品URLベースの検索コードを付与し、<code>販売日・大分類・中分類・小分類・商品名・商品番号・税抜単価・数量・小計（税抜）・店舗・検索コード・マスター一致</code> の12列XLSXとして出力（<a href="https://elcommun.github.io/Claude-App/ranking/" target="_blank" rel="noopener">ranking</a>アプリへの取込用）。</span></li>
-        <li><span class="b">C</span><span><b>メーカー変換データ</b>（<code>ec-maker-only</code> ルール）：<code>商品番号</code>の接頭辞を内蔵の掛け率表（37件）と照合してメーカー名・掛け率を付与（未登録時はブランド名・作家名等のキーワードからフォールバック推定）。項目・選択肢列から「デザイン:」「カラー:」の値だけを抽出。<code>店舗・出荷日・商品名・項目・選択肢・商品番号・税抜単価・数量・小計（税抜）・メーカー・掛け率</code> の10列Shift-JIS CSVとして出力（<a href="https://elcommun.github.io/Claude-App/supplier-ranking/" target="_blank" rel="noopener">supplier-ranking</a>アプリへの取込用）。</span></li>
+        <li><span class="b">C</span><span><b>メーカー変換データ</b>（<code>ec-maker-only</code> ルール）：<code>商品番号</code>の接頭辞を内蔵の掛け率表（37件）と照合してメーカー名・掛け率を付与（未登録時はブランド名・作家名等のキーワードからフォールバック推定）。項目・選択肢列から「デザイン:」「カラー:」の値だけを抽出。<code>店舗・出荷日・商品名・項目・選択肢・商品番号・税抜単価・数量・小計（税抜）・メーカー・掛け率</code> の10列XLSXとして出力（<a href="https://elcommun.github.io/Claude-App/supplier-ranking/" target="_blank" rel="noopener">supplier-ranking</a>アプリへの取込用）。</span></li>
         <li><span class="b">D</span><span><b>税抜単価</b>：<code>税込別</code>が「込」の行は<code>商品単価 ÷ 1.1</code>（四捨五入）で税抜換算。それ以外は<code>商品単価</code>をそのまま使用。両ファイル共通のルールです。</span></li>
       </ul>
     </div>
@@ -806,7 +805,7 @@ document.getElementById('goBtn').onclick=async()=>{
       dlUrls['dlOwnBtn']=null; ownEl.removeAttribute('href'); ownEl.dataset.ready=''; ownEl.dataset.emptyMsg='自社商品の行がありませんでした';
     }
 
-    // メーカー変換 CSV（Shift-JIS）
+    // メーカー変換 XLSX
     updateMakerDownloadLink(maker);
 
     // 確認用Excel（掛け率未設定・商品番号空）
@@ -860,23 +859,18 @@ function renderPreview(elId,fields,rows,numericLikeExclude){
   el.innerHTML=html;
 }
 
-// Shift-JIS(CP932) CSV の Blob URL を作る（クオート・CRLF手組み）
-function buildSJISCsvUrl(fields,rows){
-  const q=v=>`"${String(v==null?'':v).replace(/"/g,'""')}"`;
-  const lines=[fields.map(q).join(',')];
-  rows.forEach(r=>lines.push(fields.map(h=>q(r[h])).join(',')));
-  const csv=lines.join('\r\n');
-  const sjis=Encoding.convert(Encoding.stringToCode(csv),{to:'SJIS',from:'UNICODE'});
-  const blob=new Blob([new Uint8Array(sjis)],{type:'text/csv'});
-  return URL.createObjectURL(blob);
-}
 const dlUrls={};
 function updateMakerDownloadLink(rows){
   const el=document.getElementById('dlMakerBtn');
   if(dlUrls['dlMakerBtn'])URL.revokeObjectURL(dlUrls['dlMakerBtn']);
   if(rows&&rows.length){
-    const url=buildSJISCsvUrl(MAKER_FIELDS,rows);
-    dlUrls['dlMakerBtn']=url; el.href=url; el.download=`${srcName}_メーカー変換.csv`; el.dataset.ready='1';
+    const ws=XLSX.utils.json_to_sheet(rows,{header:MAKER_FIELDS});
+    ws['!cols']=[{wch:20},{wch:12},{wch:36},{wch:20},{wch:18},{wch:10},{wch:6},{wch:12},{wch:14},{wch:8}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'メーカー変換');
+    const arr=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    const url=URL.createObjectURL(new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    dlUrls['dlMakerBtn']=url; el.href=url; el.download=`${srcName}_メーカー変換.xlsx`; el.dataset.ready='1';
   }else{
     dlUrls['dlMakerBtn']=null; el.removeAttribute('href'); el.dataset.ready=''; el.dataset.emptyMsg='メーカー商品の行がありませんでした';
   }
