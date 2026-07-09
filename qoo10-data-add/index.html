@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qoo10 商品データ補完ツール | EL COMMUN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --primary:#E85D26;--primary-light:#FFF3EE;--primary-dark:#C4461B;
+    --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;--gray-400:#9CA3AF;--gray-600:#4B5563;--gray-800:#1F2937;
+    --green:#10B981;--green-light:#ECFDF5;--red:#EF4444;--red-light:#FEF2F2;
+    --yellow-light:#FFFBEB;--blue-light:#EFF6FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Hiragino Sans','Noto Sans JP','Meiryo',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh;}
+  header{background:white;border-bottom:3px solid var(--primary);padding:16px 32px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .logo{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;}
+  header h1{font-size:18px;font-weight:700;}
+  header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .container{max-width:960px;margin:0 auto;padding:32px 16px;}
+  .about-lead{font-size:14px;color:var(--gray-600);line-height:1.8;margin-bottom:14px;}
+  .about-steps{padding-left:20px;font-size:13px;color:var(--gray-800);line-height:2;}
+  .about-steps li{margin-bottom:4px;}
+  .about-note{margin-top:14px;padding-top:14px;border-top:1px solid var(--gray-200);font-size:12px;color:var(--gray-400);line-height:1.7;}
+  .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
+  .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
+  .step.rule{background:var(--gray-600);font-size:11px;}
+  .card-header h2{font-size:15px;font-weight:700;}
+  .sub{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .card-body{padding:20px;}
+  .rule-tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .tab-btn{padding:6px 14px;border-radius:6px;font-size:12px;border:1px solid var(--gray-200);background:var(--gray-50);cursor:pointer;font-weight:600;color:var(--gray-600);transition:all .15s;}
+  .tab-btn.active{background:var(--primary);color:white;border-color:var(--primary);}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+  .upload-zone{border:2px dashed var(--gray-200);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--primary);background:var(--primary-light);}
+  .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{font-size:32px;margin-bottom:8px;}
+  .upload-zone p{font-size:14px;color:var(--gray-600);margin-bottom:4px;}
+  .upload-zone small{font-size:12px;color:var(--gray-400);}
+  .file-status{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;}
+  .file-status.ok{background:var(--green-light);color:#065F46;}
+  .file-status.err{background:var(--red-light);color:#991B1B;}
+  .mapping-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .mapping-table th{background:var(--gray-100);padding:8px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200);}
+  .mapping-table td{padding:8px 12px;border-bottom:1px solid var(--gray-200);}
+  .mapping-table tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;}
+  .badge-orange{background:#FED7AA;color:#C2410C;}
+  .badge-blue{background:#DBEAFE;color:#1D4ED8;}
+  .badge-red{background:#FEE2E2;color:#991B1B;}
+  .badge-gray{background:#F3F4F6;color:#374151;}
+  .fixed-rules{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:8px;padding:12px 16px;font-size:12px;color:#1E40AF;line-height:2;margin-top:0;}
+  .convert-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .convert-btn:hover:not(:disabled){background:var(--primary-dark);}
+  .convert-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+  .log-box{margin-top:16px;background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;max-height:320px;overflow-y:auto;display:none;}
+  .log-box.show{display:block;}
+  .log-ok{color:#6EE7B7;}.log-warn{color:#FCD34D;}.log-err{color:#FCA5A5;}.log-info{color:#93C5FD;}
+  .log-sep{color:#4B5563;border-top:1px solid #374151;margin:4px 0;}
+  .result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:20px;margin-top:20px;text-align:center;}
+  .result-section.show{display:block;}
+  .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
+  .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
+  .dl-btn:hover{background:#059669;}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+  .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
+  .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
+  .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Q10</div>
+  <div><h1>Qoo10 商品データ補完ツール <span>EL COMMUN</span></h1></div>
+</header>
+<div class="container">
+
+  <!-- このツールについて -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step rule">i</div>
+      <h2>このツールについて</h2>
+    </div>
+    <div class="card-body">
+      <p class="about-lead">Qoo10の商品データ（.xlsx）に楽天市場RMSの配送・原産地設定を照合し、<strong>送料・オプション送料・原産地</strong>を自動設定するツールです。<br>あわせて<strong>販売終了日・発送可能日・商品状態・在庫数量</strong>を一律入力し、商品名の先頭に付いた装飾記号（＼〜／・【〜】・★〜★ 等）も自動で取り除きます。</p>
+      <ol class="about-steps">
+        <li>下の「①Qoo10 商品データ」に、Qoo10管理画面で変換した .xlsx をアップロード</li>
+        <li>「②楽天市場 RMSデータ」に、楽天RMSから出力した dl-normal-item（絞込み済）.csv をアップロード</li>
+        <li>必要に応じて「変換ルール一覧」で送料・原産地・一律入力項目のマッピングを確認</li>
+        <li>「変換してダウンロード」ボタンを押し、補完済みファイルを保存</li>
+        <li>保存した .xlsx をそのままQoo10管理画面にアップロード</li>
+      </ol>
+      <p class="about-note">送料・原産地のマッピングは下の「変換ルール一覧」カードのとおり自動判定されます。楽天データに対応商品がない場合や、ルールに未定義の組み合わせがある場合はログに警告として表示されるので、アップロード前に必ず確認してください。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="step">1</div><h2>Qoo10 商品データ</h2></div>
+    <div class="card-body">
+      <div class="upload-zone" id="zone1"><input type="file" accept=".xlsx" id="file1"><div class="upload-icon">📊</div><p>Qoo10で変換した .xlsx をドロップ</p><small>またはクリックして選択</small></div>
+      <div id="status1"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="step">2</div><h2>楽天市場 RMS データ</h2></div>
+    <div class="card-body">
+      <div class="upload-zone" id="zone2"><input type="file" accept=".csv" id="file2"><div class="upload-icon">📄</div><p>dl-normal-item（絞込み済）.csv をドロップ</p><small>またはクリックして選択（Shift-JIS対応）</small></div>
+      <div id="status2"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="step rule">規</div><h2>変換ルール一覧</h2></div>
+    <div class="card-body">
+      <div class="rule-tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'ship')">🚚 送料マッピング</button>
+        <button class="tab-btn" onclick="switchTab(this,'origin')">🌏 原産地マッピング</button>
+        <button class="tab-btn" onclick="switchTab(this,'fixed')">📌 一律入力項目</button>
+      </div>
+      <div class="tab-content active" id="tab-ship">
+        <table class="mapping-table">
+          <thead><tr><th>配送方法セット管理番号</th><th>送料区分1</th><th>→ 送料コード</th><th>→ オプション送料コード</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-orange">2</span></td><td><span class="badge badge-blue">1</span></td><td>609566</td><td>609567$$609570</td></tr>
+            <tr><td><span class="badge badge-orange">2</span></td><td><span class="badge badge-blue">2</span> <span class="badge badge-blue">3</span> <span class="badge badge-blue">4</span> <span class="badge badge-blue">5</span> <span class="badge badge-blue">6</span></td><td>609571</td><td>609567$$609570</td></tr>
+            <tr><td><span class="badge badge-orange">5</span></td><td><span class="badge badge-blue">5</span></td><td>776068</td><td>609570</td></tr>
+            <tr><td><span class="badge badge-orange">5</span></td><td><span class="badge badge-blue">1</span> <span class="badge badge-blue">2</span> <span class="badge badge-blue">3</span> <span class="badge badge-blue">4</span> <span class="badge badge-blue">6</span></td><td>609567</td><td>609570</td></tr>
+            <tr><td><span class="badge badge-orange">1</span> <span class="badge badge-orange">空欄</span></td><td><span class="badge badge-blue">1</span> <span class="badge badge-blue">2</span> <span class="badge badge-blue">3</span> <span class="badge badge-blue">4</span> <span class="badge badge-blue">5</span></td><td>609570</td><td>（なし）</td></tr>
+            <tr><td><span class="badge badge-orange">1</span> <span class="badge badge-orange">空欄</span></td><td><span class="badge badge-blue">6</span></td><td>609573</td><td>（なし）</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tab-content" id="tab-origin">
+        <table class="mapping-table">
+          <thead><tr><th>楽天「商品属性（値）」（原産国／製造国）</th><th>→ 原産地</th><th>→ 地域名</th><th>→ 国名</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-red">中国</span></td><td>2（海外）</td><td>CN</td><td>CN</td></tr>
+            <tr><td><span class="badge badge-red">タイ</span></td><td>2（海外）</td><td>TH</td><td>TH</td></tr>
+            <tr><td><span class="badge badge-red">インド</span></td><td>2（海外）</td><td>IN</td><td>IN</td></tr>
+            <tr><td><span class="badge badge-gray">上記以外・該当なし</span></td><td>2（海外）</td><td>CN</td><td>CN</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:10px;font-size:12px;color:var(--gray-600);">※「商品属性（項目）1〜100」を全件走査し、「原産国／製造国」を含む項目の対応値を使用します。</p>
+      </div>
+      <div class="tab-content" id="tab-fixed">
+        <div class="fixed-rules">
+          📅 <strong>販売終了日</strong> → <code>2040-01-01 23:59</code>（全商品一律）<br>
+          🚚 <strong>発送可能日</strong> → <code>1</code>（全商品一律）<br>
+          🏷️ <strong>商品状態</strong>　 → <code>1</code>（新品・全商品一律）<br>
+          📦 <strong>在庫数量</strong>　 → オプション列が<strong>空欄</strong>のとき <code>0</code>、入力ありのとき <code>1</code><br>
+          ✏️ <strong>商品名</strong>　　　 → 先頭の装飾語（＼〜／・【〜】・★〜★ 等）を自動削除。<strong>【限定】は保持</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><div class="step">3</div><h2>変換実行</h2></div>
+    <div class="card-body">
+      <button class="convert-btn" id="convertBtn" disabled onclick="convert()">⚙️ 変換してダウンロード</button>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <div class="result-section" id="resultSection">
+    <h3>✅ 変換完了！</h3>
+    <button class="dl-btn" id="dlBtn">⬇️ 変換済みファイルをダウンロード</button>
+    <div class="stats-grid" id="statsGrid"></div>
+  </div>
+</div>
+
+<script>
+let qoo10Wb=null, rakutenShip={}, rakutenOrigin={}, fileReady={q:false,r:false};
+
+const SHIPPING_MAP={
+  '2_1':['609566','609567$$609570'],
+  '2_2':['609571','609567$$609570'],
+  '2_3':['609571','609567$$609570'],
+  '2_4':['609571','609567$$609570'],
+  '2_5':['609571','609567$$609570'],
+  '2_6':['609571','609567$$609570'],
+  '5_1':['609567','609570'],
+  '5_2':['609567','609570'],
+  '5_3':['609567','609570'],
+  '5_4':['609567','609570'],
+  '5_5':['776068','609570'],
+  '5_6':['609567','609570'],
+  '1_1':['609570',''],
+  '1_2':['609570',''],
+  '1_3':['609570',''],
+  '1_4':['609570',''],
+  '1_5':['609570',''],
+  '1_6':['609573','']
+};
+const ORIGIN_MAP={
+  '中国':{type:'2',region:'CN',country:'CN'},
+  'タイ':{type:'2',region:'TH',country:'TH'},
+  'インド':{type:'2',region:'IN',country:'IN'}
+};
+
+function switchTab(btn,name){
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+['zone1','zone2'].forEach(id=>{
+  const z=document.getElementById(id);
+  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag');});
+  z.addEventListener('dragleave',()=>z.classList.remove('drag'));
+  z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)id==='zone1'?handleXlsx(f):handleCsv(f);});
+});
+document.getElementById('file1').addEventListener('change',e=>{if(e.target.files[0])handleXlsx(e.target.files[0]);});
+document.getElementById('file2').addEventListener('change',e=>{if(e.target.files[0])handleCsv(e.target.files[0]);});
+
+function setStatus(id,ok,msg){
+  document.getElementById(id).innerHTML=`<div class="file-status ${ok?'ok':'err'}"><span>${ok?'✅':'❌'}</span><span>${msg}</span></div>`;
+}
+
+function handleXlsx(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      qoo10Wb=XLSX.read(e.target.result,{type:'array',raw:true});
+      const ws=qoo10Wb.Sheets[qoo10Wb.SheetNames[0]];
+      const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+      if(data.length<5)throw new Error('データ行が少なすぎます');
+      const headers=data[0].map(h=>h?String(h).trim():'');
+      const required=['seller_unique_item_id','quantity','option_info','Shipping_number','option_number','available_shipping_date','item_condition_type','end_date','origin_type','origin_region_id','origin_country_id'];
+      for(const req of required)if(!headers.includes(req))throw new Error(`列 "${req}" が見つかりません`);
+      const cnt=data.slice(4).filter(r=>r[headers.indexOf('seller_unique_item_id')]).length;
+      fileReady.q=true;
+      setStatus('status1',true,`読み込み完了：商品 ${cnt} 件`);
+      checkReady();
+    }catch(err){
+      qoo10Wb=null;fileReady.q=false;
+      setStatus('status1',false,'エラー：'+err.message);checkReady();
+    }
+  };
+  r.readAsArrayBuffer(file);
+}
+
+function handleCsv(file){
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const text=new TextDecoder('shift-jis').decode(e.target.result);
+      const lines=text.split(/\r?\n/);
+      let headerIdx=-1,headers=[];
+      for(let i=0;i<Math.min(lines.length,20);i++){
+        const cols=parseCsvLine(lines[i]);
+        if(cols.some(c=>c.includes('商品管理番号'))){headerIdx=i;headers=cols;break;}
+      }
+      if(headerIdx<0)throw new Error('ヘッダー行が見つかりません');
+      const colSid=headers.findIndex(h=>h.includes('商品管理番号'));
+      const colDeliv=headers.findIndex(h=>h.includes('配送方法セット管理番号'));
+      const colFee=headers.findIndex(h=>h==='送料区分1');
+      if(colDeliv<0)throw new Error('「配送方法セット管理番号」列が見つかりません');
+      if(colFee<0)throw new Error('「送料区分1」列が見つかりません');
+      // 商品属性（項目）n の列ペアを収集
+      const attrPairs=[];
+      headers.forEach((h,i)=>{
+        const m=h.match(/^商品属性（項目）(\d+)$/);
+        if(m){
+          const vi=headers.findIndex(hh=>hh===`商品属性（値）${m[1]}`);
+          if(vi>=0)attrPairs.push({ii:i,vi});
+        }
+      });
+      rakutenShip={};rakutenOrigin={};
+      for(let i=headerIdx+1;i<lines.length;i++){
+        if(!lines[i].trim())continue;
+        const cols=parseCsvLine(lines[i]);
+        const sid=(cols[colSid]||'').trim();
+        if(!sid)continue;
+        if(!rakutenShip[sid]){
+          const d=(cols[colDeliv]||'').trim()||'1',f=(cols[colFee]||'').trim();
+          if(f)rakutenShip[sid]={deliv:d,fee:f};
+        }
+        if(!rakutenOrigin[sid]){
+          for(const {ii,vi} of attrPairs){
+            const iv=cols[ii]||'';
+            if(iv.includes('原産国')){
+              const cv=(cols[vi]||'').trim();
+              if(cv){rakutenOrigin[sid]=cv;break;}
+            }
+          }
+        }
+      }
+      const sc=Object.keys(rakutenShip).length,oc=Object.keys(rakutenOrigin).length;
+      fileReady.r=true;
+      setStatus('status2',true,`読み込み完了：送料データ ${sc} 件、原産地データ ${oc} 件`);
+      checkReady();
+    }catch(err){
+      fileReady.r=false;
+      setStatus('status2',false,'エラー：'+err.message);checkReady();
+    }
+  };
+  r.readAsArrayBuffer(file);
+}
+
+function parseCsvLine(line){
+  const res=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(inQ){if(c==='"'&&line[i+1]==='"'){cur+='"';i++;}else if(c==='"')inQ=false;else cur+=c;}
+    else{if(c==='"')inQ=true;else if(c===','){res.push(cur);cur='';}else cur+=c;}
+  }
+  res.push(cur);return res;
+}
+
+function checkReady(){document.getElementById('convertBtn').disabled=!(fileReady.q&&fileReady.r);}
+
+function log(msg,cls=''){
+  const b=document.getElementById('logBox');b.classList.add('show');
+  b.innerHTML+=`<div class="${cls}">${msg}</div>`;b.scrollTop=b.scrollHeight;
+}
+
+function convert(){
+  document.getElementById('logBox').innerHTML='';
+  document.getElementById('logBox').classList.add('show');
+  document.getElementById('resultSection').classList.remove('show');
+  log('🚀 変換開始...','log-info');
+  try{
+    const ws=qoo10Wb.Sheets[qoo10Wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true});
+    const headers=raw[0].map(h=>h?String(h).trim():'');
+    const rng=XLSX.utils.decode_range(ws['!ref']);
+    const idx=n=>headers.indexOf(n);
+    const SID=idx('seller_unique_item_id'),QTY=idx('quantity'),OPT=idx('option_info'),
+          SHIP=idx('Shipping_number'),OPTS=idx('option_number'),AVAIL=idx('available_shipping_date'),
+          COND=idx('item_condition_type'),END=idx('end_date'),NAME=idx('item_name'),
+          ORIG=idx('origin_type'),ORIGR=idx('origin_region_id'),ORIGC=idx('origin_country_id');
+
+    // 商品名の先頭装飾語を除去（【限定】は保持）
+    const DECO_UNIT=/^(?:[\\＼][^\\＼／\/\n]{1,30}[／\/]|【(?!限定】)[^】\n]{1,30}】|[★☆◆◇●○▼▽▲△♦♥♡❤]+[^★☆◆◇●○▼▽▲△♦♥♡❤\n]{0,30}[★☆◆◇●○▼▽▲△♦♥♡❤]+|[★☆◆◇●○▼▽▲△♦♥♡❤]+(?=\s|【|[\\＼]))\s*/;
+    const cleanName=s=>{if(!s)return s;let p,t=String(s);do{p=t;t=DECO_UNIT.exec(t)?t.replace(DECO_UNIT,''):t;}while(t!==p);return t.replace(/^\s+/,'');};
+
+    const setCell=(r,c,v)=>{
+      const a=XLSX.utils.encode_cell({r,c});
+      if(v===null||v===undefined||v===''){delete ws[a];}else{ws[a]={t:'s',v:String(v)};}
+    };
+    const getCell=(r,c)=>{const a=XLSX.utils.encode_cell({r,c});return ws[a]?String(ws[a].v||''):''};
+
+    let cntTotal=0,cntShip=0,cntOriginForeign=0,cntOriginDomestic=0;
+
+    for(let ri=4;ri<=rng.e.r;ri++){
+      const sid=getCell(ri,SID).trim();
+      if(!sid)continue;
+      cntTotal++;
+
+      // 一律入力
+      setCell(ri,END,'2040-01-01 23:59');
+      setCell(ri,AVAIL,'1');
+      setCell(ri,COND,'1');
+      setCell(ri,QTY,getCell(ri,OPT).trim()?'1':'0');
+
+      // 商品名：先頭装飾語を除去（【限定】は保持）
+      const rawName=getCell(ri,NAME);
+      const cleanedName=cleanName(rawName);
+      if(cleanedName!==rawName){
+        setCell(ri,NAME,cleanedName);
+        log(`✏️ [商品名] ${sid} → 装飾語を削除`, 'log-ok');
+      }
+
+      // 送料
+      if(rakutenShip[sid]){
+        const {deliv,fee}=rakutenShip[sid];
+        const key=`${deliv}_${fee}`;
+        if(SHIPPING_MAP[key]){
+          const [sc,oc]=SHIPPING_MAP[key];
+          setCell(ri,SHIP,sc);setCell(ri,OPTS,oc||null);
+          log(`✅ [送料] ${sid} → 送料:${sc} / オプション送料:${oc||'（なし）'}`, 'log-ok');
+          cntShip++;
+        }else{
+          log(`⚠️ [送料] ${sid} → 配送(${deliv})×区分(${fee}) のルール未定義`, 'log-warn');
+        }
+      }else{
+        log(`━ [送料] ${sid} → 楽天データに対応商品なし`, 'log-warn');
+      }
+
+      // 原産地
+      const country=rakutenOrigin[sid]||'';
+      if(country&&ORIGIN_MAP[country]){
+        const {type,region,country:cnt}=ORIGIN_MAP[country];
+        setCell(ri,ORIG,type);setCell(ri,ORIGR,region);setCell(ri,ORIGC,cnt);
+        log(`🌏 [原産地] ${sid} → ${country}（${type}/${region}/${cnt})`, 'log-ok');
+        cntOriginForeign++;
+      }else{
+        setCell(ri,ORIG,'2');setCell(ri,ORIGR,'CN');setCell(ri,ORIGC,'CN');
+        const reason=country?`「${country}」はマッピング対象外`:'原産国データなし';
+        log(`━ [原産地] ${sid} → 中国扱い（2/CN/CN）※${reason}`, 'log-warn');
+        cntOriginDomestic++;
+      }
+    }
+
+    log('','log-sep');
+    log(`📊 完了 — 総商品 ${cntTotal} 件 | 送料設定 ${cntShip} 件 | 原産地（海外） ${cntOriginForeign} 件 | 原産地（国内） ${cntOriginDomestic} 件`, 'log-info');
+
+    const wbout=XLSX.write(qoo10Wb,{bookType:'xlsx',type:'array'});
+    const url=URL.createObjectURL(new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    document.getElementById('dlBtn').onclick=()=>{
+      const a=document.createElement('a');a.href=url;a.download='Qoo10（補完済）.xlsx';a.click();
+    };
+    document.getElementById('statsGrid').innerHTML=`
+      <div class="stat"><div class="num">${cntTotal}</div><div class="label">総商品数</div></div>
+      <div class="stat"><div class="num">${cntShip}</div><div class="label">送料設定済み</div></div>
+      <div class="stat"><div class="num">${cntOriginForeign}</div><div class="label">原産地（海外）</div></div>
+      <div class="stat"><div class="num">${cntOriginDomestic}</div><div class="label">原産地（国内）</div></div>
+    `;
+    document.getElementById('resultSection').classList.add('show');
+  }catch(err){
+    log('❌ エラー: '+err.message,'log-err');console.error(err);
+  }
+}
+</script>
+</body>
+</html>
