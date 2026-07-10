@@ -158,6 +158,7 @@ td.cat-col{text-align:left}
 .nc .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;min-width:0;max-width:100%}
 .nc .nm.nm-expand{white-space:normal;overflow:visible;text-overflow:clip;flex-basis:100%}
 .nc .var{color:var(--ink3);white-space:nowrap}
+.nc .sale-period{flex-basis:100%;color:var(--ink4);font-size:11px}
 .cmp-col{display:none}
 .show-cmp .cmp-col{display:table-cell}
 @media(max-width:1180px){.rate-col{display:none}}
@@ -270,7 +271,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v88</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v89</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1550,6 +1551,33 @@ function showGroup(g){
   refreshVisibleTableWidth();
 }
 const ROW_LIMIT=300;
+// 商品名クリックで折り返し表示を切り替えつつ、その商品の初回販売日〜最新販売日を表示する
+function getSalePeriodText(pid){
+  let minD=null, maxD=null;
+  for(const rec of ALL_RECORDS){
+    if(rec[2]!==pid) continue;
+    const d=rec[0];
+    if(!minD||d<minD) minD=d;
+    if(!maxD||d>maxD) maxD=d;
+  }
+  if(!minD) return '販売実績なし';
+  return minD===maxD ? `販売期間: ${minD}` : `販売期間: ${minD} 〜 ${maxD}`;
+}
+function toggleNameExpand(el, pid){
+  const expanded=el.classList.toggle('nm-expand');
+  const row=el.closest('.nc-row');
+  let periodEl=row.querySelector('.sale-period');
+  if(expanded){
+    if(!periodEl){
+      periodEl=document.createElement('div');
+      periodEl.className='sale-period';
+      row.appendChild(periodEl);
+    }
+    periodEl.textContent=getSalePeriodText(pid);
+  } else if(periodEl){
+    periodEl.remove();
+  }
+}
 function heatBg(val,maxVal){
   if(!maxVal) return '';
   const ratio=Math.min(1,val/maxVal);
@@ -1576,7 +1604,7 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
     <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
     <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
     <td class="cc">${codeHtml(r.code)}</td>
-    <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
+    <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
     <td class="num">¥${r.price.toLocaleString()}</td>
     <td class="num"${qtyStyle}>${r.qty.toLocaleString()}</td>
     ${cmpHtml}
@@ -1674,7 +1702,7 @@ function renderSearch(){
       <td class="rank-col">${rankHtml}</td>
       <td><span class="ct">${makerHtml(r.maker)}</span></td>
       <td class="cc">${codeHtml(r.code)}</td>
-      <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" onclick="this.classList.toggle('nm-expand')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
+      <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
       <td class="num">¥${r.price.toLocaleString()}</td>
       <td class="num">${r.qty.toLocaleString()}</td>
       <td class="num amt-col">¥${Math.round(r.amount).toLocaleString()}</td>
