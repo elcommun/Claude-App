@@ -167,6 +167,8 @@ input[type=file]{display:none}
 .num{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
 .cc{font-size:11px;color:var(--ink3);font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
 .nc{max-width:360px}
+.nc .nm{cursor:pointer}
+.nc .sale-period{color:var(--ink4);font-size:11px;margin-top:2px}
 .rn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
 .r1{background:#E85D26;color:#fff}
 .r2{background:#888;color:#fff}
@@ -438,7 +440,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：自社商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v216</span></div></div>
+  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：自社商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v217</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2044,7 +2046,7 @@ function showCategory(cat, updateSidebar=true) {
     return`<tr>
       <td>${ri}</td>
       <td class="cc">${x(item.code)}</td>
-      <td class="nc">${x(item.name)}</td>
+      <td class="nc"><div class="nm" onclick="toggleNameExpand(this,'${esc(item.code)}')">${x(item.name)}</div></td>
       <td class="img-col">${catType?thumb:''}</td>
       <td class="num price-col">¥${item.price.toLocaleString()}</td>
       <td class="num qty-col" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
@@ -2627,7 +2629,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
           <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
           <td><span class="ct">${x(r.cat)}</span></td>
           <td class="cc">${x(r.code)}</td>
-          <td class="nc">${hl(r.name,words,trans)}</td>
+          <td class="nc"><div class="nm" onclick="toggleNameExpand(this,'${esc(r.code)}')">${hl(r.name,words,trans)}</div></td>
           <td class="img-col">${isDC?thumb:''}</td>
           <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
           <td class="num qty-col" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
@@ -2663,6 +2665,29 @@ modal.addEventListener('click',e=>{if(e.target===modal)closeModal();});
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function x(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function esc(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+// 商品名クリックで、その商品の初回販売日〜最新販売日をPRELOADED.by_storeから算出して表示
+function getSalePeriodText(code){
+  let minD=null,maxD=null;
+  for(const [date,stores] of Object.entries(PRELOADED.by_store)){
+    let found=false;
+    for(const cats of Object.values(stores)){
+      for(const codes of Object.values(cats)){ if(codes[code]){found=true;break;} }
+      if(found)break;
+    }
+    if(found){ if(!minD||date<minD)minD=date; if(!maxD||date>maxD)maxD=date; }
+  }
+  if(!minD)return '販売実績なし';
+  return minD===maxD?`販売期間: ${minD}`:`販売期間: ${minD} 〜 ${maxD}`;
+}
+function toggleNameExpand(el,code){
+  const cell=el.closest('.nc');
+  const periodEl=cell.querySelector('.sale-period');
+  if(periodEl){ periodEl.remove(); return; }
+  const newEl=document.createElement('div');
+  newEl.className='sale-period';
+  newEl.textContent=getSalePeriodText(code);
+  cell.appendChild(newEl);
+}
 function hl(text,words,trans=[]){
   let r=x(text);
   const terms=[...(Array.isArray(words)?words:[words]),...trans.map(t=>toKatakana(t)),...trans].filter(Boolean);
