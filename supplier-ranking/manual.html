@@ -108,6 +108,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><a href="#store">店舗で絞り込む</a></li>
       <li><a href="#group">メーカー別・カテゴリ別に見る</a></li>
       <li><a href="#sort">並び順と順位のしくみ</a></li>
+      <li><a href="#rowclick">商品名・商品番号をクリックする</a></li>
       <li><a href="#compare">前年比較を見る</a></li>
       <li><a href="#heatmap">ヒートマップ表示</a></li>
       <li><a href="#search">商品を検索する</a></li>
@@ -307,10 +308,26 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <p style="font-size:13px;color:#888">メーカーを選択したときや検索時は、上のようにカテゴリごとの区切り行が入り、順位はカテゴリ内での順位になります。</p>
   </div>
 
-  <!-- 7. 前年比較 -->
-  <div class="section" id="compare">
+  <!-- 7. 商品名・商品番号クリック -->
+  <div class="section" id="rowclick">
     <div class="section-hdr">
       <div class="step-badge">7</div>
+      <h2>商品名・商品番号をクリックする</h2>
+    </div>
+    <h3>商品名をクリック：折り返し表示＋販売期間</h3>
+    <p>商品名が長くて省略表示（…）になっている場合、商品名をクリックすると全文が折り返して表示されます。同時に、その商品の<strong>初回販売日〜最新販売日（販売期間）</strong>が商品名の下に表示されます。もう一度クリックすると元の1行表示に戻ります。</p>
+    <div class="ui-mock">
+      <div style="font-size:13px">松尾ミユキ レクタングルトートバッグA　<span style="color:#999">Milo（110021）</span></div>
+      <div style="font-size:11px;color:#888;margin-top:2px">販売期間: 2023-09-25 〜 2026-06-26</div>
+    </div>
+    <h3>商品番号をクリック：楽天ページを開く</h3>
+    <p>商品番号（品番）はリンクになっており、クリックすると対応する楽天市場の商品ページが開きます。同じタブが使い回されるため、続けて別の商品番号をクリックしてもタブが増え続けることはありません。</p>
+  </div>
+
+  <!-- 8. 前年比較 -->
+  <div class="section" id="compare">
+    <div class="section-hdr">
+      <div class="step-badge">8</div>
       <h2>前年比較を見る</h2>
     </div>
     <p>サイドバーの <strong>「前年比較」</strong> をオンにすると、表に「前年同期」「前年比」の列が追加されます。</p>
@@ -324,19 +341,19 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     </div>
   </div>
 
-  <!-- 8. ヒートマップ -->
+  <!-- 9. ヒートマップ -->
   <div class="section" id="heatmap">
     <div class="section-hdr">
-      <div class="step-badge">8</div>
+      <div class="step-badge">9</div>
       <h2>ヒートマップ表示</h2>
     </div>
     <p>サイドバーの <strong>「ヒートマップ」</strong> をオンにすると、販売数に応じて「数量」セルの背景が青の濃淡で塗られ、売れ筋がひと目で分かります。</p>
   </div>
 
-  <!-- 9. 検索 -->
+  <!-- 10. 検索 -->
   <div class="section" id="search">
     <div class="section-hdr">
-      <div class="step-badge">9</div>
+      <div class="step-badge">10</div>
       <h2>商品を検索する</h2>
     </div>
     <p>ヘッダーの検索ボックスに文字を入力すると、リアルタイムで結果が絞り込まれます。</p>
@@ -355,10 +372,10 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     </div>
   </div>
 
-  <!-- 10. Excel -->
+  <!-- 11. Excel -->
   <div class="section" id="excel">
     <div class="section-hdr">
-      <div class="step-badge">10</div>
+      <div class="step-badge">11</div>
       <h2>Excelでダウンロードする</h2>
     </div>
     <p>サイドバーのメーカー（またはカテゴリ）名の左にある<strong>チェックボックス</strong>にチェックを入れ、サイドバー最下部のボタンを押すとExcelファイルがダウンロードされます。</p>
@@ -376,10 +393,10 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     </ul>
   </div>
 
-  <!-- 11. データ更新 -->
+  <!-- 12. データ更新 -->
   <div class="section" id="upload">
     <div class="section-hdr">
-      <div class="step-badge">11</div>
+      <div class="step-badge">12</div>
       <h2>販売データを追加する（データ更新）</h2>
     </div>
     <p>ヘッダー右上の <strong>「⬆ データ更新」</strong> から、新しい販売データのExcelファイル（.xlsx / .csv）を取り込めます。</p>
@@ -394,16 +411,20 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <strong>💡 取り込み時に自動で整形されます</strong><br>
       商品名の販促文言・注意書きの除去（除去した文言は検索ワードとして保持）、商品番号の表記統一、同一商品番号の名寄せ、カテゴリの自動分類、交換品（＜交換＞）の除外などのルールが毎回自動で適用されます。
     </div>
+    <div class="tip">
+      <strong>💡 ファイル形式は .xlsx がおすすめです</strong><br>
+      .csvの場合、Shift-JIS形式によっては文字化けすることがあります。可能であれば .xlsx で取り込むか、.csvならUTF-8形式で保存してください。
+    </div>
     <div class="note">
       <strong>ℹ️ 追加したデータはこの端末にのみ保存されます</strong><br>
       アップロードしたデータはお使いのブラウザ内に保存されます。別の端末には反映されません。
     </div>
   </div>
 
-  <!-- 12. 自社商品 -->
+  <!-- 13. 自社商品 -->
   <div class="section" id="sister">
     <div class="section-hdr">
-      <div class="step-badge">12</div>
+      <div class="step-badge">13</div>
       <h2>自社商品アプリに切り替える</h2>
     </div>
     <p>ヘッダーのオレンジ色の <strong>「自社商品」</strong> ボタンを押すと、自社商品（手帳・カレンダー・ステーショナリー等）の販売データアプリ <strong>「EC事業部 販売データ：自社商品」</strong> に移動します。</p>
