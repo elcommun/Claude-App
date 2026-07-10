@@ -66,11 +66,12 @@
   .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
   .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
   .dl-btn:hover{background:#059669;}
-  .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:14px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:14px;}
   .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
   .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
   .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
   @media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(min-width:641px)and(max-width:860px){.stats-grid{grid-template-columns:repeat(3,1fr);}}
 </style>
 </head>
 <body>
@@ -95,7 +96,7 @@
         <li>「変換してダウンロード」ボタンを押し、補完済みファイルを保存</li>
         <li>保存した .xlsx をそのままQoo10管理画面にアップロード</li>
       </ol>
-      <p class="about-note">送料・原産地のマッピングは下の「変換ルール一覧」カードのとおり自動判定されます。楽天データに対応商品がない場合や、ルールに未定義の組み合わせがある場合はログに警告として表示されるので、アップロード前に必ず確認してください。<br>また、変換後に<strong>category_number（カテゴリ）が空欄</strong>の商品は、商品名に含まれるキーワードから自動でカテゴリ番号を設定します（詳細は「🗂️ カテゴリ自動設定」タブを参照）。</p>
+      <p class="about-note">送料・原産地のマッピングは下の「変換ルール一覧」カードのとおり自動判定されます。楽天データに対応商品がない場合や、ルールに未定義の組み合わせがある場合はログに警告として表示されるので、アップロード前に必ず確認してください。<br>また、変換後に<strong>category_number（カテゴリ）が空欄</strong>の商品は、商品名に含まれるキーワードから自動でカテゴリ番号を設定します（詳細は「🗂️ カテゴリ自動設定」タブを参照）。<br>選択肢別在庫（<strong>option_infoが空欄でない商品</strong>）は、各選択肢の在庫数フィールドを<strong>すべて0</strong>に統一します（オプション名・価格・オプション管理番号はそのまま維持）。</p>
     </div>
   </div>
 
@@ -167,6 +168,7 @@
           🚚 <strong>発送可能日</strong> → <code>1</code>（全商品一律）<br>
           🏷️ <strong>商品状態</strong>　 → <code>1</code>（新品・全商品一律）<br>
           📦 <strong>在庫数量</strong>　 → オプション列が<strong>空欄</strong>のとき <code>0</code>、入力ありのとき <code>1</code><br>
+          🔢 <strong>option_infoの在庫数</strong> → 選択肢別在庫（option_infoが空欄でない）の場合、各選択肢の在庫数フィールドを<strong>すべて0</strong>に統一（オプション名・価格・オプション管理番号はそのまま維持）<br>
           ✏️ <strong>商品名</strong>　　　 → 先頭の装飾語（＼〜／・【〜】・★〜★ 等）を自動削除。<strong>【限定】は保持</strong>
         </div>
       </div>
@@ -228,6 +230,16 @@ function matchCategory(name){
     if(rule.keywords.some(k=>name.includes(k)))return rule.category;
   }
   return null;
+}
+
+// option_info（選択肢別在庫）の在庫数（末尾から2番目のフィールド）をすべて0にする
+// 形式: {オプション名}||*{オプション値}||*...||*{追加料金}||*{在庫数}||*{オプション管理番号} を $$ 区切りで連結
+function zeroOptionStock(optionInfo){
+  return optionInfo.split('$$').map(seg=>{
+    const parts=seg.split('||*');
+    if(parts.length>=3)parts[parts.length-2]='0';
+    return parts.join('||*');
+  }).join('$$');
 }
 
 function switchTab(btn,name){
@@ -377,7 +389,7 @@ function convert(){
     };
     const getCell=(r,c)=>{const a=XLSX.utils.encode_cell({r,c});return ws[a]?String(ws[a].v||''):''};
 
-    let cntTotal=0,cntShip=0,cntOriginForeign=0,cntOriginDomestic=0,cntCategory=0;
+    let cntTotal=0,cntShip=0,cntOriginForeign=0,cntOriginDomestic=0,cntCategory=0,cntOptionZeroed=0;
 
     for(let ri=4;ri<=rng.e.r;ri++){
       const sid=getCell(ri,SID).trim();
@@ -388,7 +400,18 @@ function convert(){
       setCell(ri,END,'2040-01-01 23:59');
       setCell(ri,AVAIL,'1');
       setCell(ri,COND,'1');
-      setCell(ri,QTY,getCell(ri,OPT).trim()?'1':'0');
+      const rawOpt=getCell(ri,OPT);
+      setCell(ri,QTY,rawOpt.trim()?'1':'0');
+
+      // 選択肢別在庫：option_info内の在庫数はすべて0に統一
+      if(rawOpt.trim()){
+        const zeroedOpt=zeroOptionStock(rawOpt);
+        if(zeroedOpt!==rawOpt){
+          setCell(ri,OPT,zeroedOpt);
+          log(`📦 [オプション在庫] ${sid} → 選択肢別在庫のため option_info内の在庫数をすべて0に設定`, 'log-ok');
+          cntOptionZeroed++;
+        }
+      }
 
       // 商品名：先頭装飾語を除去（【限定】は保持）
       const rawName=getCell(ri,NAME);
@@ -442,7 +465,7 @@ function convert(){
     }
 
     log('','log-sep');
-    log(`📊 完了 — 総商品 ${cntTotal} 件 | 送料設定 ${cntShip} 件 | 原産地（海外） ${cntOriginForeign} 件 | 原産地（国内） ${cntOriginDomestic} 件 | カテゴリ自動設定 ${cntCategory} 件`, 'log-info');
+    log(`📊 完了 — 総商品 ${cntTotal} 件 | 送料設定 ${cntShip} 件 | 原産地（海外） ${cntOriginForeign} 件 | 原産地（国内） ${cntOriginDomestic} 件 | カテゴリ自動設定 ${cntCategory} 件 | オプション在庫0設定 ${cntOptionZeroed} 件`, 'log-info');
 
     const wbout=XLSX.write(qoo10Wb,{bookType:'xlsx',type:'array'});
     const url=URL.createObjectURL(new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
@@ -455,6 +478,7 @@ function convert(){
       <div class="stat"><div class="num">${cntOriginForeign}</div><div class="label">原産地（海外）</div></div>
       <div class="stat"><div class="num">${cntOriginDomestic}</div><div class="label">原産地（国内）</div></div>
       <div class="stat"><div class="num">${cntCategory}</div><div class="label">カテゴリ自動設定</div></div>
+      <div class="stat"><div class="num">${cntOptionZeroed}</div><div class="label">オプション在庫0設定</div></div>
     `;
     document.getElementById('resultSection').classList.add('show');
   }catch(err){
