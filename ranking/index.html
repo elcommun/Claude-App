@@ -24,13 +24,14 @@ html{scroll-behavior:smooth}
 body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(--paper);color:var(--ink);font-size:13px;line-height:1.6;min-height:100vh}
 /* Header */
 .hdr{position:fixed;top:0;left:0;right:0;height:var(--hh);background:#2d2926;display:flex;align-items:center;padding:0 18px;gap:12px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-.hd-logo{font-size:15px;font-weight:700;color:#fff;letter-spacing:.04em;white-space:nowrap;cursor:pointer}
-.hd-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase}
+.hd-title-box{min-width:0;flex-shrink:1;overflow:hidden}
+.hd-logo{font-size:15px;font-weight:700;color:#fff;letter-spacing:.04em;white-space:nowrap;cursor:pointer;overflow:hidden;text-overflow:ellipsis}
+.hd-sub{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hd-sep{width:1px;height:18px;background:rgba(255,255,255,.12);flex-shrink:0}
 .hd-date{font-size:11px;color:rgba(255,255,255,.45);white-space:nowrap}
 .hd-date b{color:rgba(255,255,255,.85);font-weight:600}
-.hd-spacer{flex:1}
-.search-wrap{position:relative}
+.hd-spacer{flex:1;min-width:0}
+.search-wrap{position:relative;flex-shrink:0}
 .si{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.35);font-size:12px;pointer-events:none}
 #hd-search{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;color:#fff;padding:6px 28px 6px 30px;font-size:12px;width:210px;outline:none;font-family:inherit;transition:border-color .2s,background .2s}
 #hd-search::placeholder{color:rgba(255,255,255,.3)}
@@ -38,7 +39,7 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 #hd-search-clear{display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);width:18px;height:18px;line-height:16px;text-align:center;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.25);color:#fff;font-size:13px;cursor:pointer;font-family:inherit}
 #hd-search-clear:hover{background:rgba(255,255,255,.45)}
 .search-wrap.has-text #hd-search-clear{display:block}
-.hd-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;white-space:nowrap}
+.hd-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;white-space:nowrap;flex-shrink:0}
 .hd-btn:hover{background:rgba(255,255,255,.2);color:#fff}
 .hd-btn-blue{background:#2563eb;border-color:#2563eb;color:#fff}
 .hd-btn-blue:hover{background:#1d4ed8;color:#fff}
@@ -241,6 +242,9 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   #hd-search{width:130px}
   .hd-btn{padding:5px 9px;font-size:10px}
   .hd-saved{display:none!important}
+  .hd-logo-sub{display:none}
+  .hd-logo{font-size:13px}
+  .hd-title-box{max-width:110px}
 }
 /* スマホ縦（≤480px）: 上代・合計金額を隠して商品画像・個数・欠品日を収める */
 @media(max-width:480px){
@@ -275,6 +279,9 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 }
 @media(min-width:769px) and (max-width:900px) and (orientation:portrait){
   .hd-menu{display:block}
+  .hd-logo-sub{display:none}
+  .hd-title-box{max-width:140px}
+  #hd-search{width:150px}
   .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:160;box-shadow:4px 0 24px rgba(0,0,0,.18)}
   .sb.open{transform:translateX(0)}
   .main{margin-left:0;padding:16px 12px 60px;overflow-x:hidden}
@@ -292,7 +299,10 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 }
 @media(max-width:480px){
   #hd-search{width:100px;font-size:16px}
-  .hd-btn{display:none}
+  .hd-btn-opt{display:none}
+  .hd-btn-blue{padding:5px 8px;font-size:10px}
+  .hd-sub{display:none}
+  .hd-title-box{max-width:64px}
   .kpi-row{grid-template-columns:repeat(2,1fr);gap:7px}
   .cat-name{font-size:17px}
 }
@@ -440,7 +450,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：自社商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v217</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v218</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -450,8 +460,8 @@ function doLogin(){
     <button type="button" id="hd-search-clear" aria-label="検索をクリア" title="検索をクリア">×</button>
   </div>
   <a href="https://elcommun.github.io/Claude-App/supplier-ranking/" class="hd-btn hd-btn-blue" style="text-decoration:none">仕入れ商品</a>
-  <a href="manual.html" target="_blank" class="hd-btn" style="text-decoration:none">📖 使い方</a>
-  <button class="hd-btn" id="hd-update-btn">⚙ 設定</button>
+  <a href="manual.html" target="_blank" class="hd-btn hd-btn-opt" style="text-decoration:none">📖 使い方</a>
+  <button class="hd-btn hd-btn-opt" id="hd-update-btn">⚙ 設定</button>
 </header>
 
 <!-- Modal -->
