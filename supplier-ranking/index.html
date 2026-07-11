@@ -188,6 +188,7 @@ td.cat-col{text-align:left}
 @media(max-width:768px){
   :root{--hh:52px}
   .hd-menu{display:block}
+  .hd-title-box{display:none}
   .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:160;box-shadow:4px 0 24px rgba(0,0,0,.18)}
   .sb.open{transform:translateX(0)}
   .main{margin-left:0;padding:16px 14px 60px}
@@ -273,7 +274,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v90</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v91</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1891,6 +1892,24 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
   document.querySelector('.sb').classList.remove('open');
   document.getElementById('sb-overlay').classList.remove('open');
 });
+// 画面左端から右へスワイプでサイドメニューを開く（スマホ・タブレット表示時のみ）
+(function(){
+  const sbEl=document.querySelector('.sb'), ovEl=document.getElementById('sb-overlay');
+  function isDrawerMode(){ return window.innerWidth<=768; }
+  function openSb(){ sbEl.classList.add('open'); ovEl.classList.add('open'); }
+  let sx=0, sy=0, tracking=false;
+  document.addEventListener('touchstart', e=>{
+    if(!isDrawerMode()||sbEl.classList.contains('open')) return;
+    const t=e.touches[0];
+    if(t.clientX<=24){ sx=t.clientX; sy=t.clientY; tracking=true; }
+  }, {passive:true});
+  document.addEventListener('touchmove', e=>{
+    if(!tracking) return;
+    const t=e.touches[0], dx=t.clientX-sx, dy=t.clientY-sy;
+    if(dx>50 && Math.abs(dx)>Math.abs(dy)){ openSb(); tracking=false; }
+  }, {passive:true});
+  document.addEventListener('touchend', ()=>{ tracking=false; }, {passive:true});
+})();
 
 // ── テーブル列幅リサイズ ──────────────────────────────────
 // table-layout:fixed の列幅は、table自体に明示的な幅（auto以外）が設定されていないと
