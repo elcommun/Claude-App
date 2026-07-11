@@ -114,6 +114,8 @@ input[type=file]{display:none}
 .sb-export{padding:8px;border-top:1px solid var(--border2)}
 .sb-sister{display:none;padding:8px;border-top:1px solid var(--border2)}
 .sb-sister a{display:block;text-align:center;padding:7px 8px;border:none;border-radius:6px;font-size:12px;font-weight:700;color:#fff;text-decoration:none;background:#E85D26}
+.sb-update-mobile{display:none;padding:8px;border-top:1px solid var(--border2)}
+.sb-update-mobile button{display:block;width:100%;text-align:center;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;color:var(--ink2);background:var(--white);cursor:pointer;font-family:inherit}
 #export-btn{width:100%;padding:7px 8px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;opacity:.4;transition:opacity .2s}
 #export-btn:not(:disabled){opacity:1}
 /* Main */
@@ -196,8 +198,8 @@ td.cat-col{text-align:left}
   #hd-search{width:130px}
   .hd-btn{padding:5px 9px;font-size:10px}
   .hd-date{display:none}
-  a.hd-link{display:none}
-  .sb-sister{display:block}
+  #hd-update-btn{display:none}
+  .sb-update-mobile{display:block}
 }
 @media(max-width:480px){
   #hd-search{width:100px;font-size:16px}
@@ -271,7 +273,7 @@ function doLogin(){
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v89</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v90</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -356,6 +358,7 @@ function doLogin(){
     </div>
     <div class="sb-list" id="sb-list"></div>
     <div class="sb-sister"><a href="https://elcommun.github.io/Claude-App/ranking/">EC事業部 販売データ：自社商品</a></div>
+    <div class="sb-update-mobile"><button onclick="openModal()">⬆ データ更新</button></div>
     <div class="sb-export">
       <button id="export-btn" onclick="downloadCheckedGroups()" disabled>📥 選択してExcelダウンロード</button>
     </div>
