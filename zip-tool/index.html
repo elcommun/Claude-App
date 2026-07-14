@@ -3,334 +3,518 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Windows互換ZIP圧縮ツール (Mac版)</title>
+    <title>ZIP圧縮ツール</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <style>
+        :root {
+            --bg: #fafafa;
+            --card: rgba(255, 255, 255, 0.8);
+            --card-border: rgba(0, 0, 0, 0.06);
+            --text: #18181b;
+            --text-sub: #71717a;
+            --text-faint: #a1a1aa;
+            --accent: #7c3aed;
+            --accent-dim: rgba(124, 58, 237, 0.08);
+            --accent-border: rgba(124, 58, 237, 0.35);
+            --accent-glow: rgba(124, 58, 237, 0.25);
+            --input-bg: #ffffff;
+            --input-border: #e4e4e7;
+            --item-bg: rgba(0, 0, 0, 0.025);
+            --danger: #ef4444;
+            --ok: #10b981;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0f0f12;
+            --card: rgba(24, 24, 30, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --text: #f4f4f5;
+            --text-sub: #a1a1aa;
+            --text-faint: #71717a;
+            --accent: #8b5cf6;
+            --accent-dim: rgba(139, 92, 246, 0.12);
+            --accent-border: rgba(139, 92, 246, 0.45);
+            --accent-glow: rgba(139, 92, 246, 0.3);
+            --input-bg: rgba(255, 255, 255, 0.04);
+            --input-border: rgba(255, 255, 255, 0.12);
+            --item-bg: rgba(255, 255, 255, 0.04);
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        html {
+            -webkit-text-size-adjust: 100%;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: center;
-            padding: 20px;
+            align-items: flex-start;
+            padding: 48px 20px;
+            transition: background 0.3s ease, color 0.3s ease;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(90px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            width: 480px;
+            height: 480px;
+            top: -160px;
+            right: -120px;
+            background: radial-gradient(circle, var(--accent-glow), transparent 65%);
+            opacity: 0.55;
+        }
+
+        body::after {
+            width: 420px;
+            height: 420px;
+            bottom: -180px;
+            left: -140px;
+            background: radial-gradient(circle, var(--accent-glow), transparent 65%);
+            opacity: 0.35;
+        }
+
+        .wrap {
             width: 100%;
+            max-width: 560px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 28px;
         }
 
         h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 24px;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
         }
 
         .subtitle {
-            text-align: center;
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 30px;
+            color: var(--text-sub);
+            font-size: 13px;
+            margin-top: 6px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 999px;
+            margin-top: 10px;
+        }
+
+        .theme-btn {
+            flex-shrink: 0;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+            background: var(--card);
+            color: var(--text-sub);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .theme-btn:hover {
+            color: var(--accent);
+            border-color: var(--accent-border);
+            transform: translateY(-1px);
+        }
+
+        .theme-btn svg {
+            width: 17px;
+            height: 17px;
+        }
+
+        [data-theme="dark"] .icon-moon { display: none; }
+        .icon-sun { display: none; }
+        [data-theme="dark"] .icon-sun { display: block; }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
         }
 
         .drop-zone {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 60px 20px;
+            border: 2px dashed var(--input-border);
+            border-radius: 16px;
+            padding: 44px 20px;
             text-align: center;
-            background: #f8f9ff;
-            transition: all 0.3s ease;
             cursor: pointer;
-            margin-bottom: 20px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .drop-zone:hover {
-            background: #f0f2ff;
-            border-color: #764ba2;
-        }
-
+        .drop-zone:hover,
         .drop-zone.drag-over {
-            background: #e8ebff;
-            border-color: #764ba2;
-            transform: scale(1.02);
+            border-color: var(--accent);
+            border-style: solid;
+            background: var(--accent-dim);
+            box-shadow: 0 0 0 4px var(--accent-dim);
         }
 
-        .drop-zone-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
+        .drop-icon {
+            width: 44px;
+            height: 44px;
+            margin: 0 auto 14px;
+            border-radius: 14px;
+            background: var(--accent-dim);
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .drop-zone-text {
-            color: #667eea;
-            font-size: 18px;
+        .drop-zone:hover .drop-icon,
+        .drop-zone.drag-over .drop-icon {
+            transform: scale(1.08);
+        }
+
+        .drop-icon svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .drop-text {
+            font-size: 14px;
             font-weight: 600;
+        }
+
+        .drop-sub {
+            color: var(--text-faint);
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .files {
+            margin-top: 18px;
+        }
+
+        .files-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             margin-bottom: 10px;
         }
 
-        .drop-zone-subtext {
-            color: #999;
-            font-size: 14px;
+        .files-count {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-sub);
+        }
+
+        .files-clear {
+            background: none;
+            border: none;
+            color: var(--text-faint);
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            padding: 4px 6px;
+            border-radius: 6px;
+            transition: color 0.2s;
+        }
+
+        .files-clear:hover {
+            color: var(--danger);
         }
 
         .file-list {
-            max-height: 200px;
+            max-height: 176px;
             overflow-y: auto;
-            margin-bottom: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .file-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 10px;
-            background: white;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            gap: 10px;
+            padding: 9px 12px;
+            background: var(--item-bg);
+            border-radius: 10px;
+            animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .file-name {
             flex: 1;
-            color: #333;
-            font-size: 14px;
+            font-size: 13px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            margin-right: 10px;
         }
 
         .file-size {
-            color: #999;
-            font-size: 12px;
-            margin-right: 10px;
+            color: var(--text-faint);
+            font-size: 11px;
+            flex-shrink: 0;
         }
 
-        .remove-btn {
-            background: #ff4757;
-            color: white;
+        .file-remove {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
             border: none;
-            border-radius: 5px;
-            padding: 5px 10px;
-            cursor: pointer;
-            font-size: 12px;
-            transition: background 0.2s;
-        }
-
-        .remove-btn:hover {
-            background: #ff3838;
-        }
-
-        .filename-box {
-            background: #f8f9ff;
-            border: 1px solid #e0e4ff;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-        }
-
-        .filename-label {
-            display: block;
-            color: #333;
+            border-radius: 7px;
+            background: none;
+            color: var(--text-faint);
             font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .file-remove:hover {
+            background: rgba(239, 68, 68, 0.12);
+            color: var(--danger);
+        }
+
+        .name-field {
+            margin-top: 18px;
+        }
+
+        .name-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
             font-weight: 600;
+            color: var(--text-sub);
             margin-bottom: 8px;
         }
 
-        .filename-row {
+        .name-reset {
+            background: none;
+            border: none;
+            color: var(--accent);
+            font-size: 12px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 6px;
+            transition: opacity 0.2s;
+        }
+
+        .name-reset:hover {
+            opacity: 0.7;
+        }
+
+        .name-input-wrap {
             display: flex;
             align-items: center;
-            gap: 8px;
+            background: var(--input-bg);
+            border: 1.5px solid var(--input-border);
+            border-radius: 12px;
+            padding: 0 14px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .filename-row input {
+        .name-input-wrap:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--accent-dim);
+        }
+
+        .name-input-wrap input {
             flex: 1;
-            display: block;
-            border: 2px solid #d5daf5;
-            border-radius: 8px;
-            padding: 10px 12px;
-            font-size: 15px;
-            color: #333;
-            background: white;
-            outline: none;
-            transition: border-color 0.2s;
             min-width: 0;
-        }
-
-        .filename-row input:focus {
-            border-color: #667eea;
-        }
-
-        .filename-ext {
-            color: #667eea;
-            font-size: 15px;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
-        .filename-reset {
-            background: white;
-            color: #667eea;
-            border: 1px solid #d5daf5;
-            border-radius: 8px;
-            padding: 9px 12px;
-            font-size: 13px;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: background 0.2s;
-            white-space: nowrap;
-        }
-
-        .filename-reset:hover {
-            background: #f0f2ff;
-        }
-
-        .filename-hint {
-            color: #999;
-            font-size: 12px;
-            margin-top: 8px;
-        }
-
-        .compress-btn {
-            width: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
             border: none;
-            border-radius: 10px;
-            padding: 15px;
-            font-size: 16px;
+            background: none;
+            outline: none;
+            padding: 12px 0;
+            font-size: 14px;
+            font-family: inherit;
+            color: var(--text);
+        }
+
+        .name-ext {
+            color: var(--text-faint);
+            font-size: 14px;
+            font-weight: 500;
+            flex-shrink: 0;
+            margin-left: 4px;
+        }
+
+        .go-btn {
+            width: 100%;
+            margin-top: 18px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 14px;
             font-weight: 600;
+            font-family: inherit;
+            letter-spacing: 0.01em;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 16px var(--accent-glow);
         }
 
-        .compress-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        .go-btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px var(--accent-glow);
+            filter: brightness(1.06);
         }
 
-        .compress-btn:disabled {
-            background: #ccc;
+        .go-btn:disabled {
+            background: var(--input-border);
+            color: var(--text-faint);
             cursor: not-allowed;
+            box-shadow: none;
         }
 
         .status {
             text-align: center;
-            margin-top: 15px;
-            color: #667eea;
-            font-weight: 600;
-            min-height: 20px;
-        }
-
-        .copyright {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 15px;
-            border-top: 1px solid #e0e0e0;
-            color: #999;
-            font-size: 12px;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        input[type="file"] {
-            display: none;
-        }
-
-        .clear-btn {
-            width: 100%;
-            background: #95a5a6;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 10px;
-            font-size: 14px;
-            cursor: pointer;
-            margin-bottom: 10px;
-            transition: background 0.2s;
-        }
-
-        .clear-btn:hover {
-            background: #7f8c8d;
-        }
-
-        .info-box {
-            background: #e8f4f8;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
             font-size: 13px;
-            color: #555;
+            font-weight: 500;
+            color: var(--text-sub);
+            min-height: 20px;
+            margin-top: 14px;
+            animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        .status.ok { color: var(--ok); }
+        .status.err { color: var(--danger); }
+
+        .foot {
+            text-align: center;
+            color: var(--text-faint);
+            font-size: 11px;
+            margin-top: 24px;
+            line-height: 1.8;
+        }
+
+        .hidden { display: none; }
+        input[type="file"] { display: none; }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            to { transform: rotate(360deg); }
         }
 
-        .loading {
+        .spinner {
             display: inline-block;
-            animation: spin 1s linear infinite;
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--accent-dim);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: -1px;
+            margin-right: 6px;
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 28px 14px; }
+            .card { padding: 18px; }
+            h1 { font-size: 19px; }
+            .drop-zone { padding: 34px 16px; }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🖥️ Windows互換ZIP圧縮ツール (Mac版)</h1>
-        <p class="subtitle">MacでZIP圧縮 → Windowsで文字化けせずに開けます</p>
-
-        <div class="info-box">
-            💡 Mac用ツール：複数のPDFファイルをまとめて、Windowsで開けるZIPファイルに圧縮します<br>
-            📊 使用ログは自動的にGoogleスプレッドシートに記録されます
-        </div>
-
-        <div class="drop-zone" id="dropZone">
-            <div class="drop-zone-icon">📁</div>
-            <div class="drop-zone-text">ファイルをここにドロップ</div>
-            <div class="drop-zone-subtext">または クリックしてファイルを選択</div>
-        </div>
-
-        <input type="file" id="fileInput" multiple>
-
-        <div id="fileListContainer" class="hidden">
-            <button class="clear-btn" id="clearBtn">すべてクリア</button>
-            <div class="file-list" id="fileList"></div>
-        </div>
-
-        <div class="filename-box">
-            <label class="filename-label" for="filenameInput">📝 保存ファイル名（変更できます）</label>
-            <div class="filename-row">
-                <input type="text" id="filenameInput" autocomplete="off">
-                <span class="filename-ext">.zip</span>
-                <button class="filename-reset" id="filenameResetBtn" type="button">元に戻す</button>
+    <div class="wrap">
+        <div class="top">
+            <div>
+                <h1>ZIP圧縮ツール</h1>
+                <div class="subtitle">MacでZIP圧縮 → Windowsで文字化けせずに開けます</div>
+                <div class="badge">Windows互換 · Mac用</div>
             </div>
-            <div class="filename-hint">空欄のまま圧縮すると「今日の日付-領収書PDF」になります</div>
+            <button class="theme-btn" id="themeBtn" title="テーマ切り替え" aria-label="テーマ切り替え">
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+            </button>
         </div>
 
-        <button class="compress-btn" id="compressBtn" disabled>
-            ZIP圧縮を実行
-        </button>
+        <div class="card">
+            <div class="drop-zone" id="dropZone">
+                <div class="drop-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <div class="drop-text">ファイルをドロップ、またはクリックして選択</div>
+                <div class="drop-sub">複数のPDFをまとめてZIPにできます</div>
+            </div>
 
-        <div class="status" id="status"></div>
+            <input type="file" id="fileInput" multiple>
 
-        <div class="copyright">
+            <div class="files hidden" id="filesBox">
+                <div class="files-head">
+                    <span class="files-count" id="filesCount"></span>
+                    <button class="files-clear" id="clearBtn">すべてクリア</button>
+                </div>
+                <div class="file-list" id="fileList"></div>
+            </div>
+
+            <div class="name-field">
+                <div class="name-label">
+                    <span>保存ファイル名</span>
+                    <button class="name-reset" id="filenameResetBtn" type="button">元に戻す</button>
+                </div>
+                <div class="name-input-wrap">
+                    <input type="text" id="filenameInput" autocomplete="off" spellcheck="false">
+                    <span class="name-ext">.zip</span>
+                </div>
+            </div>
+
+            <button class="go-btn" id="compressBtn" disabled>ZIPに圧縮してダウンロード</button>
+
+            <div class="status" id="status"></div>
+        </div>
+
+        <div class="foot">
+            使用ログは自動的にGoogleスプレッドシートに記録されます<br>
             © EL COMMUN EC事業部
         </div>
     </div>
@@ -346,12 +530,33 @@
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const fileList = document.getElementById('fileList');
-        const fileListContainer = document.getElementById('fileListContainer');
+        const filesBox = document.getElementById('filesBox');
+        const filesCount = document.getElementById('filesCount');
         const compressBtn = document.getElementById('compressBtn');
         const clearBtn = document.getElementById('clearBtn');
         const status = document.getElementById('status');
         const filenameInput = document.getElementById('filenameInput');
         const filenameResetBtn = document.getElementById('filenameResetBtn');
+        const themeBtn = document.getElementById('themeBtn');
+
+        // ライト/ダークモード（選択をlocalStorageに保存）
+        const savedTheme = localStorage.getItem('zip_tool_theme');
+        if (savedTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        themeBtn.addEventListener('click', () => {
+            const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+            if (dark) {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('zip_tool_theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('zip_tool_theme', 'dark');
+            }
+        });
+
+        function setStatus(text, cls) {
+            status.textContent = text;
+            status.className = 'status' + (cls ? ' ' + cls : '');
+        }
 
         // デフォルトのファイル名（拡張子なし）: YYYYMMDD-領収書PDF
         function defaultFilenameBase() {
@@ -389,14 +594,14 @@
                 JSZip = window.JSZip;
             } else if (checkCount > 50) {
                 clearInterval(checkJSZip);
-                status.textContent = '❌ ライブラリの読み込みに失敗しました';
+                setStatus('ライブラリの読み込みに失敗しました', 'err');
             }
         }, 100);
 
         // Googleスプレッドシートに送信
         async function sendToSpreadsheet(datetime, fileCount, totalSize, filename) {
             try {
-                const response = await fetch(APPS_SCRIPT_URL, {
+                await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: {
@@ -463,24 +668,25 @@
         // ファイルリスト更新
         function updateFileList() {
             if (selectedFiles.length === 0) {
-                fileListContainer.classList.add('hidden');
+                filesBox.classList.add('hidden');
                 compressBtn.disabled = true;
-                status.textContent = '';
+                setStatus('');
                 return;
             }
 
-            fileListContainer.classList.remove('hidden');
+            filesBox.classList.remove('hidden');
             compressBtn.disabled = false;
+            filesCount.textContent = `${selectedFiles.length}個のファイル`;
 
             fileList.innerHTML = selectedFiles.map((file, index) => `
                 <div class="file-item">
                     <span class="file-name">${escapeHtml(file.name)}</span>
                     <span class="file-size">${formatFileSize(file.size)}</span>
-                    <button class="remove-btn" onclick="removeFile(${index})">削除</button>
+                    <button class="file-remove" onclick="removeFile(${index})" title="削除" aria-label="削除">×</button>
                 </div>
             `).join('');
 
-            status.textContent = `${selectedFiles.length}個のファイルを選択中`;
+            setStatus('');
         }
 
         // ファイル削除
@@ -506,14 +712,15 @@
         // ZIP圧縮実行
         compressBtn.addEventListener('click', async () => {
             if (!JSZip) {
-                status.textContent = '❌ ライブラリがまだ読み込まれていません';
+                setStatus('ライブラリがまだ読み込まれていません', 'err');
                 return;
             }
 
             if (selectedFiles.length === 0) return;
 
             compressBtn.disabled = true;
-            status.innerHTML = '<span class="loading">⏳</span> 圧縮中...';
+            status.className = 'status';
+            status.innerHTML = '<span class="spinner"></span>圧縮中...';
 
             try {
                 const zip = new JSZip();
@@ -563,7 +770,7 @@
                     filename
                 );
 
-                status.textContent = `✅ 圧縮完了！「${filename}」をダウンロードしました`;
+                setStatus(`「${filename}」をダウンロードしました ✓`, 'ok');
 
                 setTimeout(() => {
                     selectedFiles = [];
@@ -573,7 +780,7 @@
                 }, 3000);
 
             } catch (error) {
-                status.textContent = '❌ エラーが発生しました: ' + error.message;
+                setStatus('エラーが発生しました: ' + error.message, 'err');
             } finally {
                 compressBtn.disabled = false;
             }
