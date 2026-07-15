@@ -129,7 +129,8 @@
     <strong>処理概要：</strong>楽天RMS の <code>dl-normal-item（絞込み済）.csv</code> をもとに、auPAY の <code>item.csv</code> と <code>stock.csv</code> を変換します。<br>
     ・<strong>item.csv</strong>：商品名（itemName）の先頭装飾を削除 ／ searchTarget を全件「1」に変更<br>
     ・<strong>item.csv</strong>：配送方法セット管理番号＋送料区分1 → deliveryMethodId1〜3・deliveryMethodName1〜3 を設定<br>
-    ・<strong>stock.csv</strong>：SKU管理番号を照合して choicesStockHorizontalName・Code を上書き
+    ・<strong>stock.csv</strong>：SKU管理番号を照合して choicesStockHorizontalName・Code を上書き<br>
+    ・<strong>stock.csv</strong>：choicesStockHorizontalName の「&amp;」を「/」に変換 ／ 文字化け（�i→（、�j→））を自動修復
   </div>
 
   <!-- Step 1 -->
@@ -288,15 +289,21 @@ function checkReady() {
 /* ===== Shift-JIS デコード（encoding-japanese使用） ===== */
 function decodeShiftJIS(buf) {
   const uint8 = new Uint8Array(buf);
-  // encoding-japanese で自動判定してUnicodeへ変換
+  // UTF-16 BOM付き（Excelの「Unicodeテキスト」保存など）
+  if (uint8.length >= 2 && ((uint8[0] === 0xFF && uint8[1] === 0xFE) || (uint8[0] === 0xFE && uint8[1] === 0xFF))) {
+    return new TextDecoder(uint8[0] === 0xFF ? 'utf-16le' : 'utf-16be').decode(buf);
+  }
+  // 自動判定の誤りでShift-JISの「（」(0x81,0x69)が「�i」に化けるのを防ぐため、
+  // 「厳密UTF-8 → だめならShift-JIS」の二択に固定（BOMも自動除去される）
   try {
-    const detected = Encoding.detect(uint8);
-    const unicode = Encoding.convert(uint8, { to: 'UNICODE', from: detected || 'SJIS' });
+    return new TextDecoder('utf-8', { fatal: true }).decode(buf);
+  } catch {}
+  try {
+    const unicode = Encoding.convert(uint8, { to: 'UNICODE', from: 'SJIS' });
     return Encoding.codeToString(unicode);
   } catch {
     // fallback: ブラウザ標準
     try { return new TextDecoder('shift-jis').decode(buf); } catch {}
-    try { return new TextDecoder('utf-8').decode(buf); } catch {}
     return new TextDecoder('iso-8859-1').decode(buf);
   }
 }
@@ -435,6 +442,16 @@ const DELIVERY_MAP = {
   '4_4': { ids: ['sagawa-big','',        '',           '','',''],  names: ['大型宅配便',   '',             '',           '','',''] },
 };
 
+/* ===== 文字化け修復 ===== */
+// Shift-JISの「（」(0x81,0x69)・「）」(0x81,0x6A)が誤デコードされると
+// 「�i」「�j」（U+FFFD+i/j）や「i」「j」になるため元に戻す
+function fixMojibake(s) {
+  if (!s) return s;
+  return s
+    .replace(/�i/g, '（').replace(/�j/g, '）')
+    .replace(/\u0081i/g, '（').replace(/\u0081j/g, '）');
+}
+
 /* ===== SKUコードをHorizontalCodeから抽出（全角括弧対応） ===== */
 function extractSkuFromCode(code) {
   // 「ラベル（SKU）」形式 → SKUを抽出
@@ -476,7 +493,7 @@ function doConvert() {
     let skuCount = 0;
     for (let i = 1; i < rRows.length; i++) {
       const sku  = (rRows[i][idxSku]  || '').trim();
-      const var1 = (rRows[i][idxVar1] || '').trim();
+      const var1 = fixMojibake((rRows[i][idxVar1] || '').trim());
       if (sku) { skuToVar1[sku] = var1; skuCount++; }
     }
 
@@ -631,12 +648,23 @@ function doConvert() {
     if (idxHCode === -1) throw new Error('stock.csvに「choicesStockHorizontalCode」列が見つかりません');
 
     let stockMatched = 0, stockSkipped = 0, stockCountSet = 0, stockDeleted = 0;
+    let ampConverted = 0, mojibakeFixed = 0;
     const newSRows = [sHeaders.slice()];
 
     // choicesStockCount 列のインデックス
     const idxStockCount = sHeaders.indexOf('choicesStockCount');
     // stock の itemCode 列インデックス
     const idxSItemCode = sHeaders.indexOf('itemCode');
+
+    // choicesStockHorizontalName の仕上げ：文字化け修復＋「&」→「/」変換
+    function finalizeHorizontalName(row) {
+      let val = row[idxHName] || '';
+      if (!val) return;
+      const repaired = fixMojibake(val);
+      if (repaired !== val) { mojibakeFixed++; val = repaired; }
+      if (val.includes('&')) { ampConverted++; val = val.replace(/&/g, '/'); }
+      row[idxHName] = val;
+    }
 
     for (let i = 1; i < sRows.length; i++) {
       const row = sRows[i].slice();
@@ -650,7 +678,7 @@ function doConvert() {
       }
 
       const currentCode = (row[idxHCode] || '').trim();
-      if (!currentCode) { newSRows.push(row); continue; }
+      if (!currentCode) { finalizeHorizontalName(row); newSRows.push(row); continue; }
 
       // HorizontalCode から SKU番号を抽出
       const sku = extractSkuFromCode(currentCode);
@@ -672,10 +700,13 @@ function doConvert() {
         stockCountSet++;
       }
 
+      finalizeHorizontalName(row);
       newSRows.push(row);
     }
     log(`✅ stock 変換：${stockMatched} 件一致 / ${stockSkipped} 件スキップ`, 'log-ok');
     log(`✅ choicesStockCount → "0" 設定：${stockCountSet} 件`, 'log-ok');
+    log(`✅ HorizontalName「&」→「/」変換：${ampConverted} 件`, 'log-ok');
+    if (mojibakeFixed > 0) log(`🔧 HorizontalName 文字化け修復（�i→（ 等）：${mojibakeFixed} 件`, 'log-warn');
     if (stockDeleted > 0) log(`🗑️ stock 楽天対象外を削除：${stockDeleted} 件`, 'log-warn');
     outStockCsv = toCSV(newSRows);
     logSep();
@@ -690,6 +721,8 @@ function doConvert() {
       <div class="stat"><div class="num">${optionChanged}</div><div class="label">itemOption 変換</div></div>
       <div class="stat"><div class="num">${itemDeleted + stockDeleted}</div><div class="label">対象外行を削除</div></div>
       <div class="stat"><div class="num">${stockMatched}</div><div class="label">stock 照合一致</div></div>
+      <div class="stat"><div class="num">${ampConverted}</div><div class="label">「&」→「/」変換</div></div>
+      <div class="stat"><div class="num">${mojibakeFixed}</div><div class="label">文字化け修復</div></div>
     `;
     document.getElementById('resultSection').classList.add('show');
 
