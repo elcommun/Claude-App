@@ -121,7 +121,7 @@
     <ol class="usage-steps">
       <li><strong>STEP 1</strong> で3つのファイル（楽天RMSの dl-normal-item（絞込み済）.csv ／ auPAYの item.csv・stock.csv）をドラッグ＆ドロップまたはクリックで読み込みます。文字コード（Shift-JIS / UTF-8）は自動判定されます</li>
       <li><strong>STEP 2</strong> の「⚙️ 変換する」ボタンをクリックします。変換・除外・警告などの処理内容はログに表示されるので、その場で確認できます</li>
-      <li>変換完了後、<strong>item.csv / stock.csv をダウンロード</strong>し、auPAYマーケットにアップロードします（CSVはShift-JIS形式で出力されます）</li>
+      <li>変換完了後、<strong>item.csv / stock.csv をダウンロード</strong>し、auPAYマーケットにアップロードします（CSVはアップロードした元ファイルと同じ文字コードで出力されます）</li>
     </ol>
   </div>
 
@@ -261,13 +261,13 @@ function loadFile(key, input) {
   reader.onload = e => {
     try {
       const buf = e.target.result;
-      const text = decodeShiftJIS(buf);
+      const { text, encoding, bom } = decodeAuto(buf);
       const rows = parseCSV(text);
       if (rows.length < 2) throw new Error('データ行がありません');
-      state[key] = { rows, filename: file.name };
+      state[key] = { rows, filename: file.name, encoding, bom };
       const keyMap = { rakuten:'Rakuten', item:'Item', stock:'Stock' };
       const K = keyMap[key];
-      showStatus(K, `✅ 読み込み完了：${rows.length - 1} 行`, 'ok');
+      showStatus(K, `✅ 読み込み完了：${rows.length - 1} 行（${encoding === 'SJIS' ? 'Shift-JIS' : encoding === 'UTF8' ? 'UTF-8' : 'UTF-16'}）`, 'ok');
       checkReady();
     } catch(err) {
       const keyMap = { rakuten:'Rakuten', item:'Item', stock:'Stock' };
@@ -286,25 +286,29 @@ function checkReady() {
   document.getElementById('execBtn').disabled = !ok;
 }
 
-/* ===== Shift-JIS デコード（encoding-japanese使用） ===== */
-function decodeShiftJIS(buf) {
+/* ===== 文字コード自動判定デコード（判定結果を記録し、出力時に同じ文字コードを使う） ===== */
+function decodeAuto(buf) {
   const uint8 = new Uint8Array(buf);
   // UTF-16 BOM付き（Excelの「Unicodeテキスト」保存など）
-  if (uint8.length >= 2 && ((uint8[0] === 0xFF && uint8[1] === 0xFE) || (uint8[0] === 0xFE && uint8[1] === 0xFF))) {
-    return new TextDecoder(uint8[0] === 0xFF ? 'utf-16le' : 'utf-16be').decode(buf);
+  if (uint8.length >= 2 && uint8[0] === 0xFF && uint8[1] === 0xFE) {
+    return { text: new TextDecoder('utf-16le').decode(buf), encoding: 'UTF16', bom: true };
   }
+  if (uint8.length >= 2 && uint8[0] === 0xFE && uint8[1] === 0xFF) {
+    return { text: new TextDecoder('utf-16be').decode(buf), encoding: 'UTF16', bom: true };
+  }
+  const hasUtf8Bom = uint8.length >= 3 && uint8[0] === 0xEF && uint8[1] === 0xBB && uint8[2] === 0xBF;
   // 自動判定の誤りでShift-JISの「（」(0x81,0x69)が「�i」に化けるのを防ぐため、
-  // 「厳密UTF-8 → だめならShift-JIS」の二択に固定（BOMも自動除去される）
+  // 「厳密UTF-8 → だめならShift-JIS」の二択に固定（BOMは自動除去される）
   try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(buf);
+    return { text: new TextDecoder('utf-8', { fatal: true }).decode(buf), encoding: 'UTF8', bom: hasUtf8Bom };
   } catch {}
   try {
     const unicode = Encoding.convert(uint8, { to: 'UNICODE', from: 'SJIS' });
-    return Encoding.codeToString(unicode);
+    return { text: Encoding.codeToString(unicode), encoding: 'SJIS', bom: false };
   } catch {
     // fallback: ブラウザ標準
-    try { return new TextDecoder('shift-jis').decode(buf); } catch {}
-    return new TextDecoder('iso-8859-1').decode(buf);
+    try { return { text: new TextDecoder('shift-jis').decode(buf), encoding: 'SJIS', bom: false }; } catch {}
+    return { text: new TextDecoder('iso-8859-1').decode(buf), encoding: 'SJIS', bom: false };
   }
 }
 
@@ -726,9 +730,9 @@ function doConvert() {
     `;
     document.getElementById('resultSection').classList.add('show');
 
-    // ダウンロードボタン設定
-    document.getElementById('dlItem').onclick  = () => downloadCSV(outItemCsv,  'item.csv');
-    document.getElementById('dlStock').onclick = () => downloadCSV(outStockCsv, 'stock.csv');
+    // ダウンロードボタン設定（元ファイルと同じ文字コードで出力）
+    document.getElementById('dlItem').onclick  = () => downloadCSV(outItemCsv,  'item.csv',  state.item);
+    document.getElementById('dlStock').onclick = () => downloadCSV(outStockCsv, 'stock.csv', state.stock);
 
   } catch(err) {
     log('❌ エラー：' + err.message, 'log-err');
@@ -736,31 +740,36 @@ function doConvert() {
   }
 }
 
-/* ===== CSV ダウンロード（Shift-JIS 出力） ===== */
-function downloadCSV(csvText, filename) {
+/* ===== CSV 出力Blob生成（入力ファイルと同じ文字コードで出力） ===== */
+// Shift-JIS固定出力だとUTF-8前提のアプリ（Numbers等）で全角（）が「�i」「�j」に見えるため、
+// アップロードされた元ファイルの文字コードを引き継ぐ
+function buildCsvBlob(csvText, srcFile) {
+  const encoding = (srcFile && srcFile.encoding) || 'SJIS';
+  if (encoding === 'UTF8' || encoding === 'UTF16') {
+    // UTF-16入力もUTF-8で出力（BOMは元ファイルにあった場合とUTF-16由来の場合に付与）
+    const bom = (encoding === 'UTF16' || (srcFile && srcFile.bom)) ? '\uFEFF' : '';
+    return new Blob([bom + csvText], { type: 'text/csv;charset=utf-8;' });
+  }
   try {
     // UTF-16 コードポイント配列 → Shift-JIS バイト列に変換
     const unicode = Encoding.stringToCode(csvText);
     const sjisArray = Encoding.convert(unicode, { to: 'SJIS', from: 'UNICODE' });
-    const uint8 = new Uint8Array(sjisArray);
-    const blob = new Blob([uint8], { type: 'text/csv;charset=shift-jis;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    return new Blob([new Uint8Array(sjisArray)], { type: 'text/csv;charset=shift-jis;' });
   } catch(e) {
     // fallback: UTF-8 BOM付き
-    const bom = '\uFEFF';
-    const blob = new Blob([bom + csvText], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    return new Blob(['\uFEFF' + csvText], { type: 'text/csv;charset=utf-8;' });
   }
+}
+
+/* ===== CSV ダウンロード ===== */
+function downloadCSV(csvText, filename, srcFile) {
+  const blob = buildCsvBlob(csvText, srcFile);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 </script>
 </body>
