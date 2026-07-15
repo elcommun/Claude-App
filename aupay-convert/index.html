@@ -75,6 +75,8 @@
   .result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:24px;margin-top:20px;text-align:center;}
   .result-section.show{display:block;}
   .result-section h3{color:#065F46;font-size:16px;margin-bottom:16px;}
+  .out-enc{margin-bottom:14px;font-size:13px;color:#065F46;}
+  .out-enc select{padding:6px 10px;border:1px solid #6EE7B7;border-radius:6px;font-size:13px;color:#065F46;background:white;cursor:pointer;}
   .dl-grid{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;}
   .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 24px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
   .dl-btn:hover{background:#059669;}
@@ -121,7 +123,7 @@
     <ol class="usage-steps">
       <li><strong>STEP 1</strong> で3つのファイル（楽天RMSの dl-normal-item（絞込み済）.csv ／ auPAYの item.csv・stock.csv）をドラッグ＆ドロップまたはクリックで読み込みます。文字コード（Shift-JIS / UTF-8）は自動判定されます</li>
       <li><strong>STEP 2</strong> の「⚙️ 変換する」ボタンをクリックします。変換・除外・警告などの処理内容はログに表示されるので、その場で確認できます</li>
-      <li>変換完了後、<strong>item.csv / stock.csv をダウンロード</strong>し、auPAYマーケットにアップロードします（CSVはアップロードした元ファイルと同じ文字コードで出力されます）</li>
+      <li>変換完了後、<strong>item.csv / stock.csv をダウンロード</strong>し、auPAYマーケットにアップロードします（出力文字コードは「元ファイルと同じ」が既定。Numbersで開く場合はUTF-8、Excelで開く場合はShift-JISも選べます）</li>
     </ol>
   </div>
 
@@ -227,6 +229,14 @@
   <!-- 結果 -->
   <div class="result-section" id="resultSection">
     <h3>✅ 変換完了！</h3>
+    <div class="out-enc">
+      出力文字コード：
+      <select id="outEncoding">
+        <option value="auto">元ファイルと同じ（推奨）</option>
+        <option value="UTF8">UTF-8（Numbers / Mac向け）</option>
+        <option value="SJIS">Shift-JIS（Excel / Windows向け）</option>
+      </select>
+    </div>
     <div class="dl-grid">
       <button class="dl-btn" id="dlItem">⬇️ item.csv をダウンロード</button>
       <button class="dl-btn" id="dlStock">⬇️ stock.csv をダウンロード</button>
@@ -240,6 +250,12 @@
 /* ===== 状態管理 ===== */
 const state = { rakuten: null, item: null, stock: null };
 let outItemCsv = '', outStockCsv = '';
+
+/* ===== 出力文字コード選択（localStorageに保存） ===== */
+const outEncSel = document.getElementById('outEncoding');
+outEncSel.value = localStorage.getItem('ec_aupay_out_enc') || 'auto';
+if (!outEncSel.value) outEncSel.value = 'auto';
+outEncSel.addEventListener('change', () => localStorage.setItem('ec_aupay_out_enc', outEncSel.value));
 
 /* ===== ドラッグ&ドロップ ===== */
 ['Rakuten','Item','Stock'].forEach(k => {
@@ -744,10 +760,14 @@ function doConvert() {
 // Shift-JIS固定出力だとUTF-8前提のアプリ（Numbers等）で全角（）が「�i」「�j」に見えるため、
 // アップロードされた元ファイルの文字コードを引き継ぐ
 function buildCsvBlob(csvText, srcFile) {
-  const encoding = (srcFile && srcFile.encoding) || 'SJIS';
+  const mode = (document.getElementById('outEncoding') || {}).value || 'auto';
+  let encoding = (srcFile && srcFile.encoding) || 'SJIS';
+  let srcBom = srcFile ? !!srcFile.bom : false;
+  if (mode === 'UTF8') { encoding = 'UTF8'; srcBom = true; }   // 手動UTF-8はExcel対策でBOM付き
+  else if (mode === 'SJIS') { encoding = 'SJIS'; }
   if (encoding === 'UTF8' || encoding === 'UTF16') {
     // UTF-16入力もUTF-8で出力（BOMは元ファイルにあった場合とUTF-16由来の場合に付与）
-    const bom = (encoding === 'UTF16' || (srcFile && srcFile.bom)) ? '\uFEFF' : '';
+    const bom = (encoding === 'UTF16' || srcBom) ? '\uFEFF' : '';
     return new Blob([bom + csvText], { type: 'text/csv;charset=utf-8;' });
   }
   try {
