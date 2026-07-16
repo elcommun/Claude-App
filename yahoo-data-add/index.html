@@ -62,7 +62,7 @@ header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
 .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
 .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
 .dl-btn:hover{background:#059669;}
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:14px;}
 .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
 .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
 .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
@@ -93,7 +93,7 @@ header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
         <li>「data_add（配送補完済）をダウンロード」ボタンから変換済みファイルを保存</li>
         <li>保存したCSVをそのままYahoo!ショッピングにアップロード</li>
       </ol>
-      <p class="about-note">配送ルールは下表のとおり自動判定されます。リードタイムは全商品一律で instock=1000／outstock=空白に設定し、出力はShift_JISのまま保持されます。</p>
+      <p class="about-note">配送ルールは下表のとおり自動判定されます。リードタイムは全商品一律で instock=1000／outstock=空白に設定し、出力はShift_JISのまま保持されます。また、<code>code</code>が「cal-」で始まる商品は brand-code=64324／product-code=11495 に設定します。</p>
     </div>
   </div>
 
@@ -320,11 +320,13 @@ async function loadData(input){
     const idxPost=headerStrs.indexOf('postage-set');
     const idxLTin=headerStrs.indexOf('lead-time-instock');
     const idxLTout=headerStrs.indexOf('lead-time-outstock');
+    const idxBrand=headerStrs.indexOf('brand-code');
+    const idxProduct=headerStrs.indexOf('product-code');
     if(idxCode<0||idxShipW<0||idxPost<0||idxLTin<0||idxLTout<0){
       setStatus('statusData',false,'必要な列が見つかりません'); return;
     }
     const dataRows=byteRows.slice(1).filter(r=>r.some(b=>b.length>0));
-    addData={headerRow:byteRows[0],rows:dataRows,idxCode,idxShipW,idxPost,idxLTin,idxLTout};
+    addData={headerRow:byteRows[0],rows:dataRows,idxCode,idxShipW,idxPost,idxLTin,idxLTout,idxBrand,idxProduct};
     setStatus('statusData',true,'読み込み完了：'+dataRows.length+'件');
     checkReady();
   } catch(e){ setStatus('statusData',false,'読み込みエラー：'+e.message); }
@@ -362,7 +364,7 @@ async function doConvert(){
   }
   log('📋 楽天 配送マップ構築：'+Object.keys(shipMap).length+'件','log-info');
 
-  let cntOk=0,cntSkip=0;
+  let cntOk=0,cntSkip=0,cntBrand=0;
   const outRows=[addData.headerRow];
 
   for(const row of addData.rows){
@@ -382,11 +384,18 @@ async function doConvert(){
       log('⚠️ ['+code+'] 配送ルール未マッチ','log-warn');
       cntSkip++;
     }
+    // ブランドコード・商品コード（cal-で始まる品番）
+    if(addData.idxBrand>=0&&addData.idxProduct>=0&&/^cal-/i.test(code)){
+      newRow[addData.idxBrand]=await strToSJIS('64324');
+      newRow[addData.idxProduct]=await strToSJIS('11495');
+      log('🏷️ ['+code+'] → brand-code:64324 / product-code:11495','log-ok');
+      cntBrand++;
+    }
     outRows.push(newRow);
   }
 
   log('──────────','log-sep');
-  log('✅ 配送変換：'+cntOk+'件　⚠️ スキップ：'+cntSkip+'件','log-ok');
+  log('✅ 配送変換：'+cntOk+'件　⚠️ スキップ：'+cntSkip+'件　🏷️ cal-ブランド/商品コード：'+cntBrand+'件','log-ok');
   log('━━━━━━━━━ 変換処理完了 ━━━━━━━━━','log-sep');
 
   const blob=buildCSVBlob(outRows);
@@ -398,7 +407,8 @@ async function doConvert(){
     '<div class="stat"><div class="num">'+addData.rows.length+'</div><div class="label">総商品数</div></div>'+
     '<div class="stat"><div class="num">'+cntOk+'</div><div class="label">配送設定変換</div></div>'+
     '<div class="stat"><div class="num">'+cntSkip+'</div><div class="label">ルール未マッチ</div></div>'+
-    '<div class="stat"><div class="num">'+addData.rows.length+'</div><div class="label">リードタイム更新</div></div>';
+    '<div class="stat"><div class="num">'+addData.rows.length+'</div><div class="label">リードタイム更新</div></div>'+
+    '<div class="stat"><div class="num">'+cntBrand+'</div><div class="label">cal-ブランド/商品コード</div></div>';
   document.getElementById('resultSection').classList.add('show');
   document.getElementById('actionBtn').disabled=false;
 }
