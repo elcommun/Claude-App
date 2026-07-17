@@ -48,6 +48,9 @@ class Config:
     # --- 通知・動作 ---
     notify_to: list = field(default_factory=list)  # エラー通知先（省略時 mail_from）
     exclude_if_memo_ordered: bool = True  # ひとことメモに「...発注」既入力の注文を除外
+    # 確認モード: 発注書を社内確認メールで送り、--approve 実行で初めて
+    # APJへ送信＋GoQ更新する（運用開始時は true 推奨。慣れたら false で完全自動）
+    confirm_mode: bool = True
     retry_count: int = 3
     retry_wait_sec: int = 10
 
@@ -100,6 +103,7 @@ def load_config(env_path: Path = None) -> Config:
         mail_bcc=_split_addrs(g("MAIL_BCC", "")),
         notify_to=_split_addrs(g("NOTIFY_TO", "")),
         exclude_if_memo_ordered=_bool(g("EXCLUDE_IF_MEMO_ORDERED"), True),
+        confirm_mode=_bool(g("APJ_CONFIRM_MODE"), True),
         retry_count=int(g("RETRY_COUNT", "3")),
         retry_wait_sec=int(g("RETRY_WAIT_SEC", "10")),
         home=Path(g("APJ_HOME", str(Path.home() / "apj-order"))).expanduser(),
