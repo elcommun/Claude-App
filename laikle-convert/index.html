@@ -623,23 +623,22 @@ function downloadFile(type) {
   const csvText  = serializeCsv(rows);
   const filename = type === 'item' ? 'normal-item（LAIKLE用）.csv' : 'item-cat（LAIKLE用）.csv';
 
-  let dataUri;
+  // Blob方式でダウンロード（data URIはブラウザのサイズ上限で大きいCSVが無反応になるため）
+  let blob;
   if (data.encoding === 'Shift_JIS' && window.Encoding) {
-    // Shift_JIS → base64 → data URI
     const unicode = Encoding.stringToCode(csvText);
     const sjis    = Encoding.convert(unicode, { to: 'SJIS', from: 'UNICODE' });
-    const u8      = new Uint8Array(sjis);
-    let binary = '';
-    u8.forEach(b => binary += String.fromCharCode(b));
-    dataUri = 'data:text/csv;charset=shift-jis;base64,' + btoa(binary);
+    blob = new Blob([new Uint8Array(sjis)], { type: 'text/csv' });
   } else {
     const bom = data.bom ? '\uFEFF' : '';
-    dataUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(bom + csvText);
+    blob = new Blob([bom + csvText], { type: 'text/csv;charset=utf-8' });
   }
 
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = dataUri; a.download = filename;
+  a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 // ========== イベント登録 ==========
