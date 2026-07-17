@@ -38,6 +38,28 @@ def test_product_name_apj_code_and_coupon():
     ) == "FIT FRAME【B2】"
 
 
+def test_product_name_real_sample_20260717():
+    # 2026-07-17 の実受注CSV（GoQダウンロード）と apj-order-app 生成xlsxの
+    # 実データペアで検証済みのパターン（セル値完全一致を確認済み）
+    s = ("【APJ】FIT FRAME【610mm×915mm】（61cm×91.5cm）ポスターサイズ（額縁内寸）"
+         "アルミ製額縁／アルミポスターフレーム全4色30サイズ・オーダーメイド も可能！"
+         "【受注生産】【発送までに 約7-10営業日】【「APJ」以外の商品と同送不可】"
+         "(apj-af61_91)")
+    assert process_product_name(s) == "FIT FRAME【610mm×915mm】"
+    s2 = ("【APJ】FIT FRAME【348×424mm：四つ切サイズ】（額縁内寸）アルミ製額縁／"
+          "アルミポスターフレーム全4色30サイズ・オーダーメイド も可能！【受注生産】"
+          "【発送までに 約7-10営業日】【「APJ」以外の商品と同送不可】(apj-af34_42)")
+    assert process_product_name(s2) == "FIT FRAME【348×424mm：四つ切サイズ】"
+
+
+def test_options_real_sample_20260717():
+    s = ("カラー:ブラック-0020195326\n"
+         "【長期商品欠品の場合】:1-2営業日中にご連絡します\n"
+         "【日曜 / 祝日着 指定不可】:○了解の上ご購入\n"
+         "発送までに約7-10営業日")
+    assert process_options(s) == "ブラック-0020195326"
+
+
 def test_product_name_no_size():
     assert process_product_name("【APJ】ポスターフレーム A4") == "ポスターフレーム A4"
 
@@ -121,6 +143,28 @@ def test_business_day():
     assert is_business_day(datetime.date(2026, 7, 18)) is False   # 土曜
     assert is_business_day(datetime.date(2026, 7, 20)) is False   # 海の日(祝)
     assert is_business_day(datetime.date(2026, 1, 1)) is False    # 元日
+
+
+def test_mail_body_matches_template():
+    # 依頼された定型文と完全一致すること（全角の／・～を含む）
+    from apj_auto.mailer import MAIL_BODY
+    assert "神代様 斎藤様" in MAIL_BODY
+    assert "　（営業時間：平日／AM9時～PM18時）" in MAIL_BODY
+    assert "　E-mail：ec@elcommun.co.jp" in MAIL_BODY
+
+
+def test_run_state_review_step():
+    from apj_auto.guard import RunState
+    with tempfile.TemporaryDirectory() as d:
+        day = datetime.date(2026, 7, 17)
+        s = RunState(Path(d), day)
+        s.mark("fetched", order_ids=["B1"])
+        s.mark("xlsx", xlsx_path="/tmp/x.xlsx")
+        s.mark("review_sent")
+        s2 = RunState(Path(d), day)
+        assert s2.step_done("review_sent")
+        assert not s2.step_done("mail_sent")
+        assert not s2.completed  # 承認(--approve)まで完了扱いにしない
 
 
 def test_run_state_resume():

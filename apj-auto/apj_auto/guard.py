@@ -25,7 +25,8 @@ class RunState:
       メール送信済みなら再送せず GoQ 更新のみ再開できるようにする
     """
 
-    STEPS = ("fetched", "xlsx", "mail_sent", "memo_done", "status_done")
+    STEPS = ("fetched", "xlsx", "review_sent", "mail_sent", "memo_done",
+             "status_done")
 
     def __init__(self, state_dir: Path, day: datetime.date):
         self.path = state_dir / f"{day.isoformat()}.json"

@@ -19,8 +19,15 @@
   - ステータス移動完了で初めて成功。途中失敗時は state に進捗を記録し、
     再実行時にメール送信済みなら再送しない（GoQ 更新のみ再開）
 
+確認モード（APJ_CONFIRM_MODE=true、既定）:
+  通常実行では発注書xlsxを生成して社内（NOTIFY_TO）に確認メールを送り、
+  APJへの送信・GoQ更新は行わない。内容確認後に --approve を実行すると
+  確定済みの対象注文に対して APJ送信 → GoQ更新 が行われる。
+  完全自動化に切り替える場合は .env で APJ_CONFIRM_MODE=false にする。
+
 使い方:
   python run_apj_order.py            # 本実行（launchd から毎平日15:00に起動）
+  python run_apj_order.py --approve  # 確認モード: 承認して本送信＋GoQ更新
   python run_apj_order.py --dry-run  # 取得〜xlsx生成のみ（メール送信・GoQ更新なし）
   python run_apj_order.py --inspect  # ログイン後の一覧画面のスクショ/HTMLを保存
   python run_apj_order.py --force    # 営業日・同日実行ガードを無視（テスト用）
@@ -37,7 +44,7 @@ from apj_auto.config import load_config, validate_for_run
 from apj_auto.excel import build_order_xlsx
 from apj_auto.goq import MEMO_ORDERED_RE, GoqClient, retry
 from apj_auto.guard import RunState, is_business_day
-from apj_auto.mailer import send_error_mail, send_order_mail
+from apj_auto.mailer import send_error_mail, send_order_mail, send_review_mail
 from apj_auto.transform import parse_goq_csv
 
 
@@ -80,6 +87,9 @@ def notify_failure(cfg, log, today, step: str, err: Exception, state: RunState):
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="APJフレーム発注 自動処理")
+    ap.add_argument("--approve", action="store_true",
+                    help="確認モード: 本日生成済みの発注書を承認し、"
+                         "APJ送信とGoQ更新を実行する")
     ap.add_argument("--dry-run", action="store_true",
                     help="メール送信・GoQ更新を行わない（xlsx生成まで）")
     ap.add_argument("--inspect", action="store_true",
@@ -100,6 +110,15 @@ def main() -> int:
     state = RunState(cfg.state_dir, today)
     if not args.force and state.completed:
         log.info("本日分は実行済みのためスキップします（二重発注防止）。")
+        return 0
+
+    # 確認モードで承認待ちの間は、GoQ再取得で確定リストが上書きされないよう
+    # ここで終了する（--approve / --force を除く。mail_sent 済みなら GoQ更新の再開）
+    if (cfg.confirm_mode and not args.approve and not args.force
+            and state.step_done("review_sent")
+            and not state.step_done("mail_sent")):
+        log.info("確認メール送信済み・承認待ちです。"
+                 "`python run_apj_order.py --approve` で本送信します。")
         return 0
 
     missing = validate_for_run(cfg)
@@ -127,6 +146,25 @@ def main() -> int:
                 # 前回メール送信まで完了 → 同じ確定リストで GoQ 更新のみ再開
                 order_ids = state.data["order_ids"]
                 log.info("前回メール送信済み。GoQ更新のみ再開します (%d件)", len(order_ids))
+            elif args.approve:
+                # 確認モードの承認実行: 通常実行で確定済みのリストのみを対象にする
+                order_ids = state.data.get("order_ids") or []
+                xlsx_path = state.data.get("xlsx_path") or ""
+                if not (state.step_done("xlsx") and order_ids
+                        and xlsx_path and Path(xlsx_path).exists()):
+                    log.error("--approve: 本日の承認待ちデータがありません。"
+                              "先に通常実行で発注書を生成してください。")
+                    return 1
+                log.info("承認を受け付けました。APJ送信とGoQ更新を実行します (%d件)",
+                         len(order_ids))
+
+                # [5] メール送信（成功しない限り GoQ 更新には進まない）
+                step = "[5] メール送信"
+                retry(log, lambda: send_order_mail(cfg, Path(xlsx_path), today),
+                      cfg.retry_count, cfg.retry_wait_sec, step)
+                log.info("メール送信成功: To=%s Cc=%s Bcc=%s",
+                         cfg.mail_to, cfg.mail_cc, cfg.mail_bcc)
+                state.mark("mail_sent")
             else:
                 fetched = retry(log, goq.fetch_orders,
                                 cfg.retry_count, cfg.retry_wait_sec, step)
@@ -173,6 +211,20 @@ def main() -> int:
 
                 if args.dry_run:
                     log.info("--dry-run のためここで終了（メール送信・GoQ更新なし）")
+                    return 0
+
+                # 確認モード: 社内確認メールを送って承認待ちで終了（§運用開始時）
+                if cfg.confirm_mode:
+                    step = "[5'] 社内確認メール送信"
+                    retry(log,
+                          lambda: send_review_mail(
+                              cfg, Path(state.data["xlsx_path"]), today,
+                              len(order_ids)),
+                          cfg.retry_count, cfg.retry_wait_sec, step)
+                    state.mark("review_sent")
+                    log.info("社内確認メールを送信しました: %s\n"
+                             "内容確認後、`python run_apj_order.py --approve` で"
+                             "APJ送信＋GoQ更新が実行されます。", cfg.notify_to)
                     return 0
 
                 # [5] メール送信（成功しない限り GoQ 更新には進まない）
