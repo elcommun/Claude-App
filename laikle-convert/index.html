@@ -323,21 +323,27 @@
         <div class="sub-body">
           <h3>画像ダウンロードスクリプトを保存して、ターミナルで実行する</h3>
           <p>
-            「商品画像パス」の画像をEL COMMUN店の画像サーバーから一括取得するスクリプトを生成します。
-            実行すると <code>~/Downloads/laikle_images/</code> に<b>R-Cabinetと同じフォルダ構成のまま</b>保存され、完了するとFinderが自動で開きます。
+            「商品画像パス」の画像をEL COMMUN店の画像サーバーから一括取得するスクリプト（<code>download_laikle_images.txt</code>）を
+            「ダウンロード」フォルダに保存します。ターミナルで実行すると <code>~/Downloads/laikle_images/</code> に
+            <b>R-Cabinetと同じフォルダ構成のまま</b>保存され、完了するとFinderが自動で開きます。
           </p>
           <button class="dl-btn" id="dlImgScriptBtn" onclick="saveImageScript()">💾 画像DLスクリプトを保存する</button>
           <button class="dl-btn ghost" id="dlImgListBtn" onclick="downloadUrlList()">📄 画像URLリスト（txt）</button>
           <div class="cmd-area" id="cmdArea" style="display:none;">
             <div class="cmd-label">ターミナルに貼り付けて Enter：</div>
             <div class="cmd-row">
-              <input class="cmd-text" id="cmdText" readonly value="bash ~/Downloads/download_laikle_images.sh">
+              <input class="cmd-text" id="cmdText" readonly value="bash ~/Downloads/download_laikle_images.txt">
               <button class="copy-btn" id="copyBtn" onclick="copyCmd()">📋 コピー</button>
             </div>
           </div>
           <div class="hint-box" id="hintBox" style="display:none;">
             ターミナルの開き方：<strong>⌘ + スペース</strong> → <code>ターミナル</code> と入力 → Enter<br>
-            上のコマンドを貼り付けて Enter → 完了すると <code>laikle_images</code> フォルダがFinderで自動的に開きます 🎉
+            上のコマンドを貼り付けて Enter → 完了すると <code>laikle_images</code> フォルダがFinderで自動的に開きます 🎉<br>
+            <br>
+            ⚠️ <b>「No such file or directory」と出る場合：</b><br>
+            ・保存時にブラウザの警告（「危険なファイルの可能性…」等）が出たら「<b>保存</b>」「<b>継続</b>」を選んでください<br>
+            ・保存先を選ぶ画面が出た場合は「<b>ダウンロード</b>」フォルダを選んでください<br>
+            ・何度か保存すると <code>download_laikle_images (1).txt</code> のような名前になります。その場合は古いファイルをゴミ箱に入れてから、もう一度保存してください
           </div>
         </div>
       </div>
@@ -842,7 +848,8 @@ function buildImageScript() {
 
 function saveImageScript() {
   if (!IMAGES.length) return;
-  saveBlob(new Blob([buildImageScript()], { type: 'text/plain' }), 'download_laikle_images.sh');
+  // 拡張子は .txt にする（.sh はChrome等が「危険なファイル」として保存をブロックすることがあるため。bashは拡張子に関係なく実行できる）
+  saveBlob(new Blob([buildImageScript()], { type: 'text/plain' }), 'download_laikle_images.txt');
   document.getElementById('cmdArea').style.display = '';
   document.getElementById('hintBox').style.display = '';
   document.getElementById('cmdArea').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
