@@ -126,7 +126,7 @@
   .log-sep{color:#4B5563;border-top:1px solid #374151;margin:4px 0;}
 
   /* 結果 */
-  .result-section{display:none;background:white;border:2px solid var(--green);border-radius:14px;padding:24px 20px;margin:20px 0 36px;text-align:center;box-shadow:0 2px 10px rgba(16,185,129,.12);}
+  .result-section{display:none;background:white;border:2px solid var(--green);border-radius:14px;padding:24px 20px;margin-bottom:18px;text-align:center;box-shadow:0 2px 10px rgba(16,185,129,.12);}
   .result-section.show{display:block;animation:pop .3s cubic-bezier(.4,0,.2,1);}
   @keyframes pop{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
   .result-section h3{color:#065F46;font-size:17px;margin-bottom:16px;}
@@ -182,6 +182,23 @@
   .stat{background:var(--gray-50);border-radius:10px;padding:14px 10px;text-align:center;border:1px solid var(--gray-200);}
   .stat .num{font-size:24px;font-weight:800;color:var(--primary);line-height:1.2;}
   .stat .label{font-size:11px;color:var(--gray-600);margin-top:4px;}
+  .stat.ok{background:var(--green-light);border-color:#6EE7B7;}
+  .stat.ok .num{color:var(--green-dark);}
+  .stat.attn{background:var(--yellow-light);border-color:#FCD34D;}
+  .stat.attn .num{color:var(--yellow-dark);}
+
+  /* 変換もれプレビュー */
+  .leftover-box{margin-top:16px;text-align:left;}
+  .leftover-box.ok{background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:13px 16px;font-size:12.5px;color:#065F46;font-weight:700;}
+  .leftover-box.attn{background:var(--yellow-light);border:1px solid #FCD34D;border-radius:10px;padding:14px 16px;}
+  .lo-head{font-size:12.5px;font-weight:800;color:var(--yellow-dark);margin-bottom:4px;}
+  .lo-desc{font-size:11.5px;color:var(--yellow-dark);line-height:1.7;margin-bottom:10px;}
+  .lo-item{background:white;border:1px solid #FDE68A;border-radius:8px;padding:8px 11px;margin-bottom:7px;}
+  .lo-meta{font-size:11px;color:var(--gray-500);margin-bottom:3px;}
+  .lo-meta b{color:var(--gray-800);}
+  .lo-snip{font-size:11.5px;font-family:'Courier New',monospace;color:var(--gray-800);word-break:break-all;line-height:1.7;background:var(--gray-50);border-radius:5px;padding:5px 8px;}
+  .lo-snip mark{background:#FCA5A5;color:#7F1D1D;font-weight:700;border-radius:3px;padding:0 2px;}
+  .lo-more{font-size:11px;color:var(--gray-500);margin-top:2px;}
 
   footer{text-align:center;font-size:11px;color:var(--gray-400);padding:0 16px 32px;}
 
@@ -407,6 +424,7 @@
     </div>
     <div class="saved-note" id="dlSavedNote" style="text-align:left;"></div>
     <div class="stats-grid" id="statsGrid"></div>
+    <div class="leftover-box" id="leftoverBox"></div>
   </div>
 
   <!-- Step 4: 商品画像の移行 -->
@@ -900,22 +918,61 @@ function collectImages(header, rows, fromSlug) {
 
 // 置換後に残った変換元店舗名の出現をチェック（手動確認用）
 // 説明文内の画像リンク（image.rakuten.co.jp/{from}/…）は意図的に残すため対象外
-function findLeftovers(rows, header, fromSlug, maxReport, imgColSet) {
+// スニペット内でハイライト対象を囲むセンチネル（制御文字）と、それを検出する正規表現
+const LEFTOVER_MARK_RE = new RegExp(String.fromCharCode(1) + '([\\s\\S]*?)' + String.fromCharCode(2), 'g');
+
+function findLeftovers(rows, header, fromSlug, maxReport, imgColSet, fileLabel, codeIdx) {
   const found = [];
   const lower = fromSlug.toLowerCase();
   const reIgnore = new RegExp('image\\.rakuten\\.co\\.jp\\/' + escRe(fromSlug), 'gi');
+  const cIdx = codeIdx == null ? 0 : codeIdx;
   for (let i = 0; i < rows.length && found.length < maxReport; i++) {
     for (let j = 0; j < rows[i].length; j++) {
       const cell = rows[i][j];
       if (!cell) continue;
-      const cleaned = imgColSet.has(j) ? String(cell) : String(cell).replace(reIgnore, '');
-      if (cleaned.toLowerCase().includes(lower)) {
-        found.push({ row: i + 2, col: header[j] || `列${j+1}`, code: rows[i][0] || '' });
+      const orig = String(cell);
+      // 意図的に残す説明文内の画像リンクは判定対象から外す（プレビューでも紛れないよう伏せ字にする）
+      const cleaned = imgColSet.has(j) ? orig : orig.replace(reIgnore, m => ' '.repeat(m.length));
+      const pos = cleaned.toLowerCase().indexOf(lower);
+      if (pos >= 0) {
+        // 該当箇所の前後を抜き出してプレビュー用スニペットを作る
+        const start = Math.max(0, pos - 40);
+        const end = Math.min(orig.length, pos + fromSlug.length + 40);
+        const snippet = (start > 0 ? '…' : '') + orig.slice(start, pos) +
+          '' + orig.slice(pos, pos + fromSlug.length) + '' +
+          orig.slice(pos + fromSlug.length, end) + (end < orig.length ? '…' : '');
+        found.push({ file: fileLabel || '', row: i + 2, col: header[j] || `列${j+1}`, code: rows[i][cIdx] || '', snippet });
         if (found.length >= maxReport) break;
       }
     }
   }
   return found;
+}
+
+// 変換もれのスニペット（センチネルで囲まれた部分）を <mark> でハイライトしてHTML化
+function renderSnippet(snippet) {
+  return esc(snippet).replace(LEFTOVER_MARK_RE, '<mark>$1</mark>');
+}
+
+// 変換もれプレビューを結果セクションに描画（ユーザーが探さなくても中身が見える）
+function renderLeftoverPreview(leftovers, fromSlug) {
+  const box = document.getElementById('leftoverBox');
+  if (!leftovers.length) {
+    box.className = 'leftover-box ok';
+    box.innerHTML = `✅ 変換もれはありません（「${esc(fromSlug)}」が残っている項目は、全店舗共通で使える説明文内の画像リンクなど、そのままで問題ない箇所だけです）。`;
+    return;
+  }
+  box.className = 'leftover-box attn';
+  const items = leftovers.slice(0, 20).map(l => `
+    <div class="lo-item">
+      <div class="lo-meta">📄 <b>${esc(l.file)}</b> ／ ${l.row}行目 ／ 列「${esc(l.col)}」${l.code ? ' ／ 品番 ' + esc(l.code) : ''}</div>
+      <div class="lo-snip">${renderSnippet(l.snippet)}</div>
+    </div>`).join('');
+  box.innerHTML =
+    `<div class="lo-head">⚠️ 変換もれ ${leftovers.length}件（下の箇所に「${esc(fromSlug)}」が残っています）</div>
+     <div class="lo-desc">赤色が残っている「${esc(fromSlug)}」です。カテゴリURLの場合は対応表CSVを更新して再変換、それ以外はダウンロードしたCSVの該当箇所を直接修正してください。</div>
+     ${items}
+     ${leftovers.length > 20 ? `<div class="lo-more">…他 ${leftovers.length - 20}件（先頭20件を表示しています）</div>` : ''}`;
 }
 
 // ========== Step3: 変換実行 ==========
@@ -1011,11 +1068,11 @@ function doConvert() {
   }
 
   // 残存チェック（説明文内の画像リンクは意図的に維持するため対象外）
-  const leftovers = findLeftovers(converted, ih, fromSlug, 20, imgColSet);
+  const leftovers = findLeftovers(converted, ih, fromSlug, 40, imgColSet, 'normal-item.csv');
   if (leftovers.length) {
     log(`⚠️ 置換されずに「${esc(fromSlug)}」が残っている項目があります（対象外のURL形式の可能性）：`, 'log-warn');
     leftovers.forEach(l => log(`　　${l.row}行目 [${esc(l.col)}] ${esc(l.code)}`, 'log-warn'));
-    log('　　→ ダウンロード後、該当箇所を目視で確認してください', 'log-warn');
+    log('　　→ 変換完了後のプレビューで該当箇所を確認できます', 'log-warn');
   }
   logSep();
 
@@ -1033,6 +1090,10 @@ function doConvert() {
     catRows = cRows.length; catUrlN = catCounter.n;
     log(`✅ ${catRows}行を変換（URL・カテゴリURL置換：${catUrlN}箇所）`, 'log-ok');
     log('　　※ 表示先カテゴリはLAIKLE店側に同名カテゴリの事前作成が必要です', 'log-info');
+    // item-cat の変換もれも収集（品番列は「商品管理番号」列を使う）
+    const catCodeIdx = ch.findIndex(h => /商品管理番号/.test(h || ''));
+    const catLeft = findLeftovers(convCat, ch, fromSlug, 40 - leftovers.length, new Set(), 'item-cat.csv', catCodeIdx);
+    leftovers.push(...catLeft);
     logSep();
   } else {
     outCat = null;
@@ -1052,11 +1113,14 @@ function doConvert() {
 
   log('🎉 完了！ダウンロードボタンからCSVを保存し、LAIKLE店のRMSにアップロードしてください。', 'log-ok');
 
+  const leftClass = leftovers.length ? 'stat attn' : 'stat ok';
+  const leftLabel = leftovers.length ? '変換もれ（要確認）' : '変換もれ（なし）';
   document.getElementById('statsGrid').innerHTML =
     `<div class="stat"><div class="num">${itemUnique}</div><div class="label">変換商品数</div></div>
      <div class="stat"><div class="num">${urlCounter.n + imgCounter.n + catUrlN}</div><div class="label">URL置換箇所</div></div>
      <div class="stat"><div class="num">${IMAGES.length}</div><div class="label">商品画像数</div></div>
-     <div class="stat"><div class="num">${leftovers.length}</div><div class="label">要確認箇所</div></div>`;
+     <div class="${leftClass}"><div class="num">${leftovers.length}</div><div class="label">${leftLabel}</div></div>`;
+  renderLeftoverPreview(leftovers, fromSlug);
 
   prepareOutputs();
 
