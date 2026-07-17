@@ -73,15 +73,19 @@ cd apj-auto
 bash setup/setup_mac.sh
 ```
 
-これで以下がすべて行われる:
+これで以下が行われる:
 
 1. Python venv + 依存ライブラリ + Playwright Chromium
 2. `.env` 雛形コピー（→ **認証情報を記入する**）
 3. `~/apj-order/{logs,state,orders}` 作成
-4. launchd 登録（`~/Library/LaunchAgents/jp.co.elcommun.apj-order.plist`、平日15:00）
-5. `sudo pmset repeat wakeorpoweron MTWRF 14:58:00`（平日14:58に自動スリープ解除）
 
-### スリープ対策（要件 §2）
+> **平日15:00の定時実行はセットアップでは登録されない。**
+> まず「ログイン〜発注書生成」の動作確認（下記）を完了させてから
+> `bash setup/enable_schedule.sh` で有効化する。
+> 停止（登録解除）は `bash setup/disable_schedule.sh`。
+> 過去のセットアップで登録済みの場合も setup_mac.sh の再実行で停止される。
+
+### スリープ対策（要件 §2、enable_schedule.sh 実行後に有効）
 
 - pmset で 14:58 に自動復帰 → 15:00 の launchd が正常発火
 - launchd の `StartCalendarInterval` はスリープ中に発火時刻を過ぎた場合、
@@ -109,20 +113,39 @@ bash setup/setup_mac.sh
 GoQ の画面構成は契約・カスタマイズで異なるため、
 **`apj_auto/goq.py` 冒頭の `SELECTORS` は実画面で必ず検証すること。**
 
-```bash
-# 1. ログイン〜一覧画面のスクショ/HTMLを保存（GoQを操作しない）
-venv/bin/python run_apj_order.py --inspect
-#    → ~/apj-order/logs/<日付>/ の goq_inspect_list.png / .html を確認し
-#      SELECTORS のセレクタを実DOMに合わせて修正
+### 段階1: ログイン〜発注書生成の確立（← まずここを完成させる）
 
-# 2. 取得〜xlsx生成まで（メール送信・GoQ更新なし）
+`.env` は `GOQ_USER_ID` / `GOQ_PASSWORD`（必要なら `GOQ_SHOP_ID` /
+`GOQ_CSV_TEMPLATE`）だけ記入すればよい。SMTP・宛先は段階2まで不要。
+
+```bash
+# 1-1. ログイン画面〜一覧画面のスクショ/HTMLを保存（GoQのデータは変更しない）
+venv/bin/python run_apj_order.py --inspect
+#    → ~/apj-order/logs/<日付>/ に保存される:
+#       goq_inspect_login*.png / .html   … ログイン画面（ログイン失敗時も残る）
+#       goq_inspect_list.png / .html     … ログイン成功時の受注一覧(stat=23)
+#    → これを見て SELECTORS を実DOMに合わせて修正
+#      （ファイルをClaude Codeセッションに共有すれば修正を依頼できる）
+
+# 1-2. ログイン → 注文取得 → CSV → 発注書xlsx生成（メール送信・GoQ更新なし）
 venv/bin/python run_apj_order.py --dry-run --force
 #    → ~/apj-order/orders/APJ発注書_YYYYMMDD.xlsx を目視確認
+#    → apj-order-app の出力と同一になるはず（実データ検証済み）
 
-# 3. 監視付き本実行（ブラウザ表示: .env で GOQ_HEADLESS=false）
+# うまく動かない場合はブラウザ画面を表示して確認: .env で GOQ_HEADLESS=false
+```
+
+### 段階2: メール送信・GoQ更新・定時実行（段階1完了後）
+
+```bash
+# 2-1. .env に SMTP / MAIL_TO 等を記入して本実行
+#      （APJ_CONFIRM_MODE=true なら社内確認メール→ --approve で本送信）
 venv/bin/python run_apj_order.py --force
 
-# 4. launchd 経由のテスト起動
+# 2-2. 定時実行（平日15:00）を有効化
+bash setup/enable_schedule.sh
+
+# 2-3. launchd 経由のテスト起動
 launchctl start jp.co.elcommun.apj-order
 ```
 
@@ -148,7 +171,9 @@ apj-auto/
     mailer.py             SMTP送信（発注メール定型文・エラー通知）
   tests/test_transform.py 変換・xlsx・営業日・stateのテスト
   setup/
-    setup_mac.sh          初回セットアップ（venv/launchd/pmset）
+    setup_mac.sh          初回セットアップ（venv/.env/作業フォルダ。定時実行は登録しない）
+    enable_schedule.sh    定時実行の有効化（launchd/pmset、段階1完了後に実行）
+    disable_schedule.sh   定時実行の停止・登録解除
     jp.co.elcommun.apj-order.plist
   .env.example            設定雛形（.env にコピーして記入）
 ```

@@ -9,8 +9,11 @@
 #   1. Python venv 作成 + 依存ライブラリ + Playwright Chromium インストール
 #   2. .env の雛形コピー（未作成時）
 #   3. 作業フォルダ ~/apj-order/{logs,state,orders} 作成
-#   4. launchd plist をインストール（平日15:00起動）
-#   5. pmset で平日14:58の自動スリープ解除を設定（要 sudo・パスワード入力あり）
+#
+# ※ 平日15:00の定時実行はこのスクリプトでは登録しない。
+#   「ログイン〜発注書生成」の動作確認が完了してから
+#   bash setup/enable_schedule.sh で有効化すること。
+#   （停止は bash setup/disable_schedule.sh）
 
 set -euo pipefail
 
@@ -43,30 +46,21 @@ fi
 mkdir -p "$HOME/apj-order/logs" "$HOME/apj-order/state" "$HOME/apj-order/orders"
 echo "✅ 作業フォルダ: ~/apj-order/"
 
-# 4. launchd plist（パス置換してインストール）
-mkdir -p "$HOME/Library/LaunchAgents"
-sed -e "s|__APJ_DIR__|$APJ_DIR|g" -e "s|__HOME__|$HOME|g" \
-  "$APJ_DIR/setup/$PLIST_LABEL.plist" > "$PLIST_DST"
-launchctl unload "$PLIST_DST" 2>/dev/null || true
-launchctl load "$PLIST_DST"
-echo "✅ launchd 登録: 平日15:00 に自動実行 ($PLIST_DST)"
-
-# 5. pmset: 平日14:58に自動スリープ解除（要 sudo）
-echo ""
-echo "平日14:58の自動スリープ解除を設定します（sudoパスワードが必要）..."
-if sudo pmset repeat wakeorpoweron MTWRF 14:58:00; then
-  echo "✅ pmset 設定完了（確認: pmset -g sched）"
-else
-  echo "⚠️  pmset の設定に失敗しました。後で手動で実行してください:"
-  echo "    sudo pmset repeat wakeorpoweron MTWRF 14:58:00"
+# 定時実行が過去のセットアップで登録済みの場合は停止しておく
+if [ -f "$PLIST_DST" ]; then
+  launchctl unload "$PLIST_DST" 2>/dev/null || true
+  echo "ℹ️  既存の定時実行(launchd)を停止しました。再開は setup/enable_schedule.sh"
 fi
 
 echo ""
-echo "== セットアップ完了 =="
+echo "== セットアップ完了（定時実行は未登録） =="
 echo "次の手順:"
-echo "  1. $APJ_DIR/.env に GoQ / SMTP / 宛先 を記入"
+echo "  1. $APJ_DIR/.env に GoQ のログイン情報を記入（まずは GOQ_* だけでOK）"
 echo "  2. セレクタ確認:  venv/bin/python run_apj_order.py --inspect"
 echo "     → ~/apj-order/logs/ のスクショ/HTMLを見て apj_auto/goq.py の SELECTORS を調整"
-echo "  3. テスト実行:    venv/bin/python run_apj_order.py --dry-run --force"
-echo "  4. 手動本実行:    venv/bin/python run_apj_order.py --force"
-echo "  5. 定時実行テスト: launchctl start $PLIST_LABEL"
+echo "  3. 発注書生成テスト: venv/bin/python run_apj_order.py --dry-run --force"
+echo "     → ~/apj-order/orders/APJ発注書_YYYYMMDD.xlsx を確認"
+echo ""
+echo "ここまで確立できたら（メール・GoQ更新・定時実行はその後）:"
+echo "  4. .env に SMTP / 宛先 を記入して手動本実行: venv/bin/python run_apj_order.py --force"
+echo "  5. 定時実行の有効化: bash setup/enable_schedule.sh"
