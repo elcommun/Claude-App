@@ -40,9 +40,23 @@
   .flow-proc .big{font-size:20px;}
   .flow-out{background:var(--green-light);border:1px solid #6EE7B7;color:#065F46;border-radius:8px;padding:7px 10px;font-size:11.5px;font-weight:600;display:flex;align-items:center;gap:6px;line-height:1.4;}
 
-  .purpose-points{list-style:none;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--gray-600);line-height:1.7;}
-  .purpose-points li{display:flex;gap:8px;align-items:flex-start;}
-  .purpose-points li::before{content:'✓';color:var(--green-dark);font-weight:bold;flex-shrink:0;}
+  /* 変換ルールカード */
+  .rule-title{font-size:13px;font-weight:800;color:var(--gray-800);margin:18px 0 10px;display:flex;align-items:center;gap:6px;}
+  .rule-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .rule-card{border:1px solid var(--gray-200);border-radius:10px;padding:12px 14px;background:var(--gray-50);}
+  .rc-head{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:700;margin-bottom:6px;}
+  .rc-tag{margin-left:auto;font-size:10px;font-weight:700;border-radius:999px;padding:2.5px 9px;white-space:nowrap;flex-shrink:0;}
+  .rc-tag.conv{background:var(--primary-light);color:var(--primary-dark);border:1px solid #FDBA9F;}
+  .rc-tag.keep{background:var(--green-light);color:#065F46;border:1px solid #6EE7B7;}
+  .rule-card p{font-size:11.5px;color:var(--gray-600);line-height:1.8;}
+
+  /* 作業の流れストリップ */
+  .work-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .work-step{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:11px 12px;display:flex;flex-direction:column;gap:5px;}
+  .ws-num{width:22px;height:22px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;flex-shrink:0;}
+  .ws-title{font-size:12px;font-weight:700;line-height:1.5;}
+  .ws-desc{font-size:10.5px;color:var(--gray-500);line-height:1.6;}
+  .purpose-note{font-size:11px;color:var(--gray-400);margin-top:12px;line-height:1.8;}
 
   /* 注意ボックス */
   .warn-box{background:var(--yellow-light);border:1px solid #FCD34D;border-radius:8px;padding:11px 15px;font-size:12px;color:var(--yellow-dark);line-height:2;margin-top:14px;}
@@ -145,6 +159,8 @@
     .flow-arrow{transform:rotate(90deg);padding:2px 0;}
     .setting-row{grid-template-columns:1fr;}
     .setting-arrow{display:none;}
+    .rule-cards{grid-template-columns:1fr;}
+    .work-steps{grid-template-columns:repeat(2,1fr);}
     header{padding:12px 16px;}
     header h1{font-size:15px;}
     .badge{display:none;}
@@ -167,10 +183,8 @@
   <div class="purpose">
     <div class="purpose-title">🎯 このアプリでできること</div>
     <p class="purpose-lead">
-      楽天市場「EL COMMUN online shop」店のRMSからダウンロードした商品CSV（dl-normal-item / dl-item-cat）を、
-      <strong>楽天市場「LAIKLE」店にそのままアップロードできる商品CSVに変換</strong>するツールです。
-      商品ページURL・GOLDページURLなどの店舗URL（<code>elcommun</code>）を LAIKLE 店のURL（<code>laikle</code>）に書き換え、
-      店舗ごとの登録が必要な<strong>商品画像の一括ダウンロード → LAIKLE店R-Cabinetへのアップロードまでの工程をサポート</strong>します。
+      「EL COMMUN online shop」店の商品CSVを、<strong>「LAIKLE」店にそのままアップロードできるCSVに変換</strong>するツールです。
+      リンクの書き換えから商品画像の引っ越しまで、店舗コピーに必要な作業をこの画面ひとつで進められます。
     </p>
     <div class="flow">
       <div class="flow-col">
@@ -188,16 +202,57 @@
         <div class="flow-out">🖼️ 商品画像DLスクリプト（R-Cabinet移行用）</div>
       </div>
     </div>
-    <ul class="purpose-points">
-      <li><b>商品画像（商品画像パス／商品画像URLの列）</b>：店舗ごとにR-Cabinet登録が必要なため、URLの店舗名部分を <code>laikle</code> に置換し、元画像を一括ダウンロードするスクリプトを生成します（フォルダ構成・ファイル名そのままで保存されるので、Cyberduck等でLAIKLE店のR-Cabinetにアップすればそのまま表示されます）</li>
-      <li><b>説明文内の画像リンク（s-image- など）</b>：「PC用商品説明文」「スマートフォン用商品説明文」「PC用販売説明文」などに埋め込まれた画像リンクは、どの店舗からでもそのまま表示できるため<b>置換せず維持</b>します</li>
-      <li>商品ページURL（item.rakuten.co.jp）・GOLDページURL（rakuten.ne.jp/gold）・店舗トップURL（www.rakuten.co.jp）の店舗名部分は置換します</li>
-      <li><b>カテゴリページURL（…/c/カテゴリID/）</b>：店舗ごとにIDが異なるため、内蔵のカテゴリURL対応表でLAIKLE店の対応IDに変換します（normal-item / item-cat 両方）。対応表にないURLは変換せず残してログで報告します</li>
-      <li>新店舗で誤って即公開されないよう、倉庫指定（非公開）での登録もワンクリックで設定できます</li>
-      <li>ヘッダー行・列の並び・文字コード（Shift_JIS / UTF-8）は元ファイルのまま維持されます</li>
-    </ul>
+    <div class="rule-title">🔁 リンクと画像は、種類ごとに正しく変換されます</div>
+    <div class="rule-cards">
+      <div class="rule-card">
+        <div class="rc-head">🛒 商品・店舗ページのリンク<span class="rc-tag conv">変換する</span></div>
+        <p>商品ページ・GOLDページ・店舗トップのURLの店舗名を <code>elcommun</code> → <code>laikle</code> に書き換えます。</p>
+      </div>
+      <div class="rule-card">
+        <div class="rc-head">🏷️ カテゴリページのリンク<span class="rc-tag conv">対応表で変換</span></div>
+        <p>「…/c/カテゴリID/」は店舗ごとにIDが異なるため、内蔵の対応表（180件）でLAIKLE店のIDに変換。表にないものは変換せず、ログでお知らせします。</p>
+      </div>
+      <div class="rule-card">
+        <div class="rc-head">🖼️ 商品画像<span class="rc-tag conv">変換＋画像も移行</span></div>
+        <p>画像URLをLAIKLE店向けに書き換えます。画像ファイル本体は STEP 4 でダウンロードして、LAIKLE店のR-Cabinetへアップロードします。</p>
+      </div>
+      <div class="rule-card">
+        <div class="rc-head">📝 説明文の中の画像<span class="rc-tag keep">そのまま</span></div>
+        <p>説明文に埋め込まれた画像リンク（s-image- など）は、どの店舗からでも表示できるため変換しません。画像のアップロードも不要です。</p>
+      </div>
+    </div>
+
+    <div class="rule-title">📋 作業の流れ（4ステップ）</div>
+    <div class="work-steps">
+      <div class="work-step">
+        <div class="ws-num">1</div>
+        <div class="ws-title">CSVを読み込んで変換</div>
+        <div class="ws-desc">STEP 1〜3。変換後のCSVをダウンロード</div>
+      </div>
+      <div class="work-step">
+        <div class="ws-num">2</div>
+        <div class="ws-title">商品画像をダウンロード</div>
+        <div class="ws-desc">STEP 4-①。ターミナルで実行するだけ</div>
+      </div>
+      <div class="work-step">
+        <div class="ws-num">3</div>
+        <div class="ws-title">画像をR-Cabinetへ</div>
+        <div class="ws-desc">STEP 4-②。CyberduckでLAIKLE店にアップ</div>
+      </div>
+      <div class="work-step">
+        <div class="ws-num">4</div>
+        <div class="ws-title">CSVをRMSへアップ</div>
+        <div class="ws-desc">STEP 4-③。画像より後にアップすること</div>
+      </div>
+    </div>
+
     <div class="warn-box">
-      ⚠️ <strong>作業の順番：</strong>変換後のCSVをLAIKLE店にアップロードする<b>前に</b>、STEP 4 の手順で<strong>商品画像をダウンロードし、LAIKLE店のR-CabinetにCyberduck等で同じフォルダ構成のままアップロード</strong>しておいてください（例：<code>biiino/item/main-image-〜</code>）。また、dl-item-cat を使う場合は、LAIKLE店側に同じ<strong>表示先カテゴリ</strong>を先に作成しておく必要があります。
+      ⚠️ <strong>先に画像、後からCSV。</strong>CSVを先にアップすると、画像が未登録のため商品ページの画像が表示されません。
+      また、dl-item-cat を使う場合は、LAIKLE店側に同じ<strong>表示先カテゴリ</strong>を先に作成しておいてください。
+    </div>
+    <div class="purpose-note">
+      ✓ 倉庫指定（非公開）・在庫数0での登録が標準なので、誤って即公開される心配はありません<br>
+      ✓ 列の並び・文字コード（Shift_JIS / UTF-8）は元ファイルのまま維持されます
     </div>
   </div>
 
