@@ -167,6 +167,11 @@
   .sub-body{flex:1;min-width:0;}
   .sub-body h3{font-size:13.5px;font-weight:700;margin-bottom:4px;}
   .sub-body p{font-size:12px;color:var(--gray-600);line-height:1.9;margin-bottom:8px;}
+  .up-list{list-style:none;display:flex;flex-direction:column;gap:8px;margin:0 0 10px;}
+  .up-list li{display:flex;gap:10px;align-items:flex-start;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:9px 12px;font-size:12px;line-height:1.7;color:var(--gray-600);}
+  .up-list .up-file{font-family:'Courier New',monospace;font-weight:700;color:var(--gray-800);background:white;border:1px solid var(--gray-300);border-radius:5px;padding:1px 7px;white-space:nowrap;flex-shrink:0;}
+  .up-list .up-where b{color:var(--gray-800);}
+  .up-note{font-size:11px;color:var(--gray-500);line-height:1.7;margin-bottom:8px;}
   .folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;margin:10px 0 4px;}
   .folder-item{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:8px;padding:7px 10px;font-size:12px;color:#1E40AF;display:flex;justify-content:space-between;align-items:center;gap:6px;min-width:0;}
   .folder-item .fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -494,10 +499,18 @@
         <div class="sub-num">③</div>
         <div class="sub-body">
           <h3>変換済みCSVを LAIKLE店のRMS にアップロードする</h3>
-          <p>
-            画像のアップロードが済んだら、STEP 3 でダウンロードしたCSV（ZIPの場合はダブルクリックで展開した <code>LAIKLE_csv</code> フォルダ内の <code>normal-item.csv</code> ／ <code>item-cat.csv</code>）を
-            LAIKLE店のRMS「商品一括編集」からアップロードして完了です。
-          </p>
+          <p class="up-note">画像のアップロード（②）が済んでから行ってください。使うCSVは、ZIPをダブルクリックで展開した <code>LAIKLE_csv</code> フォルダ内の2ファイルです。</p>
+          <ul class="up-list">
+            <li>
+              <span class="up-file">normal-item.csv</span>
+              <span class="up-where">LAIKLE店RMS ▶ <b>商品一括編集・登録（CSV）</b> からアップロード</span>
+            </li>
+            <li>
+              <span class="up-file">item-cat.csv</span>
+              <span class="up-where">LAIKLE店RMS ▶ <b>カテゴリ一括編集・登録（CSV）</b> からアップロード（表示先カテゴリの設定）</span>
+            </li>
+          </ul>
+          <p class="up-note">※ アップロード後、LAIKLE店で商品ページの表示・画像・カテゴリを確認し、問題なければ倉庫指定を解除して公開してください。</p>
           <button class="done-btn" onclick="completeSubStep(3)">✓ CSVをアップロードしたら、ここを押して完了</button>
         </div>
       </div>
