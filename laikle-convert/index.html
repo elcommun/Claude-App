@@ -98,9 +98,18 @@
   .upload-zone p{font-size:13.5px;color:var(--gray-600);margin-bottom:3px;font-weight:700;}
   .upload-zone small{font-size:11px;color:var(--gray-400);}
   .opt-tag{font-size:10px;color:var(--primary);font-weight:normal;}
-  .file-status{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:8px;margin-top:10px;font-size:12px;line-height:1.8;}
+  .file-status{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;border-radius:8px;margin-top:10px;font-size:12px;line-height:1.8;word-break:break-word;}
   .file-status.ok{background:var(--green-light);color:#065F46;}
   .file-status.err{background:var(--red-light);color:#991B1B;}
+
+  /* 読み込み完了サマリー */
+  .file-loaded{background:var(--green-light);border:1px solid #6EE7B7;color:#065F46;border-radius:8px;padding:11px 14px;margin-top:10px;font-size:12px;line-height:1.7;}
+  .fl-name{font-weight:700;display:flex;align-items:center;gap:7px;flex-wrap:wrap;word-break:break-all;}
+  .fl-enc{font-size:10.5px;font-weight:normal;color:var(--green-dark);background:white;border:1px solid #6EE7B7;border-radius:999px;padding:1px 9px;white-space:nowrap;flex-shrink:0;}
+  .fl-stats{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap;}
+  .fl-chip{background:white;border:1px solid #6EE7B7;border-radius:999px;padding:2px 11px;font-size:11px;font-weight:700;white-space:nowrap;}
+  .fl-note{margin-top:7px;font-size:11px;color:#047857;line-height:1.7;}
+  .fl-note.warn{color:var(--yellow-dark);}
   .col2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 
   /* 実行ボタン */
@@ -547,6 +556,44 @@ function parseCsv(text) {
   return rows;
 }
 
+// 大きいCSV用の分割パーサー。一定量ごとに処理を区切って進捗を通知し、
+// 解析中もブラウザが固まらないようにする
+function parseCsvAsync(text, onProgress) {
+  return new Promise(resolve => {
+    const rows = [];
+    let row = [], cur = '', inQ = false;
+    let i = 0;
+    const len = text.length;
+    const CHUNK = 1000000; // 1回あたり約100万文字
+    function step() {
+      const end = Math.min(i + CHUNK, len);
+      for (; i < end; i++) {
+        const c = text[i];
+        if (inQ) {
+          if (c === '"' && text[i+1] === '"') { cur += '"'; i++; }
+          else if (c === '"') { inQ = false; }
+          else { cur += c; }
+        } else {
+          if      (c === '"')  { inQ = true; }
+          else if (c === ',')  { row.push(cur); cur = ''; }
+          else if (c === '\r') { /* skip */ }
+          else if (c === '\n') { row.push(cur); cur = ''; rows.push(row); row = []; }
+          else { cur += c; }
+        }
+      }
+      if (i < len) {
+        if (onProgress) onProgress(i / len);
+        setTimeout(step, 0);
+      } else {
+        if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+        while (rows.length && rows[rows.length-1].every(c => c === '')) rows.pop();
+        resolve(rows);
+      }
+    }
+    step();
+  });
+}
+
 // ========== CSV シリアライザー ==========
 function serializeCsv(rows) {
   return rows.map(row =>
@@ -564,6 +611,11 @@ function setStatus(id, ok, html) {
   document.getElementById(id).innerHTML =
     `<div class="file-status ${ok ? 'ok' : 'err'}">${ok ? '✅' : '❌'} ${html}</div>`;
 }
+function setStatusLoading(id, html) {
+  document.getElementById(id).innerHTML =
+    `<div class="file-status" style="background:var(--blue-light);color:var(--blue-dark);">⏳ ${html}</div>`;
+}
+function fmtMB(bytes) { return (bytes / 1048576).toFixed(1) + ' MB'; }
 function setBadge(id, state, text) {
   const b = document.getElementById(id);
   if (!b) return;
@@ -621,8 +673,13 @@ function detectFromSlug(text) {
 // ========== Step2a: dl-normal-item 読込 ==========
 async function loadItem(file) {
   try {
+    // 選択した瞬間にまず「読み込み中」を表示（大きいCSVでも無反応に見えないように）
+    setBadge('badgeItem', '', '読込中...');
+    setZone('zoneItem', false);
+    setStatusLoading('statusItem', `${esc(file.name)}（${fmtMB(file.size)}）を読み込み中...`);
     const { text, encoding, bom } = await readFileAuto(file);
-    const rows = parseCsv(text);
+    const rows = await parseCsvAsync(text, p =>
+      setStatusLoading('statusItem', `${esc(file.name)} を解析中... <strong>${Math.round(p * 100)}%</strong>`));
     if (rows.length < 2) throw new Error('データ行がありません');
     const keyColName = (rows[0][0] || '').trim();
     if (!/商品管理番号/.test(keyColName)) {
@@ -632,22 +689,31 @@ async function loadItem(file) {
     const uniqueCodes = new Set(dataRows.map(r => (r[0] || '').trim()).filter(c => c));
     rawItem = { headerRow: rows[0], dataRows, encoding, bom, filename: file.name };
 
-    // 店舗URLの自動検出
+    // 店舗URLの自動検出（先頭部分のスキャンで十分）
     let detectNote = '';
-    const det = detectFromSlug(text);
+    let warnNote = '';
+    const det = detectFromSlug(text.slice(0, 500000));
     if (det) {
       const input = document.getElementById('fromSlug');
       if (input.value.trim().toLowerCase() !== det.slug) {
         input.value = det.slug;
-        detectNote = `<br>店舗URLを自動検出：<strong>${esc(det.slug)}</strong>（STEP 1 の変換元に反映しました）`;
+        detectNote = `🏪 店舗URLを自動検出：<strong>${esc(det.slug)}</strong>（STEP 1 に反映しました）`;
       } else {
-        detectNote = `<br>店舗URL検出：<strong>${esc(det.slug)}</strong>（STEP 1 の設定と一致）`;
+        detectNote = `🏪 店舗URL：<strong>${esc(det.slug)}</strong>（STEP 1 の設定と一致）`;
       }
-      if (det.others.length) detectNote += `<br>⚠️ 他店舗のURLも含まれています：${det.others.map(esc).join('、')}`;
+      if (det.others.length) warnNote = `⚠️ 他店舗のURLも含まれています：${det.others.map(esc).join('、')}`;
     }
 
-    setStatus('statusItem', true,
-      `読み込み完了：データ <strong>${dataRows.length}行</strong> / <strong>${uniqueCodes.size}商品</strong>（${encoding}）${detectNote}`);
+    document.getElementById('statusItem').innerHTML =
+      `<div class="file-loaded">
+        <div class="fl-name">✅ ${esc(file.name)}<span class="fl-enc">${encoding}・${fmtMB(file.size)}</span></div>
+        <div class="fl-stats">
+          <span class="fl-chip">📋 ${dataRows.length.toLocaleString()}行</span>
+          <span class="fl-chip">📦 ${uniqueCodes.size.toLocaleString()}商品</span>
+        </div>
+        ${detectNote ? `<div class="fl-note">${detectNote}</div>` : ''}
+        ${warnNote ? `<div class="fl-note warn">${warnNote}</div>` : ''}
+      </div>`;
     setBadge('badgeItem', 'done', '✓ 読込済');
     setZone('zoneItem', true);
     checkReady();
@@ -662,8 +728,11 @@ async function loadItem(file) {
 // ========== Step2b: dl-item-cat 読込 ==========
 async function loadCat(file) {
   try {
+    setZone('zoneCat', false);
+    setStatusLoading('statusCat', `${esc(file.name)}（${fmtMB(file.size)}）を読み込み中...`);
     const { text, encoding, bom } = await readFileAuto(file);
-    const rows = parseCsv(text);
+    const rows = await parseCsvAsync(text, p =>
+      setStatusLoading('statusCat', `${esc(file.name)} を解析中... <strong>${Math.round(p * 100)}%</strong>`));
     if (rows.length < 2) throw new Error('データ行がありません');
     const dataRows = rows.slice(1);
     const keyIdx = rows[0].findIndex(h => /商品管理番号/.test(h || ''));
@@ -671,8 +740,14 @@ async function loadCat(file) {
       ? new Set(dataRows.map(r => (r[keyIdx] || '').trim()).filter(c => c))
       : new Set();
     rawCat = { headerRow: rows[0], dataRows, encoding, bom, filename: file.name };
-    setStatus('statusCat', true,
-      `読み込み完了：データ <strong>${dataRows.length}行</strong>${uniqueCodes.size ? ` / <strong>${uniqueCodes.size}商品</strong>` : ''}（${encoding}）`);
+    document.getElementById('statusCat').innerHTML =
+      `<div class="file-loaded">
+        <div class="fl-name">✅ ${esc(file.name)}<span class="fl-enc">${encoding}・${fmtMB(file.size)}</span></div>
+        <div class="fl-stats">
+          <span class="fl-chip">🗂️ ${dataRows.length.toLocaleString()}行</span>
+          ${uniqueCodes.size ? `<span class="fl-chip">📦 ${uniqueCodes.size.toLocaleString()}商品</span>` : ''}
+        </div>
+      </div>`;
     setZone('zoneCat', true);
     checkReady();
   } catch(e) {
