@@ -401,8 +401,9 @@
   <div class="result-section" id="resultSection">
     <h3>✅ 変換完了！</h3>
     <div>
-      <button class="dl-btn" id="dlItemBtn" onclick="downloadFile('item')" disabled>⬇️ normal-item（LAIKLE用）をダウンロード</button>
-      <button class="dl-btn" id="dlCatBtn"  onclick="downloadFile('cat')"  disabled>⬇️ item-cat（LAIKLE用）をダウンロード</button>
+      <button class="dl-btn" id="dlZipBtn" onclick="downloadPrepared('zip')" style="display:none;">⬇️ 変換済みCSVをダウンロード（2ファイル・ZIP）</button>
+      <button class="dl-btn" id="dlItemBtn" onclick="downloadPrepared('item')" disabled>⬇️ normal-item（LAIKLE用）をダウンロード</button>
+      <button class="dl-btn" id="dlCatBtn"  onclick="downloadPrepared('cat')"  disabled style="display:none;">⬇️ item-cat（LAIKLE用）をダウンロード</button>
     </div>
     <div class="saved-note" id="dlSavedNote" style="text-align:left;"></div>
     <div class="stats-grid" id="statsGrid"></div>
@@ -436,8 +437,7 @@
           <button class="dl-btn" id="dlImgScriptBtn" onclick="saveImageScript()">💾 画像DLスクリプトを保存する</button>
           <button class="dl-btn ghost" id="dlImgListBtn" onclick="downloadUrlList()" title="全画像のURLを一覧で確認したいときだけ使います">📄 画像URLの一覧（確認用・通常は不要）</button>
           <div class="saved-note" id="scriptSavedNote">
-            ✅ <code>download_laikle_images.txt</code> を保存しました。次に下のコマンドをターミナルで実行してください。<br>
-            ※ 保存されない場合：アドレスバー右の🚫マークから「<b>許可</b>」を選んでから、もう一度ボタンを押してください（複数ファイルのダウンロードがブロックされていることがあります）
+            ✅ <code>download_laikle_images.txt</code> を保存しました。次に下のコマンドをターミナルで実行してください。
           </div>
           <div class="saved-note" id="urlListSavedNote">✅ <code>image-url-list.txt</code> を保存しました（ダウンロードフォルダをご確認ください）</div>
           <div class="cmd-area" id="cmdArea" style="display:none;">
@@ -477,7 +477,7 @@
         <div class="sub-body">
           <h3>変換済みCSVを LAIKLE店のRMS にアップロードする</h3>
           <p>
-            画像のアップロードが済んだら、STEP 3 でダウンロードした <code>normal-item_LAIKLE.csv</code> ／ <code>item-cat_LAIKLE.csv</code> を
+            画像のアップロードが済んだら、STEP 3 でダウンロードしたCSV（ZIPの場合はダブルクリックで展開した中の <code>normal-item_LAIKLE.csv</code> ／ <code>item-cat_LAIKLE.csv</code>）を
             LAIKLE店のRMS「商品一括編集」からアップロードして完了です。
           </p>
           <button class="done-btn" onclick="completeSubStep(3)">✓ CSVをアップロードしたら、ここを押して完了</button>
@@ -928,9 +928,10 @@ function doConvert() {
   setBadge('badgeRun', '', '実行中...');
   [1, 2, 3].forEach(n => document.getElementById('subStep' + n).classList.remove('done'));
   ['scriptSavedNote', 'urlListSavedNote', 'allDone', 'dlSavedNote'].forEach(id => document.getElementById(id).style.display = 'none');
+  PREPARED = null;
   document.getElementById('dlItemBtn').disabled = true;
   document.getElementById('dlCatBtn').disabled  = true;
-  document.getElementById('dlCatBtn').style.display = rawCat ? 'inline-flex' : 'none';
+  document.getElementById('dlZipBtn').style.display = 'none';
 
   const fromSlug = document.getElementById('fromSlug').value.trim();
   const toSlug   = document.getElementById('toSlug').value.trim();
@@ -1057,8 +1058,7 @@ function doConvert() {
      <div class="stat"><div class="num">${IMAGES.length}</div><div class="label">商品画像数</div></div>
      <div class="stat"><div class="num">${leftovers.length}</div><div class="label">要確認箇所</div></div>`;
 
-  document.getElementById('dlItemBtn').disabled = false;
-  if (rawCat) document.getElementById('dlCatBtn').disabled = false;
+  prepareOutputs();
 
   // STEP 4: 商品画像の移行
   document.getElementById('step4Card').style.display = IMAGES.length ? '' : 'none';
@@ -1089,6 +1089,9 @@ function doConvert() {
 const encScript = document.createElement('script');
 encScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.0.0/encoding.min.js';
 document.head.appendChild(encScript);
+const zipScript = document.createElement('script');
+zipScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+document.head.appendChild(zipScript);
 
 function saveBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -1098,40 +1101,57 @@ function saveBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
-function downloadFile(type) {
-  const data = type === 'item' ? rawItem : rawCat;
-  const rows = type === 'item' ? outItem : outCat;
-  if (!rows || !data) return;
+// 変換時に用意しておいたファイルを保存するだけ（クリック時の重い処理をなくし、
+// ZIP1ファイルにまとめることでブラウザの連続ダウンロード制限も回避する）
+let PREPARED = null;
 
-  const note = document.getElementById('dlSavedNote');
-  try {
-    const csvText  = serializeCsv(rows);
-    // ファイル名は半角英数にする（日本語・全角入りの名前はブラウザによって「download」という名前になり、
-    // 保存されていないように見えてしまうため）
-    const filename = type === 'item' ? 'normal-item_LAIKLE.csv' : 'item-cat_LAIKLE.csv';
-
-    // Blob方式でダウンロード（data URIはブラウザのサイズ上限で大きいCSVが無反応になるため）
-    let blob;
-    if (data.encoding === 'Shift_JIS' && window.Encoding) {
-      const unicode = Encoding.stringToCode(csvText);
-      const sjis    = Encoding.convert(unicode, { to: 'SJIS', from: 'UNICODE' });
-      blob = new Blob([new Uint8Array(sjis)], { type: 'text/csv' });
-    } else {
-      const bom = data.bom ? '\uFEFF' : '';
-      blob = new Blob([bom + csvText], { type: 'text/csv;charset=utf-8' });
-    }
-
-    saveBlob(blob, filename);
-    note.style.display = 'block';
-    note.style.color = '';
-    note.innerHTML =
-      `✅ <code>${filename}</code> を保存しました。ダウンロードフォルダをご確認ください。<br>` +
-      `※ 見つからない場合：アドレスバー右の🚫マークから「<b>許可</b>」を選び、もう一度ボタンを押してください（複数ファイルのダウンロードがブロックされていることがあります）`;
-  } catch (e) {
-    note.style.display = 'block';
-    note.style.color = '#991B1B';
-    note.textContent = '❌ 保存に失敗しました：' + e.message + '（ページを再読み込みして再度お試しください）';
+function makeCsvBlob(rows, data) {
+  const csvText = serializeCsv(rows);
+  if (data.encoding === 'Shift_JIS' && window.Encoding) {
+    const unicode = Encoding.stringToCode(csvText);
+    const sjis    = Encoding.convert(unicode, { to: 'SJIS', from: 'UNICODE' });
+    return new Blob([new Uint8Array(sjis)], { type: 'text/csv' });
   }
+  const bom = data.bom ? '\uFEFF' : '';
+  return new Blob([bom + csvText], { type: 'text/csv;charset=utf-8' });
+}
+
+// 変換完了時に呼ばれ、ダウンロード用のBlob（とZIP）を用意してボタンを切り替える
+async function prepareOutputs() {
+  PREPARED = {
+    item: makeCsvBlob(outItem, rawItem),
+    cat:  outCat ? makeCsvBlob(outCat, rawCat) : null,
+    zip:  null
+  };
+  if (PREPARED.cat && window.JSZip) {
+    try {
+      const zip = new JSZip();
+      zip.file('normal-item_LAIKLE.csv', PREPARED.item);
+      zip.file('item-cat_LAIKLE.csv', PREPARED.cat);
+      PREPARED.zip = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+    } catch (e) { PREPARED.zip = null; }
+  }
+  // 2ファイルあるときはZIP1本にまとめる（1回のダウンロードで済む）。ZIPが作れない場合は個別ボタン
+  const useZip = !!PREPARED.zip;
+  document.getElementById('dlZipBtn').style.display  = useZip ? 'inline-flex' : 'none';
+  document.getElementById('dlItemBtn').style.display = useZip ? 'none' : 'inline-flex';
+  document.getElementById('dlItemBtn').disabled = false;
+  const catBtn = document.getElementById('dlCatBtn');
+  catBtn.style.display = (!useZip && PREPARED.cat) ? 'inline-flex' : 'none';
+  catBtn.disabled = !PREPARED.cat;
+}
+
+function downloadPrepared(kind) {
+  const blob = PREPARED && PREPARED[kind];
+  if (!blob) return;
+  const filename = kind === 'zip' ? 'LAIKLE_csv.zip'
+                 : kind === 'item' ? 'normal-item_LAIKLE.csv' : 'item-cat_LAIKLE.csv';
+  saveBlob(blob, filename);
+  const note = document.getElementById('dlSavedNote');
+  note.style.display = 'block';
+  note.style.color = '';
+  note.innerHTML = `✅ <code>${filename}</code> を保存しました。ダウンロードフォルダをご確認ください。` +
+    (kind === 'zip' ? '<br>ZIPをダブルクリックで展開すると <code>normal-item_LAIKLE.csv</code> と <code>item-cat_LAIKLE.csv</code> が入っています。' : '');
 }
 
 // ========== 商品画像の一括ダウンロード ==========
