@@ -477,7 +477,7 @@
         <div class="sub-body">
           <h3>変換済みCSVを LAIKLE店のRMS にアップロードする</h3>
           <p>
-            画像のアップロードが済んだら、STEP 3 でダウンロードしたCSV（ZIPの場合はダブルクリックで展開した中の <code>normal-item_LAIKLE.csv</code> ／ <code>item-cat_LAIKLE.csv</code>）を
+            画像のアップロードが済んだら、STEP 3 でダウンロードしたCSV（ZIPの場合はダブルクリックで展開した <code>LAIKLE_csv</code> フォルダ内の <code>normal-item.csv</code> ／ <code>item-cat.csv</code>）を
             LAIKLE店のRMS「商品一括編集」からアップロードして完了です。
           </p>
           <button class="done-btn" onclick="completeSubStep(3)">✓ CSVをアップロードしたら、ここを押して完了</button>
@@ -1126,8 +1126,8 @@ async function prepareOutputs() {
   if (PREPARED.cat && window.JSZip) {
     try {
       const zip = new JSZip();
-      zip.file('normal-item_LAIKLE.csv', PREPARED.item);
-      zip.file('item-cat_LAIKLE.csv', PREPARED.cat);
+      zip.file('normal-item.csv', PREPARED.item);
+      zip.file('item-cat.csv', PREPARED.cat);
       PREPARED.zip = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
     } catch (e) { PREPARED.zip = null; }
   }
@@ -1151,7 +1151,7 @@ function downloadPrepared(kind) {
   note.style.display = 'block';
   note.style.color = '';
   note.innerHTML = `✅ <code>${filename}</code> を保存しました。ダウンロードフォルダをご確認ください。` +
-    (kind === 'zip' ? '<br>ZIPをダブルクリックで展開すると <code>normal-item_LAIKLE.csv</code> と <code>item-cat_LAIKLE.csv</code> が入っています。' : '');
+    (kind === 'zip' ? '<br>ZIPをダブルクリックで展開すると <code>LAIKLE_csv</code> フォルダに <code>normal-item.csv</code> と <code>item-cat.csv</code> が入っています。' : '');
 }
 
 // ========== 商品画像の一括ダウンロード ==========
