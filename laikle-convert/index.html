@@ -136,6 +136,18 @@
   .dl-btn.ghost{background:white;color:var(--gray-600);border:1px solid var(--gray-300);box-shadow:none;}
   .dl-btn.ghost:hover:not(:disabled){background:var(--gray-50);color:var(--gray-800);}
 
+  /* 完了した工程の見た目 */
+  .card.done{border-color:#6EE7B7;}
+  .card.done>.card-header{background:var(--green-light);}
+  .card.done>.card-header .step{background:var(--green);box-shadow:0 2px 4px rgba(16,185,129,.35);}
+  .sub-step.done{opacity:.45;transition:opacity .3s;}
+  .sub-step.done .sub-num{background:var(--green);border-color:var(--green);color:white;}
+  .sub-step.done .done-btn{display:none;}
+  .done-btn{display:block;margin-top:10px;background:white;color:var(--green-dark);border:1.5px solid var(--green);border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+  .done-btn:hover{background:var(--green-light);transform:translateY(-1px);}
+  .saved-note{display:none;font-size:11.5px;color:var(--green-dark);font-weight:700;margin-top:8px;line-height:1.7;}
+  .all-done{display:none;background:var(--green-light);border:2px solid #6EE7B7;color:#065F46;border-radius:12px;padding:16px;margin-top:10px;font-size:14px;font-weight:800;text-align:center;}
+
   /* 商品画像の移行（STEP 4） */
   .sub-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:18px;}
   .sub-step:last-child{margin-bottom:0;}
@@ -323,7 +335,7 @@
   </div>
 
   <!-- Step 2: 楽天CSVs -->
-  <div class="card">
+  <div class="card" id="step2Card">
     <div class="card-header">
       <div class="step">2</div>
       <h2>EL COMMUN店のCSVを読み込む<span class="sub">dl-normal-item は必須 / dl-item-cat は任意</span></h2>
@@ -358,7 +370,7 @@
   </div>
 
   <!-- Step 3: 実行 -->
-  <div class="card">
+  <div class="card" id="step3Card">
     <div class="card-header">
       <div class="step">3</div>
       <h2>変換を実行する<span class="sub">結果はログと集計で確認できます</span></h2>
@@ -398,17 +410,22 @@
 
       <div style="height:14px;"></div>
 
-      <div class="sub-step">
+      <div class="sub-step" id="subStep1">
         <div class="sub-num">①</div>
         <div class="sub-body">
-          <h3>画像ダウンロードスクリプトを保存して、ターミナルで実行する</h3>
+          <h3>商品画像をパソコンに一括ダウンロードする</h3>
           <p>
-            「商品画像パス」の画像をEL COMMUN店の画像サーバーから一括取得するスクリプト（<code>download_laikle_images.txt</code>）を
-            「ダウンロード」フォルダに保存します。ターミナルで実行すると <code>~/Downloads/laikle_images/</code> に
-            <b>R-Cabinetと同じフォルダ構成のまま</b>保存され、完了するとFinderが自動で開きます。
+            下のボタンで<b>「画像をまとめてダウンロードするための実行ファイル」</b>（<code>download_laikle_images.txt</code>）が
+            「ダウンロード」フォルダに保存されます。続けて表示されるコマンドをターミナルで実行すると、
+            EL COMMUN店の商品画像が <code>~/Downloads/laikle_images/</code> に<b>R-Cabinetと同じフォルダ構成のまま</b>保存され、完了するとFinderが自動で開きます。
           </p>
           <button class="dl-btn" id="dlImgScriptBtn" onclick="saveImageScript()">💾 画像DLスクリプトを保存する</button>
-          <button class="dl-btn ghost" id="dlImgListBtn" onclick="downloadUrlList()">📄 画像URLリスト（txt）</button>
+          <button class="dl-btn ghost" id="dlImgListBtn" onclick="downloadUrlList()" title="全画像のURLを一覧で確認したいときだけ使います">📄 画像URLの一覧（確認用・通常は不要）</button>
+          <div class="saved-note" id="scriptSavedNote">
+            ✅ <code>download_laikle_images.txt</code> を保存しました。次に下のコマンドをターミナルで実行してください。<br>
+            ※ 保存されない場合：アドレスバー右の🚫マークから「<b>許可</b>」を選んでから、もう一度ボタンを押してください（複数ファイルのダウンロードがブロックされていることがあります）
+          </div>
+          <div class="saved-note" id="urlListSavedNote">✅ <code>image-url-list.txt</code> を保存しました（ダウンロードフォルダをご確認ください）</div>
           <div class="cmd-area" id="cmdArea" style="display:none;">
             <div class="cmd-label">ターミナルに貼り付けて Enter：</div>
             <div class="cmd-row">
@@ -425,10 +442,11 @@
             ・保存先を選ぶ画面が出た場合は「<b>ダウンロード</b>」フォルダを選んでください<br>
             ・何度か保存すると <code>download_laikle_images (1).txt</code> のような名前になります。その場合は古いファイルをゴミ箱に入れてから、もう一度保存してください
           </div>
+          <button class="done-btn" onclick="completeSubStep(1)">✓ 画像のダウンロードが終わったら、ここを押して次へ</button>
         </div>
       </div>
 
-      <div class="sub-step">
+      <div class="sub-step" id="subStep2">
         <div class="sub-num">②</div>
         <div class="sub-body">
           <h3>Cyberduck で LAIKLE店の R-Cabinet にアップロードする</h3>
@@ -436,10 +454,11 @@
             CyberduckでLAIKLE店のR-Cabinet（画像FTP）に接続し、<code>laikle_images</code> フォルダの<b>中身</b>（<code>biiino</code> などのフォルダごと）を
             そのままドラッグ＆ドロップでアップロードします。フォルダ構成・ファイル名を変えなければ、変換済みCSVの画像リンクがそのまま表示されます。
           </p>
+          <button class="done-btn" onclick="completeSubStep(2)">✓ R-Cabinetへのアップロードが終わったら、ここを押して次へ</button>
         </div>
       </div>
 
-      <div class="sub-step">
+      <div class="sub-step" id="subStep3">
         <div class="sub-num">③</div>
         <div class="sub-body">
           <h3>変換済みCSVを LAIKLE店のRMS にアップロードする</h3>
@@ -447,8 +466,11 @@
             画像のアップロードが済んだら、STEP 3 でダウンロードした normal-item（LAIKLE用）／ item-cat（LAIKLE用）を
             LAIKLE店のRMS「商品一括編集」からアップロードして完了です。
           </p>
+          <button class="done-btn" onclick="completeSubStep(3)">✓ CSVをアップロードしたら、ここを押して完了</button>
         </div>
       </div>
+
+      <div class="all-done" id="allDone">🎉 移行作業はすべて完了です！おつかれさまでした。<br><span style="font-size:11.5px;font-weight:normal;">LAIKLE店のRMSで商品ページの表示・画像・カテゴリを確認し、問題なければ倉庫指定を解除して公開してください。</span></div>
     </div>
   </div>
 
@@ -716,11 +738,15 @@ async function loadItem(file) {
       </div>`;
     setBadge('badgeItem', 'done', '✓ 読込済');
     setZone('zoneItem', true);
+    document.getElementById('step2Card').classList.add('done');
     checkReady();
+    // 次の工程（STEP 3）へ自動スクロール
+    document.getElementById('step3Card').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch(e) {
     setStatus('statusItem', false, '読み込みエラー：' + esc(e.message));
     setBadge('badgeItem', 'err', 'エラー');
     setZone('zoneItem', false);
+    document.getElementById('step2Card').classList.remove('done');
     rawItem = null; checkReady();
   }
 }
@@ -882,6 +908,11 @@ function findLeftovers(rows, header, fromSlug, maxReport, imgColSet) {
 function doConvert() {
   document.getElementById('logBox').innerHTML = '';
   document.getElementById('resultSection').classList.remove('show');
+  // 再実行時はSTEP 3〜4の完了状態をリセット
+  document.getElementById('step3Card').classList.remove('done');
+  document.getElementById('step4Card').classList.remove('done');
+  [1, 2, 3].forEach(n => document.getElementById('subStep' + n).classList.remove('done'));
+  ['scriptSavedNote', 'urlListSavedNote', 'allDone'].forEach(id => document.getElementById(id).style.display = 'none');
   document.getElementById('dlItemBtn').disabled = true;
   document.getElementById('dlCatBtn').disabled  = true;
   document.getElementById('dlCatBtn').style.display = rawCat ? 'inline-flex' : 'none';
@@ -1030,6 +1061,7 @@ function doConvert() {
     Object.entries(folders).sort((a, b) => a[0].localeCompare(b[0])).map(([n, c]) =>
       `<div class="folder-item"><span class="fname">📁 ${esc(n)}</span><span class="cnt">${c}</span></div>`).join('')
   }</div>`;
+  document.getElementById('step3Card').classList.add('done');
   document.getElementById('resultSection').classList.add('show');
   document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -1108,9 +1140,23 @@ function saveImageScript() {
   if (!IMAGES.length) return;
   // 拡張子は .txt にする（.sh はChrome等が「危険なファイル」として保存をブロックすることがあるため。bashは拡張子に関係なく実行できる）
   saveBlob(new Blob([buildImageScript()], { type: 'text/plain' }), 'download_laikle_images.txt');
+  document.getElementById('scriptSavedNote').style.display = 'block';
   document.getElementById('cmdArea').style.display = '';
   document.getElementById('hintBox').style.display = '';
   document.getElementById('cmdArea').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// 工程完了：見た目を薄くして次の工程へスクロール
+function completeSubStep(n) {
+  document.getElementById('subStep' + n).classList.add('done');
+  if (n < 3) {
+    document.getElementById('subStep' + (n + 1)).scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    document.getElementById('step4Card').classList.add('done');
+    const box = document.getElementById('allDone');
+    box.style.display = 'block';
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 function copyCmd() {
@@ -1127,7 +1173,9 @@ function copyCmd() {
 function downloadUrlList() {
   if (!IMAGES.length) return;
   const text = IMAGES.map(i => i.url).join('\r\n') + '\r\n';
-  saveBlob(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' }), '商品画像URLリスト.txt');
+  // ファイル名は半角英数にする（日本語名はブラウザによって「download」になることがあるため）
+  saveBlob(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' }), 'image-url-list.txt');
+  document.getElementById('urlListSavedNote').style.display = 'block';
 }
 
 // ========== イベント登録 ==========
