@@ -137,11 +137,23 @@
   .dl-btn.ghost:hover:not(:disabled){background:var(--gray-50);color:var(--gray-800);}
 
   /* 完了した工程の見た目 */
-  .card.done{border-color:#6EE7B7;}
+  .card.done{border:2px solid var(--green);box-shadow:0 2px 10px rgba(16,185,129,.15);}
   .card.done>.card-header{background:var(--green-light);}
-  .card.done>.card-header .step{background:var(--green);box-shadow:0 2px 4px rgba(16,185,129,.35);}
-  .sub-step.done{opacity:.45;transition:opacity .3s;}
-  .sub-step.done .sub-num{background:var(--green);border-color:var(--green);color:white;}
+  .card.done>.card-header h2{color:#065F46;}
+  .card.done>.card-header .sub{color:var(--green-dark);}
+  .card.done>.card-header .step{background:var(--green);box-shadow:0 2px 4px rgba(16,185,129,.35);font-size:0;}
+  .card.done>.card-header .step::after{content:'✓';font-size:15px;}
+  .card.done>.card-header .badge{background:var(--green);color:white;}
+  /* 完了して畳んだカード（ヘッダークリックで開閉） */
+  .card.folded>.card-header{cursor:pointer;border-bottom:none;}
+  .card.folded>.card-body{display:none;}
+  /* 完了したサブ工程：緑背景＋✓＋詳細を畳んでタイトルだけに */
+  .sub-step.done{background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:11px 14px;}
+  .sub-step.done .sub-num{background:var(--green);border-color:var(--green);color:white;font-size:0;margin-top:0;}
+  .sub-step.done .sub-num::after{content:'✓';font-size:13px;}
+  .sub-step.done .sub-body h3{color:#065F46;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;}
+  .sub-step.done .sub-body h3::after{content:'✓ 完了';background:var(--green);color:white;border-radius:999px;padding:2px 11px;font-size:10.5px;flex-shrink:0;}
+  .sub-step.done .sub-body>*:not(h3){display:none !important;}
   .sub-step.done .done-btn{display:none;}
   .done-btn{display:block;margin-top:10px;background:white;color:var(--green-dark);border:1.5px solid var(--green);border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
   .done-btn:hover{background:var(--green-light);transform:translateY(-1px);}
@@ -374,6 +386,7 @@
     <div class="card-header">
       <div class="step">3</div>
       <h2>変換を実行する<span class="sub">結果はログと集計で確認できます</span></h2>
+      <span class="badge" id="badgeRun">未実行</span>
     </div>
     <div class="card-body">
       <button class="primary-btn" id="actionBtn" disabled onclick="doConvert()">
@@ -391,6 +404,7 @@
       <button class="dl-btn" id="dlItemBtn" onclick="downloadFile('item')" disabled>⬇️ normal-item（LAIKLE用）をダウンロード</button>
       <button class="dl-btn" id="dlCatBtn"  onclick="downloadFile('cat')"  disabled>⬇️ item-cat（LAIKLE用）をダウンロード</button>
     </div>
+    <div class="saved-note" id="dlSavedNote" style="text-align:left;"></div>
     <div class="stats-grid" id="statsGrid"></div>
   </div>
 
@@ -463,7 +477,7 @@
         <div class="sub-body">
           <h3>変換済みCSVを LAIKLE店のRMS にアップロードする</h3>
           <p>
-            画像のアップロードが済んだら、STEP 3 でダウンロードした normal-item（LAIKLE用）／ item-cat（LAIKLE用）を
+            画像のアップロードが済んだら、STEP 3 でダウンロードした <code>normal-item_LAIKLE.csv</code> ／ <code>item-cat_LAIKLE.csv</code> を
             LAIKLE店のRMS「商品一括編集」からアップロードして完了です。
           </p>
           <button class="done-btn" onclick="completeSubStep(3)">✓ CSVをアップロードしたら、ここを押して完了</button>
@@ -911,8 +925,9 @@ function doConvert() {
   // 再実行時はSTEP 3〜4の完了状態をリセット
   document.getElementById('step3Card').classList.remove('done');
   document.getElementById('step4Card').classList.remove('done');
+  setBadge('badgeRun', '', '実行中...');
   [1, 2, 3].forEach(n => document.getElementById('subStep' + n).classList.remove('done'));
-  ['scriptSavedNote', 'urlListSavedNote', 'allDone'].forEach(id => document.getElementById(id).style.display = 'none');
+  ['scriptSavedNote', 'urlListSavedNote', 'allDone', 'dlSavedNote'].forEach(id => document.getElementById(id).style.display = 'none');
   document.getElementById('dlItemBtn').disabled = true;
   document.getElementById('dlCatBtn').disabled  = true;
   document.getElementById('dlCatBtn').style.display = rawCat ? 'inline-flex' : 'none';
@@ -1061,7 +1076,11 @@ function doConvert() {
     Object.entries(folders).sort((a, b) => a[0].localeCompare(b[0])).map(([n, c]) =>
       `<div class="folder-item"><span class="fname">📁 ${esc(n)}</span><span class="cnt">${c}</span></div>`).join('')
   }</div>`;
+  // STEP 2〜3を完了表示に（STEP 2は畳む。ヘッダークリックで再展開可能）
+  document.getElementById('step2Card').classList.add('done', 'folded');
   document.getElementById('step3Card').classList.add('done');
+  setBadge('badgeItem', 'done', '✓ 完了');
+  setBadge('badgeRun', 'done', '✓ 完了');
   document.getElementById('resultSection').classList.add('show');
   document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -1084,21 +1103,35 @@ function downloadFile(type) {
   const rows = type === 'item' ? outItem : outCat;
   if (!rows || !data) return;
 
-  const csvText  = serializeCsv(rows);
-  const filename = type === 'item' ? 'normal-item（LAIKLE用）.csv' : 'item-cat（LAIKLE用）.csv';
+  const note = document.getElementById('dlSavedNote');
+  try {
+    const csvText  = serializeCsv(rows);
+    // ファイル名は半角英数にする（日本語・全角入りの名前はブラウザによって「download」という名前になり、
+    // 保存されていないように見えてしまうため）
+    const filename = type === 'item' ? 'normal-item_LAIKLE.csv' : 'item-cat_LAIKLE.csv';
 
-  // Blob方式でダウンロード（data URIはブラウザのサイズ上限で大きいCSVが無反応になるため）
-  let blob;
-  if (data.encoding === 'Shift_JIS' && window.Encoding) {
-    const unicode = Encoding.stringToCode(csvText);
-    const sjis    = Encoding.convert(unicode, { to: 'SJIS', from: 'UNICODE' });
-    blob = new Blob([new Uint8Array(sjis)], { type: 'text/csv' });
-  } else {
-    const bom = data.bom ? '\uFEFF' : '';
-    blob = new Blob([bom + csvText], { type: 'text/csv;charset=utf-8' });
+    // Blob方式でダウンロード（data URIはブラウザのサイズ上限で大きいCSVが無反応になるため）
+    let blob;
+    if (data.encoding === 'Shift_JIS' && window.Encoding) {
+      const unicode = Encoding.stringToCode(csvText);
+      const sjis    = Encoding.convert(unicode, { to: 'SJIS', from: 'UNICODE' });
+      blob = new Blob([new Uint8Array(sjis)], { type: 'text/csv' });
+    } else {
+      const bom = data.bom ? '\uFEFF' : '';
+      blob = new Blob([bom + csvText], { type: 'text/csv;charset=utf-8' });
+    }
+
+    saveBlob(blob, filename);
+    note.style.display = 'block';
+    note.style.color = '';
+    note.innerHTML =
+      `✅ <code>${filename}</code> を保存しました。ダウンロードフォルダをご確認ください。<br>` +
+      `※ 見つからない場合：アドレスバー右の🚫マークから「<b>許可</b>」を選び、もう一度ボタンを押してください（複数ファイルのダウンロードがブロックされていることがあります）`;
+  } catch (e) {
+    note.style.display = 'block';
+    note.style.color = '#991B1B';
+    note.textContent = '❌ 保存に失敗しました：' + e.message + '（ページを再読み込みして再度お試しください）';
   }
-
-  saveBlob(blob, filename);
 }
 
 // ========== 商品画像の一括ダウンロード ==========
@@ -1153,6 +1186,7 @@ function completeSubStep(n) {
     document.getElementById('subStep' + (n + 1)).scrollIntoView({ behavior: 'smooth', block: 'center' });
   } else {
     document.getElementById('step4Card').classList.add('done');
+    setBadge('badgeImg', 'done', '✓ 完了');
     const box = document.getElementById('allDone');
     box.style.display = 'block';
     box.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1179,6 +1213,14 @@ function downloadUrlList() {
 }
 
 // ========== イベント登録 ==========
+// 完了して畳んだカードはヘッダークリックで開閉できる
+['step2Card', 'step3Card'].forEach(id => {
+  const card = document.getElementById(id);
+  card.querySelector('.card-header').addEventListener('click', () => {
+    if (card.classList.contains('done')) card.classList.toggle('folded');
+  });
+});
+
 document.getElementById('fileItem').addEventListener('change', e => { if(e.target.files[0]) loadItem(e.target.files[0]); });
 document.getElementById('fileCat').addEventListener('change',  e => { if(e.target.files[0]) loadCat(e.target.files[0]); });
 document.getElementById('fileMap').addEventListener('change',  e => { if(e.target.files[0]) loadMap(e.target.files[0]); });
