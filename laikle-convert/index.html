@@ -260,7 +260,7 @@
       </div>
       <div class="rule-card">
         <div class="rc-head">🏷️ カテゴリページのリンク<span class="rc-tag conv">対応表で変換</span></div>
-        <p>「…/c/カテゴリID/」は店舗ごとにIDが異なるため、内蔵の対応表（183件）でLAIKLE店のIDに変換。表にないものは変換せず、ログでお知らせします。</p>
+        <p>「…/c/カテゴリID/」（item.rakuten.co.jp・soko.rms.rakuten.co.jp どちらも）は店舗ごとにIDが異なるため、内蔵の対応表（183件）でLAIKLE店のIDに変換。表にないものは変換せず、ログでお知らせします。</p>
       </div>
       <div class="rule-card">
         <div class="rc-head">🖼️ 商品画像<span class="rc-tag conv">変換＋画像も移行</span></div>
@@ -349,8 +349,8 @@
       <div style="height:16px;"></div>
 
       <div class="rule-box">
-        🔗 <strong>カテゴリページURLの変換：</strong>リンク内の <code>item.rakuten.co.jp/elcommun/c/カテゴリID/</code> は店舗ごとにIDが異なるため、
-        内蔵のカテゴリURL対応表（<b id="catMapCount">183</b>件）を使って LAIKLE店の対応するカテゴリIDに変換します。
+        🔗 <strong>カテゴリページURLの変換：</strong>リンク内の <code>item.rakuten.co.jp/elcommun/c/カテゴリID/</code>（およびRMS管理画面の <code>soko.rms.rakuten.co.jp/elcommun/c/カテゴリID/</code>）は店舗ごとにIDが異なるため、
+        内蔵のカテゴリURL対応表（<b id="catMapCount">183</b>件）を使って LAIKLE店の対応するカテゴリIDに変換します（<code>soko.rms…</code> 形式も正規の <code>item.rakuten.co.jp/laikle/c/…</code> に統一します）。
         対応表にないカテゴリURLは誤ったリンクになるのを防ぐため<b>変換せずに残し</b>、実行時のログで報告します。<br>
         カテゴリを追加・変更した場合は、最新の対応表CSV（列：<code>表示先カテゴリ</code> / <code>URL（EL COMMUN online shop）</code> / <code>URL（LAIKLE）</code>）を下にアップロードすると差し替えできます。
       </div>
@@ -859,14 +859,17 @@ function buildReplacers(fromSlug, toSlug, catMap) {
   const tail = '(?=[\\/"\'&?#<>\\s]|$)';
   const reItem  = new RegExp('(item\\.rakuten\\.co\\.jp\\/)' + f + '(?!\\/c\\/)' + tail, 'gi');
   const reOther = new RegExp('((?:www\\.rakuten\\.co\\.jp|(?:www\\.)?rakuten\\.ne\\.jp\\/gold)\\/)' + f + tail, 'gi');
-  const reCat   = new RegExp('(item\\.rakuten\\.co\\.jp\\/)' + f + '(\\/c\\/)(\\d+)', 'gi');
+  // カテゴリURLは item.rakuten.co.jp/{店舗}/c/{ID}/ のほか、RMS管理画面の
+  // soko.rms.rakuten.co.jp/{店舗}/c/{ID}/ 形式も同じカテゴリとして扱い、
+  // 変換後はどちらも正規の item.rakuten.co.jp/{LAIKLE}/c/{新ID}/ に統一する
+  const reCat   = new RegExp('(?:item\\.rakuten\\.co\\.jp|soko\\.rms\\.rakuten\\.co\\.jp)\\/' + f + '\\/c\\/(\\d+)', 'gi');
   const reImage = new RegExp('(image\\.rakuten\\.co\\.jp\\/)' + f + tail, 'gi');
   return {
     category(cell, counter, unmapped) {
       if (!cell || cell.indexOf(fromSlug) === -1) return cell;
-      return cell.replace(reCat, (m0, prefix, cseg, id) => {
+      return cell.replace(reCat, (m0, id) => {
         const toId = catMap[id];
-        if (toId) { counter.n++; return prefix + toSlug + cseg + toId; }
+        if (toId) { counter.n++; return 'item.rakuten.co.jp/' + toSlug + '/c/' + toId; }
         unmapped[id] = (unmapped[id] || 0) + 1;
         return m0;
       });
