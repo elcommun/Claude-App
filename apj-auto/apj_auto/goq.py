@@ -246,8 +246,27 @@ class GoqClient:
                 pass
 
     def inspect(self):
-        """セレクタ調整用: ログイン → 一覧画面のスクショとHTMLを保存して終了。"""
-        self.login()
+        """セレクタ調整用: ログイン画面 → ログイン試行 → 一覧画面の
+        スクショとHTMLを各段階で保存して終了（GoQのデータは変更しない）。
+        ログインに失敗してもログイン画面の証跡は残る。
+        """
+        self.log.info("ログイン画面を確認: %s", self.cfg.goq_login_url)
+        self.page.goto(self.cfg.goq_login_url)
+        self.page.wait_for_load_state("networkidle")
+        self.screenshot("inspect_login")
+        self.dump_html("inspect_login")
+
+        try:
+            self.login()
+        except Exception as e:  # noqa: BLE001 - 証跡は保存済みなので継続不能でも報告して終了
+            self.screenshot("inspect_login_failed")
+            self.dump_html("inspect_login_failed")
+            self.log.error(
+                "ログインに失敗しました: %s\n"
+                "goq_inspect_login*.png / .html を確認し、SELECTORS の "
+                "login_* を実画面に合わせて調整してください。", e)
+            return
+
         self.page.goto(self.cfg.goq_list_url.format(page=1))
         self.page.wait_for_load_state("networkidle")
         shot = self.screenshot("inspect_list")
