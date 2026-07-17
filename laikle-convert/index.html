@@ -110,6 +110,17 @@
   .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:13px 26px;background:var(--green);color:white;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;transition:all .2s;margin:5px;box-shadow:0 2px 8px rgba(16,185,129,.3);}
   .dl-btn:hover:not(:disabled){background:var(--green-dark);transform:translateY(-1px);}
   .dl-btn:disabled{background:var(--gray-400);cursor:not-allowed;box-shadow:none;}
+  .dl-btn.ghost{background:white;color:var(--gray-600);border:1px solid var(--gray-300);box-shadow:none;}
+  .dl-btn.ghost:hover:not(:disabled){background:var(--gray-50);color:var(--gray-800);}
+
+  /* 商品画像ダウンロード */
+  .img-dl{display:none;margin-top:20px;padding-top:20px;border-top:1px dashed var(--gray-300);text-align:left;}
+  .img-dl.show{display:block;}
+  .img-dl h4{font-size:14px;color:var(--gray-800);margin-bottom:8px;}
+  .img-dl p{font-size:12px;color:var(--gray-600);line-height:1.9;margin-bottom:12px;}
+  .img-dl .btns{text-align:center;}
+  .img-prog{font-size:12px;color:var(--gray-600);margin-top:10px;text-align:center;line-height:1.8;}
+  .img-prog.err{color:#991B1B;}
   .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px;}
   .stat{background:var(--gray-50);border-radius:10px;padding:14px 10px;text-align:center;border:1px solid var(--gray-200);}
   .stat .num{font-size:24px;font-weight:800;color:var(--primary);line-height:1.2;}
@@ -148,8 +159,8 @@
     <p class="purpose-lead">
       楽天市場「EL COMMUN online shop」店のRMSからダウンロードした商品CSV（dl-normal-item / dl-item-cat）を、
       <strong>楽天市場「LAIKLE」店にそのままアップロードできる商品CSVに変換</strong>するツールです。
-      CSV内のすべての項目（商品画像URL・商品説明文内のHTML・販売説明文など）に含まれる
-      店舗URL（<code>elcommun</code>）を LAIKLE 店のURL（<code>laikle</code>）に自動で書き換えます。
+      商品ページURL・GOLDページURLなどの店舗URL（<code>elcommun</code>）を LAIKLE 店のURL（<code>laikle</code>）に書き換え、
+      店舗ごとの登録が必要な<strong>商品画像は画像ファイルの一括ダウンロードまでサポート</strong>します。
     </p>
     <div class="flow">
       <div class="flow-col">
@@ -164,16 +175,18 @@
       <div class="flow-col">
         <div class="flow-out">⬇️ normal-item（LAIKLE用）</div>
         <div class="flow-out">⬇️ item-cat（LAIKLE用）</div>
+        <div class="flow-out">🖼️ 商品画像ZIP（R-Cabinet登録用）</div>
       </div>
     </div>
     <ul class="purpose-points">
-      <li>画像URL（image.rakuten.co.jp）・商品ページURL（item.rakuten.co.jp）・GOLDページURL（rakuten.ne.jp/gold）・店舗トップURL（www.rakuten.co.jp）の店舗名部分をすべて置換します</li>
-      <li>説明文HTML内に埋め込まれたリンク・画像タグの中まで漏れなく変換し、変換件数をログで確認できます</li>
+      <li><b>商品画像（商品画像パス／商品画像URLの列）</b>：店舗ごとにR-Cabinet登録が必要なため、URLの店舗名部分を <code>laikle</code> に置換し、元画像をZIPで一括ダウンロードできます（同じフォルダ構成・同じファイル名のままCyberduck等でLAIKLE店のR-Cabinetにアップすればそのまま表示されます）</li>
+      <li><b>説明文内の画像リンク（s-image- など）</b>：「PC用商品説明文」「スマートフォン用商品説明文」「PC用販売説明文」などに埋め込まれた画像リンクは、どの店舗からでもそのまま表示できるため<b>置換せず維持</b>します</li>
+      <li>商品ページURL（item.rakuten.co.jp）・GOLDページURL（rakuten.ne.jp/gold）・店舗トップURL（www.rakuten.co.jp）の店舗名部分は置換します</li>
       <li>新店舗で誤って即公開されないよう、倉庫指定（非公開）での登録もワンクリックで設定できます</li>
       <li>ヘッダー行・列の並び・文字コード（Shift_JIS / UTF-8）は元ファイルのまま維持されます</li>
     </ul>
     <div class="warn-box">
-      ⚠️ <strong>事前準備：</strong>変換後のCSVをアップロードする前に、LAIKLE店のR-Cabinetに<strong>同じフォルダ構成・同じファイル名で商品画像を登録</strong>しておいてください（画像URLはフォルダ・ファイル名を維持したまま店舗名部分だけ置換されます）。また、dl-item-cat を使う場合は、LAIKLE店側に同じ<strong>表示先カテゴリ</strong>を先に作成しておく必要があります。
+      ⚠️ <strong>事前準備：</strong>変換後のCSVをアップロードする前に、変換完了画面からダウンロードできる<strong>商品画像ZIPを展開し、LAIKLE店のR-CabinetにCyberduck等で同じフォルダ構成のままアップロード</strong>しておいてください（例：<code>cabinet/biiino/item/main-image-〜</code>）。また、dl-item-cat を使う場合は、LAIKLE店側に同じ<strong>表示先カテゴリ</strong>を先に作成しておく必要があります。
     </div>
   </div>
 
@@ -277,6 +290,19 @@
       <button class="dl-btn" id="dlCatBtn"  onclick="downloadFile('cat')"  disabled>⬇️ item-cat（LAIKLE用）をダウンロード</button>
     </div>
     <div class="stats-grid" id="statsGrid"></div>
+    <div class="img-dl" id="imgDlBox">
+      <h4>🖼️ 商品画像の移行（LAIKLE店 R-Cabinet 登録用）</h4>
+      <p>
+        「商品画像パス」で使われている画像 <b id="imgCount">0</b> 件を、EL COMMUN店の画像サーバーから一括ダウンロードできます。<br>
+        ZIPを展開すると <code>cabinet/…</code> のフォルダ構成がそのまま入っているので、<b>Cyberduck等でLAIKLE店のR-Cabinetに同じ構成のままアップロード</b>してください。アップ後、変換済みCSVの画像リンク（laikle）がそのまま表示されるようになります。<br>
+        ※ 説明文内の画像リンク（s-image- など）は全店舗共通で使えるため、ダウンロード・アップロードは不要です。
+      </p>
+      <div class="btns">
+        <button class="dl-btn" id="dlImgZipBtn" onclick="downloadImagesZip()">⬇️ 商品画像を一括ダウンロード（ZIP）</button>
+        <button class="dl-btn ghost" id="dlImgListBtn" onclick="downloadUrlList()">📄 画像URLリスト（txt）</button>
+      </div>
+      <div class="img-prog" id="imgProg"></div>
+    </div>
   </div>
 
 </div>
@@ -471,32 +497,68 @@ async function loadCat(file) {
 }
 
 // ========== 店舗URL置換 ==========
-// 楽天のURL内の店舗名部分だけを置換する。対象ドメイン:
-//   image.rakuten.co.jp/{store}/  （R-Cabinet画像・ゴールド用画像）
-//   item.rakuten.co.jp/{store}/   （商品ページ）
-//   www.rakuten.ne.jp/gold/{store}/ （GOLDページ）
-//   www.rakuten.co.jp/{store}/    （店舗トップ）
-function buildReplacer(fromSlug, toSlug) {
+// 楽天のURL内の店舗名部分だけを置換する。
+// ・general: 全セル対象 ─ item.rakuten.co.jp（商品ページ）/ rakuten.ne.jp/gold（GOLD）/ www.rakuten.co.jp（店舗トップ）
+// ・image  : 商品画像系の列のみ対象 ─ image.rakuten.co.jp（R-Cabinet画像）
+//   ※ 説明文内の画像リンク（s-image- など）はどの店舗からでも表示できるため置換しない
+function buildReplacers(fromSlug, toSlug) {
   const f = escRe(fromSlug);
-  const re = new RegExp(
-    '((?:image\\.rakuten\\.co\\.jp|item\\.rakuten\\.co\\.jp|www\\.rakuten\\.co\\.jp|(?:www\\.)?rakuten\\.ne\\.jp\\/gold)\\/)' +
-    f + '(?=[\\/"\'&?#<>\\s]|$)',
-    'gi'
-  );
-  return function(cell, counter) {
-    if (!cell || cell.indexOf(fromSlug) === -1) return cell;
-    return cell.replace(re, (_, prefix) => { counter.n++; return prefix + toSlug; });
+  const tail = '(?=[\\/"\'&?#<>\\s]|$)';
+  const reGeneral = new RegExp(
+    '((?:item\\.rakuten\\.co\\.jp|www\\.rakuten\\.co\\.jp|(?:www\\.)?rakuten\\.ne\\.jp\\/gold)\\/)' + f + tail, 'gi');
+  const reImage = new RegExp('(image\\.rakuten\\.co\\.jp\\/)' + f + tail, 'gi');
+  return {
+    general(cell, counter) {
+      if (!cell || cell.indexOf(fromSlug) === -1) return cell;
+      return cell.replace(reGeneral, (_, prefix) => { counter.n++; return prefix + toSlug; });
+    },
+    image(cell, counter) {
+      if (!cell || cell.indexOf(fromSlug) === -1) return cell;
+      return cell.replace(reImage, (_, prefix) => { counter.n++; return prefix + toSlug; });
+    }
   };
 }
 
+// 商品画像系の列か（商品画像タイプ/パス/URL・白背景画像パス など）
+function isImageCol(h) {
+  h = (h || '').trim();
+  return /画像/.test(h) && /(パス|URL)/.test(h);
+}
+
+// 商品画像系の列から画像を収集（ZIPダウンロード用）
+// 相対パス（/cabinet/…）と 変換元店舗の絶対URL の両方に対応
+function collectImages(header, rows, fromSlug) {
+  const map = new Map(); // zip内パス -> 取得元URL
+  const cols = header.map((h, i) => isImageCol(h) ? i : -1).filter(i => i >= 0);
+  const reAbs = new RegExp('^https?:\\/\\/image\\.rakuten\\.co\\.jp\\/' + escRe(fromSlug) + '\\/(.+)$', 'i');
+  for (const row of rows) {
+    for (const i of cols) {
+      const v = (row[i] || '').trim();
+      if (!v) continue;
+      if (v.startsWith('/')) {
+        const path = v.replace(/^\/+/, '');
+        if (!map.has(path)) map.set(path, 'https://image.rakuten.co.jp/' + fromSlug + '/' + path);
+      } else {
+        const m = v.match(reAbs);
+        if (m && !map.has(m[1])) map.set(m[1], 'https://image.rakuten.co.jp/' + fromSlug + '/' + m[1]);
+      }
+    }
+  }
+  return [...map].map(([path, url]) => ({ path, url }));
+}
+
 // 置換後に残った変換元店舗名の出現をチェック（手動確認用）
-function findLeftovers(rows, header, fromSlug, maxReport) {
+// 説明文内の画像リンク（image.rakuten.co.jp/{from}/…）は意図的に残すため対象外
+function findLeftovers(rows, header, fromSlug, maxReport, imgColSet) {
   const found = [];
   const lower = fromSlug.toLowerCase();
+  const reIgnore = new RegExp('image\\.rakuten\\.co\\.jp\\/' + escRe(fromSlug), 'gi');
   for (let i = 0; i < rows.length && found.length < maxReport; i++) {
     for (let j = 0; j < rows[i].length; j++) {
       const cell = rows[i][j];
-      if (cell && String(cell).toLowerCase().includes(lower)) {
+      if (!cell) continue;
+      const cleaned = imgColSet.has(j) ? String(cell) : String(cell).replace(reIgnore, '');
+      if (cleaned.toLowerCase().includes(lower)) {
         found.push({ row: i + 2, col: header[j] || `列${j+1}`, code: rows[i][0] || '' });
         if (found.length >= maxReport) break;
       }
@@ -531,13 +593,21 @@ function doConvert() {
   log(`🏪 店舗URL：${esc(fromSlug)} → ${esc(toSlug)}`, 'log-info');
   logSep();
 
-  const replace = buildReplacer(fromSlug, toSlug);
+  const rep = buildReplacers(fromSlug, toSlug);
 
   // ----- dl-normal-item -----
   log('📋 dl-normal-item を処理中...', 'log-info');
   const { headerRow: ih, dataRows: iRows } = rawItem;
+  const imgColSet = new Set(ih.map((h, i) => isImageCol(h) ? i : -1).filter(i => i >= 0));
   const urlCounter = { n: 0 };
-  const converted = iRows.map(row => row.map(cell => replace(cell, urlCounter)));
+  const imgCounter = { n: 0 };
+  const converted = iRows.map(row => row.map((cell, j) => {
+    let v = rep.general(cell, urlCounter);
+    if (imgColSet.has(j)) v = rep.image(v, imgCounter);
+    return v;
+  }));
+  if (imgCounter.n) log(`🖼️ 商品画像URL：${imgCounter.n}箇所の店舗名を「${esc(toSlug)}」に置換`, 'log-ok');
+  log('🖼️ 説明文内の画像リンク（s-image- など）は全店舗共通で使えるため、そのまま維持しました', 'log-info');
 
   // 倉庫指定・在庫数（ヘッダー名で列を特定。見つからなければスキップ）
   const whIdx    = ih.findIndex(h => (h || '').trim() === '倉庫指定');
@@ -567,10 +637,16 @@ function doConvert() {
 
   outItem = [ih, ...converted];
   const itemUnique = new Set(iRows.map(r => (r[0] || '').trim()).filter(c => c)).size;
-  log(`✅ ${iRows.length}行 / ${itemUnique}商品を変換（URL置換：${urlCounter.n}箇所）`, 'log-ok');
+  log(`✅ ${iRows.length}行 / ${itemUnique}商品を変換（URL置換：${urlCounter.n + imgCounter.n}箇所）`, 'log-ok');
 
-  // 残存チェック
-  const leftovers = findLeftovers(converted, ih, fromSlug, 20);
+  // 商品画像の収集（ZIPダウンロード用）
+  IMAGES = collectImages(ih, iRows, fromSlug);
+  if (IMAGES.length) {
+    log(`🖼️ 商品画像：${IMAGES.length}件を検出（変換完了画面からZIPで一括ダウンロードできます）`, 'log-info');
+  }
+
+  // 残存チェック（説明文内の画像リンクは意図的に維持するため対象外）
+  const leftovers = findLeftovers(converted, ih, fromSlug, 20, imgColSet);
   if (leftovers.length) {
     log(`⚠️ 置換されずに「${esc(fromSlug)}」が残っている項目があります（対象外のURL形式の可能性）：`, 'log-warn');
     leftovers.forEach(l => log(`　　${l.row}行目 [${esc(l.col)}] ${esc(l.code)}`, 'log-warn'));
@@ -584,7 +660,7 @@ function doConvert() {
     log('🗂️ dl-item-cat を処理中...', 'log-info');
     const { headerRow: ch, dataRows: cRows } = rawCat;
     const catCounter = { n: 0 };
-    const convCat = cRows.map(row => row.map(cell => replace(cell, catCounter)));
+    const convCat = cRows.map(row => row.map(cell => rep.general(cell, catCounter)));
     outCat = [ch, ...convCat];
     catRows = cRows.length; catUrlN = catCounter.n;
     log(`✅ ${catRows}行を変換（URL置換：${catUrlN}箇所）`, 'log-ok');
@@ -600,12 +676,19 @@ function doConvert() {
 
   document.getElementById('statsGrid').innerHTML =
     `<div class="stat"><div class="num">${itemUnique}</div><div class="label">変換商品数</div></div>
-     <div class="stat"><div class="num">${iRows.length + catRows}</div><div class="label">処理行数</div></div>
-     <div class="stat"><div class="num">${urlCounter.n + catUrlN}</div><div class="label">URL置換箇所</div></div>
+     <div class="stat"><div class="num">${urlCounter.n + imgCounter.n + catUrlN}</div><div class="label">URL置換箇所</div></div>
+     <div class="stat"><div class="num">${IMAGES.length}</div><div class="label">商品画像数</div></div>
      <div class="stat"><div class="num">${leftovers.length}</div><div class="label">要確認箇所</div></div>`;
 
   document.getElementById('dlItemBtn').disabled = false;
   if (rawCat) document.getElementById('dlCatBtn').disabled = false;
+
+  // 商品画像ダウンロード欄
+  document.getElementById('imgDlBox').classList.toggle('show', IMAGES.length > 0);
+  document.getElementById('imgCount').textContent = IMAGES.length;
+  document.getElementById('imgProg').textContent = '';
+  document.getElementById('imgProg').className = 'img-prog';
+  document.getElementById('dlImgZipBtn').disabled = false;
   document.getElementById('resultSection').classList.add('show');
   document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -614,6 +697,17 @@ function doConvert() {
 const encScript = document.createElement('script');
 encScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.0.0/encoding.min.js';
 document.head.appendChild(encScript);
+const zipScript = document.createElement('script');
+zipScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+document.head.appendChild(zipScript);
+
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
 
 function downloadFile(type) {
   const data = type === 'item' ? rawItem : rawCat;
@@ -634,11 +728,78 @@ function downloadFile(type) {
     blob = new Blob([bom + csvText], { type: 'text/csv;charset=utf-8' });
   }
 
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  saveBlob(blob, filename);
+}
+
+// ========== 商品画像の一括ダウンロード ==========
+let IMAGES = [];
+
+async function downloadImagesZip() {
+  if (!IMAGES.length) return;
+  const btn  = document.getElementById('dlImgZipBtn');
+  const prog = document.getElementById('imgProg');
+  prog.className = 'img-prog';
+  if (!window.JSZip) {
+    prog.className = 'img-prog err';
+    prog.textContent = 'ZIPライブラリの読み込みに失敗しました。ページを再読み込みしてから再度お試しください。';
+    return;
+  }
+  btn.disabled = true;
+  const zip = new JSZip();
+  const queue = IMAGES.slice();
+  const total = IMAGES.length;
+  let done = 0, ok = 0;
+  const failed = [];
+
+  const workers = Array.from({ length: 6 }, async () => {
+    while (queue.length) {
+      const it = queue.shift();
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 30000);
+        const res = await fetch(it.url, { signal: ctrl.signal });
+        clearTimeout(timer);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        zip.file(it.path, await res.arrayBuffer());
+        ok++;
+      } catch (e) {
+        failed.push(it);
+      }
+      done++;
+      prog.textContent = `画像を取得中... ${done} / ${total} 件（失敗 ${failed.length} 件）`;
+    }
+  });
+  await Promise.all(workers);
+
+  if (ok === 0) {
+    // 全件失敗 ＝ 画像サーバー側のセキュリティ制限（CORS）でブラウザから直接取得できない可能性が高い
+    btn.disabled = false;
+    prog.className = 'img-prog err';
+    prog.innerHTML =
+      '❌ 画像を取得できませんでした（画像サーバーのセキュリティ制限の可能性があります）。<br>' +
+      '代わりに「画像URLリスト（txt）」をダウンロードするか、CyberduckでEL COMMUN店のR-Cabinet（FTP）に接続し、' +
+      '該当フォルダ（cabinet/…）ごとダウンロード → LAIKLE店のR-Cabinetへ同じ構成でアップロードしてください。';
+    return;
+  }
+
+  prog.textContent = 'ZIPを作成中...（画像が多い場合は時間がかかります）';
+  const blob = await zip.generateAsync({ type: 'blob' });
+  saveBlob(blob, 'LAIKLE用商品画像.zip');
+
+  let msg = `✅ 完了：${ok} / ${total} 件をZIPに保存しました。`;
+  if (failed.length) {
+    msg += `<br>⚠️ 取得できなかった画像 ${failed.length} 件（URLリストで確認し、個別に対応してください）：<br>` +
+      failed.slice(0, 10).map(f => esc(f.path)).join('<br>') +
+      (failed.length > 10 ? `<br>…他 ${failed.length - 10} 件` : '');
+  }
+  prog.innerHTML = msg;
+  btn.disabled = false;
+}
+
+function downloadUrlList() {
+  if (!IMAGES.length) return;
+  const text = IMAGES.map(i => i.url).join('\r\n') + '\r\n';
+  saveBlob(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' }), '商品画像URLリスト.txt');
 }
 
 // ========== イベント登録 ==========
