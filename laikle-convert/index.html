@@ -1038,6 +1038,7 @@ function doConvert() {
   [1, 2, 3].forEach(n => document.getElementById('subStep' + n).classList.remove('done'));
   ['scriptSavedNote', 'urlListSavedNote', 'allDone', 'dlSavedNote'].forEach(id => document.getElementById(id).style.display = 'none');
   PREPARED = null;
+  DOWNLOADED = new Set();
   document.getElementById('dlItemBtn').disabled = true;
   document.getElementById('dlCatBtn').disabled  = true;
   document.getElementById('dlZipBtn').style.display = 'none';
@@ -1258,6 +1259,8 @@ async function prepareOutputs() {
   catBtn.disabled = !PREPARED.cat;
 }
 
+let DOWNLOADED = new Set(); // このセクションでダウンロード済みのファイル種別
+
 function downloadPrepared(kind) {
   const blob = PREPARED && PREPARED[kind];
   if (!blob) return;
@@ -1269,6 +1272,16 @@ function downloadPrepared(kind) {
   note.style.color = '';
   note.innerHTML = `✅ <code>${filename}</code> を保存しました。ダウンロードフォルダをご確認ください。` +
     (kind === 'zip' ? '<br>ZIPをダブルクリックで展開すると <code>LAIKLE_csv</code> フォルダに <code>normal-item.csv</code> と <code>item-cat.csv</code> が入っています。' : '');
+
+  // 必要なファイルをすべてダウンロードしたら、このセクションも完了扱いで薄くし、次の工程へスクロール
+  DOWNLOADED.add(kind);
+  const allDone = kind === 'zip' ||
+    (PREPARED.cat ? (DOWNLOADED.has('item') && DOWNLOADED.has('cat')) : DOWNLOADED.has('item'));
+  if (allDone) {
+    document.getElementById('resultSection').classList.add('dimmed');
+    const s4 = document.getElementById('step4Card');
+    if (s4.style.display !== 'none') s4.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 }
 
 // ========== 商品画像の一括ダウンロード ==========
