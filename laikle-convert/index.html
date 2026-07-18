@@ -356,15 +356,9 @@
       <div class="rule-box">
         🔗 <strong>カテゴリページURLの変換：</strong>リンク内の <code>item.rakuten.co.jp/elcommun/c/カテゴリID/</code>（およびRMS管理画面の <code>soko.rms.rakuten.co.jp/…</code>、item.が抜けた <code>rakuten.co.jp/…</code> も同様）は店舗ごとにIDが異なるため、
         内蔵のカテゴリURL対応表（<b id="catMapCount">185</b>件）を使って LAIKLE店の対応するカテゴリIDに変換します（<code>soko.rms…</code> 形式も正規の <code>item.rakuten.co.jp/laikle/c/…</code> に統一します）。
-        対応表にないカテゴリURLは誤ったリンクになるのを防ぐため<b>変換せずに残し</b>、実行時のログで報告します。<br>
-        カテゴリを追加・変更した場合は、最新の対応表CSV（列：<code>表示先カテゴリ</code> / <code>URL（EL COMMUN online shop）</code> / <code>URL（LAIKLE）</code>）を下にアップロードすると差し替えできます。
+        対応表にないカテゴリURLは誤ったリンクになるのを防ぐため<b>変換せずに残し</b>、実行時のログと変換もれプレビューで報告します。
       </div>
-      <div class="upload-zone" id="zoneMap" style="padding:16px 20px;">
-        <input type="file" accept=".csv" id="fileMap">
-        <p style="margin-bottom:2px;">🔗 カテゴリURL対応表CSV <span class="opt-tag">（任意 ─ 内蔵の対応表を更新する場合のみ）</span></p>
-        <small>クリックまたはドロップで読み込み</small>
-      </div>
-      <div id="statusMap"></div>
+      <button class="dl-btn ghost" id="dlCatMapBtn" onclick="downloadCatMap()" style="margin:0;">📄 現在のカテゴリ対応表を一覧でダウンロード（確認用CSV）</button>
     </div>
   </div>
 
@@ -573,10 +567,8 @@ const CATEGORY_MAP_BUILTIN = {
   '0000001207':'0000000657','0000001208':'0000000649','0000001209':'0000000658','0000001210':'0000000659','0000001212':'0000000646',
   '0000001215':'0000000625','0000001445':'0000000666','0000001446':'0000000667','0000001447':'0000000741','0000001450':'0000000739'
 };
-let CATEGORY_MAP_EXTRA = null; // アップロードで差し替えた対応表（null = 内蔵を使用）
-
 function activeCatMap() {
-  return CATEGORY_MAP_EXTRA || CATEGORY_MAP_BUILTIN;
+  return CATEGORY_MAP_BUILTIN;
 }
 
 // ========== ファイル読み込み（Shift_JIS / UTF-8 自動判別） ==========
@@ -829,34 +821,16 @@ async function loadCat(file) {
   }
 }
 
-// ========== カテゴリURL対応表CSVの読み込み（任意） ==========
-// 列: 表示先カテゴリ / URL（EL COMMUN online shop） / URL（LAIKLE）
-async function loadMap(file) {
-  try {
-    const { text, encoding } = await readFileAuto(file);
-    const rows = parseCsv(text);
-    const map = {};
-    let skipped = 0;
-    for (const row of rows) {
-      const line = row.join(',');
-      const mFrom = line.match(/\/c\/(\d+)/);
-      if (!mFrom) continue; // ヘッダー行など
-      const ids = [...line.matchAll(/\/c\/(\d+)/g)].map(m => m[1]);
-      if (ids.length >= 2) map[ids[0]] = ids[1];
-      else skipped++;
-    }
-    if (!Object.keys(map).length) throw new Error('カテゴリURL（…/c/カテゴリID/）のペアが見つかりません。列の構成を確認してください');
-    CATEGORY_MAP_EXTRA = map;
-    document.getElementById('catMapCount').textContent = Object.keys(map).length;
-    setStatus('statusMap', true,
-      `対応表を差し替えました：<strong>${Object.keys(map).length}件</strong>（${encoding}）${skipped ? `<br>⚠️ URLペアが揃っていない行 ${skipped}件はスキップしました` : ''}`);
-    setZone('zoneMap', true);
-  } catch(e) {
-    setStatus('statusMap', false, '読み込みエラー：' + esc(e.message));
-    setZone('zoneMap', false);
-    CATEGORY_MAP_EXTRA = null;
-    document.getElementById('catMapCount').textContent = Object.keys(CATEGORY_MAP_BUILTIN).length;
+// ========== カテゴリURL対応表の一覧ダウンロード（確認用） ==========
+function downloadCatMap() {
+  const rows = [['EL COMMUN カテゴリID', 'URL（EL COMMUN online shop）', 'LAIKLE カテゴリID', 'URL（LAIKLE）']];
+  for (const [from, to] of Object.entries(CATEGORY_MAP_BUILTIN).sort((a, b) => a[0].localeCompare(b[0]))) {
+    rows.push([
+      from, `https://item.rakuten.co.jp/elcommun/c/${from}/`,
+      to,   `https://item.rakuten.co.jp/laikle/c/${to}/`
+    ]);
   }
+  saveBlob(new Blob(['\uFEFF' + serializeCsv(rows)], { type: 'text/csv;charset=utf-8' }), 'category-map-list.csv');
 }
 
 // ========== 店舗URL置換 ==========
@@ -1029,7 +1003,7 @@ function doConvert() {
 
   const catMap = activeCatMap();
   const rep = buildReplacers(fromSlug, toSlug, catMap);
-  log(`🔗 カテゴリURL対応表：${Object.keys(catMap).length}件${CATEGORY_MAP_EXTRA ? '（アップロードした対応表を使用）' : '（内蔵）'}`, 'log-info');
+  log(`🔗 カテゴリURL対応表：${Object.keys(catMap).length}件（内蔵）`, 'log-info');
 
   // ----- dl-normal-item -----
   log('📋 dl-normal-item を処理中...', 'log-info');
@@ -1326,9 +1300,8 @@ function downloadUrlList() {
 
 document.getElementById('fileItem').addEventListener('change', e => { if(e.target.files[0]) loadItem(e.target.files[0]); });
 document.getElementById('fileCat').addEventListener('change',  e => { if(e.target.files[0]) loadCat(e.target.files[0]); });
-document.getElementById('fileMap').addEventListener('change',  e => { if(e.target.files[0]) loadMap(e.target.files[0]); });
 
-[['zoneItem', f => loadItem(f)], ['zoneCat', f => loadCat(f)], ['zoneMap', f => loadMap(f)]].forEach(([id, handler]) => {
+[['zoneItem', f => loadItem(f)], ['zoneCat', f => loadCat(f)]].forEach(([id, handler]) => {
   const zone = document.getElementById(id);
   zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('drag'); });
   zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
