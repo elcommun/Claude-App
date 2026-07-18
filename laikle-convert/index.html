@@ -24,6 +24,26 @@
 
   .container{max-width:920px;margin:0 auto;padding:28px 16px 56px;}
 
+  /* ===== 進捗バー ===== */
+  .stepper{display:flex;align-items:center;gap:6px;background:white;border:1px solid var(--gray-200);border-radius:12px;padding:10px 14px;margin-bottom:24px;box-shadow:0 1px 6px rgba(0,0,0,.04);}
+  .sp-item{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:var(--gray-400);flex:1;justify-content:center;padding:5px 4px;border-radius:8px;white-space:nowrap;}
+  .sp-num{width:22px;height:22px;border-radius:50%;background:var(--gray-200);color:var(--gray-500);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;flex-shrink:0;}
+  .sp-item.current{color:var(--primary-dark);background:var(--primary-light);}
+  .sp-item.current .sp-num{background:var(--primary);color:white;}
+  .sp-item.done{color:var(--green-dark);}
+  .sp-item.done .sp-num{background:var(--green);color:white;font-size:0;}
+  .sp-item.done .sp-num::after{content:'✓';font-size:12px;}
+  .sp-arrow{color:var(--gray-300);font-size:14px;font-weight:700;flex-shrink:0;}
+
+  /* ===== 開閉式の詳細（details） ===== */
+  details.fold{border:1px solid var(--gray-200);border-radius:10px;background:var(--gray-50);margin-top:14px;}
+  details.fold>summary{cursor:pointer;padding:11px 15px;font-size:12.5px;font-weight:700;color:var(--gray-600);list-style:none;display:flex;align-items:center;gap:8px;user-select:none;line-height:1.6;}
+  details.fold>summary::-webkit-details-marker{display:none;}
+  details.fold>summary::before{content:'▸';color:var(--primary);flex-shrink:0;transition:transform .15s;}
+  details.fold[open]>summary::before{transform:rotate(90deg);}
+  details.fold[open]>summary{border-bottom:1px dashed var(--gray-200);}
+  details.fold>.fold-body{padding:12px 15px 14px;}
+
   /* ===== アプリの目的（ヒーロー） ===== */
   .purpose{background:white;border:1px solid var(--gray-200);border-left:5px solid var(--primary);border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);padding:22px 24px;margin-bottom:28px;}
   .purpose-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;color:var(--primary-dark);margin-bottom:10px;}
@@ -216,6 +236,9 @@
     .setting-arrow{display:none;}
     .rule-cards{grid-template-columns:1fr;}
     .work-steps{grid-template-columns:repeat(2,1fr);}
+    .stepper{padding:8px 8px;gap:2px;}
+    .sp-item{flex-direction:column;gap:3px;font-size:10px;white-space:normal;text-align:center;}
+    .sp-arrow{font-size:11px;}
     header{padding:12px 16px;}
     header h1{font-size:15px;}
     .badge{display:none;}
@@ -234,6 +257,17 @@
 
 <div class="container">
 
+  <!-- ===== 進捗バー ===== -->
+  <div class="stepper" id="stepper">
+    <div class="sp-item done" id="sp1"><span class="sp-num">1</span>設定</div>
+    <div class="sp-arrow">›</div>
+    <div class="sp-item current" id="sp2"><span class="sp-num">2</span>CSV読込</div>
+    <div class="sp-arrow">›</div>
+    <div class="sp-item" id="sp3"><span class="sp-num">3</span>変換</div>
+    <div class="sp-arrow">›</div>
+    <div class="sp-item" id="sp4"><span class="sp-num">4</span>画像移行・完了</div>
+  </div>
+
   <!-- ===== アプリの目的 ===== -->
   <div class="purpose">
     <div class="purpose-title">🎯 このアプリでできること</div>
@@ -241,6 +275,37 @@
       「EL COMMUN online shop」店の商品CSVを、<strong>「LAIKLE」店にそのままアップロードできるCSVに変換</strong>するツールです。
       リンクの書き換えから商品画像の引っ越しまで、店舗コピーに必要な作業をこの画面ひとつで進められます。
     </p>
+    <div class="rule-title">📋 作業の流れ（4ステップ）</div>
+    <div class="work-steps">
+      <div class="work-step">
+        <div class="ws-num">1</div>
+        <div class="ws-title">CSVを読み込んで変換</div>
+        <div class="ws-desc">STEP 1〜3。変換後のCSVをダウンロード</div>
+      </div>
+      <div class="work-step">
+        <div class="ws-num">2</div>
+        <div class="ws-title">商品画像をダウンロード</div>
+        <div class="ws-desc">STEP 4-①。ターミナルで実行するだけ</div>
+      </div>
+      <div class="work-step">
+        <div class="ws-num">3</div>
+        <div class="ws-title">画像をR-Cabinetへ</div>
+        <div class="ws-desc">STEP 4-②。CyberduckでLAIKLE店にアップ</div>
+      </div>
+      <div class="work-step">
+        <div class="ws-num">4</div>
+        <div class="ws-title">CSVをRMSへアップ</div>
+        <div class="ws-desc">STEP 4-③。画像より後にアップすること</div>
+      </div>
+    </div>
+
+    <div class="warn-box">
+      ⚠️ <strong>先に画像、後からCSV。</strong>CSVを先にアップすると、画像が未登録のため商品ページの画像が表示されません。
+      また、dl-item-cat を使う場合は、LAIKLE店側に同じ<strong>表示先カテゴリ</strong>を先に作成しておいてください。
+    </div>
+    <details class="fold">
+      <summary>🔍 変換ルールの詳細（何がどう変換されるか）</summary>
+      <div class="fold-body">
     <div class="flow">
       <div class="flow-col">
         <div class="flow-file">📋 dl-normal-item<span style="color:var(--gray-400);font-weight:normal;">（EL COMMUN店）</span></div>
@@ -277,38 +342,12 @@
       </div>
     </div>
 
-    <div class="rule-title">📋 作業の流れ（4ステップ）</div>
-    <div class="work-steps">
-      <div class="work-step">
-        <div class="ws-num">1</div>
-        <div class="ws-title">CSVを読み込んで変換</div>
-        <div class="ws-desc">STEP 1〜3。変換後のCSVをダウンロード</div>
-      </div>
-      <div class="work-step">
-        <div class="ws-num">2</div>
-        <div class="ws-title">商品画像をダウンロード</div>
-        <div class="ws-desc">STEP 4-①。ターミナルで実行するだけ</div>
-      </div>
-      <div class="work-step">
-        <div class="ws-num">3</div>
-        <div class="ws-title">画像をR-Cabinetへ</div>
-        <div class="ws-desc">STEP 4-②。CyberduckでLAIKLE店にアップ</div>
-      </div>
-      <div class="work-step">
-        <div class="ws-num">4</div>
-        <div class="ws-title">CSVをRMSへアップ</div>
-        <div class="ws-desc">STEP 4-③。画像より後にアップすること</div>
-      </div>
-    </div>
-
-    <div class="warn-box">
-      ⚠️ <strong>先に画像、後からCSV。</strong>CSVを先にアップすると、画像が未登録のため商品ページの画像が表示されません。
-      また、dl-item-cat を使う場合は、LAIKLE店側に同じ<strong>表示先カテゴリ</strong>を先に作成しておいてください。
-    </div>
     <div class="purpose-note">
       ✓ 倉庫指定（非公開）・在庫数0での登録が標準なので、誤って即公開される心配はありません<br>
       ✓ 列の並び・文字コード（Shift_JIS / UTF-8）は元ファイルのまま維持されます
     </div>
+      </div>
+    </details>
   </div>
 
   <div class="section-label">STEP 1〜4 の順に操作してください</div>
@@ -353,12 +392,18 @@
 
       <div style="height:16px;"></div>
 
-      <div class="rule-box">
-        🔗 <strong>カテゴリページURLの変換：</strong>リンク内の <code>item.rakuten.co.jp/elcommun/c/カテゴリID/</code>（およびRMS管理画面の <code>soko.rms.rakuten.co.jp/…</code>、item.が抜けた <code>rakuten.co.jp/…</code> も同様）は店舗ごとにIDが異なるため、
-        内蔵のカテゴリURL対応表（<b id="catMapCount">185</b>件）を使って LAIKLE店の対応するカテゴリIDに変換します（<code>soko.rms…</code> 形式も正規の <code>item.rakuten.co.jp/laikle/c/…</code> に統一します）。
-        対応表にないカテゴリURLは誤ったリンクになるのを防ぐため<b>変換せずに残し</b>、実行時のログと変換もれプレビューで報告します。
-      </div>
-      <button class="dl-btn ghost" id="dlCatMapBtn" onclick="downloadCatMap()" style="margin:0;">📄 現在のカテゴリ対応表を一覧でダウンロード（確認用CSV）</button>
+      <details class="fold" style="margin-top:0;">
+        <summary><span>🔗 カテゴリページのリンクは、内蔵の対応表（<b id="catMapCount">185</b>件）で自動変換されます ─ 詳しい仕組み</span></summary>
+        <div class="fold-body" style="font-size:12px;color:var(--gray-600);line-height:2;">
+          リンク内の <code>item.rakuten.co.jp/elcommun/c/カテゴリID/</code>（RMS管理画面の <code>soko.rms.rakuten.co.jp/…</code>、item.が抜けた <code>rakuten.co.jp/…</code> も同様）は店舗ごとにIDが異なるため、
+          対応表を使って LAIKLE店の対応するカテゴリIDに変換し、正規の <code>item.rakuten.co.jp/laikle/c/…</code> に統一します。<br>
+          対応表にないカテゴリURLは誤ったリンクになるのを防ぐため<b>変換せずに残し</b>、実行時のログと変換もれプレビューで報告します。
+          対応表を更新したい場合は、最新のCSVをチャットで共有してください（アプリに反映します）。
+          <div style="margin-top:10px;">
+            <button class="dl-btn ghost" id="dlCatMapBtn" onclick="downloadCatMap()" style="margin:0;">📄 現在のカテゴリ対応表を一覧でダウンロード（確認用CSV）</button>
+          </div>
+        </div>
+      </details>
     </div>
   </div>
 
@@ -699,6 +744,14 @@ function escRe(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// 進捗バー更新（done = 完了済みステップ数 0〜4。次のステップを「現在」として強調）
+function setStepper(done) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('sp' + i);
+    el.className = 'sp-item' + (i <= done ? ' done' : (i === done + 1 ? ' current' : ''));
+  }
+}
+
 function checkReady() {
   const ready = !!rawItem;
   document.getElementById('actionBtn').disabled = !ready;
@@ -777,6 +830,7 @@ async function loadItem(file) {
     setBadge('badgeItem', 'done', '✓ 読込済');
     setZone('zoneItem', true);
     document.getElementById('step2Card').classList.add('done');
+    setStepper(2);
     checkReady();
     // 次の工程（STEP 3）へ自動スクロール
     document.getElementById('step3Card').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -785,6 +839,7 @@ async function loadItem(file) {
     setBadge('badgeItem', 'err', 'エラー');
     setZone('zoneItem', false);
     document.getElementById('step2Card').classList.remove('done');
+    setStepper(1);
     rawItem = null; checkReady();
   }
 }
@@ -1138,6 +1193,7 @@ function doConvert() {
   document.getElementById('step3Card').classList.add('done');
   setBadge('badgeItem', 'done', '✓ 完了');
   setBadge('badgeRun', 'done', '✓ 完了');
+  setStepper(3);
   document.getElementById('resultSection').classList.add('show');
   document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -1264,6 +1320,7 @@ function completeSubStep(n) {
   } else {
     document.getElementById('step4Card').classList.add('done');
     setBadge('badgeImg', 'done', '✓ 完了');
+    setStepper(4);
     const box = document.getElementById('allDone');
     box.style.display = 'block';
     box.scrollIntoView({ behavior: 'smooth', block: 'center' });
