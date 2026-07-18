@@ -503,7 +503,8 @@
           <button class="dl-btn" id="dlImgScriptBtn" onclick="saveImageScript()">💾 画像DLスクリプトを保存する</button>
           <button class="dl-btn ghost" id="dlImgListBtn" onclick="downloadUrlList()" title="全画像のURLを一覧で確認したいときだけ使います">📄 画像URLの一覧（確認用・通常は不要）</button>
           <div class="saved-note" id="scriptSavedNote">
-            ✅ <code>download_laikle_images.txt</code> を保存しました。次に下のコマンドをターミナルで実行してください。
+            ✅ <code>download_laikle_images.txt</code> を保存し、実行コマンドも<b>コピー済み</b>です。<br>
+            あとは <b>⌘+スペース</b> → <code>ターミナル</code> → Enter で開いて、<b>⌘V → Enter</b> するだけで画像のダウンロードが始まります。
           </div>
           <div class="saved-note" id="urlListSavedNote">✅ <code>image-url-list.txt</code> を保存しました（ダウンロードフォルダをご確認ください）</div>
           <div class="cmd-area" id="cmdArea" style="display:none;">
@@ -1323,6 +1324,9 @@ function saveImageScript() {
   if (!IMAGES.length) return;
   // 拡張子は .txt にする（.sh はChrome等が「危険なファイル」として保存をブロックすることがあるため。bashは拡張子に関係なく実行できる）
   saveBlob(new Blob([buildImageScript()], { type: 'text/plain' }), 'download_laikle_images.txt');
+  // 実行コマンドを自動でコピーしておく（ターミナルを開いて ⌘V → Enter だけで実行できるように。
+  // ブラウザのセキュリティ上、ターミナル自体をWebページから開くことはできない）
+  navigator.clipboard.writeText(document.getElementById('cmdText').value).catch(() => {});
   document.getElementById('scriptSavedNote').style.display = 'block';
   document.getElementById('cmdArea').style.display = '';
   document.getElementById('hintBox').style.display = '';
