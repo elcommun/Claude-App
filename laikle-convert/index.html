@@ -157,7 +157,8 @@
   .dl-btn.ghost:hover:not(:disabled){background:var(--gray-50);color:var(--gray-800);}
 
   /* 完了した工程の見た目 */
-  .card.done{border:2px solid var(--green);box-shadow:0 2px 10px rgba(16,185,129,.15);}
+  .card.done{border:2px solid var(--green);box-shadow:0 2px 10px rgba(16,185,129,.15);opacity:.55;transition:opacity .25s;}
+  .card.done:hover{opacity:1;}
   .card.done>.card-header{background:var(--green-light);}
   .card.done>.card-header h2{color:#065F46;}
   .card.done>.card-header .sub{color:var(--green-dark);}
@@ -168,7 +169,10 @@
   .card.folded>.card-header{cursor:pointer;border-bottom:none;}
   .card.folded>.card-body{display:none;}
   /* 完了したサブ工程：緑背景＋✓＋詳細を畳んでタイトルだけに */
-  .sub-step.done{background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:11px 14px;}
+  .sub-step.done{background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:11px 14px;opacity:.55;transition:opacity .25s;}
+  .sub-step.done:hover{opacity:1;}
+  .result-section.dimmed{opacity:.55;transition:opacity .25s;}
+  .result-section.dimmed:hover{opacity:1;}
   .sub-step.done .sub-num{background:var(--green);border-color:var(--green);color:white;font-size:0;margin-top:0;}
   .sub-step.done .sub-num::after{content:'✓';font-size:13px;}
   .sub-step.done .sub-body h3{color:#065F46;display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:0;}
@@ -1026,7 +1030,7 @@ function renderLeftoverPreview(leftovers, fromSlug) {
 // ========== Step3: 変換実行 ==========
 function doConvert() {
   document.getElementById('logBox').innerHTML = '';
-  document.getElementById('resultSection').classList.remove('show');
+  document.getElementById('resultSection').classList.remove('show', 'dimmed');
   // 再実行時はSTEP 3〜4の完了状態をリセット
   document.getElementById('step3Card').classList.remove('done');
   document.getElementById('step4Card').classList.remove('done');
@@ -1320,6 +1324,7 @@ function completeSubStep(n) {
   } else {
     document.getElementById('step4Card').classList.add('done');
     setBadge('badgeImg', 'done', '✓ 完了');
+    document.getElementById('resultSection').classList.add('dimmed');
     setStepper(4);
     const box = document.getElementById('allDone');
     box.style.display = 'block';
