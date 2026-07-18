@@ -35,6 +35,20 @@
   .sp-item.done .sp-num::after{content:'✓';font-size:12px;}
   .sp-arrow{color:var(--gray-300);font-size:14px;font-weight:700;flex-shrink:0;}
 
+  /* ===== 次にやることバー ===== */
+  .next-bar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:flex;justify-content:center;pointer-events:none;padding:0 12px 14px;}
+  .next-inner{pointer-events:auto;display:flex;align-items:center;gap:10px;background:var(--gray-800);color:white;border-radius:999px;padding:10px 18px;font-size:13px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.28);cursor:pointer;max-width:94%;transition:all .2s;}
+  .next-inner:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.32);}
+  .next-inner .nb-tag{background:var(--primary);border-radius:999px;padding:3px 11px;font-size:11px;flex-shrink:0;white-space:nowrap;}
+  .next-inner.done-state{background:var(--green);}
+  .next-inner.done-state .nb-tag{background:rgba(255,255,255,.25);}
+  .next-inner .nb-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  body{padding-bottom:64px;}
+
+  /* 次に操作するカード・工程のハイライト */
+  .card.current-step{border:2px solid var(--primary);box-shadow:0 4px 16px rgba(232,93,38,.18);}
+  .sub-step.current-step{background:var(--primary-light);border:1.5px dashed var(--primary);border-radius:10px;padding:11px 14px;}
+
   /* ===== 開閉式の詳細（details） ===== */
   details.fold{border:1px solid var(--gray-200);border-radius:10px;background:var(--gray-50);margin-top:14px;}
   details.fold>summary{cursor:pointer;padding:11px 15px;font-size:12.5px;font-weight:700;color:var(--gray-600);list-style:none;display:flex;align-items:center;gap:8px;user-select:none;line-height:1.6;}
@@ -243,6 +257,7 @@
     .stepper{padding:8px 8px;gap:2px;}
     .sp-item{flex-direction:column;gap:3px;font-size:10px;white-space:normal;text-align:center;}
     .sp-arrow{font-size:11px;}
+    .next-inner{font-size:11.5px;padding:9px 14px;}
     header{padding:12px 16px;}
     header h1{font-size:15px;}
     .badge{display:none;}
@@ -567,6 +582,14 @@
 
 <footer>EL COMMUN ─ 楽天 店舗間 商品データ変換：EL COMMUN online shop → LAIKLE（社内用）</footer>
 
+<!-- 次にやることバー（常時表示・クリックでその場所へ移動） -->
+<div class="next-bar">
+  <div class="next-inner" id="nextInner" onclick="scrollToNext()">
+    <span class="nb-tag" id="nbTag">👉 次にやること</span>
+    <span class="nb-text" id="nbText"></span>
+  </div>
+</div>
+
 <script>
 // ========== 状態 ==========
 let rawItem = null;
@@ -757,6 +780,39 @@ function setStepper(done) {
   }
 }
 
+// ========== 次にやることバー ==========
+// 作業が1つ終わるたびに、画面下のバーの文言と現在地ハイライトを次の作業へ切り替える
+const NEXT_STEPS = {
+  load:        { text: 'STEP 2：EL COMMUN店のCSV（dl-normal-item）を読み込む', target: 'step2Card' },
+  convert:     { text: 'STEP 3：「🔁 LAIKLE用に変換する」ボタンを押す', target: 'step3Card' },
+  download:    { text: '変換完了！変換済みCSVをダウンロードする', target: 'resultSection' },
+  img1:        { text: 'STEP 4-①：画像DLスクリプトを保存して、ターミナルで実行する', target: 'subStep1' },
+  img2:        { text: 'STEP 4-②：CyberduckでLAIKLE店のR-Cabinetに画像をアップロードする', target: 'subStep2' },
+  img3:        { text: 'STEP 4-③：変換済みCSVをLAIKLE店のRMSにアップロードする', target: 'subStep3' },
+  upload_only: { text: '仕上げ：変換済みCSVをLAIKLE店のRMSにアップロードして完了', target: 'resultSection' },
+  done:        { text: '移行作業はすべて完了です！おつかれさまでした', target: 'allDone', done: true }
+};
+let NEXT_TARGET = 'step2Card';
+
+function setNextAction(key) {
+  const info = NEXT_STEPS[key];
+  if (!info) return;
+  document.getElementById('nbText').textContent = info.text;
+  document.getElementById('nbTag').textContent = info.done ? '🎉 完了' : '👉 次にやること';
+  document.getElementById('nextInner').classList.toggle('done-state', !!info.done);
+  NEXT_TARGET = info.target;
+  // 次に操作するカード・工程をオレンジ枠でハイライト
+  document.querySelectorAll('.current-step').forEach(el => el.classList.remove('current-step'));
+  if (['step2Card', 'step3Card', 'subStep1', 'subStep2', 'subStep3'].includes(info.target)) {
+    document.getElementById(info.target).classList.add('current-step');
+  }
+}
+
+function scrollToNext() {
+  const el = document.getElementById(NEXT_TARGET);
+  if (el && el.offsetParent !== null) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function checkReady() {
   const ready = !!rawItem;
   document.getElementById('actionBtn').disabled = !ready;
@@ -836,6 +892,7 @@ async function loadItem(file) {
     setZone('zoneItem', true);
     document.getElementById('step2Card').classList.add('done');
     setStepper(2);
+    setNextAction('convert');
     checkReady();
     // 次の工程（STEP 3）へ自動スクロール
     document.getElementById('step3Card').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -845,6 +902,7 @@ async function loadItem(file) {
     setZone('zoneItem', false);
     document.getElementById('step2Card').classList.remove('done');
     setStepper(1);
+    setNextAction('load');
     rawItem = null; checkReady();
   }
 }
@@ -1200,6 +1258,7 @@ function doConvert() {
   setBadge('badgeItem', 'done', '✓ 完了');
   setBadge('badgeRun', 'done', '✓ 完了');
   setStepper(3);
+  setNextAction('download');
   document.getElementById('resultSection').classList.add('show');
   document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -1280,6 +1339,7 @@ function downloadPrepared(kind) {
     (PREPARED.cat ? (DOWNLOADED.has('item') && DOWNLOADED.has('cat')) : DOWNLOADED.has('item'));
   if (allDone) {
     document.getElementById('resultSection').classList.add('dimmed');
+    setNextAction(IMAGES.length ? 'img1' : 'upload_only');
     const s4 = document.getElementById('step4Card');
     if (s4.style.display !== 'none') s4.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -1336,6 +1396,7 @@ function saveImageScript() {
 // 工程完了：見た目を薄くして次の工程へスクロール
 function completeSubStep(n) {
   document.getElementById('subStep' + n).classList.add('done');
+  setNextAction(n === 1 ? 'img2' : n === 2 ? 'img3' : 'done');
   if (n < 3) {
     document.getElementById('subStep' + (n + 1)).scrollIntoView({ behavior: 'smooth', block: 'center' });
   } else {
@@ -1379,6 +1440,8 @@ function downloadUrlList() {
 
 document.getElementById('fileItem').addEventListener('change', e => { if(e.target.files[0]) loadItem(e.target.files[0]); });
 document.getElementById('fileCat').addEventListener('change',  e => { if(e.target.files[0]) loadCat(e.target.files[0]); });
+
+setNextAction('load');
 
 [['zoneItem', f => loadItem(f)], ['zoneCat', f => loadCat(f)]].forEach(([id, handler]) => {
   const zone = document.getElementById(id);
