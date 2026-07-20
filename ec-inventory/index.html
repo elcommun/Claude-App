@@ -273,7 +273,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><span class="grad-txt">EC棚卸し</span></h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v30</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v31</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -708,8 +708,8 @@ document.getElementById('goBtn').onclick=async()=>{
     // warnings
     const wl=document.getElementById('warnlist');wl.innerHTML='';
     const fmt=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${k} ${v}件`).join(' / ');
-    if(Object.keys(noGenka).length)wl.innerHTML+=`<div class="wi">自社で原価が見つからない商品: ${fmt(noGenka)}（新商品の可能性。最新の商品データxlsxをStep3でアップロードすると反映されます）</div>`;
-    if(Object.keys(noRate).length)wl.innerHTML+=`<div class="wi">メーカーで掛け率未設定の接頭辞: ${fmt(noRate)}（Step4で掛け率を追加すると合計が算出されます）</div>`;
+    if(Object.keys(noGenka).length)wl.innerHTML+=`<div class="wi">自社で原価が見つからない商品: ${fmt(noGenka)}（新商品の可能性。ファイルアップロード欄の「商品データ xlsx」に最新のマスタをアップロードすると反映されます）</div>`;
+    if(Object.keys(noRate).length)wl.innerHTML+=`<div class="wi">メーカーで掛け率未設定の接頭辞: ${fmt(noRate)}（「メーカー掛け率」カードで掛け率を追加すると合計が算出されます）</div>`;
     if(Object.keys(noPrice).length)wl.innerHTML+=`<div class="wi">メーカーで上代（dl-normal）に無い商品: ${fmt(noPrice)}（dl-normalに該当SKUが無い／在庫切れ商品など）</div>`;
 
     // error block (rows whose 合計 could not be computed)
