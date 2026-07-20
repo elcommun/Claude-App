@@ -195,10 +195,13 @@
   .dlrow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
   .dlrow.one{grid-template-columns:1fr}
   .dl{padding:14px;border-radius:var(--radius-sm);font-weight:700;font-size:.92rem;cursor:pointer;
-       border:1.5px solid var(--accent-border);color:var(--accent);background:var(--card);
+       border:1.5px solid var(--green-border);color:var(--green);background:var(--card);
        display:flex;align-items:center;justify-content:center;gap:9px;transition:.15s}
-  .dl:hover{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 4px 14px var(--accent-border)}
+  .dl:hover{background:var(--green);border-color:var(--green);color:#fff;box-shadow:0 4px 14px var(--green-border)}
   .dl svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2}
+  /* 完了済みのボタンは薄く表示（ホバーで復帰・再実行は可能） */
+  .btn-done{opacity:.4}
+  .btn-done:hover{opacity:1}
 
   .warnlist{margin-top:14px;font-size:.82rem;line-height:1.6}
   .warnlist .wi{padding:11px 15px;background:var(--amber-dim);border:1px solid var(--amber-border);
@@ -250,7 +253,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><span class="grad-txt">EC棚卸し</span></h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v28</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v29</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -539,16 +542,31 @@ function setActive(card,label){
   FLOW_CARDS.forEach(c=>c&&c.classList.remove('active'));
   if(card){card.classList.add('active');card.setAttribute('data-next',label);}
 }
+let flowState=null;
 function updateFlow(){
   const [cardItem,cardDl,cardGen]=FLOW_CARDS;
   setDone(cardItem,!!files.item);
   setDone(cardDl,!!files.dl);
   setDone(cardGen,flowGenerated&&flowDownloaded);
-  if(!files.item)        setActive(cardItem,'次の作業：itemdata CSV をアップロード');
-  else if(!files.dl)     setActive(cardDl,'次の作業：dl-normal-item CSV をアップロード');
-  else if(!flowGenerated)setActive(cardGen,'次の作業：棚卸しデータを生成');
-  else if(!flowDownloaded)setActive(cardGen,'次の作業：Excel をダウンロード');
-  else                   setActive(null);
+  // 完了済みのボタンは薄く表示
+  document.getElementById('goBtn').classList.toggle('btn-done',flowGenerated);
+  document.getElementById('dlAll').classList.toggle('btn-done',flowDownloaded);
+  let state,card,scrollTo;
+  if(!files.item)         {state='item';   card=cardItem; scrollTo=cardItem;
+    setActive(cardItem,'次の作業：itemdata CSV をアップロード');}
+  else if(!files.dl)      {state='dl';     card=cardDl;   scrollTo=cardDl;
+    setActive(cardDl,'次の作業：dl-normal-item CSV をアップロード');}
+  else if(!flowGenerated) {state='gen';    card=cardGen;  scrollTo=cardGen;
+    setActive(cardGen,'次の作業：棚卸しデータを生成');}
+  else if(!flowDownloaded){state='dlxlsx'; card=cardGen;  scrollTo=document.getElementById('dlAll');
+    setActive(cardGen,'次の作業：Excel をダウンロード');}
+  else                    {state='done';   card=null;     scrollTo=null;
+    setActive(null);}
+  // 状態が進んだら次の作業のセクションまで自動スクロール（初期表示時は除く）
+  if(flowState!==null&&flowState!==state&&scrollTo){
+    setTimeout(()=>scrollTo.scrollIntoView({behavior:'smooth',block:'center'}),150);
+  }
+  flowState=state;
 }
 updateFlow();
 
