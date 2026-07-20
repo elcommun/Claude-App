@@ -59,6 +59,27 @@
 
   .app-purpose{font-size:.9rem;color:var(--text2);line-height:1.7;margin:0 0 28px;max-width:600px}
 
+  /* 冒頭のアプリ説明（目的＋手順の概要） */
+  .intro{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+       padding:22px 24px;margin-bottom:24px;box-shadow:var(--shadow)}
+  .intro-ttl{font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .intro-ttl svg{width:17px;height:17px;stroke:var(--accent);fill:none;stroke-width:2}
+  .intro-txt{font-size:.88rem;color:var(--text2);line-height:1.75;margin-bottom:16px}
+  .intro-txt b{color:var(--text);font-weight:600}
+  .intro-steps{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .intro-step{flex:1;min-width:120px;display:flex;flex-direction:column;align-items:center;gap:7px;
+       padding:12px 8px;text-align:center;position:relative}
+  .intro-step .is-num{width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;
+       font-size:.78rem;font-weight:700;font-family:var(--mono);display:flex;align-items:center;justify-content:center}
+  .intro-step .is-t{font-size:.78rem;font-weight:600;color:var(--text);line-height:1.4}
+  .intro-step .is-s{font-size:.7rem;color:var(--text3);line-height:1.4}
+  .intro-step:not(:last-child)::after{content:'';position:absolute;right:-7px;top:22px;width:14px;height:14px;
+       border-top:2px solid var(--border-strong);border-right:2px solid var(--border-strong);transform:rotate(45deg)}
+  @media(max-width:600px){.intro-steps{flex-direction:column;gap:4px}
+       .intro-step{flex-direction:row;text-align:left;padding:8px 4px}
+       .intro-step .is-t{flex:1}
+       .intro-step:not(:last-child)::after{display:none}}
+
   .alert-banner{display:flex;gap:14px;align-items:flex-start;padding:17px 19px;margin-bottom:28px;
        border:1px solid var(--red-border);background:var(--red-dim);
        border-radius:var(--radius);box-shadow:var(--shadow)}
@@ -70,8 +91,18 @@
   .alert-banner .txt{font-size:.86rem;color:var(--text);line-height:1.7}
   .alert-banner .txt b{color:var(--red);font-weight:600}
 
-  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
-       padding:26px;margin-bottom:18px;box-shadow:var(--shadow);transition:box-shadow .2s,border-color .2s}
+  .card{position:relative;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+       padding:26px;margin-bottom:18px;box-shadow:var(--shadow);transition:box-shadow .2s,border-color .2s,opacity .25s}
+  /* 作業フロー: 完了したセクションは薄く、次の作業はリボンで強調 */
+  .card.done{opacity:.45}
+  .card.done:hover{opacity:1}
+  .card.done .card-h .num{background:var(--green);box-shadow:none}
+  .card.active{border-color:var(--accent-border);box-shadow:0 0 0 3px var(--accent-dim),var(--shadow-md)}
+  .card.active::before{content:attr(data-next);position:absolute;top:-13px;left:16px;z-index:2;
+       background:var(--accent);color:#fff;font-size:.74rem;font-weight:700;letter-spacing:.01em;
+       padding:4px 14px;border-radius:999px;box-shadow:0 3px 10px var(--accent-border);
+       animation:nextpop .3s ease}
+  @keyframes nextpop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   .card-h{display:flex;align-items:center;gap:12px;margin-bottom:20px}
   .card-h .num{width:28px;height:28px;border-radius:50%;background:var(--accent);
        color:#fff;font-size:.84rem;font-weight:700;font-family:var(--mono);
@@ -219,14 +250,23 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><span class="grad-txt">EC棚卸し</span></h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v27</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v28</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
     </button>
   </div>
 
-  <div class="app-purpose">楽天のitemdata・dl-normal-item CSVを取り込み、EC在庫を「自社」「メーカー」に自動振り分けして棚卸し用Excelを作成するアプリです。</div>
+  <div class="intro">
+    <div class="intro-ttl"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>このアプリでできること</div>
+    <div class="intro-txt">楽天の在庫データ（itemdata CSV）と価格データ（dl-normal-item CSV）をアップロードするだけで、EC在庫を<b>「自社」「メーカー」に自動振り分け</b>し、原価・上代×掛け率から棚卸額を計算した<b>棚卸し用Excel</b>を作成します。作業は下の4ステップ。完了したセクションは薄く表示され、次にやる作業がオレンジのラベルで案内されます。</div>
+    <div class="intro-steps">
+      <div class="intro-step"><span class="is-num">1</span><span class="is-t">itemdata CSV<br>をアップロード</span><span class="is-s">GoQ Systemから取得</span></div>
+      <div class="intro-step"><span class="is-num">2</span><span class="is-t">dl-normal-item CSV<br>をアップロード</span><span class="is-s">楽天RMSから取得</span></div>
+      <div class="intro-step"><span class="is-num">3</span><span class="is-t">棚卸しデータ<br>を生成</span><span class="is-s">自動で振り分け・計算</span></div>
+      <div class="intro-step"><span class="is-num">4</span><span class="is-t">Excelを<br>ダウンロード</span><span class="is-s">自社/メーカー 2シート</span></div>
+    </div>
+  </div>
 
   <div class="alert-banner">
     <span class="ic-wrap"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
@@ -237,7 +277,7 @@
   </div>
 
   <!-- STEP 1: itemdata -->
-  <div class="card">
+  <div class="card" id="cardItem">
     <div class="card-h"><span class="num">1</span><h2>itemdata CSV（GoQ System・在庫取得）</h2><span class="opt req">必須</span></div>
     <label class="drop" id="dropItem">
       <input type="file" accept=".csv" id="fileItem">
@@ -257,7 +297,7 @@
   </div>
 
   <!-- STEP 2: dl-normal-item -->
-  <div class="card">
+  <div class="card" id="cardDl">
     <div class="card-h"><span class="num">2</span><h2>dl-normal-item CSV（メーカー上代取得）</h2><span class="opt req">必須</span></div>
     <label class="drop" id="dropDl">
       <input type="file" accept=".csv" id="fileDl">
@@ -303,7 +343,7 @@
   </div>
 
   <!-- Generate -->
-  <div class="card">
+  <div class="card" id="cardGen">
     <button class="go" id="goBtn" disabled>
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       棚卸しデータを生成
@@ -480,7 +520,37 @@ async function loadMasterXlsx(f){
     showMsg(`原価マスタを更新しました（${added.toLocaleString()}件マージ）`,'success');
   }catch(e){showMsg('xlsxの読み込みに失敗しました: '+e.message,'error');}
 }
-function refreshGo(){document.getElementById('goBtn').disabled=!(files.item&&files.dl);}
+function refreshGo(){document.getElementById('goBtn').disabled=!(files.item&&files.dl);updateFlow();}
+
+/* ---------- 作業フロー表示（完了セクションを薄く・次の作業をリボン表示） ---------- */
+const FLOW_CARDS=['cardItem','cardDl','cardGen'].map(id=>document.getElementById(id));
+let flowGenerated=false,flowDownloaded=false;
+const NUM_ORIG={};
+function setDone(card,done){
+  if(!card)return;
+  card.classList.toggle('done',done);
+  const num=card.querySelector('.card-h .num');
+  if(num){
+    if(!(card.id in NUM_ORIG))NUM_ORIG[card.id]=num.textContent;
+    num.textContent=done?'✓':NUM_ORIG[card.id];
+  }
+}
+function setActive(card,label){
+  FLOW_CARDS.forEach(c=>c&&c.classList.remove('active'));
+  if(card){card.classList.add('active');card.setAttribute('data-next',label);}
+}
+function updateFlow(){
+  const [cardItem,cardDl,cardGen]=FLOW_CARDS;
+  setDone(cardItem,!!files.item);
+  setDone(cardDl,!!files.dl);
+  setDone(cardGen,flowGenerated&&flowDownloaded);
+  if(!files.item)        setActive(cardItem,'次の作業：itemdata CSV をアップロード');
+  else if(!files.dl)     setActive(cardDl,'次の作業：dl-normal-item CSV をアップロード');
+  else if(!flowGenerated)setActive(cardGen,'次の作業：棚卸しデータを生成');
+  else if(!flowDownloaded)setActive(cardGen,'次の作業：Excel をダウンロード');
+  else                   setActive(null);
+}
+updateFlow();
 
 /* ---------- generate ---------- */
 let outWb=null,errRows=[];
@@ -625,12 +695,13 @@ document.getElementById('goBtn').onclick=async()=>{
     }
 
     showMsg(`生成完了！　自社 ${ownIncluded.length}件・メーカー ${makerIncluded.length}件${errors.length?`（合計未算出 ${errors.length}件は棚卸しデータから除外）`:''}${excluded?`　／ 取り寄せ(apj-・rft-) ${excluded}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
+    flowGenerated=true;flowDownloaded=false;updateFlow();
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
 
 // ファイル名の先頭に実行年月（YYYYMM）を付与
 const ym=()=>{const d=new Date();return ''+d.getFullYear()+String(d.getMonth()+1).padStart(2,'0');};
-document.getElementById('dlAll').onclick=()=>{if(outWb)XLSX.writeFile(outWb,`${ym()}_EC棚卸し.xlsx`);};
+document.getElementById('dlAll').onclick=()=>{if(outWb){XLSX.writeFile(outWb,`${ym()}_EC棚卸し.xlsx`);flowDownloaded=true;updateFlow();}};
 
 // error preview toggle
 document.getElementById('errToggle').onclick=()=>{
