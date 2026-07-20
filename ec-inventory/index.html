@@ -127,6 +127,26 @@
   .drop.has .t{color:var(--green)}
   .fname{font-family:var(--mono);font-size:.8rem;word-break:break-all}
 
+  /* アップロード統合セクション（2カラム＋原価マスタ） */
+  .up-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .up-col{display:flex;flex-direction:column;min-width:0}
+  .up-ttl{font-size:.88rem;font-weight:700;margin-bottom:9px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .up-ttl .up-sub{font-size:.72rem;font-weight:500;color:var(--text3)}
+  .up-ttl .opt{font-size:.68rem;font-weight:600;color:var(--text3);border:1px solid var(--border);
+       padding:1px 9px;border-radius:999px}
+  .up-col .drop{flex:1}
+  .up-info{margin-top:9px}
+  .up-info summary{font-size:.78rem;font-weight:600;color:var(--accent);cursor:pointer;user-select:none;
+       list-style:none;display:flex;align-items:center;gap:5px}
+  .up-info summary::-webkit-details-marker{display:none}
+  .up-info summary::before{content:'▸';font-size:.7rem;transition:transform .15s}
+  .up-info[open] summary::before{transform:rotate(90deg)}
+  .up-info .dl-steps,.up-info .rms-note{margin-top:9px}
+  .up-master{margin-top:18px;padding-top:18px;border-top:1px solid var(--border)}
+  .drop-slim{padding:16px 18px}
+  .drop-slim .ic{width:30px;height:30px;padding:6px;margin-bottom:6px}
+  @media(max-width:600px){.up-grid{grid-template-columns:1fr}}
+
   .rms-note,.dl-steps{margin-top:14px;padding:15px 17px;border:1px solid var(--green-border);
        background:var(--green-dim);border-radius:var(--radius-sm)}
   .rms-note-h,.dl-steps-h{font-size:.79rem;font-weight:700;color:var(--green);margin-bottom:11px;
@@ -139,10 +159,10 @@
   .rms-link a,.dl-steps a{color:var(--green);font-weight:600;text-decoration:none;border-bottom:1px solid var(--green-border)}
   .rms-link a:hover,.dl-steps a:hover{border-bottom-color:var(--green)}
   .dl-steps ol{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:8px}
-  .dl-steps li{counter-increment:s;display:flex;gap:10px;align-items:flex-start;font-size:.85rem;color:var(--text);line-height:1.55}
-  .dl-steps li::before{content:counter(s);flex-shrink:0;width:18px;height:18px;border-radius:50%;
+  .dl-steps li{counter-increment:s;position:relative;padding-left:28px;font-size:.85rem;color:var(--text);line-height:1.55}
+  .dl-steps li::before{content:counter(s);position:absolute;left:0;top:2px;width:18px;height:18px;border-radius:50%;
        background:var(--green);color:#fff;font-size:.67rem;font-weight:700;font-family:var(--mono);
-       display:flex;align-items:center;justify-content:center;margin-top:1px}
+       display:flex;align-items:center;justify-content:center}
   .dl-steps b{font-weight:700;color:var(--text)}
 
   table.rates{width:100%;border-collapse:collapse;font-size:.85rem}
@@ -253,7 +273,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><span class="grad-txt">EC棚卸し</span></h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v29</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v30</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -279,58 +299,63 @@
     </div>
   </div>
 
-  <!-- STEP 1: itemdata -->
-  <div class="card" id="cardItem">
-    <div class="card-h"><span class="num">1</span><h2>itemdata CSV（GoQ System・在庫取得）</h2><span class="opt req">必須</span></div>
-    <label class="drop" id="dropItem">
-      <input type="file" accept=".csv" id="fileItem">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <div class="t" id="tItem">クリック または ドラッグでCSVを選択</div>
-      <div class="h">在庫数・商品名・システム連携用SKU番号 を含むデータ</div>
-    </label>
-    <div class="dl-steps">
-      <div class="dl-steps-h"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>GoQ System からのダウンロード手順</div>
-      <ol>
-        <li><a href="https://order.goqsystem.com/goq21/index_beta.php" target="_blank" rel="noopener">GoQ System 在庫連携</a> を開く</li>
-        <li><b>「すべて」</b>にチェックを入れる</li>
-        <li>プルダウンで <b>「EL COMMUN 楽天市場店」</b> を選択</li>
-        <li><b>「CSV出力」</b> ボタンを押す</li>
-      </ol>
-    </div>
-  </div>
-
-  <!-- STEP 2: dl-normal-item -->
-  <div class="card" id="cardDl">
-    <div class="card-h"><span class="num">2</span><h2>dl-normal-item CSV（メーカー上代取得）</h2><span class="opt req">必須</span></div>
-    <label class="drop" id="dropDl">
-      <input type="file" accept=".csv" id="fileDl">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <div class="t" id="tDl">クリック または ドラッグでCSVを選択</div>
-      <div class="h">通常購入販売価格 を含む楽天ダウンロードデータ（メーカー商品の上代）</div>
-    </label>
-    <div class="rms-note">
-      <div class="rms-note-h"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>楽天RMSでダウンロードする際の必須項目</div>
-      <div class="rms-tags">
-        <span>商品番号</span><span>システム連携用SKU番号</span><span>通常購入販売価格</span><span>商品名</span><span>バリエーション項目名・選択肢</span>
+  <!-- STEP 1: ファイルのアップロード（itemdata / dl-normal 横並び ＋ 原価マスタ） -->
+  <div class="card" id="cardFiles">
+    <div class="card-h"><span class="num">1</span><h2>ファイルをアップロード</h2><span class="opt req">必須</span></div>
+    <div class="up-grid">
+      <div class="up-col">
+        <div class="up-ttl">itemdata CSV<span class="up-sub">GoQ System・在庫取得</span></div>
+        <label class="drop" id="dropItem">
+          <input type="file" accept=".csv" id="fileItem">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div class="t" id="tItem">クリック または ドラッグ</div>
+          <div class="h">在庫数・商品名・連携SKUを含むCSV</div>
+        </label>
+        <details class="up-info">
+          <summary>ダウンロード手順</summary>
+          <div class="dl-steps">
+            <ol>
+              <li><a href="https://order.goqsystem.com/goq21/index_beta.php" target="_blank" rel="noopener">GoQ System 在庫連携</a> を開く</li>
+              <li><b>「すべて」</b>にチェックを入れる</li>
+              <li>プルダウンで <b>「EL COMMUN 楽天市場店」</b> を選択</li>
+              <li><b>「CSV出力」</b> ボタンを押す</li>
+            </ol>
+          </div>
+        </details>
       </div>
-      <div class="rms-link"><a href="https://item.rms.rakuten.co.jp/rms-item-download/shops/212778" target="_blank" rel="noopener">RMS「CSVファイルダウンロード」を開く</a></div>
+      <div class="up-col">
+        <div class="up-ttl">dl-normal-item CSV<span class="up-sub">メーカー上代取得</span></div>
+        <label class="drop" id="dropDl">
+          <input type="file" accept=".csv" id="fileDl">
+          <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <div class="t" id="tDl">クリック または ドラッグ</div>
+          <div class="h">通常購入販売価格を含む楽天RMSのCSV</div>
+        </label>
+        <details class="up-info">
+          <summary>ダウンロード手順・必須項目</summary>
+          <div class="rms-note">
+            <div class="rms-tags">
+              <span>商品番号</span><span>システム連携用SKU番号</span><span>通常購入販売価格</span><span>商品名</span><span>バリエーション項目名・選択肢</span>
+            </div>
+            <div class="rms-link"><a href="https://item.rms.rakuten.co.jp/rms-item-download/shops/212778" target="_blank" rel="noopener">RMS「CSVファイルダウンロード」を開く</a></div>
+          </div>
+        </details>
+      </div>
     </div>
-  </div>
-
-  <!-- STEP 3: master xlsx (optional) -->
-  <div class="card">
-    <div class="card-h"><span class="num">3</span><h2>商品データ xlsx（原価マスタ）</h2><span class="opt">任意</span></div>
-    <label class="drop" id="dropMaster">
-      <input type="file" accept=".xlsx,.xls" id="fileMaster">
-      <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <div class="t" id="tMaster">アプリ内蔵の原価マスタを使用中</div>
-      <div class="h">最新の原価・新商品を反映したい場合のみアップロード（内蔵: <span id="genkaCount">0</span>件）</div>
-    </label>
+    <div class="up-master">
+      <div class="up-ttl">商品データ xlsx<span class="up-sub">原価マスタ</span><span class="opt">任意</span></div>
+      <label class="drop drop-slim" id="dropMaster">
+        <input type="file" accept=".xlsx,.xls" id="fileMaster">
+        <svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="t" id="tMaster">アプリ内蔵の原価マスタを使用中</div>
+        <div class="h">最新の原価・新商品を反映したい場合のみアップロード（内蔵: <span id="genkaCount">0</span>件）</div>
+      </label>
+    </div>
   </div>
 
   <!-- 掛け率 table (collapsed by default) -->
   <div class="card collapsible" id="rateCard">
-    <div class="card-h" id="rateHead"><span class="num">4</span><h2>メーカー掛け率（接頭辞別）</h2><span class="opt">編集可</span>
+    <div class="card-h" id="rateHead"><span class="num">2</span><h2>メーカー掛け率（接頭辞別）</h2><span class="opt">編集可</span>
       <svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
     <div class="collapse-body">
       <div class="info" style="margin-bottom:12px">合計 = 上代 × 掛け率 × 在庫数。表に無い接頭辞の商品は合計が空欄になります。必要に応じて追加してください。（<code>apj-</code> <code>rft-</code> は取り寄せ商品のため出力対象外）</div>
@@ -526,7 +551,7 @@ async function loadMasterXlsx(f){
 function refreshGo(){document.getElementById('goBtn').disabled=!(files.item&&files.dl);updateFlow();}
 
 /* ---------- 作業フロー表示（完了セクションを薄く・次の作業をリボン表示） ---------- */
-const FLOW_CARDS=['cardItem','cardDl','cardGen'].map(id=>document.getElementById(id));
+const FLOW_CARDS=['cardFiles','cardGen'].map(id=>document.getElementById(id));
 let flowGenerated=false,flowDownloaded=false;
 const NUM_ORIG={};
 function setDone(card,done){
@@ -544,23 +569,22 @@ function setActive(card,label){
 }
 let flowState=null;
 function updateFlow(){
-  const [cardItem,cardDl,cardGen]=FLOW_CARDS;
-  setDone(cardItem,!!files.item);
-  setDone(cardDl,!!files.dl);
+  const [cardFiles,cardGen]=FLOW_CARDS;
+  setDone(cardFiles,!!files.item&&!!files.dl);
   setDone(cardGen,flowGenerated&&flowDownloaded);
   // 完了済みのボタンは薄く表示
   document.getElementById('goBtn').classList.toggle('btn-done',flowGenerated);
   document.getElementById('dlAll').classList.toggle('btn-done',flowDownloaded);
-  let state,card,scrollTo;
-  if(!files.item)         {state='item';   card=cardItem; scrollTo=cardItem;
-    setActive(cardItem,'次の作業：itemdata CSV をアップロード');}
-  else if(!files.dl)      {state='dl';     card=cardDl;   scrollTo=cardDl;
-    setActive(cardDl,'次の作業：dl-normal-item CSV をアップロード');}
-  else if(!flowGenerated) {state='gen';    card=cardGen;  scrollTo=cardGen;
+  let state,scrollTo;
+  if(!files.item)         {state='item';   scrollTo=null;
+    setActive(cardFiles,'次の作業：itemdata CSV をアップロード');}
+  else if(!files.dl)      {state='dl';     scrollTo=null;  // 横並びのため同カード内、スクロール不要
+    setActive(cardFiles,'次の作業：dl-normal-item CSV をアップロード');}
+  else if(!flowGenerated) {state='gen';    scrollTo=cardGen;
     setActive(cardGen,'次の作業：棚卸しデータを生成');}
-  else if(!flowDownloaded){state='dlxlsx'; card=cardGen;  scrollTo=document.getElementById('dlAll');
+  else if(!flowDownloaded){state='dlxlsx'; scrollTo=document.getElementById('dlAll');
     setActive(cardGen,'次の作業：Excel をダウンロード');}
-  else                    {state='done';   card=null;     scrollTo=null;
+  else                    {state='done';   scrollTo=null;
     setActive(null);}
   // 状態が進んだら次の作業のセクションまで自動スクロール（初期表示時は除く）
   if(flowState!==null&&flowState!==state&&scrollTo){
