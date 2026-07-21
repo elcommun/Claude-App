@@ -373,7 +373,7 @@
     </div>
 
     <div class="purpose-note">
-      ✓ 倉庫指定（非公開）・在庫数0での登録が標準なので、誤って即公開される心配はありません<br>
+      ✓ 標準では倉庫指定0（公開）・在庫数0で登録されます（STEP 1 で変更可能）<br>
       ✓ 列の並び・文字コード（Shift_JIS / UTF-8）は元ファイルのまま維持されます
     </div>
       </div>
@@ -405,10 +405,16 @@
       </div>
       <div class="check-row">
         <label class="check-item">
-          <input type="checkbox" id="optWarehouse" checked>
+          <span style="font-size:16px;flex-shrink:0;">🏬</span>
           <span>
-            <span class="ck-label">倉庫指定（非公開）で登録する</span>
-            <span class="ck-desc">「倉庫指定」列を <b>1</b> に変更します。LAIKLE店側で内容を確認してから手動で公開できるので、誤公開を防げます。</span>
+            <span class="ck-label">倉庫指定：
+              <select id="optWarehouse" style="margin-left:6px;padding:5px 10px;border:1px solid var(--gray-300);border-radius:6px;font-size:12.5px;font-weight:700;color:var(--gray-800);background:white;cursor:pointer;">
+                <option value="0" selected>0（公開）で登録</option>
+                <option value="1">1（倉庫・非公開）で登録</option>
+                <option value="keep">元データのまま</option>
+              </select>
+            </span>
+            <span class="ck-desc">商品レベル行の「倉庫指定」列の値です。<b>0＝アップロード後すぐ公開</b>、1＝倉庫（非公開・後から手動で公開）。</span>
           </span>
         </label>
         <label class="check-item">
@@ -598,7 +604,7 @@
           <span class="up-where">LAIKLE店RMS ▶ <b>カテゴリ一括編集・登録（CSV）</b> からアップロード（表示先カテゴリの設定）</span>
         </li>
       </ul>
-      <p class="up-note">※ アップロード後、LAIKLE店で商品ページの表示・画像・カテゴリを確認し、問題なければ倉庫指定を解除して公開してください。</p>
+      <p class="up-note">※ アップロード後、LAIKLE店で商品ページの表示・画像・カテゴリを確認してください（倉庫指定「1（非公開）」で登録した場合は、確認後に解除して公開）。</p>
       <button class="done-btn" onclick="completeStep5()">✓ CSVをアップロードしたら、ここを押して次へ</button>
     </div>
   </div>
@@ -630,7 +636,7 @@
   <div class="next-inner" id="nextInner" onclick="scrollToNext()">
     <span class="nb-tag" id="nbTag">👉 次にやること</span>
     <span class="nb-text" id="nbText"></span>
-    <span class="nb-sub" id="nbSub">LAIKLE店のRMSで商品ページの表示・画像・カテゴリを確認し、問題なければ倉庫指定を解除して公開してください。<br>（クリックで閉じる）</span>
+    <span class="nb-sub" id="nbSub">LAIKLE店のRMSで商品ページの表示・画像・カテゴリを確認してください。<br>（クリックで閉じる）</span>
   </div>
 </div>
 
@@ -1190,7 +1196,7 @@ function doConvert() {
 
   const fromSlug = document.getElementById('fromSlug').value.trim();
   const toSlug   = document.getElementById('toSlug').value.trim();
-  const optWarehouse = document.getElementById('optWarehouse').checked;
+  const whMode = document.getElementById('optWarehouse').value; // '0' | '1' | 'keep'
   const optZeroStock = document.getElementById('optZeroStock').checked;
 
   if (!fromSlug || !toSlug) {
@@ -1232,19 +1238,21 @@ function doConvert() {
   const whIdx    = ih.findIndex(h => (h || '').trim() === '倉庫指定');
   const stockIdx = ih.findIndex(h => (h || '').trim() === '在庫数');
   let whChanged = 0, stockChanged = 0;
-  if (optWarehouse) {
+  if (whMode !== 'keep') {
     if (whIdx >= 0) {
       converted.forEach((row, i) => {
         // 元データで倉庫指定に値がある行（＝商品レベル行）だけ変更する。
         // SKUレベル行など元が空の行に書き込むと、RMSが
         // 「SKUレベル行には、SKUレベルに該当するカラムのみ入力してください」エラーを返す
         const orig = (iRows[i][whIdx] === undefined) ? '' : String(iRows[i][whIdx]).trim();
-        if (orig !== '' && orig !== '1') { row[whIdx] = '1'; whChanged++; }
+        if (orig !== '') { row[whIdx] = whMode; if (orig !== whMode) whChanged++; }
       });
-      log(`🏬 倉庫指定：${whChanged}行を「1（倉庫・非公開）」に変更（商品レベル行のみ）`, 'log-ok');
+      log(`🏬 倉庫指定：「${whMode}（${whMode === '1' ? '倉庫・非公開' : '公開'}）」で登録（変更 ${whChanged}行・商品レベル行のみ）`, 'log-ok');
     } else {
       log('⚠️ 「倉庫指定」列が見つからないためスキップしました', 'log-warn');
     }
+  } else {
+    log('🏬 倉庫指定：元データのまま変更しません', 'log-info');
   }
   if (optZeroStock) {
     if (stockIdx >= 0) {
@@ -1570,7 +1578,7 @@ function downloadUrlList() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 6;
+const APP_VERSION = 7;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
