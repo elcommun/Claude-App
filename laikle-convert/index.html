@@ -46,6 +46,12 @@
   .next-inner.done-state{background:var(--green);}
   .next-inner.done-state .nb-tag{background:rgba(255,255,255,.25);}
   .next-inner .nb-text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .next-inner .nb-sub{display:none;}
+  /* 全工程完了時：画面中央に大きく表示（クリックで閉じて通常のバーに戻る） */
+  .next-bar.celebrate{top:38%;bottom:auto;}
+  .next-bar.celebrate .next-inner{flex-direction:column;gap:10px;font-size:16px;padding:22px 30px;border-radius:18px;max-width:540px;white-space:normal;text-align:center;box-shadow:0 14px 44px rgba(0,0,0,.35);animation:pop .3s cubic-bezier(.4,0,.2,1);}
+  .next-bar.celebrate .nb-text{white-space:normal;}
+  .next-bar.celebrate .nb-sub{display:block;font-size:12px;font-weight:normal;line-height:1.9;opacity:.95;}
   body{padding-bottom:64px;}
 
   /* 次に操作するカード・工程のハイライト */
@@ -199,7 +205,6 @@
   .done-btn{display:block;margin-top:10px;background:white;color:var(--green-dark);border:1.5px solid var(--green);border-radius:8px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
   .done-btn:hover{background:var(--green-light);transform:translateY(-1px);}
   .saved-note{display:none;font-size:11.5px;color:var(--green-dark);font-weight:700;margin-top:8px;line-height:1.7;}
-  .all-done{display:none;background:var(--green-light);border:2px solid #6EE7B7;color:#065F46;border-radius:12px;padding:16px;margin-top:10px;font-size:14px;font-weight:800;text-align:center;}
 
   /* 商品画像の移行（STEP 4） */
   .sub-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:18px;}
@@ -589,7 +594,6 @@
         </div>
       </div>
 
-      <div class="all-done" id="allDone">🎉 移行作業はすべて完了です！おつかれさまでした。<br><span style="font-size:11.5px;font-weight:normal;">LAIKLE店のRMSで商品ページの表示・画像・カテゴリを確認し、問題なければ倉庫指定を解除して公開してください。</span></div>
     </div>
   </div>
 
@@ -602,6 +606,7 @@
   <div class="next-inner" id="nextInner" onclick="scrollToNext()">
     <span class="nb-tag" id="nbTag">👉 次にやること</span>
     <span class="nb-text" id="nbText"></span>
+    <span class="nb-sub" id="nbSub">LAIKLE店のRMSで商品ページの表示・画像・カテゴリを確認し、問題なければ倉庫指定を解除して公開してください。<br>（クリックで閉じる）</span>
   </div>
 </div>
 
@@ -841,7 +846,7 @@ const NEXT_STEPS = {
   img2:        { text: 'STEP 4-②：R-Cabinetの画面から画像をフォルダごとにアップロードする', target: 'subStep2' },
   img3:        { text: 'STEP 4-③：変換済みCSVをLAIKLE店のRMSにアップロードする', target: 'subStep3' },
   upload_only: { text: '仕上げ：変換済みCSVをLAIKLE店のRMSにアップロードして完了', target: 'resultSection' },
-  done:        { text: '移行作業はすべて完了です！おつかれさまでした', target: 'allDone', done: true }
+  done:        { text: '移行作業はすべて完了です！おつかれさまでした', target: null, done: true }
 };
 let NEXT_TARGET = 'step2Card';
 
@@ -851,6 +856,7 @@ function setNextAction(key) {
   document.getElementById('nbText').textContent = info.text;
   document.getElementById('nbTag').textContent = info.done ? '🎉 完了' : '👉 次にやること';
   document.getElementById('nextInner').classList.toggle('done-state', !!info.done);
+  document.querySelector('.next-bar').classList.toggle('celebrate', !!info.done);
   NEXT_TARGET = info.target;
   // 次に操作するカード・工程をオレンジ枠でハイライト
   document.querySelectorAll('.current-step').forEach(el => el.classList.remove('current-step'));
@@ -860,7 +866,9 @@ function setNextAction(key) {
 }
 
 function scrollToNext() {
-  const el = document.getElementById(NEXT_TARGET);
+  const bar = document.querySelector('.next-bar');
+  if (bar.classList.contains('celebrate')) { bar.classList.remove('celebrate'); return; } // 完了表示はクリックで閉じる
+  const el = NEXT_TARGET && document.getElementById(NEXT_TARGET);
   if (el && el.offsetParent !== null) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
@@ -1146,7 +1154,7 @@ function doConvert() {
   document.getElementById('step4Card').classList.remove('done');
   setBadge('badgeRun', '', '実行中...');
   [1, 2, 3].forEach(n => document.getElementById('subStep' + n).classList.remove('done'));
-  ['scriptSavedNote', 'urlListSavedNote', 'allDone', 'dlSavedNote'].forEach(id => document.getElementById(id).style.display = 'none');
+  ['scriptSavedNote', 'urlListSavedNote', 'dlSavedNote'].forEach(id => document.getElementById(id).style.display = 'none');
   PREPARED = null;
   DOWNLOADED = new Set();
   document.getElementById('dlItemBtn').disabled = true;
@@ -1492,9 +1500,6 @@ function completeSubStep(n) {
     setBadge('badgeImg', 'done', '✓ 完了');
     document.getElementById('resultSection').classList.add('dimmed');
     setStepper(4);
-    const box = document.getElementById('allDone');
-    box.style.display = 'block';
-    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
 
@@ -1519,7 +1524,7 @@ function downloadUrlList() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 4;
+const APP_VERSION = 5;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
