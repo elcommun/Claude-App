@@ -1199,13 +1199,22 @@ function doConvert() {
     log('🗂️ dl-item-cat を処理中...', 'log-info');
     const { headerRow: ch, dataRows: cRows } = rawCat;
     const catCounter = { n: 0 };
-    const convCat = cRows.map(row => row.map(cell => {
-      const v = rep.category(cell, catCounter, unmapped);
-      return rep.general(v, catCounter);
+    // 表示先カテゴリの区切りが全角「＼」だとRMSに正しく認識されないため、半角（¥）に統一する
+    const dispIdx = ch.findIndex(h => (h || '').trim() === '表示先カテゴリ');
+    let sepCount = 0;
+    const convCat = cRows.map(row => row.map((cell, j) => {
+      let v = rep.category(cell, catCounter, unmapped);
+      v = rep.general(v, catCounter);
+      if (j === dispIdx && v && v.indexOf('＼') !== -1) {
+        sepCount += (v.match(/＼/g) || []).length;
+        v = v.replace(/＼/g, '\\');
+      }
+      return v;
     }));
     outCat = [ch, ...convCat];
     catRows = cRows.length; catUrlN = catCounter.n;
     log(`✅ ${catRows}行を変換（URL・カテゴリURL置換：${catUrlN}箇所）`, 'log-ok');
+    if (sepCount) log(`🔧 表示先カテゴリの区切り：全角「＼」${sepCount}箇所を半角「¥」に変換`, 'log-ok');
     log('　　※ 表示先カテゴリはLAIKLE店側に同名カテゴリの事前作成が必要です', 'log-info');
     // item-cat の変換もれも収集（品番列は「商品管理番号」列を使う）
     const catCodeIdx = ch.findIndex(h => /商品管理番号/.test(h || ''));
