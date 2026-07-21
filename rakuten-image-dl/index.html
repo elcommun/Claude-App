@@ -137,16 +137,16 @@
     </div>
     <div class="card-body">
       <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab(this,'tabPaste')">📋 テキストを貼り付け</button>
-        <button class="tab-btn" onclick="switchTab(this,'tabFile')">📄 ファイルを読み込む</button>
+        <button class="tab-btn active" onclick="switchTab(this,'tabFile')">📄 ファイルを読み込む</button>
+        <button class="tab-btn" onclick="switchTab(this,'tabPaste')">📋 テキストを貼り付け</button>
       </div>
 
-      <div class="tab-content active" id="tabPaste">
+      <div class="tab-content" id="tabPaste">
         <textarea id="pasteArea" placeholder="ここに貼り付けてください。例：&#10;&#10;https://image.rakuten.co.jp/elcommun/cabinet/item/abc123.jpg&#10;https://thumbnail.image.rakuten.co.jp/@0_mall/elcommun/cabinet/xyz.jpg&#10;&#10;URLの一覧だけでなく、CSVの中身やページのソースをそのまま貼り付けてもOKです。"></textarea>
         <div class="hint">💡 画像URL（.jpg / .png / .gif など）だけを自動で探して抽出します。関係ない文字が混ざっていても大丈夫です。</div>
       </div>
 
-      <div class="tab-content" id="tabFile">
+      <div class="tab-content active" id="tabFile">
         <div class="upload-zone" id="zoneFile">
           <input type="file" accept=".csv,.txt,.tsv,.html,.htm" id="fileInput">
           <div class="upload-icon">📄</div>
