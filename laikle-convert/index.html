@@ -562,7 +562,7 @@
         <div class="sub-body">
           <h3>R-Cabinet の画面から画像を直接アップロードする</h3>
           <p>
-            LAIKLE店のRMSで「画像・動画登録」▶「<b>画像管理（R-Cabinet）</b>」を開き、
+            <a href="https://cabinet.rms.rakuten.co.jp/" target="_blank" rel="noopener" style="color:var(--primary-dark);font-weight:700;">画像管理（R-Cabinet）を開く ↗</a>（LAIKLE店のRMSにログインした状態で開いてください）。
             <code>laikle_images</code> の中のフォルダごとに、次の手順でアップロードします。
             上に表示されている<b>フォルダ一覧（枚数つき）</b>が、作成・アップロードするフォルダのリストです。
           </p>
@@ -1568,7 +1568,7 @@ function copyCmd() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
