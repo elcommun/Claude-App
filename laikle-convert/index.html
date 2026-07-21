@@ -1172,7 +1172,11 @@ function doConvert() {
   document.getElementById('step4Card').classList.remove('done');
   setBadge('badgeRun', '', '実行中...');
   [1, 2].forEach(n => document.getElementById('subStep' + n).classList.remove('done'));
-  ['step5Card', 'step6Card'].forEach(id => document.getElementById(id).classList.remove('done'));
+  ['step5Card', 'step6Card'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('done');
+    el.style.display = 'none';
+  });
   setBadge('badgeCsv', '', '未実施');
   setBadge('badgeGoqLink', '', '未実施');
   ['scriptSavedNote', 'dlSavedNote'].forEach(id => document.getElementById(id).style.display = 'none');
@@ -1356,9 +1360,10 @@ function doConvert() {
   prepareOutputs();
 
   // STEP 2: 商品画像の移行
+  // 次のセクションだけ表示する（それ以降は前の工程が完了したときに表示）
   document.getElementById('step4Card').style.display = IMAGES.length ? '' : 'none';
-  document.getElementById('step5Card').style.display = '';
-  document.getElementById('step6Card').style.display = '';
+  document.getElementById('step5Card').style.display = IMAGES.length ? 'none' : '';
+  document.getElementById('step6Card').style.display = 'none';
   document.getElementById('imgCount').textContent = IMAGES.length;
   setBadge('badgeImg', 'done', `画像 ${IMAGES.length}件`);
   document.getElementById('ruleToSlug').textContent = toSlug;
@@ -1561,10 +1566,11 @@ function completeSubStep(n) {
     setNextAction('img2');
     document.getElementById('subStep2').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } else {
-    // ②完了 ＝ STEP 2（画像移行）全体の完了
+    // ②完了 ＝ STEP 2（画像移行）全体の完了。ここで次のセクションを表示する
     document.getElementById('step4Card').classList.add('done');
     setBadge('badgeImg', 'done', '✓ 完了');
     setStepper(2);
+    document.getElementById('step5Card').style.display = '';
     setNextAction('csv');
     document.getElementById('step5Card').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -1573,6 +1579,7 @@ function completeSubStep(n) {
 function completeStep5() {
   document.getElementById('step5Card').classList.add('done');
   setBadge('badgeCsv', 'done', '✓ 完了');
+  document.getElementById('step6Card').style.display = '';
   setNextAction('goq');
   document.getElementById('step6Card').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
@@ -1587,7 +1594,7 @@ function completeStep6() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 18;
+const APP_VERSION = 19;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
