@@ -293,7 +293,9 @@
     <div class="sp-arrow">›</div>
     <div class="sp-item" id="sp3"><span class="sp-num">3</span>変換</div>
     <div class="sp-arrow">›</div>
-    <div class="sp-item" id="sp4"><span class="sp-num">4</span>画像移行・完了</div>
+    <div class="sp-item" id="sp4"><span class="sp-num">4</span>画像移行</div>
+    <div class="sp-arrow">›</div>
+    <div class="sp-item" id="sp5"><span class="sp-num">5</span>RMS登録・GoQ連携</div>
   </div>
 
   <!-- ===== アプリの目的 ===== -->
@@ -322,8 +324,8 @@
       </div>
       <div class="work-step">
         <div class="ws-num">4</div>
-        <div class="ws-title">CSVをRMSへアップ</div>
-        <div class="ws-desc">STEP 4-③。画像より後にアップすること</div>
+        <div class="ws-title">CSVアップ→GoQ紐付け</div>
+        <div class="ws-desc">STEP 5〜6。CSVをRMSへアップし、GoQで在庫連携</div>
       </div>
     </div>
 
@@ -378,7 +380,7 @@
     </details>
   </div>
 
-  <div class="section-label">STEP 1〜4 の順に操作してください</div>
+  <div class="section-label">STEP 1〜6 の順に操作してください</div>
 
   <!-- Step 1: 変換設定 -->
   <div class="card">
@@ -503,12 +505,12 @@
   <div class="card" id="step4Card" style="display:none;">
     <div class="card-header">
       <div class="step">4</div>
-      <h2>商品画像をLAIKLE店に移行する<span class="sub">画像 <b id="imgCount">0</b> 件 ─ ①ダウンロード → ②R-Cabinetへアップロード → ③CSVアップロード</span></h2>
+      <h2>商品画像をLAIKLE店に移行する<span class="sub">画像 <b id="imgCount">0</b> 件 ─ ①ダウンロード → ②R-Cabinetへアップロード</span></h2>
       <span class="badge" id="badgeImg">画像 0件</span>
     </div>
     <div class="card-body">
       <div class="rule-box">
-        📌 商品画像は店舗ごとの登録が必要です。変換済みCSVの画像リンク（<span id="ruleToSlug">laikle</span>）を表示させるため、<b>CSVをアップロードする前に</b>下の①②を済ませてください。<br>
+        📌 商品画像は店舗ごとの登録が必要です。変換済みCSVの画像リンク（<span id="ruleToSlug">laikle</span>）を表示させるため、<b>STEP 5 でCSVをアップロードする前に</b>、下の①②を済ませてください。<br>
         📌 説明文内の画像リンク（s-image- など）は全店舗共通で使えるため、この作業は不要です。
       </div>
       <div id="folderGrid"></div>
@@ -574,26 +576,48 @@
         </div>
       </div>
 
-      <div class="sub-step" id="subStep3">
-        <div class="sub-num">③</div>
-        <div class="sub-body">
-          <h3>変換済みCSVを LAIKLE店のRMS にアップロードする</h3>
-          <p class="up-note">画像のアップロード（②）が済んでから行ってください。使うCSVは、ZIPをダブルクリックで展開した <code>LAIKLE_csv</code> フォルダ内の2ファイルです。</p>
-          <ul class="up-list">
-            <li>
-              <span class="up-file">normal-item.csv</span>
-              <span class="up-where">LAIKLE店RMS ▶ <b>商品一括編集・登録（CSV）</b> からアップロード</span>
-            </li>
-            <li>
-              <span class="up-file">item-cat.csv</span>
-              <span class="up-where">LAIKLE店RMS ▶ <b>カテゴリ一括編集・登録（CSV）</b> からアップロード（表示先カテゴリの設定）</span>
-            </li>
-          </ul>
-          <p class="up-note">※ アップロード後、LAIKLE店で商品ページの表示・画像・カテゴリを確認し、問題なければ倉庫指定を解除して公開してください。</p>
-          <button class="done-btn" onclick="completeSubStep(3)">✓ CSVをアップロードしたら、ここを押して完了</button>
-        </div>
-      </div>
+    </div>
+  </div>
 
+  <!-- Step 5: CSVアップロード -->
+  <div class="card" id="step5Card" style="display:none;">
+    <div class="card-header">
+      <div class="step">5</div>
+      <h2>変換済みCSVを LAIKLE店のRMS にアップロードする<span class="sub">normal-item.csv と item-cat.csv の2ファイル</span></h2>
+      <span class="badge" id="badgeCsv">未実施</span>
+    </div>
+    <div class="card-body">
+      <p class="up-note">商品画像のアップロード（STEP 4）が済んでから行ってください。使うCSVは、ZIPをダブルクリックで展開した <code>LAIKLE_csv</code> フォルダ内の2ファイルです。</p>
+      <ul class="up-list">
+        <li>
+          <span class="up-file">normal-item.csv</span>
+          <span class="up-where">LAIKLE店RMS ▶ <b>商品一括編集・登録（CSV）</b> からアップロード</span>
+        </li>
+        <li>
+          <span class="up-file">item-cat.csv</span>
+          <span class="up-where">LAIKLE店RMS ▶ <b>カテゴリ一括編集・登録（CSV）</b> からアップロード（表示先カテゴリの設定）</span>
+        </li>
+      </ul>
+      <p class="up-note">※ アップロード後、LAIKLE店で商品ページの表示・画像・カテゴリを確認し、問題なければ倉庫指定を解除して公開してください。</p>
+      <button class="done-btn" onclick="completeStep5()">✓ CSVをアップロードしたら、ここを押して次へ</button>
+    </div>
+  </div>
+
+  <!-- Step 6: GoQ System 在庫連携の紐付け -->
+  <div class="card" id="step6Card" style="display:none;">
+    <div class="card-header">
+      <div class="step">6</div>
+      <h2>GoQ System で在庫連携の紐付けをする<span class="sub">生成された dl-normal-item をそのまま使用</span></h2>
+      <span class="badge" id="badgeGoqLink">未実施</span>
+    </div>
+    <div class="card-body">
+      <p class="up-note">STEP 5 のCSVアップロードが済んでから行ってください。</p>
+      <ul class="up-list">
+        <li><span class="up-file">手順1</span><span class="up-where">GoQ System の<b>在庫連携</b>の画面を開く</span></li>
+        <li><span class="up-file">手順2</span><span class="up-where">STEP 3 でダウンロードした <code>normal-item.csv</code>（dl-normal-item）を<b>そのまま使って</b>、LAIKLE店の商品の紐付け作業を行う</span></li>
+      </ul>
+      <p class="up-note">※ 紐付けが完了すると、LAIKLE店の商品在庫が GoQ System で連携されます。</p>
+      <button class="done-btn" onclick="completeStep6()">✓ GoQの紐付けが終わったら、ここを押して完了</button>
     </div>
   </div>
 
@@ -830,7 +854,7 @@ function escRe(s) {
 
 // 進捗バー更新（done = 完了済みステップ数 0〜4。次のステップを「現在」として強調）
 function setStepper(done) {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const el = document.getElementById('sp' + i);
     el.className = 'sp-item' + (i <= done ? ' done' : (i === done + 1 ? ' current' : ''));
   }
@@ -844,8 +868,8 @@ const NEXT_STEPS = {
   download:    { text: '変換完了！変換済みCSVをダウンロードする', target: 'resultSection' },
   img1:        { text: 'STEP 4-①：画像DLスクリプトを保存して、ターミナルで実行する', target: 'subStep1' },
   img2:        { text: 'STEP 4-②：R-Cabinetの画面から画像をフォルダごとにアップロードする', target: 'subStep2' },
-  img3:        { text: 'STEP 4-③：変換済みCSVをLAIKLE店のRMSにアップロードする', target: 'subStep3' },
-  upload_only: { text: '仕上げ：変換済みCSVをLAIKLE店のRMSにアップロードして完了', target: 'resultSection' },
+  csv:         { text: 'STEP 5：変換済みCSVをLAIKLE店のRMSにアップロードする', target: 'step5Card' },
+  goq:         { text: 'STEP 6：GoQ Systemで在庫連携の紐付けをする', target: 'step6Card' },
   done:        { text: '移行作業はすべて完了です！おつかれさまでした', target: null, done: true }
 };
 let NEXT_TARGET = 'step2Card';
@@ -860,7 +884,7 @@ function setNextAction(key) {
   NEXT_TARGET = info.target;
   // 次に操作するカード・工程をオレンジ枠でハイライト
   document.querySelectorAll('.current-step').forEach(el => el.classList.remove('current-step'));
-  if (['step2Card', 'step3Card', 'subStep1', 'subStep2', 'subStep3'].includes(info.target)) {
+  if (['step2Card', 'step3Card', 'subStep1', 'subStep2', 'step5Card', 'step6Card'].includes(info.target)) {
     document.getElementById(info.target).classList.add('current-step');
   }
 }
@@ -1153,7 +1177,10 @@ function doConvert() {
   document.getElementById('step3Card').classList.remove('done');
   document.getElementById('step4Card').classList.remove('done');
   setBadge('badgeRun', '', '実行中...');
-  [1, 2, 3].forEach(n => document.getElementById('subStep' + n).classList.remove('done'));
+  [1, 2].forEach(n => document.getElementById('subStep' + n).classList.remove('done'));
+  ['step5Card', 'step6Card'].forEach(id => document.getElementById(id).classList.remove('done'));
+  setBadge('badgeCsv', '', '未実施');
+  setBadge('badgeGoqLink', '', '未実施');
   ['scriptSavedNote', 'urlListSavedNote', 'dlSavedNote'].forEach(id => document.getElementById(id).style.display = 'none');
   PREPARED = null;
   DOWNLOADED = new Set();
@@ -1334,6 +1361,8 @@ function doConvert() {
 
   // STEP 4: 商品画像の移行
   document.getElementById('step4Card').style.display = IMAGES.length ? '' : 'none';
+  document.getElementById('step5Card').style.display = '';
+  document.getElementById('step6Card').style.display = '';
   document.getElementById('imgCount').textContent = IMAGES.length;
   setBadge('badgeImg', 'done', `画像 ${IMAGES.length}件`);
   document.getElementById('ruleToSlug').textContent = toSlug;
@@ -1435,9 +1464,9 @@ function downloadPrepared(kind) {
     (PREPARED.cat ? (DOWNLOADED.has('item') && DOWNLOADED.has('cat')) : DOWNLOADED.has('item'));
   if (allDone) {
     document.getElementById('resultSection').classList.add('dimmed');
-    setNextAction(IMAGES.length ? 'img1' : 'upload_only');
-    const s4 = document.getElementById('step4Card');
-    if (s4.style.display !== 'none') s4.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setNextAction(IMAGES.length ? 'img1' : 'csv');
+    const next = document.getElementById(IMAGES.length ? 'step4Card' : 'step5Card');
+    next.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
 
@@ -1492,15 +1521,32 @@ function saveImageScript() {
 // 工程完了：見た目を薄くして次の工程へスクロール
 function completeSubStep(n) {
   document.getElementById('subStep' + n).classList.add('done');
-  setNextAction(n === 1 ? 'img2' : n === 2 ? 'img3' : 'done');
-  if (n < 3) {
-    document.getElementById('subStep' + (n + 1)).scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (n === 1) {
+    setNextAction('img2');
+    document.getElementById('subStep2').scrollIntoView({ behavior: 'smooth', block: 'center' });
   } else {
+    // ②完了 ＝ STEP 4（画像移行）全体の完了
     document.getElementById('step4Card').classList.add('done');
     setBadge('badgeImg', 'done', '✓ 完了');
-    document.getElementById('resultSection').classList.add('dimmed');
     setStepper(4);
+    setNextAction('csv');
+    document.getElementById('step5Card').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
+}
+
+function completeStep5() {
+  document.getElementById('step5Card').classList.add('done');
+  setBadge('badgeCsv', 'done', '✓ 完了');
+  setNextAction('goq');
+  document.getElementById('step6Card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function completeStep6() {
+  document.getElementById('step6Card').classList.add('done');
+  setBadge('badgeGoqLink', 'done', '✓ 完了');
+  document.getElementById('resultSection').classList.add('dimmed');
+  setStepper(5);
+  setNextAction('done');
 }
 
 function copyCmd() {
@@ -1524,7 +1570,7 @@ function downloadUrlList() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
