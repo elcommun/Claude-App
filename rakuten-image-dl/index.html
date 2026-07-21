@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>楽天画像ダウンローダー | EL COMMUN</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  /* === EL COMMUN UI デザインシステム === */
+  :root {
+    --primary:#E85D26;--primary-light:#FFF3EE;--primary-dark:#C4461B;
+    --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;--gray-300:#D1D5DB;
+    --gray-400:#9CA3AF;--gray-600:#4B5563;--gray-800:#1F2937;
+    --green:#10B981;--green-light:#ECFDF5;
+    --red:#EF4444;--red-light:#FEF2F2;
+    --yellow-light:#FFFBEB;--blue-light:#EFF6FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Hiragino Sans','Noto Sans JP','Meiryo',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh;}
+  header{background:white;border-bottom:3px solid var(--primary);padding:16px 32px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);position:sticky;top:0;z-index:10;}
+  .logo{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:13px;flex-shrink:0;}
+  header h1{font-size:18px;font-weight:700;}
+  header h1 span{font-size:12px;color:var(--gray-400);margin-left:6px;font-weight:normal;}
+  .container{max-width:960px;margin:0 auto;padding:32px 16px 64px;}
+
+  .info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.8;}
+  .info-box strong{color:#78350F;}
+
+  .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;transition:opacity .3s;}
+  .card.dimmed{opacity:.55;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
+  .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
+  .card-header h2{font-size:15px;font-weight:700;}
+  .sub{font-size:12px;color:var(--gray-400);margin-left:4px;font-weight:normal;}
+  .card-body{padding:20px;}
+  .hd-badge{margin-left:auto;flex-shrink:0;font-size:11px;font-weight:700;padding:4px 12px;border-radius:999px;background:var(--gray-100);color:var(--gray-600);white-space:nowrap;}
+  .hd-badge.done{background:var(--green-light);color:#065F46;}
+
+  .tab-bar{display:flex;gap:8px;margin-bottom:16px;}
+  .tab-btn{padding:8px 16px;border-radius:8px;font-size:13px;border:1px solid var(--gray-200);background:var(--gray-50);cursor:pointer;font-weight:600;color:var(--gray-600);transition:all .15s;}
+  .tab-btn.active{background:var(--primary);color:white;border-color:var(--primary);}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+
+  textarea{width:100%;min-height:150px;border:1px solid var(--gray-300);border-radius:10px;padding:12px 14px;font-size:12px;font-family:'Courier New',monospace;line-height:1.7;resize:vertical;color:var(--gray-800);}
+  textarea:focus{outline:2px solid var(--primary);border-color:transparent;}
+  textarea::placeholder{color:var(--gray-400);font-family:'Hiragino Sans','Noto Sans JP',sans-serif;}
+  .hint{font-size:12px;color:var(--gray-400);margin-top:8px;line-height:1.7;}
+
+  .upload-zone{border:2px dashed var(--gray-300);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--primary);background:var(--primary-light);}
+  .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{font-size:32px;margin-bottom:8px;}
+  .upload-zone p{font-size:14px;color:var(--gray-600);margin-bottom:4px;font-weight:700;}
+  .upload-zone small{font-size:12px;color:var(--gray-400);}
+
+  .file-status{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;line-height:1.7;}
+  .file-status.ok{background:var(--green-light);color:#065F46;}
+  .file-status.err{background:var(--red-light);color:#991B1B;}
+
+  .opt-row{display:flex;align-items:flex-start;gap:8px;margin-top:14px;font-size:13px;color:var(--gray-600);line-height:1.6;cursor:pointer;}
+  .opt-row input{margin-top:3px;accent-color:var(--primary);}
+
+  /* プレビュー */
+  .preview-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+  .preview-count{font-size:14px;font-weight:700;}
+  .preview-count b{color:var(--primary);font-size:18px;}
+  .mini-btn{padding:5px 12px;border-radius:6px;font-size:12px;border:1px solid var(--gray-300);background:white;cursor:pointer;font-weight:600;color:var(--gray-600);}
+  .mini-btn:hover{border-color:var(--primary);color:var(--primary);}
+  .img-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;max-height:440px;overflow-y:auto;padding:2px;}
+  .img-item{border:2px solid var(--gray-200);border-radius:10px;overflow:hidden;cursor:pointer;background:var(--gray-50);position:relative;transition:border-color .15s;}
+  .img-item.sel{border-color:var(--primary);}
+  .img-item.sel::after{content:'✓';position:absolute;top:5px;right:5px;width:20px;height:20px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;}
+  .img-item img{width:100%;height:96px;object-fit:contain;display:block;background:white;}
+  .img-item .noimg{width:100%;height:96px;display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--gray-100);}
+  .img-item .fname{font-size:10px;padding:5px 6px;color:var(--gray-600);word-break:break-all;line-height:1.4;border-top:1px solid var(--gray-200);background:white;}
+
+  /* ダウンロード方法の選択 */
+  .dl-methods{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .dl-method{border:1px solid var(--gray-200);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;}
+  .dl-method.recommend{border-color:#FDBA8C;background:#FFFAF7;}
+  .dl-method h3{font-size:14px;display:flex;align-items:center;gap:6px;}
+  .dl-method .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#FED7AA;color:#C2410C;}
+  .dl-method p{font-size:12px;color:var(--gray-600);line-height:1.8;flex:1;}
+  .primary-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .primary-btn:hover:not(:disabled){background:var(--primary-dark);}
+  .primary-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+  .ghost-btn{width:100%;padding:12px;background:white;color:var(--gray-600);border:1px solid var(--gray-300);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .ghost-btn:hover{border-color:var(--primary);color:var(--primary);}
+
+  /* 進捗バー */
+  .progress-wrap{display:none;margin-top:16px;}
+  .progress-wrap.show{display:block;}
+  .progress-label{font-size:12px;color:var(--gray-600);margin-bottom:6px;display:flex;justify-content:space-between;}
+  .progress-track{height:10px;background:var(--gray-200);border-radius:999px;overflow:hidden;}
+  .progress-fill{height:100%;width:0%;background:var(--primary);border-radius:999px;transition:width .2s;}
+
+  .log-box{margin-top:16px;background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;max-height:260px;overflow-y:auto;display:none;}
+  .log-box.show{display:block;}
+  .log-ok{color:#6EE7B7;}.log-warn{color:#FCD34D;}.log-err{color:#FCA5A5;}.log-info{color:#93C5FD;}
+
+  /* CORSフォールバック案内 */
+  .cors-note{display:none;background:var(--blue-light);border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-top:16px;font-size:13px;color:#1E40AF;line-height:2;}
+  .cors-note.show{display:block;}
+
+  /* スクリプト方式の手順 */
+  .script-steps{display:none;margin-top:16px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:16px;}
+  .script-steps.show{display:block;}
+  .script-steps ol{margin-left:20px;font-size:13px;line-height:2.2;color:var(--gray-600);}
+  .script-steps code{background:white;border:1px solid var(--gray-200);padding:1px 6px;border-radius:4px;font-size:12px;}
+  .cmd-row{display:flex;gap:8px;margin:8px 0;}
+  .cmd-text{flex:1;padding:10px 12px;border:1px solid var(--gray-300);border-radius:8px;font-size:13px;font-family:'Courier New',monospace;background:white;color:var(--gray-800);}
+  .copy-btn{padding:10px 16px;border-radius:8px;border:none;background:var(--gray-600);color:white;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .copy-btn:hover{background:var(--gray-800);}
+
+  .result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:12px;padding:22px;margin-top:20px;text-align:center;}
+  .result-section.show{display:block;}
+  .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px;}
+  .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
+  .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
+  .stat .num.g{color:#059669;}
+  .stat .num.r{color:var(--red);}
+  .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
+
+  @media(max-width:640px){
+    .dl-methods{grid-template-columns:1fr;}
+    header{padding:14px 16px;}
+    .container{padding:20px 12px 48px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">IMG</div>
+  <div><h1>楽天画像ダウンローダー <span>EL COMMUN</span></h1></div>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    <strong>このアプリでできること：</strong>
+    楽天の商品画像URLをまとめて抽出し、パソコンに一括ダウンロードします。<br>
+    商品CSV・URLリスト・ページのソースなど、<strong>画像URLが含まれるテキストを貼り付ける（またはファイルを読み込む）だけ</strong>でOK。画像URLは自動で見つけます。
+  </div>
+
+  <!-- STEP 1: 入力 -->
+  <div class="card" id="step1Card">
+    <div class="card-header">
+      <div class="step">1</div>
+      <h2>画像URLを入力する <span class="sub">貼り付け or ファイル読み込み</span></h2>
+      <span class="hd-badge" id="badge1">未入力</span>
+    </div>
+    <div class="card-body">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab(this,'tabPaste')">📋 テキストを貼り付け</button>
+        <button class="tab-btn" onclick="switchTab(this,'tabFile')">📄 ファイルを読み込む</button>
+      </div>
+
+      <div class="tab-content active" id="tabPaste">
+        <textarea id="pasteArea" placeholder="ここに貼り付けてください。例：&#10;&#10;https://image.rakuten.co.jp/elcommun/cabinet/item/abc123.jpg&#10;https://thumbnail.image.rakuten.co.jp/@0_mall/elcommun/cabinet/xyz.jpg&#10;&#10;URLの一覧だけでなく、CSVの中身やページのソースをそのまま貼り付けてもOKです。"></textarea>
+        <div class="hint">💡 画像URL（.jpg / .png / .gif など）だけを自動で探して抽出します。関係ない文字が混ざっていても大丈夫です。</div>
+      </div>
+
+      <div class="tab-content" id="tabFile">
+        <div class="upload-zone" id="zoneFile">
+          <input type="file" accept=".csv,.txt,.tsv,.html,.htm" id="fileInput">
+          <div class="upload-icon">📄</div>
+          <p>CSV・テキストファイルをドロップ</p>
+          <small>またはクリックして選択（RMSの商品CSVもそのまま使えます）</small>
+        </div>
+        <div id="fileStatus"></div>
+      </div>
+
+      <label class="opt-row">
+        <input type="checkbox" id="optOriginal" checked>
+        <span>サムネイルURL（thumbnail.image.rakuten.co.jp）は<b>元の大きい画像</b>に変換して取得する（おすすめ）</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- STEP 2: プレビュー -->
+  <div class="card" id="step2Card" style="display:none;">
+    <div class="card-header">
+      <div class="step">2</div>
+      <h2>画像を確認する <span class="sub">ダウンロードする画像を選択</span></h2>
+      <span class="hd-badge" id="badge2"></span>
+    </div>
+    <div class="card-body">
+      <div class="preview-bar">
+        <div class="preview-count"><b id="selCount">0</b> / <span id="totalCount">0</span> 枚を選択中</div>
+        <button class="mini-btn" onclick="selectAll(true)">すべて選択</button>
+        <button class="mini-btn" onclick="selectAll(false)">すべて解除</button>
+      </div>
+      <div class="img-grid" id="imgGrid"></div>
+      <div class="hint">💡 クリックで選択 / 解除を切り替えできます。表示されない画像（🖼️）もダウンロードは試みます。</div>
+    </div>
+  </div>
+
+  <!-- STEP 3: ダウンロード -->
+  <div class="card" id="step3Card" style="display:none;">
+    <div class="card-header">
+      <div class="step">3</div>
+      <h2>ダウンロードする</h2>
+    </div>
+    <div class="card-body">
+      <div class="dl-methods">
+        <div class="dl-method recommend">
+          <h3>🗜️ ZIPで一括ダウンロード <span class="tag">まずはこちら</span></h3>
+          <p>ブラウザだけで完結する一番かんたんな方法。選択した画像を1つのZIPファイルにまとめて保存します。</p>
+          <button class="primary-btn" id="zipBtn" onclick="downloadZip()">⬇️ ZIPでダウンロード</button>
+        </div>
+        <div class="dl-method">
+          <h3>🖥️ ターミナルでダウンロード</h3>
+          <p>ZIP方式がブロックされて失敗する場合の確実な方法。ダウンロード用ファイルを保存し、ターミナルに貼り付けて実行します。</p>
+          <button class="ghost-btn" onclick="saveScript()">📄 ダウンロード用ファイルを保存</button>
+        </div>
+      </div>
+
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-label"><span id="progressText">準備中...</span><span id="progressPct">0%</span></div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+
+      <div class="cors-note" id="corsNote">
+        <strong>⚠️ ブラウザから直接取得できない画像がありました。</strong><br>
+        楽天のサーバー設定によりブラウザからのダウンロードがブロックされることがあります。
+        その場合は右の<strong>「🖥️ ターミナルでダウンロード」</strong>をご利用ください。ブロックの影響を受けず、確実にダウンロードできます。
+      </div>
+
+      <div class="script-steps" id="scriptSteps">
+        <ol>
+          <li><code>download_rakuten_images.txt</code> を「ダウンロード」フォルダに保存しました✅（実行コマンドもコピー済み）</li>
+          <li><b>⌘＋スペース</b> →「ターミナル」と入力 → Enter でターミナルを開く</li>
+          <li><b>⌘V</b> で貼り付けて <b>Enter</b> — ダウンロードが始まります</li>
+        </ol>
+        <div class="cmd-row">
+          <input class="cmd-text" id="cmdText" readonly value="bash ~/Downloads/download_rakuten_images.txt">
+          <button class="copy-btn" id="copyBtn" onclick="copyCmd()">📋 コピー</button>
+        </div>
+        <div class="hint">完了すると「ダウンロード」フォルダ内の <code>rakuten_images</code> フォルダに画像が保存され、自動で開きます。</div>
+      </div>
+
+      <div class="log-box" id="logBox"></div>
+
+      <div class="result-section" id="resultSection">
+        <h3 id="resultTitle">✅ ダウンロード完了！</h3>
+        <div class="stats-grid">
+          <div class="stat"><div class="num" id="statTotal">0</div><div class="label">対象画像</div></div>
+          <div class="stat"><div class="num g" id="statOk">0</div><div class="label">成功</div></div>
+          <div class="stat"><div class="num r" id="statNg">0</div><div class="label">失敗</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== 状態 ==========
+// IMAGES: { url, name, sel } の配列。name はZIP/保存時のファイル名（重複は連番付与済み）
+let IMAGES = [];
+
+// ========== タブ ==========
+function switchTab(btn, name) {
+  document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ========== URL抽出 ==========
+const IMG_URL_RE = /https?:\/\/[^\s"'<>()\\,]+?\.(?:jpe?g|png|gif|webp)(?:\?[^\s"'<>()\\,]*)?/gi;
+
+function normalizeUrl(url) {
+  // HTMLエンティティやCSV由来のゴミを除去
+  url = url.replace(/&amp;/g, '&').replace(/[">]+$/, '');
+  if (document.getElementById('optOriginal').checked) {
+    // サムネイルURL → 元画像URLに変換
+    // thumbnail.image.rakuten.co.jp/@0_mall/{店舗}/... → image.rakuten.co.jp/{店舗}/...
+    const m = url.match(/^https?:\/\/thumbnail\.image\.rakuten\.co\.jp\/@0_mall\/(.+)$/i);
+    if (m) url = 'https://image.rakuten.co.jp/' + m[1];
+    // サイズ指定パラメータ（?_ex=128x128 等）を除去して元サイズに
+    url = url.replace(/\?_ex=\d+x\d+[^#]*/i, '');
+  }
+  return url;
+}
+
+function extractUrls(text) {
+  const seen = new Set();
+  const out = [];
+  for (const raw of text.match(IMG_URL_RE) || []) {
+    const url = normalizeUrl(raw);
+    if (!seen.has(url)) { seen.add(url); out.push(url); }
+  }
+  return out;
+}
+
+// ファイル名はURL末尾から取得し、重複には連番を付ける
+function assignNames(urls) {
+  const used = new Map();
+  return urls.map(url => {
+    let base = decodeURIComponent(url.split('?')[0].split('/').pop() || 'image.jpg');
+    base = base.replace(/[\\/:*?"<>|]/g, '_');
+    const n = used.get(base) || 0;
+    used.set(base, n + 1);
+    if (n > 0) {
+      const dot = base.lastIndexOf('.');
+      base = dot > 0 ? `${base.slice(0, dot)}_${n + 1}${base.slice(dot)}` : `${base}_${n + 1}`;
+    }
+    return { url, name: base, sel: true };
+  });
+}
+
+function refresh() {
+  const src = document.getElementById('pasteArea').value;
+  IMAGES = assignNames(extractUrls(src.length ? src : LOADED_FILE_TEXT));
+  renderPreview();
+}
+
+// 貼り付けテキストとファイルは「後から操作した方」を使う
+let LOADED_FILE_TEXT = '';
+document.getElementById('pasteArea').addEventListener('input', () => {
+  LOADED_FILE_TEXT = '';
+  document.getElementById('fileStatus').innerHTML = '';
+  refresh();
+});
+document.getElementById('optOriginal').addEventListener('change', refresh);
+
+// ========== ファイル読み込み（Shift-JIS対応） ==========
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) readFile(e.target.files[0]);
+});
+const zone = document.getElementById('zoneFile');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag');
+  if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
+});
+
+async function readFile(file) {
+  const buf = await file.arrayBuffer();
+  let text;
+  try {
+    text = new TextDecoder('utf-8', { fatal: true }).decode(buf);
+  } catch {
+    // RMSのCSVはShift_JISが多い
+    text = new TextDecoder('shift-jis').decode(buf);
+  }
+  LOADED_FILE_TEXT = text;
+  document.getElementById('pasteArea').value = '';
+  refresh();
+  const st = document.getElementById('fileStatus');
+  st.innerHTML = IMAGES.length
+    ? `<div class="file-status ok">✅ ${escapeHtml(file.name)} から画像URLを ${IMAGES.length} 件見つけました</div>`
+    : `<div class="file-status err">❌ ${escapeHtml(file.name)} に画像URLが見つかりませんでした</div>`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+
+// ========== プレビュー ==========
+function renderPreview() {
+  const has = IMAGES.length > 0;
+  document.getElementById('badge1').textContent = has ? `✓ ${IMAGES.length}件検出` : '未入力';
+  document.getElementById('badge1').className = 'hd-badge' + (has ? ' done' : '');
+  document.getElementById('step2Card').style.display = has ? '' : 'none';
+  document.getElementById('step3Card').style.display = has ? '' : 'none';
+  if (!has) return;
+
+  const grid = document.getElementById('imgGrid');
+  grid.innerHTML = IMAGES.map((im, i) => `
+    <div class="img-item sel" id="imgItem${i}" onclick="toggleSel(${i})">
+      <img src="${escapeHtml(im.url)}" loading="lazy" alt=""
+           onerror="this.outerHTML='&lt;div class=&quot;noimg&quot;&gt;🖼️&lt;/div&gt;'">
+      <div class="fname">${escapeHtml(im.name)}</div>
+    </div>`).join('');
+  updateCount();
+}
+
+function toggleSel(i) {
+  IMAGES[i].sel = !IMAGES[i].sel;
+  document.getElementById('imgItem' + i).classList.toggle('sel', IMAGES[i].sel);
+  updateCount();
+}
+
+function selectAll(on) {
+  IMAGES.forEach((im, i) => {
+    im.sel = on;
+    document.getElementById('imgItem' + i).classList.toggle('sel', on);
+  });
+  updateCount();
+}
+
+function updateCount() {
+  const sel = IMAGES.filter(im => im.sel).length;
+  document.getElementById('selCount').textContent = sel;
+  document.getElementById('totalCount').textContent = IMAGES.length;
+  document.getElementById('badge2').textContent = `${sel}枚`;
+  document.getElementById('zipBtn').disabled = sel === 0;
+}
+
+// ========== ログ ==========
+function log(msg, cls = '') {
+  const box = document.getElementById('logBox');
+  box.classList.add('show');
+  box.innerHTML += `<div class="${cls}">${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+// ========== 方法A: ブラウザでZIP一括ダウンロード ==========
+async function downloadZip() {
+  const targets = IMAGES.filter(im => im.sel);
+  if (!targets.length) return;
+  if (typeof JSZip === 'undefined') {
+    log('❌ ZIP作成ライブラリを読み込めませんでした。ネット接続を確認して再読み込みするか、「🖥️ ターミナルでダウンロード」をご利用ください。', 'log-err');
+    document.getElementById('corsNote').classList.add('show');
+    return;
+  }
+
+  const btn = document.getElementById('zipBtn');
+  btn.disabled = true;
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('resultSection').classList.remove('show');
+  document.getElementById('corsNote').classList.remove('show');
+  const wrap = document.getElementById('progressWrap');
+  wrap.classList.add('show');
+  log(`🗜️ ${targets.length}枚の取得を開始します...`, 'log-info');
+
+  const zip = new JSZip();
+  let ok = 0, ng = 0, done = 0;
+
+  const setProgress = () => {
+    const pct = Math.round(done / targets.length * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('progressText').textContent = `取得中... ${done} / ${targets.length} 枚`;
+  };
+  setProgress();
+
+  // 4並列で取得
+  const queue = [...targets];
+  await Promise.all(Array.from({ length: 4 }, async () => {
+    let im;
+    while ((im = queue.shift())) {
+      try {
+        const res = await fetch(im.url, { mode: 'cors' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        zip.file(im.name, await res.blob());
+        ok++;
+        log(`✅ ${im.name}`, 'log-ok');
+      } catch {
+        ng++;
+        log(`❌ ${im.name}（ブラウザから取得できませんでした）`, 'log-err');
+      }
+      done++;
+      setProgress();
+    }
+  }));
+
+  document.getElementById('statTotal').textContent = targets.length;
+  document.getElementById('statOk').textContent = ok;
+  document.getElementById('statNg').textContent = ng;
+
+  if (ok > 0) {
+    document.getElementById('progressText').textContent = 'ZIPファイルを作成中...';
+    const blob = await zip.generateAsync({ type: 'blob' });
+    saveBlob(blob, 'rakuten_images.zip');
+    log(`📦 rakuten_images.zip を保存しました（${ok}枚）`, 'log-info');
+    document.getElementById('resultTitle').textContent =
+      ng === 0 ? '✅ ダウンロード完了！' : `⚠️ ${ok}枚を保存しました（${ng}枚は取得できず）`;
+    document.getElementById('resultSection').classList.add('show');
+  } else {
+    document.getElementById('resultTitle').textContent = '❌ ブラウザからは取得できませんでした';
+    document.getElementById('resultSection').classList.add('show');
+  }
+  if (ng > 0) document.getElementById('corsNote').classList.add('show');
+
+  wrap.classList.remove('show');
+  btn.disabled = false;
+}
+
+// ========== 方法B: ターミナル実行スクリプト ==========
+// ブラウザのCORS制限を受けないため、楽天サーバーの設定に関わらず確実に取得できる
+function buildScript() {
+  const targets = IMAGES.filter(im => im.sel);
+  const shq = t => String(t).replace(/'/g, "'\\''");
+  const lines = [
+    '#!/bin/bash',
+    `# 楽天商品画像 一括ダウンロード - ${targets.length}枚`,
+    'SAVE="$HOME/Downloads/rakuten_images"',
+    'mkdir -p "$SAVE"',
+    'S=0; F=0',
+    `echo "🖼️ ${targets.length}枚をダウンロードします..."`,
+    ''
+  ];
+  targets.forEach(im => {
+    lines.push(
+      `curl -sfL --retry 2 -H 'Referer: https://www.rakuten.co.jp/' -H 'User-Agent: Mozilla/5.0' ` +
+      `-o "$SAVE/${shq(im.name)}" '${shq(im.url)}' && S=$((S+1)) || { echo "  ❌ ${shq(im.name)}"; F=$((F+1)); }`
+    );
+  });
+  lines.push('', 'echo "════════════════════"', 'echo "✅ 完了: $S 枚成功 / $F 枚失敗"', 'open "$SAVE"');
+  return lines.join('\n');
+}
+
+function saveScript() {
+  const targets = IMAGES.filter(im => im.sel);
+  if (!targets.length) return;
+  // 拡張子は .txt（.sh はブラウザが危険ファイルとして保存をブロックすることがある。bashは拡張子不問）
+  saveBlob(new Blob([buildScript()], { type: 'text/plain' }), 'download_rakuten_images.txt');
+  navigator.clipboard.writeText(document.getElementById('cmdText').value).catch(() => {});
+  const steps = document.getElementById('scriptSteps');
+  steps.classList.add('show');
+  steps.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function copyCmd() {
+  const text = document.getElementById('cmdText').value;
+  navigator.clipboard.writeText(text).catch(() => {
+    document.getElementById('cmdText').select();
+    document.execCommand('copy');
+  });
+  const btn = document.getElementById('copyBtn');
+  btn.textContent = '✅ コピー済み';
+  setTimeout(() => { btn.textContent = '📋 コピー'; }, 2000);
+}
+
+// ========== 共通 ==========
+function saveBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+</script>
+</body>
+</html>
