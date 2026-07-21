@@ -587,22 +587,17 @@
   <div class="card" id="step5Card" style="display:none;">
     <div class="card-header">
       <div class="step">5</div>
-      <h2>変換済みCSVを LAIKLE店のRMS にアップロードする<span class="sub">normal-item.csv と item-cat.csv の2ファイル</span></h2>
+      <h2>変換済みCSVを LAIKLE店のRMS にアップロードする<span class="sub">Cyberduckで ritem/batch にアップロード</span></h2>
       <span class="badge" id="badgeCsv">未実施</span>
     </div>
     <div class="card-body">
-      <p class="up-note">商品画像のアップロード（STEP 4）が済んでから行ってください。使うCSVは、ZIPをダブルクリックで展開した <code>LAIKLE_csv</code> フォルダ内の2ファイルです。</p>
+      <p class="up-note">商品画像のアップロード（STEP 4）が済んでから行ってください。使うCSVは、ZIPをダブルクリックで展開した <code>LAIKLE_csv</code> フォルダ内の2ファイル（<code>normal-item.csv</code> ／ <code>item-cat.csv</code>）です。</p>
       <ul class="up-list">
-        <li>
-          <span class="up-file">normal-item.csv</span>
-          <span class="up-where">LAIKLE店RMS ▶ <b>商品一括編集・登録（CSV）</b> からアップロード</span>
-        </li>
-        <li>
-          <span class="up-file">item-cat.csv</span>
-          <span class="up-where">LAIKLE店RMS ▶ <b>カテゴリ一括編集・登録（CSV）</b> からアップロード（表示先カテゴリの設定）</span>
-        </li>
+        <li><span class="up-file">手順1</span><span class="up-where">Cyberduckで LAIKLE店の楽天SFTP（<code>upload.rakuten.ne.jp</code>・ポート22）に接続する</span></li>
+        <li><span class="up-file">手順2</span><span class="up-where"><b><code>ritem</code> フォルダ内の <code>batch</code> フォルダ</b>を開く</span></li>
+        <li><span class="up-file">手順3</span><span class="up-where"><code>normal-item.csv</code> と <code>item-cat.csv</code> の2ファイルをドラッグ＆ドロップでアップロードする</span></li>
       </ul>
-      <p class="up-note">※ アップロード後、LAIKLE店で商品ページの表示・画像・カテゴリを確認してください（倉庫指定「1（非公開）」で登録した場合は、確認後に解除して公開）。</p>
+      <p class="up-note">※ <code>ritem/batch</code> に置くと自動で取り込み処理が実行されます。処理が終わるとファイルは <code>batch</code> フォルダから消え、結果はRMSの「CSV処理結果確認」で確認できます。アップロード後、LAIKLE店で商品ページの表示・画像・カテゴリを確認してください（倉庫指定「1（非公開）」で登録した場合は、確認後に解除して公開）。</p>
       <button class="done-btn" onclick="completeStep5()">✓ CSVをアップロードしたら、ここを押して次へ</button>
     </div>
   </div>
@@ -1568,7 +1563,7 @@ function copyCmd() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
