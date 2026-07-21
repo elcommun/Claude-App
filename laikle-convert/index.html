@@ -313,7 +313,7 @@
       <div class="work-step">
         <div class="ws-num">3</div>
         <div class="ws-title">画像をR-Cabinetへ</div>
-        <div class="ws-desc">STEP 4-②。CyberduckでLAIKLE店にアップ</div>
+        <div class="ws-desc">STEP 4-②。R-Cabinet画面から直接アップ</div>
       </div>
       <div class="work-step">
         <div class="ws-num">4</div>
@@ -549,16 +549,21 @@
       <div class="sub-step" id="subStep2">
         <div class="sub-num">②</div>
         <div class="sub-body">
-          <h3>Cyberduck で LAIKLE店の R-Cabinet にアップロードする</h3>
+          <h3>R-Cabinet の画面から画像を直接アップロードする</h3>
           <p>
-            CyberduckでLAIKLE店の楽天画像SFTP（<code>upload.rakuten.ne.jp</code>・ポート22）に接続し、
-            <b><code>/cabinet/images/</code> フォルダの中</b>に <code>laikle_images</code> フォルダの<b>中身</b>（<code>biiino</code> などのフォルダごと）をドラッグ＆ドロップでアップロードします。
+            LAIKLE店のRMSで「画像・動画登録」▶「<b>画像管理（R-Cabinet）</b>」を開き、
+            <code>laikle_images</code> の中のフォルダごとに、次の手順でアップロードします。
+            上に表示されている<b>フォルダ一覧（枚数つき）</b>が、作成・アップロードするフォルダのリストです。
           </p>
+          <ul class="up-list">
+            <li><span class="up-file">手順1</span><span class="up-where">R-Cabinetで、ダウンロードした構成と<b>同じ名前のフォルダ</b>を作成する（例: <code>biiino/item/main-image-7</code> の階層どおり）</span></li>
+            <li><span class="up-file">手順2</span><span class="up-where">作成したフォルダを開き、パソコン側の<b>同じ名前のフォルダの中の画像をまとめて選択</b>してアップロード</span></li>
+            <li><span class="up-file">手順3</span><span class="up-where">上のフォルダ一覧のすべてのフォルダについて、手順1〜2を繰り返す</span></li>
+          </ul>
           <p style="font-size:11px;color:var(--yellow-dark);background:var(--yellow-light);border:1px solid #FCD34D;border-radius:8px;padding:9px 12px;line-height:1.8;">
-            ⚠️ <b>/cabinet 直下ではなく、必ず /cabinet/images/ の中へ。</b>直下に置いてもR-Cabinetには取り込まれません。<br>
-            ・アップ後、R-Cabinetへの反映には<b>30分〜1時間ほど</b>かかります（すぐには表示されません）<br>
-            ・取り込みエラーは <code>/cabinet/logs/</code> のログで確認できます（ログは翌朝自動削除）<br>
-            ・初回のみ、RMSの「画像一括登録」で利用申請が必要な場合があります
+            ⚠️ <b>フォルダ名・ファイル名は変更しないでください</b>（1文字でも違うと商品ページに画像が表示されません）。<br>
+            ・一度にアップできる枚数に上限がある場合は、数回に分けてアップしてください<br>
+            ・アップ後、商品ページへの反映まで少し時間がかかることがあります
           </p>
           <button class="done-btn" onclick="completeSubStep(2)">✓ R-Cabinetへのアップロードが終わったら、ここを押して次へ</button>
         </div>
@@ -833,7 +838,7 @@ const NEXT_STEPS = {
   convert:     { text: 'STEP 3：「🔁 LAIKLE用に変換する」ボタンを押す', target: 'step3Card' },
   download:    { text: '変換完了！変換済みCSVをダウンロードする', target: 'resultSection' },
   img1:        { text: 'STEP 4-①：画像DLスクリプトを保存して、ターミナルで実行する', target: 'subStep1' },
-  img2:        { text: 'STEP 4-②：CyberduckでLAIKLE店のR-Cabinetに画像をアップロードする', target: 'subStep2' },
+  img2:        { text: 'STEP 4-②：R-Cabinetの画面から画像をフォルダごとにアップロードする', target: 'subStep2' },
   img3:        { text: 'STEP 4-③：変換済みCSVをLAIKLE店のRMSにアップロードする', target: 'subStep3' },
   upload_only: { text: '仕上げ：変換済みCSVをLAIKLE店のRMSにアップロードして完了', target: 'resultSection' },
   done:        { text: '移行作業はすべて完了です！おつかれさまでした', target: 'allDone', done: true }
@@ -1434,7 +1439,7 @@ let IMG_FROM_SLUG = 'elcommun';
 
 // 画像一括ダウンロード用シェルスクリプトを生成
 // ターミナルで実行すると ~/Downloads/laikle_images/ に
-// R-Cabinetと同じフォルダ構成のまま保存される（Cyberduckでそのままアップ可能）
+// R-Cabinetと同じフォルダ構成のまま保存される（フォルダごとにR-Cabinetへアップしやすい）
 function buildImageScript() {
   const shq = t => String(t).replace(/'/g, "'\\''");
   const dirs = new Set();
@@ -1514,7 +1519,7 @@ function downloadUrlList() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 3;
+const APP_VERSION = 4;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
