@@ -1149,10 +1149,14 @@ function doConvert() {
   let whChanged = 0, stockChanged = 0;
   if (optWarehouse) {
     if (whIdx >= 0) {
-      converted.forEach(row => {
-        if (row[whIdx] !== undefined && String(row[whIdx]).trim() !== '1') { row[whIdx] = '1'; whChanged++; }
+      converted.forEach((row, i) => {
+        // 元データで倉庫指定に値がある行（＝商品レベル行）だけ変更する。
+        // SKUレベル行など元が空の行に書き込むと、RMSが
+        // 「SKUレベル行には、SKUレベルに該当するカラムのみ入力してください」エラーを返す
+        const orig = (iRows[i][whIdx] === undefined) ? '' : String(iRows[i][whIdx]).trim();
+        if (orig !== '' && orig !== '1') { row[whIdx] = '1'; whChanged++; }
       });
-      log(`🏬 倉庫指定：${whChanged}行を「1（倉庫・非公開）」に変更`, 'log-ok');
+      log(`🏬 倉庫指定：${whChanged}行を「1（倉庫・非公開）」に変更（商品レベル行のみ）`, 'log-ok');
     } else {
       log('⚠️ 「倉庫指定」列が見つからないためスキップしました', 'log-warn');
     }
