@@ -1570,7 +1570,7 @@ function copyCmd() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
@@ -1605,6 +1605,13 @@ document.getElementById('fileItem').addEventListener('change', e => { if(e.targe
 document.getElementById('fileCat').addEventListener('change',  e => { if(e.target.files[0]) loadCat(e.target.files[0]); });
 
 setNextAction('load');
+
+// 立ち上げ時は STEP 1「EL COMMUN店のCSVを読み込む」から始められるよう自動スクロール
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('step2Card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 300);
+});
 
 [['zoneItem', f => loadItem(f)], ['zoneCat', f => loadCat(f)]].forEach(([id, handler]) => {
   const zone = document.getElementById(id);
