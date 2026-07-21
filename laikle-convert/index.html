@@ -436,7 +436,7 @@
     <div class="card-body">
       <div class="rule-box">
         📌 <strong>dl-normal-item</strong>（必須）：RMS「商品一括編集」からダウンロードした商品CSV<br>
-        📌 <strong>dl-item-cat</strong>（任意）：表示先カテゴリCSV。アップロードしない場合はスキップされます
+        📌 <strong>dl-item-cat</strong>（任意）：表示先カテゴリCSV。<b>全商品分のままでOK</b>（変換時に dl-normal-item に含まれる商品の行だけ自動で抽出します）。アップロードしない場合はスキップされます
       </div>
       <div class="col2">
         <div>
@@ -1203,7 +1203,24 @@ function doConvert() {
   let catRows = 0, catUrlN = 0;
   if (rawCat) {
     log('🗂️ dl-item-cat を処理中...', 'log-info');
-    const { headerRow: ch, dataRows: cRows } = rawCat;
+    const { headerRow: ch, dataRows: cAllRows } = rawCat;
+    const catCodeIdx = ch.findIndex(h => /商品管理番号/.test(h || ''));
+    // item-catは全商品分のCSVをアップする運用のため、
+    // dl-normal-item に含まれる商品の行だけを抽出して変換する
+    let cRows = cAllRows;
+    if (catCodeIdx >= 0) {
+      const itemCodes = new Set(iRows.map(r => (r[0] || '').trim()).filter(c => c));
+      cRows = cAllRows.filter(r => itemCodes.has((r[catCodeIdx] || '').trim()));
+      const catUnique = new Set(cRows.map(r => (r[catCodeIdx] || '').trim())).size;
+      log(`🔎 dl-normal-itemの商品だけに絞り込み：全${cAllRows.length.toLocaleString()}行 → ${cRows.length.toLocaleString()}行（${catUnique.toLocaleString()}商品）`, 'log-info');
+      const catAllCodes = new Set(cAllRows.map(r => (r[catCodeIdx] || '').trim()));
+      const missing = [...itemCodes].filter(c => !catAllCodes.has(c));
+      if (missing.length) {
+        log(`⚠️ dl-item-catに1行も存在しない商品：${missing.length}件（${missing.slice(0, 5).join('、')}${missing.length > 5 ? ' …他' : ''}）`, 'log-warn');
+      }
+    } else {
+      log('⚠️ 「商品管理番号」列が見つからないため、絞り込みせず全行を変換します', 'log-warn');
+    }
     const catCounter = { n: 0 };
     // 表示先カテゴリの区切りが全角「＼」だとRMSに正しく認識されないため、半角（¥）に統一する
     const dispIdx = ch.findIndex(h => (h || '').trim() === '表示先カテゴリ');
@@ -1223,7 +1240,6 @@ function doConvert() {
     if (sepCount) log(`🔧 表示先カテゴリの区切り：全角「＼」${sepCount}箇所を半角「¥」に変換`, 'log-ok');
     log('　　※ 表示先カテゴリはLAIKLE店側に同名カテゴリの事前作成が必要です', 'log-info');
     // item-cat の変換もれも収集（品番列は「商品管理番号」列を使う）
-    const catCodeIdx = ch.findIndex(h => /商品管理番号/.test(h || ''));
     const catLeft = findLeftovers(convCat, ch, fromSlug, 40 - leftovers.length, new Set(), 'item-cat.csv', catCodeIdx);
     leftovers.push(...catLeft);
     logSep();
