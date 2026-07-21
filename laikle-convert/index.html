@@ -528,37 +528,27 @@
         <div class="sub-body">
           <h3>商品画像をパソコンに一括ダウンロードする</h3>
           <p>
-            下のボタンで<b>「画像をまとめてダウンロードするための実行ファイル」</b>（<code>download_laikle_images_日時.txt</code>）が
-            「ダウンロード」フォルダに保存されます。続けて表示されるコマンドをターミナルで実行すると、
-            EL COMMUN店の商品画像が <code>~/Downloads/laikle_images/</code> に<b>R-Cabinetと同じフォルダ構成のまま</b>保存され、完了するとFinderが自動で開きます。
+            下のボタンを押すと、画像をまとめてダウンロードする<b>実行コマンドがそのままコピー</b>されます（ファイルの保存は不要になりました）。
+            ターミナルに貼り付けて Enter すると、EL COMMUN店の商品画像が <code>~/Downloads/laikle_images/</code> に
+            <b>R-Cabinetと同じフォルダ構成のまま</b>保存され、完了するとFinderが自動で開きます。
           </p>
-          <button class="dl-btn" id="dlImgScriptBtn" onclick="saveImageScript()">💾 画像DLスクリプトを保存する</button>
+          <button class="dl-btn" id="dlImgScriptBtn" onclick="copyImageCommand()">📋 画像DLコマンドをコピーする</button>
           <div class="saved-note" id="scriptSavedNote">
-            ✅ <code id="savedFileName">download_laikle_images.txt</code> を保存し、実行コマンドも<b>コピー済み</b>です。<br>
+            ✅ 実行コマンドをコピーしました（<b id="copyImgCount">0</b>枚分・いま変換したばかりの最新データです）。<br>
             あとは <b>⌘+スペース</b> → <code>ターミナル</code> → Enter で開いて、<b>⌘V → Enter</b> するだけで画像のダウンロードが始まります。
-          </div>
-          <div class="cmd-area" id="cmdArea" style="display:none;">
-            <div class="cmd-label">ターミナルに貼り付けて Enter：</div>
-            <div class="cmd-row">
-              <input class="cmd-text" id="cmdText" readonly value="bash ~/Downloads/download_laikle_images.txt">
-              <button class="copy-btn" id="copyBtn" onclick="copyCmd()">📋 コピー</button>
-            </div>
           </div>
           <div class="hint-box" id="hintBox" style="display:none;">
             ターミナルの開き方：<strong>⌘ + スペース</strong> → <code>ターミナル</code> と入力 → Enter<br>
-            上のコマンドを貼り付けて Enter → 完了すると <code>laikle_images</code> フォルダがFinderで自動的に開きます 🎉<br>
-            <br>
-            ⚠️ <b>「No such file or directory」「no matches found」と出る場合</b>（＝スクリプトファイルが「ダウンロード」フォルダにありません）：<br>
-            ・保存時にブラウザの警告（「危険なファイルの可能性…」等）が出たら「<b>保存</b>」「<b>継続</b>」を選んでください<br>
-            ・ブラウザの<b>ダウンロード一覧</b>（Chromeは ⌘⇧J／Safariは右上の「↓」ボタン）でファイルの有無と保存先を確認してください。
-            「ダウンロード」以外の場所に保存されていた場合は、ファイルを「ダウンロード」フォルダに移動してからもう一度コマンドを実行してください<br>
-            ・保存先を選ぶ画面が出た場合は「<b>ダウンロード</b>」フォルダを選んでください<br>
+            貼り付けると<b>大量の文字がずらっと表示されますが正常です</b>。そのまま Enter を押すとダウンロードが始まり、
+            「⏬ ◯/◯（成功 ◯・失敗 ◯）」と進行状況が表示されます。完了すると <code>laikle_images</code> フォルダがFinderで自動的に開きます 🎉<br>
             <br>
             ⚠️ <b>実行しても画像がダウンロードされない（「0枚成功」になる）場合：</b><br>
-            ・Wi-Fi／インターネット接続を確認し（VPNを使っている場合はオフにして）、もう一度同じコマンドを実行してください<br>
+            ・Wi-Fi／インターネット接続を確認し（VPNを使っている場合はオフにして）、もう一度貼り付けて実行してください<br>
             ・失敗の理由は <code>laikle_images</code> フォルダ内の <code>_download_errors.log</code> に記録されます。解決しない場合はその内容をチャットで教えてください<br>
             <br>
-            💡 コマンドは「ダウンロード」フォルダ内の<b>一番新しいDLスクリプトを自動で探して実行</b>します。何度保存し直しても、常に最新の保存データだけが対象になります（実行すると古いスクリプトファイルは自動で削除されます）
+            💡 コピーされるコマンドには<b>いま画面に表示されている最新の変換結果</b>の画像リストがまるごと含まれています。
+            過去に保存したファイルを探したり実行したりしないので、古いデータが混ざることはありません。
+            ダウンロードのやり直しは、もう一度ボタンを押してコピー → 貼り付けでOKです
           </div>
           <button class="done-btn" onclick="completeSubStep(1)">✓ 画像のダウンロードが終わったら、ここを押して次へ</button>
         </div>
@@ -1372,7 +1362,6 @@ function doConvert() {
   document.getElementById('imgCount').textContent = IMAGES.length;
   setBadge('badgeImg', 'done', `画像 ${IMAGES.length}件`);
   document.getElementById('ruleToSlug').textContent = toSlug;
-  document.getElementById('cmdArea').style.display = 'none';
   document.getElementById('hintBox').style.display = 'none';
   const folders = {};
   IMAGES.forEach(im => {
@@ -1530,35 +1519,39 @@ function buildImageScript() {
     '  [ "$F" -eq 0 ] && rm -f "$ERRLOG"',
     '  open "$SAVE"',
     'fi',
-    '# 自分より古いDLスクリプト（過去に保存した download_laikle_images*.txt）だけ削除する（新しいものは残す）',
-    'for f in "$HOME/Downloads"/download_laikle_images*.txt; do [ "$f" -ef "$0" ] || [ "$f" -nt "$0" ] || rm -f "$f"; done',
+    '# 以前のファイル保存方式で残った古いDLスクリプトを掃除する（誤実行の防止）',
+    'rm -f "$HOME/Downloads"/download_laikle_images*.txt /tmp/laikle_dl.sh',
     ''
   );
   return lines.join('\n');
 }
 
-function saveImageScript() {
+// スクリプト全体をヒアドキュメントで一時ファイルに書き出してから実行するコマンドを組み立てる。
+// ブラウザのファイル保存（ダウンロード）を経由しないので、保存先の違い・別名保存・古いファイルの
+// 誤実行といった問題が起きない。クリップボードの中身が常に最新の変換結果と一致する
+function buildPasteCommand() {
+  return "cat > /tmp/laikle_dl.sh <<'LAIKLE_EOF'\n" + buildImageScript() + "\nLAIKLE_EOF\nbash /tmp/laikle_dl.sh\n";
+}
+
+function copyImageCommand() {
   if (!IMAGES.length) return;
-  // ファイル名に保存日時を付ける。毎回同じ名前だとブラウザが「(1).txt」のような別名で保存し、
-  // コピーされたコマンドが古いファイルの方を実行してしまう（＝過去のデータが対象になる）ため
-  const d = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const fname = `download_laikle_images_${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.txt`;
-  // 拡張子は .txt にする（.sh はChrome等が「危険なファイル」として保存をブロックすることがあるため。bashは拡張子に関係なく実行できる）
-  saveBlob(new Blob([buildImageScript()], { type: 'text/plain' }), fname);
-  // 実行コマンドを自動でコピーしておく（ターミナルを開いて ⌘V → Enter だけで実行できるように。
-  // ブラウザのセキュリティ上、ターミナル自体をWebページから開くことはできない）
-  // コマンドは「ダウンロードフォルダ内で一番新しいDLスクリプトを探して実行」する形にする。
-  // ブラウザが「(1).txt」等の別名で保存したり、保存タイミングがずれてもファイル名ピッタリ一致に
-  // 頼らず常に最新の保存ファイルが実行されるようにするため
-  const cmd = 'bash "$(ls -t ~/Downloads/download_laikle_images*.txt | head -1)"';
-  document.getElementById('cmdText').value = cmd;
-  document.getElementById('savedFileName').textContent = fname;
-  navigator.clipboard.writeText(cmd).catch(() => {});
-  document.getElementById('scriptSavedNote').style.display = 'block';
-  document.getElementById('cmdArea').style.display = '';
-  document.getElementById('hintBox').style.display = '';
-  document.getElementById('cmdArea').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const done = () => {
+    document.getElementById('copyImgCount').textContent = IMAGES.length.toLocaleString();
+    document.getElementById('scriptSavedNote').style.display = 'block';
+    document.getElementById('hintBox').style.display = '';
+    document.getElementById('scriptSavedNote').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+  navigator.clipboard.writeText(buildPasteCommand()).then(done).catch(() => {
+    // クリップボードAPIが使えない環境向けのフォールバック（テキストエリア＋execCommand）
+    const ta = document.createElement('textarea');
+    ta.value = buildPasteCommand();
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch (e) { alert('コピーに失敗しました。もう一度ボタンを押してください'); }
+    document.body.removeChild(ta);
+  });
 }
 
 // 工程完了：見た目を薄くして次の工程へスクロール
@@ -1592,20 +1585,9 @@ function completeStep6() {
   setNextAction('done');
 }
 
-function copyCmd() {
-  const text = document.getElementById('cmdText').value;
-  navigator.clipboard.writeText(text).catch(() => {
-    document.getElementById('cmdText').select();
-    document.execCommand('copy');
-  });
-  const btn = document.getElementById('copyBtn');
-  btn.textContent = '✅ コピー済み';
-  setTimeout(() => { btn.textContent = '📋 コピー'; }, 2000);
-}
-
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 17;
+const APP_VERSION = 18;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
