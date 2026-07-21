@@ -203,6 +203,7 @@
   /* 完了したサブ工程：緑背景＋✓＋詳細を畳んでタイトルだけに */
   .sub-step.done{background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:11px 14px;opacity:.55;transition:opacity .25s;}
   .sub-step.done:hover{opacity:1;}
+  .card .result-section{margin-top:16px;margin-bottom:0;}
   .result-section.dimmed{opacity:.55;transition:opacity .25s;}
   .result-section.dimmed:hover{opacity:1;}
   .sub-step.done .sub-num{background:var(--green);border-color:var(--green);color:white;font-size:0;margin-top:0;}
@@ -457,7 +458,6 @@
       <div class="step">1</div>
       <h2>EL COMMUN店のCSVを読み込んで変換する<span class="sub">dl-normal-item は必須 / dl-item-cat は任意</span></h2>
       <span class="badge" id="badgeItem">未読込</span>
-      <span class="badge" id="badgeRun">未実行</span>
     </div>
     <div class="card-body">
       <div class="rule-box">
@@ -491,20 +491,19 @@
         <div class="btn-hint" id="btnHint">上の dl-normal-item を読み込むと実行できます</div>
         <div class="log-box" id="logBox"></div>
       </div>
+      <!-- 変換結果（同セクション内・変換ボタンの下） -->
+      <div class="result-section" id="resultSection">
+        <h3>✅ 変換完了！</h3>
+        <div>
+          <button class="dl-btn" id="dlZipBtn" onclick="downloadPrepared('zip')" style="display:none;">⬇️ 変換済みCSVをダウンロード（2ファイル・ZIP）</button>
+          <button class="dl-btn" id="dlItemBtn" onclick="downloadPrepared('item')" disabled>⬇️ normal-item（LAIKLE用）をダウンロード</button>
+          <button class="dl-btn" id="dlCatBtn"  onclick="downloadPrepared('cat')"  disabled style="display:none;">⬇️ item-cat（LAIKLE用）をダウンロード</button>
+        </div>
+        <div class="saved-note" id="dlSavedNote" style="text-align:left;"></div>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="leftover-box" id="leftoverBox"></div>
+      </div>
     </div>
-  </div>
-
-  <!-- 結果 -->
-  <div class="result-section" id="resultSection">
-    <h3>✅ 変換完了！</h3>
-    <div>
-      <button class="dl-btn" id="dlZipBtn" onclick="downloadPrepared('zip')" style="display:none;">⬇️ 変換済みCSVをダウンロード（2ファイル・ZIP）</button>
-      <button class="dl-btn" id="dlItemBtn" onclick="downloadPrepared('item')" disabled>⬇️ normal-item（LAIKLE用）をダウンロード</button>
-      <button class="dl-btn" id="dlCatBtn"  onclick="downloadPrepared('cat')"  disabled style="display:none;">⬇️ item-cat（LAIKLE用）をダウンロード</button>
-    </div>
-    <div class="saved-note" id="dlSavedNote" style="text-align:left;"></div>
-    <div class="stats-grid" id="statsGrid"></div>
-    <div class="leftover-box" id="leftoverBox"></div>
   </div>
 
   <!-- Step 4: 商品画像の移行 -->
@@ -1169,10 +1168,9 @@ function doConvert() {
   document.getElementById('resultSection').classList.remove('show', 'dimmed');
   // 再実行時は以降のSTEPの完了状態をリセット
   document.getElementById('step2Card').classList.remove('done');
-  document.getElementById('step4Card').classList.remove('done');
-  setBadge('badgeRun', '', '実行中...');
+  setBadge('badgeItem', '', '実行中...');
   [1, 2].forEach(n => document.getElementById('subStep' + n).classList.remove('done'));
-  ['step5Card', 'step6Card'].forEach(id => {
+  ['step4Card', 'step5Card', 'step6Card'].forEach(id => {
     const el = document.getElementById(id);
     el.classList.remove('done');
     el.style.display = 'none';
@@ -1359,11 +1357,7 @@ function doConvert() {
 
   prepareOutputs();
 
-  // STEP 2: 商品画像の移行
-  // 次のセクションだけ表示する（それ以降は前の工程が完了したときに表示）
-  document.getElementById('step4Card').style.display = IMAGES.length ? '' : 'none';
-  document.getElementById('step5Card').style.display = IMAGES.length ? 'none' : '';
-  document.getElementById('step6Card').style.display = 'none';
+  // STEP 2: 商品画像の移行の準備（表示はCSVダウンロード完了後）
   document.getElementById('imgCount').textContent = IMAGES.length;
   setBadge('badgeImg', 'done', `画像 ${IMAGES.length}件`);
   document.getElementById('ruleToSlug').textContent = toSlug;
@@ -1377,10 +1371,8 @@ function doConvert() {
     Object.entries(folders).sort((a, b) => a[0].localeCompare(b[0])).map(([n, c]) =>
       `<div class="folder-item"><span class="fname">📁 ${esc(n)}</span><span class="cnt">${c}</span></div>`).join('')
   }</div>`;
-  // STEP 1（読込＋変換）を完了表示に（ログは見えるまま。ヘッダークリックで開閉可能）
-  document.getElementById('step2Card').classList.add('done');
-  setBadge('badgeItem', 'done', '✓ 完了');
-  setBadge('badgeRun', 'done', '✓ 完了');
+  // 変換は完了。STEP 1全体の完了（薄表示）はCSVダウンロード後に行う
+  setBadge('badgeItem', 'done', '✓ 変換済');
   setStepper(1);
   setNextAction('download');
   document.getElementById('resultSection').classList.add('show');
@@ -1462,9 +1454,13 @@ function downloadPrepared(kind) {
   const allDone = kind === 'zip' ||
     (PREPARED.cat ? (DOWNLOADED.has('item') && DOWNLOADED.has('cat')) : DOWNLOADED.has('item'));
   if (allDone) {
+    // STEP 1（読込→変換→ダウンロード）がここで完了。次のセクションを表示する
     document.getElementById('resultSection').classList.add('dimmed');
-    setNextAction(IMAGES.length ? 'img1' : 'csv');
+    document.getElementById('step2Card').classList.add('done');
+    setBadge('badgeItem', 'done', '✓ 完了');
     const next = document.getElementById(IMAGES.length ? 'step4Card' : 'step5Card');
+    next.style.display = '';
+    setNextAction(IMAGES.length ? 'img1' : 'csv');
     next.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
@@ -1594,7 +1590,7 @@ function completeStep6() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 19;
+const APP_VERSION = 20;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
