@@ -61,6 +61,15 @@
   .opt-row{display:flex;align-items:flex-start;gap:8px;margin-top:14px;font-size:13px;color:var(--gray-600);line-height:1.6;cursor:pointer;}
   .opt-row input{margin-top:3px;accent-color:var(--primary);}
 
+  .src-box{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-top:14px;}
+  .src-title{font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:4px;}
+  .src-box .opt-row{margin-top:8px;color:#1E40AF;}
+  .src-cnt{color:var(--primary);font-size:15px;}
+  .slug-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed #BFDBFE;font-size:12px;color:#1E40AF;}
+  .slug-row input{width:160px;padding:7px 10px;border:1px solid #BFDBFE;border-radius:8px;font-size:13px;font-family:'Courier New',monospace;}
+  .slug-row input:focus{outline:2px solid var(--primary);border-color:transparent;}
+  .slug-hint{font-size:11px;color:#3B82F6;}
+
   /* プレビュー */
   .preview-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
   .preview-count{font-size:14px;font-weight:700;}
@@ -141,8 +150,9 @@
 
   <div class="info-box">
     <strong>このアプリでできること：</strong>
-    楽天の商品画像URLをまとめて抽出し、パソコンに一括ダウンロードします。<br>
-    商品CSV・URLリスト・ページのソースなど、<strong>画像URLが含まれるテキストを貼り付ける（またはファイルを読み込む）だけ</strong>でOK。画像URLは自動で見つけます。
+    楽天の商品画像をまとめて抽出し、パソコンに一括ダウンロードします。<br>
+    RMSの商品CSV（dl-normal-item）なら<strong>「商品画像パス」列から自動で画像を抽出</strong>。
+    URLリストやページのソースなど、画像URLが含まれるテキストの貼り付けにも対応しています。
   </div>
 
   <!-- STEP 1: 入力 -->
@@ -167,10 +177,28 @@
         <div class="upload-zone" id="zoneFile">
           <input type="file" accept=".csv,.txt,.tsv,.html,.htm" id="fileInput">
           <div class="upload-icon">📄</div>
-          <p>CSV・テキストファイルをドロップ</p>
-          <small>またはクリックして選択（RMSの商品CSVもそのまま使えます）</small>
+          <p>RMSの商品CSV（dl-normal-item）をドロップ</p>
+          <small>またはクリックして選択。URLが書かれたテキストファイルもOK（Shift-JIS対応）</small>
         </div>
         <div id="fileStatus"></div>
+      </div>
+
+      <!-- 商品CSVを読み込んだときの抽出元設定 -->
+      <div class="src-box" id="srcBox" style="display:none;">
+        <div class="src-title">🔍 商品CSVを検出しました ─ 抽出する画像を選んでください</div>
+        <label class="opt-row">
+          <input type="checkbox" id="srcCabinet" checked>
+          <span>📦 <b>商品画像</b>（商品画像パス・白背景画像の列）… <b class="src-cnt" id="cntCabinet">0</b> 件</span>
+        </label>
+        <label class="opt-row">
+          <input type="checkbox" id="srcBody">
+          <span>📝 <b>説明文など本文中の画像URL</b> … <b class="src-cnt" id="cntBody">0</b> 件</span>
+        </label>
+        <div class="slug-row" id="slugRow">
+          <span>店舗名（URLの一部）:</span>
+          <input type="text" id="slugInput" placeholder="例: elcommun">
+          <span class="slug-hint">image.rakuten.co.jp/<b>ここの部分</b>/cabinet/… ─ CSVから自動検出されます</span>
+        </div>
       </div>
 
       <label class="opt-row">
@@ -208,7 +236,7 @@
       <div class="dl-methods">
         <div class="dl-method recommend">
           <h3>🗜️ ZIPで一括ダウンロード <span class="tag">まずはこちら</span></h3>
-          <p>ブラウザだけで完結する一番かんたんな方法。選択した画像を1つのZIPファイルにまとめて保存します。</p>
+          <p>ブラウザだけで完結する一番かんたんな方法。選択した画像を1つのZIPファイルにまとめて保存します（R-Cabinetと同じフォルダ構成）。</p>
           <button class="primary-btn" id="zipBtn" onclick="downloadZip()">⬇️ ZIPでダウンロード</button>
         </div>
         <div class="dl-method">
@@ -272,6 +300,7 @@ function switchTab(btn, name) {
 
 // ========== URL抽出 ==========
 const IMG_URL_RE = /https?:\/\/[^\s"'<>()\\,]+?\.(?:jpe?g|png|gif|webp)(?:\?[^\s"'<>()\\,]*)?/gi;
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 function normalizeUrl(url) {
   // HTMLエンティティやCSV由来のゴミを除去
@@ -287,6 +316,7 @@ function normalizeUrl(url) {
   return url;
 }
 
+// 本文からフルURLの画像を抽出（重複除去）
 function extractUrls(text) {
   const seen = new Set();
   const out = [];
@@ -297,36 +327,141 @@ function extractUrls(text) {
   return out;
 }
 
-// ファイル名はURL末尾から取得し、重複には連番を付ける
-function assignNames(urls) {
-  const used = new Map();
-  return urls.map(url => {
-    let base = decodeURIComponent(url.split('?')[0].split('/').pop() || 'image.jpg');
-    base = base.replace(/[\\/:*?"<>|]/g, '_');
-    const n = used.get(base) || 0;
-    used.set(base, n + 1);
-    if (n > 0) {
-      const dot = base.lastIndexOf('.');
-      base = dot > 0 ? `${base.slice(0, dot)}_${n + 1}${base.slice(dot)}` : `${base}_${n + 1}`;
-    }
-    return { url, name: base, sel: true };
-  });
+// ========== CSVパース（RFC4180: 引用符内の改行・カンマ対応） ==========
+function parseCSV(text) {
+  const rows = [];
+  let row = [], cell = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i++; }
+        else inQ = false;
+      } else cell += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { row.push(cell); cell = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell); cell = '';
+      if (row.length > 1 || row[0] !== '') rows.push(row);
+      row = [];
+    } else cell += c;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows;
 }
 
-function refresh() {
-  const src = document.getElementById('pasteArea').value;
-  IMAGES = assignNames(extractUrls(src.length ? src : LOADED_FILE_TEXT));
+// 商品画像系の列か（商品画像パス・商品画像URL・白背景画像パス など）
+function isImageCol(h) {
+  h = (h || '').trim();
+  return /画像/.test(h) && /(パス|URL)/.test(h);
+}
+
+// テキスト中で一番多く登場する店舗名（image/item.rakuten.co.jp/{店舗}/）を検出
+function detectSlug(text) {
+  const count = {};
+  for (const m of text.matchAll(/(?:image|item)\.rakuten\.co\.jp\/([a-z0-9][a-z0-9._-]*)\//gi)) {
+    const s = m[1].toLowerCase();
+    count[s] = (count[s] || 0) + 1;
+  }
+  let best = '', n = 0;
+  for (const [s, c] of Object.entries(count)) if (c > n) { best = s; n = c; }
+  return best;
+}
+
+// ========== 抽出パイプライン ==========
+// RAW_TEXT: 現在の入力テキスト（貼り付け or ファイルの後から操作した方）
+let RAW_TEXT = '';
+let CABINET = [];   // 商品画像列から: { path, url }（pathはR-Cabinet内のフォルダ構成）
+let BODY_URLS = []; // 本文中のフルURL
+
+// 新しいテキストが入力されたときの入口。店舗名の自動検出とチェック初期値もここで決める
+function analyzeNewText(text) {
+  RAW_TEXT = text;
+  document.getElementById('slugInput').value = detectSlug(text);
+  rebuild();
+  // 商品CSVなら「商品画像列のみ」を初期選択（laikle-convertの画像抽出と同じ範囲）
+  document.getElementById('srcCabinet').checked = true;
+  document.getElementById('srcBody').checked = CABINET.length === 0;
+  rebuild();
+}
+
+// RAW_TEXT・店舗名・チェック状態から IMAGES を組み立てる
+function rebuild() {
+  BODY_URLS = extractUrls(RAW_TEXT);
+  CABINET = [];
+  let hasImageCols = false;
+
+  if (RAW_TEXT.includes(',')) {
+    const rows = parseCSV(RAW_TEXT);
+    if (rows.length > 1) {
+      const cols = rows[0].map((h, i) => isImageCol(h) ? i : -1).filter(i => i >= 0);
+      if (cols.length) {
+        hasImageCols = true;
+        const slug = document.getElementById('slugInput').value.trim().toLowerCase();
+        // 「/フォルダ/ファイル.jpg」の相対パスはR-Cabinet直下からのパス。
+        // 旧形式の絶対URL（…/{店舗}/cabinet/…）にも対応（laikle-convertと同じ判定）
+        const reAbs = slug ? new RegExp('^https?:\\/\\/image\\.rakuten\\.co\\.jp\\/' + escRe(slug) + '\\/cabinet\\/(.+)$', 'i') : null;
+        const reExt = /\.(jpe?g|png|gif|webp)$/i;
+        const seen = new Set();
+        for (const row of rows.slice(1)) {
+          for (const i of cols) {
+            const v = (row[i] || '').trim();
+            if (!v) continue;
+            let path = null;
+            if (/^\/[^\s,]+$/.test(v)) path = v.replace(/^\/+/, '');
+            else if (reAbs) { const m = v.match(reAbs); if (m) path = m[1]; }
+            if (!path || !reExt.test(path) || seen.has(path)) continue;
+            seen.add(path);
+            if (slug) CABINET.push({ path, url: 'https://image.rakuten.co.jp/' + slug + '/cabinet/' + path });
+          }
+        }
+      }
+    }
+  }
+
+  // 抽出元の選択ボックス（商品CSVのときだけ表示）
+  document.getElementById('srcBox').style.display = hasImageCols ? '' : 'none';
+  document.getElementById('cntCabinet').textContent = CABINET.length;
+  document.getElementById('cntBody').textContent = BODY_URLS.length;
+
+  const useCab = !hasImageCols ? false : document.getElementById('srcCabinet').checked;
+  const useBody = hasImageCols ? document.getElementById('srcBody').checked : true;
+
+  // IMAGES を組み立て（保存名はフォルダ構成ごと。重複は連番）
+  IMAGES = [];
+  const usedPaths = new Set();
+  const seenUrls = new Set();
+  const addItem = (url, path) => {
+    if (seenUrls.has(url)) return;
+    seenUrls.add(url);
+    let p = path, n = 2;
+    while (usedPaths.has(p)) {
+      const dot = path.lastIndexOf('.');
+      p = dot > 0 ? `${path.slice(0, dot)}_${n}${path.slice(dot)}` : `${path}_${n}`;
+      n++;
+    }
+    usedPaths.add(p);
+    IMAGES.push({ url, path: p, name: p.split('/').pop(), sel: true });
+  };
+  if (useCab) CABINET.forEach(c => addItem(c.url, c.path));
+  if (useBody) BODY_URLS.forEach(url => {
+    let base = decodeURIComponent(url.split('?')[0].split('/').pop() || 'image.jpg');
+    addItem(url, base.replace(/[\\/:*?"<>|]/g, '_'));
+  });
+
   renderPreview();
 }
 
 // 貼り付けテキストとファイルは「後から操作した方」を使う
-let LOADED_FILE_TEXT = '';
-document.getElementById('pasteArea').addEventListener('input', () => {
-  LOADED_FILE_TEXT = '';
+document.getElementById('pasteArea').addEventListener('input', e => {
   document.getElementById('fileStatus').innerHTML = '';
-  refresh();
+  analyzeNewText(e.target.value);
 });
-document.getElementById('optOriginal').addEventListener('change', refresh);
+document.getElementById('optOriginal').addEventListener('change', rebuild);
+document.getElementById('srcCabinet').addEventListener('change', rebuild);
+document.getElementById('srcBody').addEventListener('change', rebuild);
+document.getElementById('slugInput').addEventListener('input', rebuild);
 
 // ========== ファイル読み込み（Shift-JIS対応） ==========
 document.getElementById('fileInput').addEventListener('change', e => {
@@ -349,13 +484,12 @@ async function readFile(file) {
     // RMSのCSVはShift_JISが多い
     text = new TextDecoder('shift-jis').decode(buf);
   }
-  LOADED_FILE_TEXT = text;
   document.getElementById('pasteArea').value = '';
-  refresh();
+  analyzeNewText(text);
   const st = document.getElementById('fileStatus');
   st.innerHTML = IMAGES.length
-    ? `<div class="file-status ok">✅ ${escapeHtml(file.name)} から画像URLを ${IMAGES.length} 件見つけました</div>`
-    : `<div class="file-status err">❌ ${escapeHtml(file.name)} に画像URLが見つかりませんでした</div>`;
+    ? `<div class="file-status ok">✅ ${escapeHtml(file.name)} から画像を ${IMAGES.length} 件見つけました</div>`
+    : `<div class="file-status err">❌ ${escapeHtml(file.name)} に画像が見つかりませんでした</div>`;
 }
 
 function escapeHtml(s) {
@@ -376,7 +510,7 @@ function renderPreview() {
     <div class="img-item sel" id="imgItem${i}" onclick="toggleSel(${i})">
       <img src="${escapeHtml(im.url)}" loading="lazy" alt=""
            onerror="this.outerHTML='&lt;div class=&quot;noimg&quot;&gt;🖼️&lt;/div&gt;'">
-      <div class="fname">${escapeHtml(im.name)}</div>
+      <div class="fname" title="${escapeHtml(im.path)}">${escapeHtml(im.name)}</div>
     </div>`).join('');
   updateCount();
 }
@@ -449,12 +583,12 @@ async function downloadZip() {
       try {
         const res = await fetch(im.url, { mode: 'cors' });
         if (!res.ok) throw new Error('HTTP ' + res.status);
-        zip.file(im.name, await res.blob());
+        zip.file(im.path, await res.blob());   // フォルダ構成ごとZIPに入れる
         ok++;
-        log(`✅ ${im.name}`, 'log-ok');
+        log(`✅ ${im.path}`, 'log-ok');
       } catch {
         ng++;
-        log(`❌ ${im.name}（ブラウザから取得できませんでした）`, 'log-err');
+        log(`❌ ${im.path}（ブラウザから取得できませんでした）`, 'log-err');
       }
       done++;
       setProgress();
@@ -488,6 +622,11 @@ async function downloadZip() {
 function buildScript() {
   const targets = IMAGES.filter(im => im.sel);
   const shq = t => String(t).replace(/'/g, "'\\''");
+  // R-Cabinetと同じフォルダ構成のまま保存する（Cyberduck等でそのまま再アップ可能）
+  const dirs = new Set();
+  targets.forEach(im => {
+    if (im.path.includes('/')) dirs.add(im.path.slice(0, im.path.lastIndexOf('/')));
+  });
   const lines = [
     '#!/bin/bash',
     `# 楽天商品画像 一括ダウンロード - ${targets.length}枚`,
@@ -497,10 +636,12 @@ function buildScript() {
     `echo "🖼️ ${targets.length}枚をダウンロードします..."`,
     ''
   ];
+  [...dirs].sort().forEach(d => lines.push(`mkdir -p "$SAVE/${shq(d)}"`));
+  lines.push('');
   targets.forEach(im => {
     lines.push(
       `curl -sfL --retry 2 -H 'Referer: https://www.rakuten.co.jp/' -H 'User-Agent: Mozilla/5.0' ` +
-      `-o "$SAVE/${shq(im.name)}" '${shq(im.url)}' && S=$((S+1)) || { echo "  ❌ ${shq(im.name)}"; F=$((F+1)); }`
+      `-o "$SAVE/${shq(im.path)}" '${shq(im.url)}' && S=$((S+1)) || { echo "  ❌ ${shq(im.path)}"; F=$((F+1)); }`
     );
   });
   lines.push('', 'echo "════════════════════"', 'echo "✅ 完了: $S 枚成功 / $F 枚失敗"', 'open "$SAVE"');
