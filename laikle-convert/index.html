@@ -620,7 +620,7 @@
     <div class="card-body">
       <p class="up-note">STEP 4 のCSVアップロードが済んでから行ってください。</p>
       <ul class="up-list">
-        <li><span class="up-file">手順1</span><span class="up-where">GoQ System の<b>在庫連携</b>の画面を開く</span></li>
+        <li><span class="up-file">手順1</span><span class="up-where"><a href="https://order.goqsystem.com/goq21/index_beta.php" target="_blank" rel="noopener" style="color:var(--primary-dark);font-weight:700;">GoQ System を開く ↗</a> → 画面内の<b>「在庫連携」タブ</b>を開く</span></li>
         <li><span class="up-file">手順2</span><span class="up-where">STEP 2 でダウンロードした <code>normal-item.csv</code>（dl-normal-item）を<b>そのまま使って</b>、LAIKLE店の商品の紐付け作業を行う</span></li>
       </ul>
       <p class="up-note">※ 紐付けが完了すると、LAIKLE店の商品在庫が GoQ System で連携されます。</p>
@@ -1586,7 +1586,7 @@ function copyCmd() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 13;
+const APP_VERSION = 14;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
