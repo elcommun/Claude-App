@@ -551,6 +551,11 @@
             ⚠️ <b>「No such file or directory」と出る場合：</b><br>
             ・保存時にブラウザの警告（「危険なファイルの可能性…」等）が出たら「<b>保存</b>」「<b>継続</b>」を選んでください<br>
             ・保存先を選ぶ画面が出た場合は「<b>ダウンロード</b>」フォルダを選んでください<br>
+            ・貼り付けた内容が上の欄のコマンドと違っていたら、<b>📋 コピー</b>ボタンでコピーし直してください<br>
+            <br>
+            ⚠️ <b>実行しても画像がダウンロードされない（「0枚成功」になる）場合：</b><br>
+            ・Wi-Fi／インターネット接続を確認し（VPNを使っている場合はオフにして）、もう一度同じコマンドを実行してください<br>
+            ・失敗の理由は <code>laikle_images</code> フォルダ内の <code>_download_errors.log</code> に記録されます。解決しない場合はその内容をチャットで教えてください<br>
             <br>
             💡 ファイル名には保存した日時が付くので、コピーされたコマンドは<b>常に最新の保存データだけ</b>を対象に実行されます（実行すると古いスクリプトファイルは自動で削除されます）
           </div>
@@ -1488,25 +1493,45 @@ function buildImageScript() {
     `# 取得元: https://image.rakuten.co.jp/${IMG_FROM_SLUG}/cabinet/`,
     'SAVE="$HOME/Downloads/laikle_images"',
     'rm -rf "$SAVE" && mkdir -p "$SAVE"',
-    'S=0; F=0',
-    `echo "🖼️ ${IMAGES.length}枚をダウンロードします..."`,
+    'ERRLOG="$SAVE/_download_errors.log"; : > "$ERRLOG"',
+    `TOTAL=${IMAGES.length}; S=0; F=0`,
+    "REF='Referer: https://www.rakuten.co.jp/'",
+    "UA='User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'",
+    'echo "🖼️ $TOTAL 枚を $SAVE にダウンロードします..."',
+    '# 1枚ダウンロードするごとに進行状況を表示し、失敗はエラーログに記録する',
+    'dl() {',
+    '  if curl -sSfL --retry 2 -H "$REF" -H "$UA" -o "$SAVE/$2" "$1" 2>>"$ERRLOG"; then',
+    '    S=$((S+1))',
+    '  else',
+    '    F=$((F+1)); echo "❌ $2  ← $1" >> "$ERRLOG"',
+    '  fi',
+    '  printf "\\r⏬ %d/%d（成功 %d・失敗 %d）" "$((S+F))" "$TOTAL" "$S" "$F"',
+    '}',
     ''
   ];
   [...dirs].sort().forEach(d => lines.push(`mkdir -p "$SAVE/${d}"`));
   lines.push('');
   IMAGES.forEach(im => {
-    lines.push(
-      `curl -sfL --retry 2 -H 'Referer: https://www.rakuten.co.jp/' -H 'User-Agent: Mozilla/5.0' ` +
-      `-o "$SAVE/${im.path}" '${shq(im.url)}' && S=$((S+1)) || { echo "  ❌ ${im.path}"; F=$((F+1)); }`
-    );
+    lines.push(`dl '${shq(im.url)}' '${shq(im.path)}'`);
   });
   lines.push(
     '',
+    'echo ""',
     'echo "════════════════════"',
-    'echo "✅ 完了: $S 枚成功 / $F 枚失敗"',
+    'if [ "$S" -eq 0 ]; then',
+    '  echo "❌ 1枚もダウンロードできませんでした（$F 枚失敗）"',
+    '  echo "・Wi-Fi／インターネット接続（VPNを使っている場合はオフ）を確認して、もう一度同じコマンドを実行してください"',
+    '  echo "・エラーの詳細はこのファイルに記録されています → $ERRLOG"',
+    '  open "$SAVE"',
+    'else',
+    '  echo "✅ 完了: $S 枚成功 / $F 枚失敗"',
+    '  [ "$F" -gt 0 ] && echo "⚠️ 失敗した画像は $ERRLOG に記録されています。もう一度同じコマンドを実行すると再取得を試せます"',
+    '  [ "$F" -eq 0 ] && rm -f "$ERRLOG"',
+    '  open "$SAVE"',
+    'fi',
     '# 古いDLスクリプト（過去に保存した download_laikle_images*.txt）を自分以外すべて削除する',
     'for f in "$HOME/Downloads"/download_laikle_images*.txt; do [ "$f" -ef "$0" ] || rm -f "$f"; done',
-    'open "$SAVE"'
+    ''
   );
   return lines.join('\n');
 }
@@ -1576,7 +1601,7 @@ function copyCmd() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
