@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>楽天画像ダウンローダー | EL COMMUN</title>
-<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   /* === EL COMMUN UI デザインシステム === */
   :root {
@@ -84,35 +83,13 @@
   .img-item .noimg{width:100%;height:96px;display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--gray-100);}
   .img-item .fname{font-size:10px;padding:5px 6px;color:var(--gray-600);word-break:break-all;line-height:1.4;border-top:1px solid var(--gray-200);background:white;}
 
-  /* ダウンロード方法の選択 */
-  .dl-methods{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-  .dl-method{border:1px solid var(--gray-200);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;}
-  .dl-method.recommend{border-color:#FDBA8C;background:#FFFAF7;}
-  .dl-method h3{font-size:14px;display:flex;align-items:center;gap:6px;}
-  .dl-method .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#FED7AA;color:#C2410C;}
-  .dl-method p{font-size:12px;color:var(--gray-600);line-height:1.8;flex:1;}
   .primary-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
   .primary-btn:hover:not(:disabled){background:var(--primary-dark);}
   .primary-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
-  .ghost-btn{width:100%;padding:12px;background:white;color:var(--gray-600);border:1px solid var(--gray-300);border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
-  .ghost-btn:hover{border-color:var(--primary);color:var(--primary);}
 
-  /* 進捗バー */
-  .progress-wrap{display:none;margin-top:16px;}
-  .progress-wrap.show{display:block;}
-  .progress-label{font-size:12px;color:var(--gray-600);margin-bottom:6px;display:flex;justify-content:space-between;}
-  .progress-track{height:10px;background:var(--gray-200);border-radius:999px;overflow:hidden;}
-  .progress-fill{height:100%;width:0%;background:var(--primary);border-radius:999px;transition:width .2s;}
+  .rule-box{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:10px;padding:12px 16px;font-size:13px;color:#1E40AF;line-height:2;}
 
-  .log-box{margin-top:16px;background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;max-height:260px;overflow-y:auto;display:none;}
-  .log-box.show{display:block;}
-  .log-ok{color:#6EE7B7;}.log-warn{color:#FCD34D;}.log-err{color:#FCA5A5;}.log-info{color:#93C5FD;}
-
-  /* CORSフォールバック案内 */
-  .cors-note{display:none;background:var(--blue-light);border:1px solid #BFDBFE;border-radius:10px;padding:14px 16px;margin-top:16px;font-size:13px;color:#1E40AF;line-height:2;}
-  .cors-note.show{display:block;}
-
-  /* スクリプト方式の手順 */
+  /* ダウンロード手順 */
   .script-steps{display:none;margin-top:16px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:16px;}
   .script-steps.show{display:block;}
   .script-steps ol{margin-left:20px;font-size:13px;line-height:2.2;color:var(--gray-600);}
@@ -122,18 +99,7 @@
   .copy-btn{padding:10px 16px;border-radius:8px;border:none;background:var(--gray-600);color:white;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
   .copy-btn:hover{background:var(--gray-800);}
 
-  .result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:12px;padding:22px;margin-top:20px;text-align:center;}
-  .result-section.show{display:block;}
-  .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
-  .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px;}
-  .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
-  .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
-  .stat .num.g{color:#059669;}
-  .stat .num.r{color:var(--red);}
-  .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
-
   @media(max-width:640px){
-    .dl-methods{grid-template-columns:1fr;}
     header{padding:14px 16px;}
     .container{padding:20px 12px 48px;}
   }
@@ -230,32 +196,15 @@
   <div class="card" id="step3Card" style="display:none;">
     <div class="card-header">
       <div class="step">3</div>
-      <h2>ダウンロードする</h2>
+      <h2>ターミナルでダウンロードする <span class="sub">保存 → 貼り付け → Enter の3ステップ</span></h2>
     </div>
     <div class="card-body">
-      <div class="dl-methods">
-        <div class="dl-method recommend">
-          <h3>🗜️ ZIPで一括ダウンロード <span class="tag">まずはこちら</span></h3>
-          <p>ブラウザだけで完結する一番かんたんな方法。選択した画像を1つのZIPファイルにまとめて保存します（R-Cabinetと同じフォルダ構成）。</p>
-          <button class="primary-btn" id="zipBtn" onclick="downloadZip()">⬇️ ZIPでダウンロード</button>
-        </div>
-        <div class="dl-method">
-          <h3>🖥️ ターミナルでダウンロード</h3>
-          <p>ZIP方式がブロックされて失敗する場合の確実な方法。ダウンロード用ファイルを保存し、ターミナルに貼り付けて実行します。</p>
-          <button class="ghost-btn" onclick="saveScript()">📄 ダウンロード用ファイルを保存</button>
-        </div>
+      <div class="rule-box" style="margin-bottom:16px;">
+        💡 楽天のサーバーはブラウザからの直接ダウンロードを許可していないため、
+        Macに標準搭載の<b>「ターミナル」</b>で実行する方式です。難しい操作はありません。
       </div>
 
-      <div class="progress-wrap" id="progressWrap">
-        <div class="progress-label"><span id="progressText">準備中...</span><span id="progressPct">0%</span></div>
-        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-      </div>
-
-      <div class="cors-note" id="corsNote">
-        <strong>⚠️ ブラウザから直接取得できない画像がありました。</strong><br>
-        楽天のサーバー設定によりブラウザからのダウンロードがブロックされることがあります。
-        その場合は右の<strong>「🖥️ ターミナルでダウンロード」</strong>をご利用ください。ブロックの影響を受けず、確実にダウンロードできます。
-      </div>
+      <button class="primary-btn" id="scriptBtn" onclick="saveScript()">📄 ダウンロード用ファイルを保存する</button>
 
       <div class="script-steps" id="scriptSteps">
         <ol>
@@ -267,17 +216,11 @@
           <input class="cmd-text" id="cmdText" readonly value="bash ~/Downloads/download_rakuten_images.txt">
           <button class="copy-btn" id="copyBtn" onclick="copyCmd()">📋 コピー</button>
         </div>
-        <div class="hint">完了すると「ダウンロード」フォルダ内の <code>rakuten_images</code> フォルダに画像が保存され、自動で開きます。</div>
-      </div>
-
-      <div class="log-box" id="logBox"></div>
-
-      <div class="result-section" id="resultSection">
-        <h3 id="resultTitle">✅ ダウンロード完了！</h3>
-        <div class="stats-grid">
-          <div class="stat"><div class="num" id="statTotal">0</div><div class="label">対象画像</div></div>
-          <div class="stat"><div class="num g" id="statOk">0</div><div class="label">成功</div></div>
-          <div class="stat"><div class="num r" id="statNg">0</div><div class="label">失敗</div></div>
+        <div class="hint">
+          完了すると「ダウンロード」フォルダ内の <code>rakuten_images</code> フォルダに
+          <b>R-Cabinetと同じフォルダ構成</b>で画像が保存され、自動で開きます（Cyberduck等でそのまま再アップロードできます）。<br>
+          ・保存先を選ぶ画面が出た場合は「ダウンロード」フォルダを選んでください<br>
+          ・何度か保存すると <code>download_rakuten_images (1).txt</code> のような名前になります。その場合は古いファイルをゴミ箱に入れてから、もう一度保存してください
         </div>
       </div>
     </div>
@@ -534,90 +477,10 @@ function updateCount() {
   document.getElementById('selCount').textContent = sel;
   document.getElementById('totalCount').textContent = IMAGES.length;
   document.getElementById('badge2').textContent = `${sel}枚`;
-  document.getElementById('zipBtn').disabled = sel === 0;
+  document.getElementById('scriptBtn').disabled = sel === 0;
 }
 
-// ========== ログ ==========
-function log(msg, cls = '') {
-  const box = document.getElementById('logBox');
-  box.classList.add('show');
-  box.innerHTML += `<div class="${cls}">${msg}</div>`;
-  box.scrollTop = box.scrollHeight;
-}
-
-// ========== 方法A: ブラウザでZIP一括ダウンロード ==========
-async function downloadZip() {
-  const targets = IMAGES.filter(im => im.sel);
-  if (!targets.length) return;
-  if (typeof JSZip === 'undefined') {
-    log('❌ ZIP作成ライブラリを読み込めませんでした。ネット接続を確認して再読み込みするか、「🖥️ ターミナルでダウンロード」をご利用ください。', 'log-err');
-    document.getElementById('corsNote').classList.add('show');
-    return;
-  }
-
-  const btn = document.getElementById('zipBtn');
-  btn.disabled = true;
-  document.getElementById('logBox').innerHTML = '';
-  document.getElementById('resultSection').classList.remove('show');
-  document.getElementById('corsNote').classList.remove('show');
-  const wrap = document.getElementById('progressWrap');
-  wrap.classList.add('show');
-  log(`🗜️ ${targets.length}枚の取得を開始します...`, 'log-info');
-
-  const zip = new JSZip();
-  let ok = 0, ng = 0, done = 0;
-
-  const setProgress = () => {
-    const pct = Math.round(done / targets.length * 100);
-    document.getElementById('progressFill').style.width = pct + '%';
-    document.getElementById('progressPct').textContent = pct + '%';
-    document.getElementById('progressText').textContent = `取得中... ${done} / ${targets.length} 枚`;
-  };
-  setProgress();
-
-  // 4並列で取得
-  const queue = [...targets];
-  await Promise.all(Array.from({ length: 4 }, async () => {
-    let im;
-    while ((im = queue.shift())) {
-      try {
-        const res = await fetch(im.url, { mode: 'cors' });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        zip.file(im.path, await res.blob());   // フォルダ構成ごとZIPに入れる
-        ok++;
-        log(`✅ ${im.path}`, 'log-ok');
-      } catch {
-        ng++;
-        log(`❌ ${im.path}（ブラウザから取得できませんでした）`, 'log-err');
-      }
-      done++;
-      setProgress();
-    }
-  }));
-
-  document.getElementById('statTotal').textContent = targets.length;
-  document.getElementById('statOk').textContent = ok;
-  document.getElementById('statNg').textContent = ng;
-
-  if (ok > 0) {
-    document.getElementById('progressText').textContent = 'ZIPファイルを作成中...';
-    const blob = await zip.generateAsync({ type: 'blob' });
-    saveBlob(blob, 'rakuten_images.zip');
-    log(`📦 rakuten_images.zip を保存しました（${ok}枚）`, 'log-info');
-    document.getElementById('resultTitle').textContent =
-      ng === 0 ? '✅ ダウンロード完了！' : `⚠️ ${ok}枚を保存しました（${ng}枚は取得できず）`;
-    document.getElementById('resultSection').classList.add('show');
-  } else {
-    document.getElementById('resultTitle').textContent = '❌ ブラウザからは取得できませんでした';
-    document.getElementById('resultSection').classList.add('show');
-  }
-  if (ng > 0) document.getElementById('corsNote').classList.add('show');
-
-  wrap.classList.remove('show');
-  btn.disabled = false;
-}
-
-// ========== 方法B: ターミナル実行スクリプト ==========
+// ========== ターミナル実行スクリプト ==========
 // ブラウザのCORS制限を受けないため、楽天サーバーの設定に関わらず確実に取得できる
 function buildScript() {
   const targets = IMAGES.filter(im => im.sel);
