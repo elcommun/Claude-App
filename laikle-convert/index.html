@@ -547,8 +547,14 @@
         <div class="sub-body">
           <h3>Cyberduck で LAIKLE店の R-Cabinet にアップロードする</h3>
           <p>
-            CyberduckでLAIKLE店のR-Cabinet（楽天画像SFTP）に接続し、<code>laikle_images</code> フォルダの<b>中身</b>（<code>biiino</code> などのフォルダごと）を
-            そのままドラッグ＆ドロップでアップロードします。フォルダ構成・ファイル名を変えなければ、変換済みCSVの画像リンクがそのまま表示されます。
+            CyberduckでLAIKLE店の楽天画像SFTP（<code>upload.rakuten.ne.jp</code>・ポート22）に接続し、
+            <b><code>/cabinet/images/</code> フォルダの中</b>に <code>laikle_images</code> フォルダの<b>中身</b>（<code>biiino</code> などのフォルダごと）をドラッグ＆ドロップでアップロードします。
+          </p>
+          <p style="font-size:11px;color:var(--yellow-dark);background:var(--yellow-light);border:1px solid #FCD34D;border-radius:8px;padding:9px 12px;line-height:1.8;">
+            ⚠️ <b>/cabinet 直下ではなく、必ず /cabinet/images/ の中へ。</b>直下に置いてもR-Cabinetには取り込まれません。<br>
+            ・アップ後、R-Cabinetへの反映には<b>30分〜1時間ほど</b>かかります（すぐには表示されません）<br>
+            ・取り込みエラーは <code>/cabinet/logs/</code> のログで確認できます（ログは翌朝自動削除）<br>
+            ・初回のみ、RMSの「画像一括登録」で利用申請が必要な場合があります
           </p>
           <button class="done-btn" onclick="completeSubStep(2)">✓ R-Cabinetへのアップロードが終わったら、ここを押して次へ</button>
         </div>
