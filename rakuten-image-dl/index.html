@@ -331,9 +331,9 @@ function analyzeNewText(text) {
   SLUG_CANDIDATES = detectSlugs(text);
   document.getElementById('slugInput').value = SLUG_CANDIDATES[0] || '';
   rebuild();
-  // 商品CSVなら「商品画像列のみ」を初期選択（laikle-convertの画像抽出と同じ範囲）
+  // 商品画像列・本文中URLの両方を初期選択（不要ならチェックを外す）
   document.getElementById('srcCabinet').checked = true;
-  document.getElementById('srcBody').checked = CABINET.length === 0;
+  document.getElementById('srcBody').checked = true;
   rebuild();
 }
 
