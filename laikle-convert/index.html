@@ -1228,6 +1228,8 @@ function doConvert() {
     const catCounter = { n: 0 };
     // 表示先カテゴリの区切りが全角「＼」だとRMSに正しく認識されないため、半角（¥）に統一する
     const dispIdx = ch.findIndex(h => (h || '').trim() === '表示先カテゴリ');
+    // コントロールカラムはLAIKLE店への新規登録なので全行「n」にする
+    const ctrlIdx = ch.findIndex(h => (h || '').trim() === 'コントロールカラム');
     let sepCount = 0;
     const convCat = cRows.map(row => row.map((cell, j) => {
       let v = rep.category(cell, catCounter, unmapped);
@@ -1236,8 +1238,14 @@ function doConvert() {
         sepCount += (v.match(/＼/g) || []).length;
         v = v.replace(/＼/g, '\\');
       }
+      if (j === ctrlIdx) v = 'n';
       return v;
     }));
+    if (ctrlIdx >= 0) {
+      log(`📝 コントロールカラム：全${convCat.length.toLocaleString()}行を「n（新規登録）」に設定`, 'log-ok');
+    } else {
+      log('⚠️ 「コントロールカラム」列が見つからないためスキップしました', 'log-warn');
+    }
     outCat = [ch, ...convCat];
     catRows = cRows.length; catUrlN = catCounter.n;
     log(`✅ ${catRows}行を変換（URL・カテゴリURL置換：${catUrlN}箇所）`, 'log-ok');
@@ -1471,7 +1479,7 @@ function downloadUrlList() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 1;
+const APP_VERSION = 2;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
