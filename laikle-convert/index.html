@@ -548,16 +548,17 @@
             ターミナルの開き方：<strong>⌘ + スペース</strong> → <code>ターミナル</code> と入力 → Enter<br>
             上のコマンドを貼り付けて Enter → 完了すると <code>laikle_images</code> フォルダがFinderで自動的に開きます 🎉<br>
             <br>
-            ⚠️ <b>「No such file or directory」と出る場合：</b><br>
+            ⚠️ <b>「No such file or directory」「no matches found」と出る場合</b>（＝スクリプトファイルが「ダウンロード」フォルダにありません）：<br>
             ・保存時にブラウザの警告（「危険なファイルの可能性…」等）が出たら「<b>保存</b>」「<b>継続</b>」を選んでください<br>
+            ・ブラウザの<b>ダウンロード一覧</b>（Chromeは ⌘⇧J／Safariは右上の「↓」ボタン）でファイルの有無と保存先を確認してください。
+            「ダウンロード」以外の場所に保存されていた場合は、ファイルを「ダウンロード」フォルダに移動してからもう一度コマンドを実行してください<br>
             ・保存先を選ぶ画面が出た場合は「<b>ダウンロード</b>」フォルダを選んでください<br>
-            ・貼り付けた内容が上の欄のコマンドと違っていたら、<b>📋 コピー</b>ボタンでコピーし直してください<br>
             <br>
             ⚠️ <b>実行しても画像がダウンロードされない（「0枚成功」になる）場合：</b><br>
             ・Wi-Fi／インターネット接続を確認し（VPNを使っている場合はオフにして）、もう一度同じコマンドを実行してください<br>
             ・失敗の理由は <code>laikle_images</code> フォルダ内の <code>_download_errors.log</code> に記録されます。解決しない場合はその内容をチャットで教えてください<br>
             <br>
-            💡 ファイル名には保存した日時が付くので、コピーされたコマンドは<b>常に最新の保存データだけ</b>を対象に実行されます（実行すると古いスクリプトファイルは自動で削除されます）
+            💡 コマンドは「ダウンロード」フォルダ内の<b>一番新しいDLスクリプトを自動で探して実行</b>します。何度保存し直しても、常に最新の保存データだけが対象になります（実行すると古いスクリプトファイルは自動で削除されます）
           </div>
           <button class="done-btn" onclick="completeSubStep(1)">✓ 画像のダウンロードが終わったら、ここを押して次へ</button>
         </div>
@@ -1529,8 +1530,8 @@ function buildImageScript() {
     '  [ "$F" -eq 0 ] && rm -f "$ERRLOG"',
     '  open "$SAVE"',
     'fi',
-    '# 古いDLスクリプト（過去に保存した download_laikle_images*.txt）を自分以外すべて削除する',
-    'for f in "$HOME/Downloads"/download_laikle_images*.txt; do [ "$f" -ef "$0" ] || rm -f "$f"; done',
+    '# 自分より古いDLスクリプト（過去に保存した download_laikle_images*.txt）だけ削除する（新しいものは残す）',
+    'for f in "$HOME/Downloads"/download_laikle_images*.txt; do [ "$f" -ef "$0" ] || [ "$f" -nt "$0" ] || rm -f "$f"; done',
     ''
   );
   return lines.join('\n');
@@ -1547,7 +1548,10 @@ function saveImageScript() {
   saveBlob(new Blob([buildImageScript()], { type: 'text/plain' }), fname);
   // 実行コマンドを自動でコピーしておく（ターミナルを開いて ⌘V → Enter だけで実行できるように。
   // ブラウザのセキュリティ上、ターミナル自体をWebページから開くことはできない）
-  const cmd = `bash ~/Downloads/${fname}`;
+  // コマンドは「ダウンロードフォルダ内で一番新しいDLスクリプトを探して実行」する形にする。
+  // ブラウザが「(1).txt」等の別名で保存したり、保存タイミングがずれてもファイル名ピッタリ一致に
+  // 頼らず常に最新の保存ファイルが実行されるようにするため
+  const cmd = 'bash "$(ls -t ~/Downloads/download_laikle_images*.txt | head -1)"';
   document.getElementById('cmdText').value = cmd;
   document.getElementById('savedFileName').textContent = fname;
   navigator.clipboard.writeText(cmd).catch(() => {});
@@ -1601,7 +1605,7 @@ function copyCmd() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
