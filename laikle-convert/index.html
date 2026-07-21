@@ -533,12 +533,10 @@
             EL COMMUN店の商品画像が <code>~/Downloads/laikle_images/</code> に<b>R-Cabinetと同じフォルダ構成のまま</b>保存され、完了するとFinderが自動で開きます。
           </p>
           <button class="dl-btn" id="dlImgScriptBtn" onclick="saveImageScript()">💾 画像DLスクリプトを保存する</button>
-          <button class="dl-btn ghost" id="dlImgListBtn" onclick="downloadUrlList()" title="全画像のURLを一覧で確認したいときだけ使います">📄 画像URLの一覧（確認用・通常は不要）</button>
           <div class="saved-note" id="scriptSavedNote">
             ✅ <code>download_laikle_images.txt</code> を保存し、実行コマンドも<b>コピー済み</b>です。<br>
             あとは <b>⌘+スペース</b> → <code>ターミナル</code> → Enter で開いて、<b>⌘V → Enter</b> するだけで画像のダウンロードが始まります。
           </div>
-          <div class="saved-note" id="urlListSavedNote">✅ <code>image-url-list.txt</code> を保存しました（ダウンロードフォルダをご確認ください）</div>
           <div class="cmd-area" id="cmdArea" style="display:none;">
             <div class="cmd-label">ターミナルに貼り付けて Enter：</div>
             <div class="cmd-row">
@@ -1187,7 +1185,7 @@ function doConvert() {
   ['step5Card', 'step6Card'].forEach(id => document.getElementById(id).classList.remove('done'));
   setBadge('badgeCsv', '', '未実施');
   setBadge('badgeGoqLink', '', '未実施');
-  ['scriptSavedNote', 'urlListSavedNote', 'dlSavedNote'].forEach(id => document.getElementById(id).style.display = 'none');
+  ['scriptSavedNote', 'dlSavedNote'].forEach(id => document.getElementById(id).style.display = 'none');
   PREPARED = null;
   DOWNLOADED = new Set();
   document.getElementById('dlItemBtn').disabled = true;
@@ -1568,17 +1566,9 @@ function copyCmd() {
   setTimeout(() => { btn.textContent = '📋 コピー'; }, 2000);
 }
 
-function downloadUrlList() {
-  if (!IMAGES.length) return;
-  const text = IMAGES.map(i => i.url).join('\r\n') + '\r\n';
-  // ファイル名は半角英数にする（日本語名はブラウザによって「download」になることがあるため）
-  saveBlob(new Blob(['\uFEFF' + text], { type: 'text/plain;charset=utf-8' }), 'image-url-list.txt');
-  document.getElementById('urlListSavedNote').style.display = 'block';
-}
-
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 7;
+const APP_VERSION = 8;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
