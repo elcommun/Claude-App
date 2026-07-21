@@ -535,13 +535,13 @@
         <div class="sub-body">
           <h3>商品画像をパソコンに一括ダウンロードする</h3>
           <p>
-            下のボタンで<b>「画像をまとめてダウンロードするための実行ファイル」</b>（<code>download_laikle_images.txt</code>）が
+            下のボタンで<b>「画像をまとめてダウンロードするための実行ファイル」</b>（<code>download_laikle_images_日時.txt</code>）が
             「ダウンロード」フォルダに保存されます。続けて表示されるコマンドをターミナルで実行すると、
             EL COMMUN店の商品画像が <code>~/Downloads/laikle_images/</code> に<b>R-Cabinetと同じフォルダ構成のまま</b>保存され、完了するとFinderが自動で開きます。
           </p>
           <button class="dl-btn" id="dlImgScriptBtn" onclick="saveImageScript()">💾 画像DLスクリプトを保存する</button>
           <div class="saved-note" id="scriptSavedNote">
-            ✅ <code>download_laikle_images.txt</code> を保存し、実行コマンドも<b>コピー済み</b>です。<br>
+            ✅ <code id="savedFileName">download_laikle_images.txt</code> を保存し、実行コマンドも<b>コピー済み</b>です。<br>
             あとは <b>⌘+スペース</b> → <code>ターミナル</code> → Enter で開いて、<b>⌘V → Enter</b> するだけで画像のダウンロードが始まります。
           </div>
           <div class="cmd-area" id="cmdArea" style="display:none;">
@@ -558,7 +558,8 @@
             ⚠️ <b>「No such file or directory」と出る場合：</b><br>
             ・保存時にブラウザの警告（「危険なファイルの可能性…」等）が出たら「<b>保存</b>」「<b>継続</b>」を選んでください<br>
             ・保存先を選ぶ画面が出た場合は「<b>ダウンロード</b>」フォルダを選んでください<br>
-            ・何度か保存すると <code>download_laikle_images (1).txt</code> のような名前になります。その場合は古いファイルをゴミ箱に入れてから、もう一度保存してください
+            <br>
+            💡 ファイル名には保存した日時が付くので、コピーされたコマンドは<b>常に最新の保存データだけ</b>を対象に実行されます（実行すると古いスクリプトファイルは自動で削除されます）
           </div>
           <button class="done-btn" onclick="completeSubStep(1)">✓ 画像のダウンロードが終わったら、ここを押して次へ</button>
         </div>
@@ -1509,17 +1510,32 @@ function buildImageScript() {
       `-o "$SAVE/${im.path}" '${shq(im.url)}' && S=$((S+1)) || { echo "  ❌ ${im.path}"; F=$((F+1)); }`
     );
   });
-  lines.push('', 'echo "════════════════════"', 'echo "✅ 完了: $S 枚成功 / $F 枚失敗"', 'open "$SAVE"');
+  lines.push(
+    '',
+    'echo "════════════════════"',
+    'echo "✅ 完了: $S 枚成功 / $F 枚失敗"',
+    '# 古いDLスクリプト（過去に保存した download_laikle_images*.txt）を自分以外すべて削除する',
+    'for f in "$HOME/Downloads"/download_laikle_images*.txt; do [ "$f" -ef "$0" ] || rm -f "$f"; done',
+    'open "$SAVE"'
+  );
   return lines.join('\n');
 }
 
 function saveImageScript() {
   if (!IMAGES.length) return;
+  // ファイル名に保存日時を付ける。毎回同じ名前だとブラウザが「(1).txt」のような別名で保存し、
+  // コピーされたコマンドが古いファイルの方を実行してしまう（＝過去のデータが対象になる）ため
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const fname = `download_laikle_images_${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.txt`;
   // 拡張子は .txt にする（.sh はChrome等が「危険なファイル」として保存をブロックすることがあるため。bashは拡張子に関係なく実行できる）
-  saveBlob(new Blob([buildImageScript()], { type: 'text/plain' }), 'download_laikle_images.txt');
+  saveBlob(new Blob([buildImageScript()], { type: 'text/plain' }), fname);
   // 実行コマンドを自動でコピーしておく（ターミナルを開いて ⌘V → Enter だけで実行できるように。
   // ブラウザのセキュリティ上、ターミナル自体をWebページから開くことはできない）
-  navigator.clipboard.writeText(document.getElementById('cmdText').value).catch(() => {});
+  const cmd = `bash ~/Downloads/${fname}`;
+  document.getElementById('cmdText').value = cmd;
+  document.getElementById('savedFileName').textContent = fname;
+  navigator.clipboard.writeText(cmd).catch(() => {});
   document.getElementById('scriptSavedNote').style.display = 'block';
   document.getElementById('cmdArea').style.display = '';
   document.getElementById('hintBox').style.display = '';
@@ -1570,7 +1586,7 @@ function copyCmd() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
