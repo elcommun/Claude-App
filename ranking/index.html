@@ -383,7 +383,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v223</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v224</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -710,7 +710,7 @@ const CODE_PREFIX_TO_CAT=[
 // Rename old/broken codes to correct codes
 const CODE_REMAP={'WCL-017WCL-018':'WCL-018','B6-1J7F-DA1E':'CPC-004'};
 // Category for remapped codes (assigned explicitly)
-const CODE_REMAP_CAT={'WCL-018':'ペンケース','CPC-004':'ペンケース','5A-CE-056':'食器','AMP-C037':'掛け時計','AMP-C038':'掛け時計','AMP-C040':'掛け時計','AMP-C061':'掛け時計','AMP-C062':'掛け時計','AMP-C063':'掛け時計','WPK-101':'その他','LNC-130':'箸セット','SM-05':'その他','SM-03':'ポーチ・ケース','MUS-014':'コースター他','MUS-016':'コースター他','XEC-004':'2022年 10月始まりダイアリー','XEC-005':'2022年 10月始まりダイアリー','XEC-006':'2022年 10月始まりダイアリー','CLB-110':'保冷バッグ','CLB-111':'保冷バッグ','CLB-112':'保冷バッグ','CLB-113':'保冷バッグ','CLB-114':'保冷バッグ','CLB-115':'保冷バッグ','CLB-116':'保冷バッグ','CLB-117':'保冷バッグ','CLB-118':'保冷バッグ','CLB-119':'保冷バッグ','SVT-001':'ブックカバー','SVT-002':'ブックカバー','SVT-003':'ブックカバー','PNT-001':'ネオンライト','PNT-002':'ネオンライト','PNT-003':'ネオンライト','PNT-005':'ネオンライト','PNT-006':'ネオンライト','JYX-041':'メモ','JYX-043':'メモ','JYX-044':'メモ','JYX-045':'メモ','JYX-047':'メモ','KRT-001':'デスクトップ','KRT-002':'デスクトップ','KRT-003':'デスクトップ','KRT-004':'デスクトップ','KRT-005':'デスクトップ','KRT-006':'デスクトップ','KRT-007':'デスクトップ','KRT-008':'デスクトップ','KRT-011':'デスクトップ','KRT-012':'デスクトップ','KRT-013':'デスクトップ','KRT-014':'デスクトップ','KRT-015':'デスクトップ','KRT-016':'デスクトップ','KRT-017':'デスクトップ','KRT-018':'デスクトップ','KRT-021':'デスクトップ','KRT-022':'デスクトップ','KRT-023':'デスクトップ','KRT-025':'デスクトップ','KRT-026':'デスクトップ','LNC-413':'ランチボックス'};
+const CODE_REMAP_CAT={'WCL-018':'ペンケース','CPC-004':'ペンケース','5A-CE-056':'食器','AMP-C037':'掛け時計','AMP-C038':'掛け時計','AMP-C040':'掛け時計','AMP-C061':'掛け時計','AMP-C062':'掛け時計','AMP-C063':'掛け時計','WPK-101':'その他','LNC-130':'箸セット','SM-05':'その他','SM-03':'ポーチ・ケース','MUS-014':'コースター他','MUS-016':'コースター他','XEC-004':'2022年 10月始まりダイアリー','XEC-005':'2022年 10月始まりダイアリー','XEC-006':'2022年 10月始まりダイアリー','CLB-110':'保冷バッグ','CLB-111':'保冷バッグ','CLB-112':'保冷バッグ','CLB-113':'保冷バッグ','CLB-114':'保冷バッグ','CLB-115':'保冷バッグ','CLB-116':'保冷バッグ','CLB-117':'保冷バッグ','CLB-118':'保冷バッグ','CLB-119':'保冷バッグ','SVT-001':'ブックカバー','SVT-002':'ブックカバー','SVT-003':'ブックカバー','PNT-001':'ネオンライト','PNT-002':'ネオンライト','PNT-003':'ネオンライト','PNT-004':'ネオンライト','PNT-005':'ネオンライト','PNT-006':'ネオンライト','JYX-041':'メモ','JYX-043':'メモ','JYX-044':'メモ','JYX-045':'メモ','JYX-047':'メモ','KRT-001':'デスクトップ','KRT-002':'デスクトップ','KRT-003':'デスクトップ','KRT-004':'デスクトップ','KRT-005':'デスクトップ','KRT-006':'デスクトップ','KRT-007':'デスクトップ','KRT-008':'デスクトップ','KRT-011':'デスクトップ','KRT-012':'デスクトップ','KRT-013':'デスクトップ','KRT-014':'デスクトップ','KRT-015':'デスクトップ','KRT-016':'デスクトップ','KRT-017':'デスクトップ','KRT-018':'デスクトップ','KRT-021':'デスクトップ','KRT-022':'デスクトップ','KRT-023':'デスクトップ','KRT-025':'デスクトップ','KRT-026':'デスクトップ','LNC-413':'ランチボックス'};
 // Code prefixes to exclude (non-EC products)
 const CODE_SKIP_PREFIXES=['SLW-','DR-MM-'];
 // Returns overridden category for a code by prefix/remap, or null
@@ -2433,6 +2433,8 @@ const TRANS_GROUPS=[
   ['Map','地図','ちず'],
   ['Mayte','メイテ'],
   ['Bubble','バブル','泡','あわ'],
+  ['House','家','いえ','ハウス'],
+  ['Grege','グレージュ'],
 ];
 for(const g of TRANS_GROUPS){
   const ng=g.map(normalize);
