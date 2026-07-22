@@ -1,8 +1,10 @@
 # 楽天→auPAY 商品データ作成ツール
 
-楽天RMSの商品データ（`dl-normal-item.csv`）から、auPAYマーケットにアップロードできる `item.csv` / `stock.csv` を丸ごと生成するシングルページアプリ。
+楽天RMSの商品データ（`dl-normal-item.csv`）から、auPAYマーケットにアップロードできる `item.csv` / `stock.csv` を丸ごと生成するシングルページアプリ。**入力は楽天のCSVのみ**で、全商品が新規登録（ctrlCol=n、lotNumber空欄）として出力される。
 
-既存の `aupay-convert/`（auPAYの登録済みデータを楽天データで部分修正するツール）と異なり、こちらは**auPAY側の商品行・在庫行そのものを生成**するため、auPAY未登録の新商品の一括登録にも使える。
+変換ルールはauPAYの実データ（item.csv / stock.csv のサンプル、921商品の対応関係）から導き出したものを内蔵している。**ルールの追加・変更はユーザーからの依頼に応じてこのアプリを更新する**（auPAYファイルの読み込み機能はない）。
+
+既存の `aupay-convert/`（auPAYの登録済みデータを楽天データで部分修正するツール）とは別アプリ。
 
 ## 入力ファイル（種類はヘッダーから自動判別・まとめてドロップ可）
 
@@ -10,8 +12,8 @@
 |---|---|---|
 | 楽天 `dl-normal-item.csv` | ✅ | 商品情報・SKU・価格・在庫・画像・オプション |
 | 楽天 `dl-item-cat.csv` | 任意 | 店舗内カテゴリ（shopCategory1〜10） |
-| auPAY `item.csv` | 任意 | 新規（n）/更新（u）判定・lotNumber・既存設定の引き継ぎ |
-| auPAY `stock.csv` | 任意 | バリエーション軸（縦/横）と選択肢コードの引き継ぎ |
+
+auPAYの item.csv / stock.csv をドロップした場合は「使用しません」と案内して無視する。
 
 ## 主な変換ルール
 
@@ -26,14 +28,14 @@
   - 「■ 送料無料をご希望の場合」→「■「送料無料」をご希望の場合」
   - 「■ ご購入前に「メール便」注意事項をご確認下さい」→「■「メール便」注意事項をご購入前にご確認下さい」
   - 「■ メール便「対象外商品」と同梱の場合」→「■「メール便・対象外商品」と同梱の場合」
-- **バリエーション在庫**: SKUごとに stock.csv 行を生成。既存データが縦軸（Vertical）の商品は縦軸のまま、コードもSKU番号照合で引き継ぎ。選択肢名の `&` は `/` に変換
-- **固定値**: taxSegment=3 / reducedTax=1 / postageSegment=1 / searchTarget=1 ほか（既存auPAYデータ921商品の実績値と一致確認済み）
+- **バリエーション在庫**: SKUごとに stock.csv 行を生成（横軸 choicesStockHorizontal、Name=Code=選択肢名、`&`→`/` 変換）
+- **固定値**: taxSegment=3 / reducedTax=1 / postageSegment=1 / searchTarget=1 ほか（auPAY実績データ921商品の値と一致確認済み）
 
 ## 出力
 
 - `item.csv`（253列）・`stock.csv`（16列）、auPAYダウンロード形式と同一ヘッダー
 - 文字コードは Shift-JIS（既定・アップロード用）/ UTF-8 を選択
-- ctrlCol: 新規=`n`、更新=`u`
+- ctrlCol はすべて `n`（新規登録）、lotNumber は空欄
 
 ## バージョン番号
 
