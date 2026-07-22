@@ -107,15 +107,14 @@
     <div class="purpose-title">🎯 このアプリの目的</div>
     <p class="purpose-lead">
       楽天RMSの商品データ（dl-normal-item.csv）から、<strong>auPAYマーケットにアップロードできる item.csv / stock.csv を丸ごと生成する</strong>ツールです。
-      全商品が新規登録（ctrlCol=n）として出力されます。
-      商品名の装飾除去・価格（1商品1価格化）・説明文（画像URL・商品リンクのauPAY用書き換え）・商品画像・カテゴリ・配送方法・商品オプション・バリエーション在庫まで一括変換します。
+      全商品が新規登録（ctrlCol=n）として出力され、<strong>在庫数はすべて0</strong>（auPAY側で設定する運用）、価格は表示価格（定価）優先です。
+      商品名の装飾除去・価格（1商品1価格化）・説明文（画像URL・商品リンクのauPAY用書き換え）・商品画像・カテゴリ・配送方法・商品オプション・バリエーションまで一括変換します。
       変換ルールはauPAYの実データから導き出したものを内蔵しており、ルールの追加・変更が必要になったら都度このアプリを更新します。
     </p>
     <div class="usage-title">📖 使い方</div>
     <ol class="usage-steps">
       <li><strong>STEP 1</strong>：楽天の dl-normal-item.csv をドロップします（ZIPは解凍してから／種類はヘッダーから自動判別）。dl-item-cat.csv も一緒にドロップすると店舗内カテゴリ（shopCategory）も設定されます</li>
-      <li><strong>STEP 2</strong>：価格の扱いなどを選びます</li>
-      <li><strong>STEP 3</strong>：「変換する」をクリック。処理内容と警告はログと一覧で確認できます</li>
+      <li><strong>STEP 2</strong>：「変換する」をクリック。処理内容と警告はログと一覧で確認できます</li>
       <li>変換結果の <strong>item.csv / stock.csv をダウンロード</strong>してauPAYマーケットにアップロードします（既定はShift-JIS）</li>
     </ol>
   </div>
@@ -154,29 +153,7 @@
   <div class="card">
     <div class="card-header">
       <div class="step">2</div>
-      <h2>変換設定</h2>
-    </div>
-    <div class="card-body">
-      <div class="opt-grid">
-        <div class="opt-block">
-          <h3>itemPrice（販売価格）</h3>
-          <label><input type="radio" name="price" value="disp" checked> 表示価格（定価）優先</label>
-          <label><input type="radio" name="price" value="sale"> 販売価格（楽天セール価格）</label>
-        </div>
-        <div class="opt-block">
-          <h3>その他</h3>
-          <label><input type="checkbox" id="optSkipZero"> 在庫合計0の商品を除外</label>
-          <label><input type="checkbox" id="optSkipHidden" checked> 楽天で倉庫指定（非公開）の商品を除外</label>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- STEP 3 -->
-  <div class="card">
-    <div class="card-header">
-      <div class="step">3</div>
-      <h2>変換を実行</h2>
+      <h2>変換を実行 <span class="sub">価格は表示価格（定価）優先・在庫はすべて0で出力</span></h2>
     </div>
     <div class="card-body">
       <button class="primary-btn" id="execBtn" disabled>⚙️ 変換する</button>
@@ -222,7 +199,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -598,7 +575,7 @@ function convertAll(input, opt) {
         const name = rawChoice.replace(/&/g, '/');
         const skuNo = (s[ri['SKU管理番号']] || '').trim();
         const code = exCode.get(skuNo) || exCode.get(extractSkuFromChoice(rawChoice) || '') || name;
-        const count = (s[ri['在庫数']] || '0').trim() || '0';
+        const count = '0'; /* 在庫は0固定（auPAY側で設定する運用） */
         const sr = {};
         STOCK_HEADER.forEach(h => sr[h] = '');
         sr.ctrlCol = sCtrl; sr.lotNumber = lot; sr.itemCode = id; sr.stockSegment = '2';
@@ -614,7 +591,7 @@ function convertAll(input, opt) {
       });
     } else {
       o.stockSegment = '1';
-      o.stockCount = String(stockTotal);
+      o.stockCount = '0'; /* 在庫は0固定（auPAY側で設定する運用） */
       o.stockShippingDayId = '1';
       o.displayStockSegment = o.displayStockSegment || '1';
       o.choicesStockHorizontalItemName = ''; o.choicesStockVerticalItemName = '';
@@ -622,7 +599,7 @@ function convertAll(input, opt) {
       const sr = {};
       STOCK_HEADER.forEach(h => sr[h] = '');
       sr.ctrlCol = sCtrl; sr.lotNumber = lot; sr.itemCode = id;
-      sr.stockSegment = '1'; sr.stockCount = String(stockTotal);
+      sr.stockSegment = '1'; sr.stockCount = '0';
       stockRows.push(STOCK_HEADER.map(h => sr[h]));
       stats.stockRows++;
     }
@@ -736,13 +713,14 @@ zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
 zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
 
 document.getElementById('execBtn').addEventListener('click', () => {
+  /* 設定は固定：全商品新規・表示価格（定価）優先・在庫0・楽天非公開商品は除外 */
   const opt = {
     target: 'all',
-    price: document.querySelector('input[name=price]:checked').value,
+    price: 'disp',
     imgMode: 'overwrite',
     descMode: 'regen',
-    skipZero: document.getElementById('optSkipZero').checked,
-    skipHidden: document.getElementById('optSkipHidden').checked
+    skipZero: false,
+    skipHidden: true
   };
   logSep();
   log('⚙️ 変換を開始します…', 'log-info');
@@ -753,8 +731,8 @@ document.getElementById('execBtn').addEventListener('click', () => {
     return;
   }
   const s = result.stats;
-  log('✅ 変換完了：' + s.converted + '商品（すべて新規登録 n）、stock ' + s.stockRows + '行', 'log-ok');
-  if (s.skipped) log('⏭️ スキップ：' + s.skipped + '商品（非公開・在庫0など）', 'log-warn');
+  log('✅ 変換完了：' + s.converted + '商品（すべて新規登録 n・在庫0で出力）、stock ' + s.stockRows + '行', 'log-ok');
+  if (s.skipped) log('⏭️ スキップ：' + s.skipped + '商品（楽天で倉庫指定・非公開）', 'log-warn');
   if (!state.cat) log('ℹ️ dl-item-cat.csv 未読み込みのため店舗内カテゴリ（shopCategory）は空欄です', 'log-info');
   result.warns.forEach(w => w.msgs.forEach(m => log('⚠️ ' + escHtml(w.code) + '：' + escHtml(m), 'log-warn')));
 
