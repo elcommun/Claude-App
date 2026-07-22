@@ -107,12 +107,13 @@
     <div class="purpose-title">🎯 このアプリの目的</div>
     <p class="purpose-lead">
       楽天RMSの商品データ（dl-normal-item.csv）から、<strong>auPAYマーケットにアップロードできる item.csv / stock.csv を丸ごと生成する</strong>ツールです。
+      <strong>楽天のCSVだけで変換でき、全商品が新規登録（ctrlCol=n）として出力されます。</strong>
       商品名の装飾除去・価格・説明文（画像URL・商品リンクのauPAY用書き換え）・商品画像・カテゴリ・配送方法・商品オプション・バリエーション在庫まで一括変換します。
-      auPAYの既存データ（item.csv / stock.csv）も読み込むと、<strong>新規商品（n）と更新商品（u）を自動判別</strong>し、更新側はlotNumberや既存設定を引き継ぎます。
+      すでにauPAYで販売中の店舗でデータを同期したい場合のみ、auPAYからダウンロードした item.csv / stock.csv を追加で読み込むと、<strong>新規（n）と更新（u）を自動判別</strong>し、更新側はlotNumberや既存設定を引き継ぎます。
     </p>
     <div class="usage-title">📖 使い方</div>
     <ol class="usage-steps">
-      <li><strong>STEP 1</strong>：CSVファイルをまとめてドロップします（ZIPは解凍してから）。ファイルの種類は中身のヘッダーから自動判別されます。必須は楽天の dl-normal-item.csv のみ。dl-item-cat.csv（店舗内カテゴリ）、auPAYの item.csv / stock.csv（既存データ）は任意ですが、あると精度が上がります</li>
+      <li><strong>STEP 1</strong>：楽天の dl-normal-item.csv をドロップします（ZIPは解凍してから／種類はヘッダーから自動判別）。dl-item-cat.csv も読み込むと店舗内カテゴリ（shopCategory）も設定されます。auPAYの item.csv / stock.csv は<strong>登録済み商品を更新するときだけ</strong>使う任意ファイルで、なければ全商品が新規として出力されます</li>
       <li><strong>STEP 2</strong>：変換対象（すべて／auPAY未登録のみ／登録済みのみ）と価格の扱いを選びます</li>
       <li><strong>STEP 3</strong>：「変換する」をクリック。処理内容と警告はログとプレビューで確認できます</li>
       <li>変換結果の <strong>item.csv / stock.csv をダウンロード</strong>してauPAYマーケットにアップロードします（既定はShift-JIS）</li>
@@ -145,8 +146,8 @@
       <div class="slot-grid">
         <div class="slot" id="slotRak"><span class="slot-name">🏪 楽天 商品CSV</span><span class="req">必須</span><div class="slot-info">dl-normal-item.csv<br>未読み込み</div></div>
         <div class="slot" id="slotCat"><span class="slot-name">🗂 楽天 カテゴリCSV</span><span class="opt">任意</span><div class="slot-info">dl-item-cat.csv<br>未読み込み</div></div>
-        <div class="slot" id="slotAuItem"><span class="slot-name">📦 auPAY item.csv</span><span class="opt">任意</span><div class="slot-info">既存商品データ<br>未読み込み</div></div>
-        <div class="slot" id="slotAuStock"><span class="slot-name">📊 auPAY stock.csv</span><span class="opt">任意</span><div class="slot-info">既存在庫データ<br>未読み込み</div></div>
+        <div class="slot" id="slotAuItem"><span class="slot-name">📦 auPAY item.csv</span><span class="opt">更新時のみ</span><div class="slot-info">既存商品データ（なければ全商品を新規登録として出力）<br>未読み込み</div></div>
+        <div class="slot" id="slotAuStock"><span class="slot-name">📊 auPAY stock.csv</span><span class="opt">更新時のみ</span><div class="slot-info">既存在庫データ（なければ不要）<br>未読み込み</div></div>
       </div>
     </div>
   </div>
@@ -164,6 +165,7 @@
           <label><input type="radio" name="target" value="all" checked> すべての商品</label>
           <label><input type="radio" name="target" value="new"> 新規のみ（auPAY未登録）</label>
           <label><input type="radio" name="target" value="update"> 更新のみ（auPAY登録済み）</label>
+          <small style="color:var(--gray-400);font-size:11px;line-height:1.5;display:block;margin-top:4px;">※ auPAY item.csv 未読み込み時は全商品が新規扱い</small>
         </div>
         <div class="opt-block">
           <h3>itemPrice（販売価格）</h3>
@@ -171,7 +173,7 @@
           <label><input type="radio" name="price" value="sale"> 販売価格（楽天セール価格）</label>
         </div>
         <div class="opt-block">
-          <h3>更新商品（u）の扱い</h3>
+          <h3>更新商品（u）の扱い <span style="font-weight:normal;font-size:11px;color:var(--gray-400);">auPAY item.csv 読み込み時のみ有効</span></h3>
           <label><input type="radio" name="imgMode" value="keep" checked> 商品画像：既存URLを保持</label>
           <label><input type="radio" name="imgMode" value="overwrite"> 商品画像：楽天の画像で上書き</label>
           <label style="margin-top:6px;border-top:1px dashed var(--gray-200);padding-top:8px;"><input type="radio" name="descMode" value="regen" checked> 説明文：楽天から再生成</label>
@@ -236,7 +238,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 1;
+const APP_VERSION = 2;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
