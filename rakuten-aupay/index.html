@@ -238,7 +238,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 3;
+const APP_VERSION = 4;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -456,21 +456,42 @@ function convertAll(input, opt) {
     if (opt.target === 'update' && isNew) { stats.skipped++; continue; }
     if (opt.skipHidden && P('倉庫指定') === '1') { stats.skipped++; warns.push({ code: id, name: P('商品名'), status: 'スキップ', msgs: ['楽天で倉庫指定（非公開）'] }); continue; }
 
-    /* SKU・バリエーション */
-    const skus = g.skus;
+    /* 価格（auPAYは1商品1価格のため、SKUの価格が複数ある場合は
+       多数派の価格グループだけを残し、同数なら低価格側を残して他のSKUを削除する） */
+    const effPrice = s => {
+      const sale = (s[ri['通常購入販売価格']] || '').trim();
+      const disp = (s[ri['表示価格']] || '').trim();
+      return opt.price === 'disp' ? (disp || sale) : sale;
+    };
+    let keptSkus = g.skus.slice();
+    let price = keptSkus.length ? effPrice(keptSkus[0]) : '';
+    const priceGroups = new Map();
+    g.skus.forEach(s => {
+      const p = effPrice(s);
+      if (!priceGroups.has(p)) priceGroups.set(p, []);
+      priceGroups.get(p).push(s);
+    });
+    if (priceGroups.size > 1) {
+      let best = null;
+      for (const [p, list] of priceGroups) {
+        if (!best || list.length > best[1].length ||
+            (list.length === best[1].length && (parseInt(p, 10) || 0) < (parseInt(best[0], 10) || 0))) {
+          best = [p, list];
+        }
+      }
+      price = best[0];
+      keptSkus = best[1];
+      const detail = [...priceGroups.entries()].map(([p, l]) => (p || '?') + '円×' + l.length).join(' / ');
+      itemWarns.push('SKU価格が複数（' + detail + '）→ ' + (price || '?') + '円のSKU ' + keptSkus.length + '件を残し、' + (g.skus.length - keptSkus.length) + '件を削除');
+    }
+    if (!price) itemWarns.push('価格が取得できませんでした');
+
+    /* SKU・バリエーション（価格で絞り込んだ後のSKUのみ） */
+    const skus = keptSkus;
     const varSkus = skus.filter(s => (s[ri['バリエーション項目選択肢1']] || '').trim());
     const isVar = varSkus.length > 0;
     const stockTotal = skus.reduce((a, s) => a + (parseInt(s[ri['在庫数']], 10) || 0), 0);
     if (opt.skipZero && stockTotal === 0) { stats.skipped++; continue; }
-
-    /* 価格 */
-    const salePrices = [...new Set(skus.map(s => (s[ri['通常購入販売価格']] || '').trim()).filter(Boolean))];
-    const dispPrices = [...new Set(skus.map(s => (s[ri['表示価格']] || '').trim()).filter(Boolean))];
-    let price = '';
-    if (opt.price === 'disp') price = dispPrices[0] || salePrices[0] || '';
-    else price = salePrices[0] || '';
-    if (salePrices.length > 1) itemWarns.push('SKUごとに販売価格が異なります（' + salePrices.join('/') + '）→ ' + price + ' を採用');
-    if (!price) itemWarns.push('価格が取得できませんでした');
 
     /* 出力オブジェクト（既存行があれば全列引き継いで上書き） */
     const o = {};
