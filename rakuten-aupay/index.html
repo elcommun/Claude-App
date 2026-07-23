@@ -200,7 +200,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -318,6 +318,9 @@ function stripDecoration(name) {
 function convertDesc(t, counters) {
   if (!t) return '';
   let s = String(t).replace(/\r\n|\r|\n/g, '');
+  /* 先頭の「<!-- ビーノ：商品説明 -->」等のテンプレコメントを除去（連続していれば繰り返し除去） */
+  let prevLen;
+  do { prevLen = s.length; s = s.replace(/^\s*<!--[\s\S]*?-->\s*/, ''); } while (s.length !== prevLen);
   s = s.replace(RAKUTEN_IMG, IMG_BASE);
   s = s.replace(/<a\s[^>]*?href\s*=\s*"([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (m, hrefRaw, inner) => {
     const href = hrefRaw.trim();
@@ -495,6 +498,7 @@ function convertAll(input, opt) {
       o.countdownTimerConfig = '1'; o.sellNumberDispConfig = '1'; o.buyNumLimtConfig = '1';
       o.giftPackingSegment = '1'; o.noshiSegment = '1'; o.limitedOrderSegment = '1';
       o.stockRequestConfig = '1'; o.returnRequestConfig = '1'; o.saleStatus = '1';
+      o.favoriteCount = '0'; o.receiptRequestCount = '0'; o.stockRequestCount = '0';
     }
 
     /* 配送方法 */
@@ -514,9 +518,11 @@ function convertAll(input, opt) {
       if (catch_) o.description = convertDesc(catch_, counters);
       else if (isNew) itemWarns.push('キャッチコピーなし（description空欄）');
       const sp = P('スマートフォン用商品説明文');
-      const pc = P('PC用販売説明文');
-      if (sp) o.descriptionForSP = convertDesc(sp, counters);
-      if (pc) o.descriptionForPC = convertDesc(pc, counters);
+      if (sp) {
+        const conv = convertDesc(sp, counters);
+        o.descriptionForSP = conv;
+        o.descriptionForPC = conv; /* PC用販売説明文は使わず、SP用と同一内容にする */
+      }
       if (counters.catUnmapped.size) itemWarns.push('説明文内に対応auPAYカテゴリの無いカテゴリリンク（アンカー解除）: ' + [...counters.catUnmapped].join(', '));
       if (counters.rakutenUrls) itemWarns.push('説明文に変換できない楽天URLが' + counters.rakutenUrls + '件残っています');
     }
