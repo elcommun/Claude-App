@@ -13,7 +13,7 @@
 | 楽天 `dl-normal-item.csv` | ✅ | 商品情報・SKU・価格・在庫・画像・オプション |
 | 楽天 `dl-item-cat.csv` | 任意 | 店舗内カテゴリ（shopCategory1〜10） |
 
-auPAYの item.csv / stock.csv をドロップした場合は「使用しません」と案内して無視する。
+auPAYの item.csv / stock.csv をドロップした場合は「使用しません」と案内して無視する。楽天商品CSVがヘッダー行のみ（商品データ0件）の場合はエラーとして明示し、案内する（例: rakuten-filterで絞り込んだ結果が0件になっているケースなど）。
 
 ## 主な変換ルール
 
