@@ -241,7 +241,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 16;
+const APP_VERSION = 17;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -254,10 +254,15 @@ function isImageCol(h) {
   h = String(h || '').trim();
   return /画像/.test(h) && /(パス|URL)/.test(h);
 }
+/* 商品画像パス等の列とは別に、説明文（HTML）内に <img src="..."> として直接
+ * 埋め込まれている画像（s-image- 系など）も収集対象にする */
+const DESC_COLS_FOR_IMG = ['キャッチコピー', 'PC用商品説明文', 'スマートフォン用商品説明文', 'PC用販売説明文', '共通説明文（小）', '共通説明文（大）'];
+const DESC_IMG_RE = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet\/([^"'\s<>]+\.(?:jpg|jpeg|png|gif|webp))/gi;
 function collectImages(headerRow, rows) {
   const map = new Map(); // cabinet内パス（先頭スラッシュなし） -> 取得元URL
   const idx = colIndex(headerRow);
   const cols = Object.keys(idx).filter(isImageCol).map(h => idx[h]);
+  const descCols = DESC_COLS_FOR_IMG.filter(c => c in idx).map(c => idx[c]);
   const reAbs = /^https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet\/(.+)$/i;
   const reExt = /\.(jpg|jpeg|png|gif|webp)$/i;
   for (const row of rows) {
@@ -269,6 +274,15 @@ function collectImages(headerRow, rows) {
       else { const m = v.match(reAbs); if (m) path = m[1]; }
       if (!path || !reExt.test(path)) continue;
       if (!map.has(path)) map.set(path, RAKUTEN_IMG_BASE + '/' + path);
+    }
+    for (const i of descCols) {
+      const v = row[i];
+      if (!v) continue;
+      let m;
+      DESC_IMG_RE.lastIndex = 0;
+      while ((m = DESC_IMG_RE.exec(v))) {
+        if (!map.has(m[1])) map.set(m[1], RAKUTEN_IMG_BASE + '/' + m[1]);
+      }
     }
   }
   return [...map].map(([path, url]) => ({ path, url }));
