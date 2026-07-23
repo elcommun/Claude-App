@@ -200,7 +200,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 10;
+const APP_VERSION = 11;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -605,7 +605,7 @@ function convertAll(input, opt) {
         const rawChoice = fixMojibake((s[ri['バリエーション項目選択肢1']] || '').trim());
         const name = rawChoice.replace(/&/g, '/');
         const skuNo = (s[ri['SKU管理番号']] || '').trim();
-        const code = exCode.get(skuNo) || exCode.get(extractSkuFromChoice(rawChoice) || '') || name;
+        const code = exCode.get(skuNo) || exCode.get(extractSkuFromChoice(rawChoice) || '') || extractSkuFromChoice(rawChoice) || name;
         const count = '0'; /* 在庫は0固定（auPAY側で設定する運用） */
         const sr = {};
         STOCK_HEADER.forEach(h => sr[h] = '');
@@ -616,7 +616,6 @@ function convertAll(input, opt) {
           sr.choicesStockHorizontalName = name; sr.choicesStockHorizontalCode = code; sr.choicesStockHorizontalSeq = String(k+1);
         }
         sr.choicesStockCount = count;
-        sr.choicesStockShippingDayId = '1';
         stockRows.push(STOCK_HEADER.map(h => sr[h]));
         stats.stockRows++;
       });
