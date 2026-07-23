@@ -92,6 +92,9 @@
   .preview-wrap{max-height:420px;overflow:auto;border:1px solid var(--gray-200);border-radius:8px;}
   #warnCard{display:none;}
   #warnCard.show{display:block;}
+  .saved-note{display:none;font-size:11.5px;color:#065F46;font-weight:700;margin-top:8px;line-height:1.7;}
+  .saved-note.show{display:block;}
+  .hint-box{background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:12px 16px;margin-top:10px;font-size:12px;color:#065F46;line-height:1.9;}
 </style>
 </head>
 <body>
@@ -181,6 +184,41 @@
     <div class="stats-grid" id="statsGrid"></div>
   </div>
 
+  <!-- 商品画像のダウンロード -->
+  <div class="card" id="imgStepCard" style="display:none;">
+    <div class="card-header">
+      <div class="step">3</div>
+      <h2>商品画像をダウンロードする <span class="sub">画像 <b id="imgCount">0</b> 件 ─ ①ダウンロード → ②auPAY（Wow!manager）へアップロード</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="rule-box" style="margin-bottom:16px;">
+        📌 auPAYの商品ページはauPAY側のサーバー（image.wowma.jp）上の画像しか表示できません。楽天CABINETの画像ファイル本体を一度パソコンにダウンロードし、Wow!managerの画像管理から同じフォルダ構成でアップロードしてください。<br>
+        📌 説明文や商品画像として既にauPAY側に存在する画像は再アップロード不要です。まだ無い新商品の画像だけで問題ありません。
+      </div>
+      <p style="font-size:12px;color:var(--gray-600);line-height:1.9;margin-bottom:8px;">
+        下のボタンを押すと、画像をまとめてダウンロードする<b>実行コマンドがそのままコピー</b>されます（ファイルの保存は不要です）。
+        ターミナルに貼り付けて Enter すると、楽天CABINETの商品画像が <code>~/Downloads/aupay_images/</code> に
+        <b>CABINETと同じフォルダ構成のまま</b>保存され、完了するとFinderが自動で開きます。
+      </p>
+      <button class="dl-btn" id="dlImgScriptBtn">📋 画像DLコマンドをコピーする</button>
+      <div class="saved-note" id="scriptSavedNote">
+        ✅ 実行コマンドをコピーしました（<b id="copyImgCount">0</b>枚分・いま変換したばかりの最新データです）。<br>
+        あとは <b>⌘+スペース</b> → <code>ターミナル</code> → Enter で開いて、<b>⌘V → Enter</b> するだけで画像のダウンロードが始まります。
+      </div>
+      <div class="hint-box">
+        ターミナルの開き方：<strong>⌘ + スペース</strong> → <code>ターミナル</code> と入力 → Enter<br>
+        貼り付けると<b>大量の文字がずらっと表示されますが正常です</b>。そのまま Enter を押すとダウンロードが始まり、
+        「⏬ ◯/◯（成功 ◯・失敗 ◯）」と進行状況が表示されます。完了すると <code>aupay_images</code> フォルダがFinderで自動的に開きます 🎉<br>
+        <br>
+        ⚠️ <b>実行しても画像がダウンロードされない（「0枚成功」になる）場合：</b><br>
+        ・Wi-Fi／インターネット接続を確認し（VPNを使っている場合はオフにして）、もう一度貼り付けて実行してください<br>
+        ・失敗の理由は <code>aupay_images</code> フォルダ内の <code>_download_errors.log</code> に記録されます<br>
+        <br>
+        💡 コピーされるコマンドには<b>いま画面に表示されている最新の変換結果</b>の画像リストがまるごと含まれます。ダウンロードのやり直しは、もう一度ボタンを押してコピー→貼り付けでOKです
+      </div>
+    </div>
+  </div>
+
   <!-- 警告一覧 -->
   <div class="card" id="warnCard">
     <div class="card-header">
@@ -202,10 +240,38 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 14;
+const APP_VERSION = 15;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
+const RAKUTEN_IMG_BASE = 'https://image.rakuten.co.jp/elcommun/cabinet';
+
+/* ================= 商品画像の収集（ダウンロードスクリプト生成用） =================
+ * 「画像」かつ「パス」または「URL」を含む列（商品画像パス1-20、白背景画像パス、SKU画像パス等）から
+ * 楽天CABINET内の相対パスを集める。既に絶対URL化されている値にも対応。 */
+function isImageCol(h) {
+  h = String(h || '').trim();
+  return /画像/.test(h) && /(パス|URL)/.test(h);
+}
+function collectImages(headerRow, rows) {
+  const map = new Map(); // cabinet内パス（先頭スラッシュなし） -> 取得元URL
+  const idx = colIndex(headerRow);
+  const cols = Object.keys(idx).filter(isImageCol).map(h => idx[h]);
+  const reAbs = /^https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet\/(.+)$/i;
+  const reExt = /\.(jpg|jpeg|png|gif|webp)$/i;
+  for (const row of rows) {
+    for (const i of cols) {
+      const v = (row[i] || '').trim();
+      if (!v) continue;
+      let path = null;
+      if (/^\/[^\s,]+$/.test(v)) path = v.replace(/^\/+/, '');
+      else { const m = v.match(reAbs); if (m) path = m[1]; }
+      if (!path || !reExt.test(path)) continue;
+      if (!map.has(path)) map.set(path, RAKUTEN_IMG_BASE + '/' + path);
+    }
+  }
+  return [...map].map(([path, url]) => ({ path, url }));
+}
 const ITEM_HEADER = ["ctrlCol", "lotNumber", "itemName", "itemManagementId", "itemManagementName", "itemCode", "itemPrice", "sellMethodSegment", "releaseDate", "reserveRegstDate", "makerRetailPrice", "makerRetailPriceUrl", "taxSegment", "reducedTax", "postageSegment", "postage", "deliveryId", "deliveryMethodId1", "deliveryMethodId2", "deliveryMethodId3", "deliveryMethodId4", "deliveryMethodId5", "deliveryMethodName1", "deliveryMethodName2", "deliveryMethodName3", "deliveryMethodName4", "deliveryMethodName5", "sellStartDate", "sellEndDate", "countdownTimerConfig", "sellNumberDispConfig", "buyNumLimtConfig", "buyNumMax", "publicStartDate", "giftPackingSegment", "noshiSegment", "limitedOrderSegment", "limitedOrderCount", "description", "descriptionForSP", "descriptionForPC", "detailTitle", "detailDescription", "specTitle", "spec1", "spec2", "spec3", "spec4", "spec5", "searchKeyword1", "searchKeyword2", "searchKeyword3", "searchTarget", "imageName1", "imageName2", "imageName3", "imageName4", "imageName5", "imageName6", "imageName7", "imageName8", "imageName9", "imageName10", "imageName11", "imageName12", "imageName13", "imageName14", "imageName15", "imageName16", "imageName17", "imageName18", "imageName19", "imageName20", "imageUrl1", "imageUrl2", "imageUrl3", "imageUrl4", "imageUrl5", "imageUrl6", "imageUrl7", "imageUrl8", "imageUrl9", "imageUrl10", "imageUrl11", "imageUrl12", "imageUrl13", "imageUrl14", "imageUrl15", "imageUrl16", "imageUrl17", "imageUrl18", "imageUrl19", "imageUrl20", "categoryId", "tagId", "shopCategory1", "shopCategory2", "shopCategory3", "shopCategory4", "shopCategory5", "shopCategory6", "shopCategory7", "shopCategory8", "shopCategory9", "shopCategory10", "shopCategoryDispSeq", "jan", "isbn", "itemModel", "limitedPasswd", "limitedPasswdPageTitle", "limitedPasswdPageMessage", "saleStatus", "itemOption1", "itemOptionType1", "itemOptionReqFlg1", "itemOption2", "itemOptionType2", "itemOptionReqFlg2", "itemOption3", "itemOptionType3", "itemOptionReqFlg3", "itemOption4", "itemOptionType4", "itemOptionReqFlg4", "itemOption5", "itemOptionType5", "itemOptionReqFlg5", "itemOption6", "itemOptionType6", "itemOptionReqFlg6", "itemOption7", "itemOptionType7", "itemOptionReqFlg7", "itemOption8", "itemOptionType8", "itemOptionReqFlg8", "itemOption9", "itemOptionType9", "itemOptionReqFlg9", "itemOption10", "itemOptionType10", "itemOptionReqFlg10", "itemOption11", "itemOptionType11", "itemOptionReqFlg11", "itemOption12", "itemOptionType12", "itemOptionReqFlg12", "itemOption13", "itemOptionType13", "itemOptionReqFlg13", "itemOption14", "itemOptionType14", "itemOptionReqFlg14", "itemOption15", "itemOptionType15", "itemOptionReqFlg15", "itemOption16", "itemOptionType16", "itemOptionReqFlg16", "itemOption17", "itemOptionType17", "itemOptionReqFlg17", "itemOption18", "itemOptionType18", "itemOptionReqFlg18", "itemOption19", "itemOptionType19", "itemOptionReqFlg19", "itemOption20", "itemOptionType20", "itemOptionReqFlg20", "itemOptionCommissionTitle1", "itemOptionCommissionVal1", "itemOptionCommissionNote1", "itemOptionCommissionTitle2", "itemOptionCommissionVal2", "itemOptionCommissionNote2", "itemOptionCommissionTitle3", "itemOptionCommissionVal3", "itemOptionCommissionNote3", "itemOptionCommissionTitle4", "itemOptionCommissionVal4", "itemOptionCommissionNote4", "itemOptionCommissionTitle5", "itemOptionCommissionVal5", "itemOptionCommissionNote5", "itemOptionCommissionTitle6", "itemOptionCommissionVal6", "itemOptionCommissionNote6", "itemOptionCommissionTitle7", "itemOptionCommissionVal7", "itemOptionCommissionNote7", "itemOptionCommissionTitle8", "itemOptionCommissionVal8", "itemOptionCommissionNote8", "itemOptionCommissionTitle9", "itemOptionCommissionVal9", "itemOptionCommissionNote9", "itemOptionCommissionTitle10", "itemOptionCommissionVal10", "itemOptionCommissionNote10", "itemOptionCommissionTitle11", "itemOptionCommissionVal11", "itemOptionCommissionNote11", "itemOptionCommissionTitle12", "itemOptionCommissionVal12", "itemOptionCommissionNote12", "itemOptionCommissionTitle13", "itemOptionCommissionVal13", "itemOptionCommissionNote13", "itemOptionCommissionTitle14", "itemOptionCommissionVal14", "itemOptionCommissionNote14", "itemOptionCommissionTitle15", "itemOptionCommissionVal15", "itemOptionCommissionNote15", "itemOptionCommissionTitle16", "itemOptionCommissionVal16", "itemOptionCommissionNote16", "itemOptionCommissionTitle17", "itemOptionCommissionVal17", "itemOptionCommissionNote17", "itemOptionCommissionTitle18", "itemOptionCommissionVal18", "itemOptionCommissionNote18", "itemOptionCommissionTitle19", "itemOptionCommissionVal19", "itemOptionCommissionNote19", "itemOptionCommissionTitle20", "itemOptionCommissionVal20", "itemOptionCommissionNote20", "pointRate", "favoriteCount", "receiptRequestCount", "stockRequestConfig", "returnRequestConfig", "stockRequestCount", "deliveryLeadtimeId", "stockSegment", "stockShippingDayId", "stockShippingDayDispTxt", "displayBackorderMessage", "stockCount", "displayStockSegment", "displayStockThreshold", "choicesStockHorizontalItemName", "choicesStockVerticalItemName", "choicesStockUpperDescription", "choicesStockLowerDescription", "displayChoicesStockSegment", "displayChoicesStockThreshold"];
 const STOCK_HEADER = ["ctrlCol", "lotNumber", "itemCode", "stockSegment", "stockCount", "choicesStockHorizontalName", "choicesStockHorizontalCode", "choicesStockHorizontalSeq", "choicesStockVerticalName", "choicesStockVerticalCode", "choicesStockVerticalSeq", "choicesStockCount", "choicesStockShippingDayId", "choicesStockShippingDayDispTxt", "choicesStockImageUrl", "choicesStockColorSegment"];
 const GENRE_MAP = {"100487":"3020","100636":"350607","100663":"541605","100976":"540502","101238":"290604","101845":"54131101","101846":"410905","101872":"541102","110934":"450312","110942":"450302","110950":"450310","110976":"450302","111029":"3001","111145":"54111512","111163":"54111508","111167":"541127","111177":"290206","111377":"310405","111388":"310409","112756":"450302","112816":"310401","112938":"290801","113074":"301503","201632":"290102","201886":"40110910","202535":"592407","205161":"340811","205611":"311618","205718":"310805","205835":"54090214","207052":"301608","207288":"450401","207328":"450409","208375":"531701","210194":"54131004","210271":"54093003","215884":"351609","216058":"54113405","216077":"54112204","216132":"4501","300815":"310812","300823":"311708","300829":"311704","301446":"350603","301570":"54130603","301621":"54111517","301637":"54111510","301638":"54111510","301648":"54111506","301713":"541102","301722":"54111705","301728":"541102","301731":"54112806","301745":"54112102","301748":"54111703","303261":"450322","400795":"311806","401526":"350604","401539":"350620","401550":"350102","401619":"541314","401669":"54111507","403725":"320904","403747":"450414","403753":"540306","403809":"450417","403822":"450419","404026":"592301","406431":"541102","406569":"31130901","406942":"29061001","407036":"351523","408789":"450310","408790":"450305","408849":"450803","500333":"311802","501923":"311704","502368":"450802","502468":"450424","505526":"54130604","505560":"541118","505564":"54111504","505578":"54113401","508289":"310806","508477":"350610","509176":"450304","509189":"450604","551228":"310702","551589":"350105","551591":"350106","551736":"540301","551847":"351609","551939":"40110212","552391":"460110","559275":"3502","565214":"450421","565218":"450429","565222":"450321","565294":"59240501","565650":"54111001","565669":"54111701","566119":"401101","566130":"351539","566135":"351102","566136":"351120","566138":"351521","566155":"351508","566157":"351534","566194":"311702","567236":"54110902","567257":"54113401","567272":"54111506","567450":"541207","567542":"541101","567560":"541102","567731":"54131301","568234":"54113401","568358":"540502","568467":"450302","568488":"450429","568680":"541131","568681":"54111502"};
@@ -430,7 +496,7 @@ function convertAll(input, opt) {
   }
 
   const g20 = (row, base, n) => (row[ri[base + n]] || '').trim();
-  const itemRows = [], stockRows = [];
+  const itemRows = [], stockRows = [], includedRawRows = [];
 
   for (const [id, g] of groups) {
     stats.total++;
@@ -642,14 +708,16 @@ function convertAll(input, opt) {
     }
 
     itemRows.push(ITEM_HEADER.map(h => o[h] != null ? o[h] : ''));
+    includedRawRows.push(g.parent, ...skus);
     stats.converted++;
     if (isNew) stats.added++; else stats.updated++;
     if (itemWarns.length) warns.push({ code: id, name: o.itemName, status: isNew ? '新規' : '更新', msgs: itemWarns });
   }
 
-  return { itemRows: [ITEM_HEADER.slice(), ...itemRows], stockRows: [STOCK_HEADER.slice(), ...stockRows], stats, warns, logs };
+  const images = collectImages(input.rak[0], includedRawRows);
+  return { itemRows: [ITEM_HEADER.slice(), ...itemRows], stockRows: [STOCK_HEADER.slice(), ...stockRows], stats, warns, logs, images };
 }
-if (typeof module !== 'undefined') module.exports = { convertAll, parseCSV, toCSV, stripDecoration, convertDesc, buildShopCats, deliveryFor, renameItemOption };
+if (typeof module !== 'undefined') module.exports = { convertAll, parseCSV, toCSV, stripDecoration, convertDesc, buildShopCats, deliveryFor, renameItemOption, collectImages };
 </script>
 
 <script>
@@ -659,6 +727,7 @@ const state = { rak: null, cat: null };
 const SLOT = { rak: 'slotRak', cat: 'slotCat' };
 const SLOT_LABEL = { rak: '楽天 商品CSV', cat: '楽天 カテゴリCSV' };
 let result = null;
+let IMAGES = [];
 
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 async function checkAppVersion() {
@@ -784,6 +853,11 @@ document.getElementById('execBtn').addEventListener('click', () => {
     '<div class="stat"><div class="num">' + result.warns.length + '</div><div class="label">要確認</div></div>';
   document.getElementById('resultSection').classList.add('show');
 
+  IMAGES = result.images || [];
+  document.getElementById('imgCount').textContent = IMAGES.length.toLocaleString();
+  document.getElementById('scriptSavedNote').classList.remove('show');
+  document.getElementById('imgStepCard').style.display = IMAGES.length ? '' : 'none';
+
   const wc = document.getElementById('warnCard');
   const wb = document.getElementById('warnBody');
   if (result.warns.length) {
@@ -829,6 +903,78 @@ document.getElementById('dlZip').addEventListener('click', async () => {
   a.click();
   URL.revokeObjectURL(a.href);
 });
+
+/* ========== 商品画像の一括ダウンロード ==========
+ * ターミナルで実行すると ~/Downloads/aupay_images/ に
+ * 楽天CABINETと同じフォルダ構成のまま保存される（Wow!managerへアップロードしやすい） */
+function buildImageScript() {
+  const shq = t => String(t).replace(/'/g, "'\\''");
+  const dirs = new Set();
+  IMAGES.forEach(im => { if (im.path.includes('/')) dirs.add(im.path.slice(0, im.path.lastIndexOf('/'))); });
+  const lines = [
+    '#!/bin/bash',
+    '# auPAY移行用 商品画像一括ダウンロード - ' + IMAGES.length + '枚',
+    '# 取得元: ' + RAKUTEN_IMG_BASE + '/',
+    'SAVE="$HOME/Downloads/aupay_images"',
+    'rm -rf "$SAVE" && mkdir -p "$SAVE"',
+    'ERRLOG="$SAVE/_download_errors.log"; : > "$ERRLOG"',
+    'TOTAL=' + IMAGES.length + '; S=0; F=0',
+    "REF='Referer: https://www.rakuten.co.jp/'",
+    "UA='User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'",
+    'echo "🖼️ $TOTAL 枚を $SAVE にダウンロードします..."',
+    'dl() {',
+    '  if curl -sSfL --retry 2 -H "$REF" -H "$UA" -o "$SAVE/$2" "$1" 2>>"$ERRLOG"; then',
+    '    S=$((S+1))',
+    '  else',
+    '    F=$((F+1)); echo "❌ $2  ← $1" >> "$ERRLOG"',
+    '  fi',
+    '  printf "\\r⏬ %d/%d（成功 %d・失敗 %d）" "$((S+F))" "$TOTAL" "$S" "$F"',
+    '}',
+    ''
+  ];
+  [...dirs].sort().forEach(d => lines.push('mkdir -p "$SAVE/' + d + '"'));
+  lines.push('');
+  IMAGES.forEach(im => lines.push("dl '" + shq(im.url) + "' '" + shq(im.path) + "'"));
+  lines.push(
+    '',
+    'echo ""',
+    'echo "════════════════════"',
+    'if [ "$S" -eq 0 ]; then',
+    '  echo "❌ 1枚もダウンロードできませんでした（$F 枚失敗）"',
+    '  echo "・Wi-Fi／インターネット接続（VPNを使っている場合はオフ）を確認して、もう一度同じコマンドを実行してください"',
+    '  echo "・エラーの詳細はこのファイルに記録されています → $ERRLOG"',
+    '  open "$SAVE"',
+    'else',
+    '  echo "✅ 完了: $S 枚成功 / $F 枚失敗"',
+    '  [ "$F" -gt 0 ] && echo "⚠️ 失敗した画像は $ERRLOG に記録されています。もう一度同じコマンドを実行すると再取得を試せます"',
+    '  [ "$F" -eq 0 ] && rm -f "$ERRLOG"',
+    '  open "$SAVE"',
+    'fi'
+  );
+  return lines.join('\n');
+}
+function buildPasteCommand() {
+  return "cat > /tmp/aupay_dl.sh <<'AUPAY_EOF'\n" + buildImageScript() + "\nAUPAY_EOF\nbash /tmp/aupay_dl.sh\n";
+}
+function copyImageCommand() {
+  if (!IMAGES.length) return;
+  const done = () => {
+    document.getElementById('copyImgCount').textContent = IMAGES.length.toLocaleString();
+    document.getElementById('scriptSavedNote').classList.add('show');
+    document.getElementById('scriptSavedNote').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
+  navigator.clipboard.writeText(buildPasteCommand()).then(done).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = buildPasteCommand();
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); done(); }
+    catch (e) { alert('コピーに失敗しました。もう一度ボタンを押してください'); }
+    document.body.removeChild(ta);
+  });
+}
+document.getElementById('dlImgScriptBtn').addEventListener('click', copyImageCommand);
 </script>
 </body>
 </html>
