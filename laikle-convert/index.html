@@ -1080,10 +1080,15 @@ function isImageCol(h) {
 // 「商品画像パス」の相対パス（例: /biiino/item/main-image-7/xxx.jpg）は
 // R-Cabinet（https://image.rakuten.co.jp/{store}/cabinet）直下からのパス。
 // 旧形式の絶対URL（…/{store}/cabinet/…）にも対応する。
+// 商品画像系の専用列とは別に、説明文（HTML）内に <img src="..."> として直接
+// 埋め込まれている画像（s-image- 系など）も収集対象にする
+const DESC_COLS_FOR_IMG = ['キャッチコピー', 'PC用商品説明文', 'スマートフォン用商品説明文', 'PC用販売説明文', '共通説明文（小）', '共通説明文（大）'];
 function collectImages(header, rows, fromSlug) {
   const map = new Map(); // cabinet内パス（先頭スラッシュなし） -> 取得元URL
   const cols = header.map((h, i) => isImageCol(h) ? i : -1).filter(i => i >= 0);
+  const descCols = DESC_COLS_FOR_IMG.map(name => header.indexOf(name)).filter(i => i >= 0);
   const reAbs = new RegExp('^https?:\\/\\/image\\.rakuten\\.co\\.jp\\/' + escRe(fromSlug) + '\\/cabinet\\/(.+)$', 'i');
+  const reDescImg = new RegExp('https?:\\/\\/image\\.rakuten\\.co\\.jp\\/' + escRe(fromSlug) + '\\/cabinet\\/([^"\'\\s<>]+\\.(?:jpg|jpeg|png|gif|webp))', 'gi');
   const reExt = /\.(jpg|jpeg|png|gif|webp)$/i;
   for (const row of rows) {
     for (const i of cols) {
@@ -1098,6 +1103,15 @@ function collectImages(header, rows, fromSlug) {
       }
       if (!path || !reExt.test(path)) continue;
       if (!map.has(path)) map.set(path, 'https://image.rakuten.co.jp/' + fromSlug + '/cabinet/' + path);
+    }
+    for (const i of descCols) {
+      const v = row[i];
+      if (!v) continue;
+      let m;
+      reDescImg.lastIndex = 0;
+      while ((m = reDescImg.exec(v))) {
+        if (!map.has(m[1])) map.set(m[1], 'https://image.rakuten.co.jp/' + fromSlug + '/cabinet/' + m[1]);
+      }
     }
   }
   return [...map].map(([path, url]) => ({ path, url }));
@@ -1590,7 +1604,7 @@ function completeStep6() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 21;
+const APP_VERSION = 22;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
