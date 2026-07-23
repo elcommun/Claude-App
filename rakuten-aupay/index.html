@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>楽天→auPAY 商品データ作成 | EL COMMUN</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>/*!
  * encoding-japanese v2.2.0 - Convert and detect character encoding in JavaScript
  * Copyright (c) 2012 polygonplanet <polygon.planet.aqua@gmail.com>
@@ -175,6 +176,7 @@
     <div class="dl-grid">
       <button class="dl-btn" id="dlItem">⬇️ item.csv をダウンロード</button>
       <button class="dl-btn" id="dlStock">⬇️ stock.csv をダウンロード</button>
+      <button class="dl-btn" id="dlZip">⬇️ item_stock.zip をまとめてダウンロード</button>
     </div>
     <div class="stats-grid" id="statsGrid"></div>
   </div>
@@ -200,7 +202,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 13;
+const APP_VERSION = 14;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -796,16 +798,17 @@ document.getElementById('execBtn').addEventListener('click', () => {
   }
 });
 
-function download(rows, fileName) {
+/* 選択中のエンコーディングでCSVをバイト列（Uint8Array）に変換 */
+function csvBytes(rows) {
   const csv = toCSV(rows);
   const enc = document.getElementById('outEncoding').value;
-  let blob;
   if (enc === 'SJIS') {
-    const sjis = Encoding.convert(Encoding.stringToCode(csv), { to: 'SJIS', from: 'UNICODE' });
-    blob = new Blob([new Uint8Array(sjis)], { type: 'text/csv' });
-  } else {
-    blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    return new Uint8Array(Encoding.convert(Encoding.stringToCode(csv), { to: 'SJIS', from: 'UNICODE' }));
   }
+  return new TextEncoder().encode('﻿' + csv);
+}
+function download(rows, fileName) {
+  const blob = new Blob([csvBytes(rows)], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = fileName;
@@ -814,6 +817,18 @@ function download(rows, fileName) {
 }
 document.getElementById('dlItem').addEventListener('click', () => { if (result) download(result.itemRows, 'item.csv'); });
 document.getElementById('dlStock').addEventListener('click', () => { if (result) download(result.stockRows, 'stock.csv'); });
+document.getElementById('dlZip').addEventListener('click', async () => {
+  if (!result) return;
+  const zip = new JSZip();
+  zip.file('item.csv', csvBytes(result.itemRows));
+  zip.file('stock.csv', csvBytes(result.stockRows));
+  const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(content);
+  a.download = 'item_stock.zip';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
 </script>
 </body>
 </html>
