@@ -200,7 +200,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -729,6 +729,10 @@ function handleFiles(files) {
         if (!type) { log('❓ ' + escHtml(file.name) + '：ファイルの種類を判別できません（ヘッダー不一致）', 'log-warn'); return; }
         if (type === 'auItem' || type === 'auStock') {
           log('ℹ️ ' + escHtml(file.name) + '：auPAYのファイルは使用しません（変換に必要なのは楽天のCSVのみです）', 'log-info');
+          return;
+        }
+        if (rows.length <= 1) {
+          log('❌ ' + escHtml(file.name) + '：ヘッダー行のみで商品データが1件もありません。楽天RMSから再度エクスポートしてください', 'log-err');
           return;
         }
         setSlot(type, file.name, rows, enc);
