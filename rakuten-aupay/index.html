@@ -192,36 +192,30 @@
   <div class="card" id="imgStepCard" style="display:none;">
     <div class="card-header">
       <div class="step">3</div>
-      <h2>商品画像をダウンロードする <span class="sub">画像 <b id="imgCount">0</b> 件 ─ ①ダウンロード（②アップロードは次のステップ）</span></h2>
+      <h2>商品画像をダウンロードする <span class="sub">画像 <b id="imgCount">0</b> 件 ─ ①ダウンロード</span></h2>
     </div>
     <div class="card-body">
-      <div class="rule-box" style="margin-bottom:16px;">
-        📌 auPAYの商品ページはauPAY側のサーバー（image.wowma.jp）上の画像しか表示できません。楽天CABINETの画像ファイル本体を一度パソコンにダウンロードし、Wow!managerの画像管理から同じフォルダ構成でアップロードしてください。<br>
-        📌 説明文や商品画像として既にauPAY側に存在する画像は再アップロード不要です。まだ無い新商品の画像だけで問題ありません。
-      </div>
-      <p style="font-size:12px;color:var(--gray-600);line-height:1.9;margin-bottom:8px;">
-        下のボタンを押すと、画像をまとめてダウンロードする<b>実行コマンドがそのままコピー</b>されます（ファイルの保存は不要です）。
-        ターミナルに貼り付けて Enter すると、楽天CABINETの商品画像が <code>~/Downloads/aupay_images/elcommun/cabinet/...</code> に
-        <b>「elcommun &gt; cabinet」から始まる楽天CABINETと同じフォルダ構成のまま</b>保存されます。
-        ダウンロード後、<code>elcommun</code> フォルダ全体をまとめた <code>elcommun.zip</code> が自動作成され、完了するとFinderが自動で開きます。
-        この <code>elcommun.zip</code> をそのままCyberduck等でFTPアップロードできます。
+      <p style="font-size:13px;color:var(--gray-600);line-height:1.8;margin-bottom:16px;">
+        auPAYはauPAY側サーバーの画像しか表示できないため、楽天CABINETの画像をダウンロードしてWow!managerへアップロードする必要があります（既にauPAY側にある画像は再アップロード不要）。
       </p>
       <button class="dl-btn" id="dlImgScriptBtn">📋 画像DLコマンドをコピーする</button>
+      <p style="font-size:12px;color:var(--gray-400);margin-top:10px;line-height:1.7;">
+        コピーしたコマンドをターミナルに貼り付けて Enter するだけです。<code>elcommun/cabinet/...</code> の構成のまま保存され、まとめた <code>elcommun.zip</code> も自動作成されます。
+      </p>
       <div class="saved-note" id="scriptSavedNote">
-        ✅ 実行コマンドをコピーしました（<b id="copyImgCount">0</b>枚分・いま変換したばかりの最新データです）。<br>
-        あとは <b>⌘+スペース</b> → <code>ターミナル</code> → Enter で開いて、<b>⌘V → Enter</b> するだけで画像のダウンロードが始まります。
+        ✅ コピーしました（<b id="copyImgCount">0</b>枚分）。<b>⌘+スペース</b> → <code>ターミナル</code> → Enter → <b>⌘V → Enter</b>
       </div>
-      <div class="hint-box">
-        ターミナルの開き方：<strong>⌘ + スペース</strong> → <code>ターミナル</code> と入力 → Enter<br>
-        貼り付けると<b>大量の文字がずらっと表示されますが正常です</b>。そのまま Enter を押すとダウンロードが始まり、
-        「⏬ ◯/◯（成功 ◯・失敗 ◯）」と進行状況が表示され、続けて <code>elcommun.zip</code> の作成が行われます。完了すると <code>aupay_images</code> フォルダがFinderで自動的に開きます 🎉<br>
-        <br>
-        ⚠️ <b>実行しても画像がダウンロードされない（「0枚成功」になる）場合：</b><br>
-        ・Wi-Fi／インターネット接続を確認し（VPNを使っている場合はオフにして）、もう一度貼り付けて実行してください<br>
-        ・失敗の理由は <code>aupay_images</code> フォルダ内の <code>_download_errors.log</code> に記録されます<br>
-        <br>
-        💡 コピーされるコマンドには<b>いま画面に表示されている最新の変換結果</b>の画像リストがまるごと含まれます。ダウンロードのやり直しは、もう一度ボタンを押してコピー→貼り付けでOKです
-      </div>
+      <details style="margin-top:14px;">
+        <summary style="cursor:pointer;font-size:12px;color:var(--gray-600);font-weight:700;">❓ 使い方・うまくいかない場合</summary>
+        <div class="hint-box" style="margin-top:8px;">
+          ターミナルの開き方：<strong>⌘ + スペース</strong> → <code>ターミナル</code> と入力 → Enter<br>
+          貼り付けると<b>大量の文字がずらっと表示されますが正常です</b>。そのまま Enter を押すとダウンロードが始まり、進行状況（⏬ ◯/◯）が表示され、続けて <code>elcommun.zip</code> が作成されます。完了すると <code>aupay_images</code> フォルダがFinderで自動的に開きます 🎉<br>
+          <br>
+          ⚠️ 「0枚成功」になる場合：Wi-Fi／インターネット接続（VPN使用時はオフ）を確認し、もう一度貼り付けて実行してください。失敗理由は <code>aupay_images/_download_errors.log</code> に記録されます<br>
+          <br>
+          💡 コマンドは常に「いま画面に表示されている最新の変換結果」を反映します。やり直しはもう一度ボタンを押してコピー→貼り付けでOKです
+        </div>
+      </details>
     </div>
   </div>
 
@@ -229,25 +223,32 @@
   <div class="card" id="imgUploadCard" style="display:none;">
     <div class="card-header">
       <div class="step">4</div>
-      <h2>Wow!managerへ画像をアップロードする <span class="sub">②FTPでアップロード ─ 反映まで30分程度</span></h2>
+      <h2>Wow!managerへ画像をアップロードする <span class="sub">②FTPでアップロード</span></h2>
     </div>
     <div class="card-body">
-      <div class="rule-box" style="margin-bottom:16px;">
-        📌 FTP接続先ホスト名：<b>img.manager.wowma.jp</b>（画像管理専用サーバー・ポート21）<br>
-        📌 ユーザーID／パスワードはWow!manager「アカウント管理・権限設定 &gt; FTPパスワード変更」ページで確認・再設定できます（現在のパスワードはWow!manager上で確認できないため、忘れた場合は同ページで再設定）<br>
-        📌 FTPソフト（Cyberduck・FFFTP等）はお店側で用意が必要です（利用には「一括商品CSVオプション」（有料）の申し込みが必要）
-      </div>
-      <p style="font-size:12px;color:var(--gray-600);line-height:1.9;margin-bottom:8px;">
-        ①でダウンロードした <code>elcommun.zip</code>（<code>~/Downloads/aupay_images/elcommun.zip</code>）を<b>展開せずそのまま</b>、FTPソフトで <code>img.manager.wowma.jp</code> のルートにアップロードしてください。zip内の <code>elcommun/cabinet/...</code> 以下のフォルダ階層が、そのままWow!manager側の画像ディレクトリとして反映されます。
+      <p style="font-size:13px;color:var(--gray-600);line-height:1.8;margin-bottom:14px;">
+        ①でダウンロードした <code>elcommun.zip</code> を<b>展開せずそのまま</b>、FTPソフト（Cyberduck等）で下記のサーバーにアップロードしてください。
       </p>
+      <table class="data-table" style="margin-bottom:16px;">
+        <tbody>
+          <tr><th style="width:110px;">ホスト名</th><td><code>img.manager.wowma.jp</code>（ポート21）</td></tr>
+          <tr><th>ユーザーID</th><td>Wow!manager「アカウント管理・権限設定 &gt; FTPパスワード変更」ページで確認</td></tr>
+        </tbody>
+      </table>
       <div class="hint-box">
-        ✅ <b>実際に確認できた挙動：</b>zipファイルをFTPアップロードしてから、Wow!managerの画像管理画面にフォルダ・画像が反映されるまで<b>30分程度かかりました</b>。アップロード直後に画面をリロードしても出てこないことがありますが、エラーではないので数十分待ってから再度確認してください。<br>
-        <br>
-        ・反映されたかどうかは<b>Wow!manager側の画像管理画面</b>で確認します（FTPソフト側の一覧では反映結果は分かりません）<br>
-        ・フォルダ・画像の削除はWow!manager側からのみ行えます（FTPソフトからは削除しない）<br>
-        ・展開したフォルダをそのままアップロードしても反映されません。<b>必ずzip形式</b>でアップロードしてください
+        ✅ <b>反映まで実測30分程度</b>かかります。アップロード直後に画面をリロードしても出てこないことがありますが、エラーではありません。反映確認は<b>Wow!manager側の画像管理画面</b>で行ってください（FTPソフト側の一覧では反映結果は分かりません）。
       </div>
       <details style="margin-top:14px;">
+        <summary style="cursor:pointer;font-size:12px;color:var(--gray-600);font-weight:700;">❓ 注意点・利用条件</summary>
+        <div class="rule-box" style="margin-top:8px;">
+          <ul style="margin:0;padding:0 0 0 18px;line-height:2;">
+            <li>利用には「一括商品CSVオプション」（有料）の申し込みが必要です</li>
+            <li>フォルダ・画像の削除はWow!manager上からのみ操作可能です（FTPソフトからは削除しない）</li>
+            <li>展開したフォルダをそのままアップロードしても反映されません。<b>必ずzip形式</b>でアップロードしてください</li>
+          </ul>
+        </div>
+      </details>
+      <details style="margin-top:10px;">
         <summary style="cursor:pointer;font-size:12px;color:var(--gray-600);font-weight:700;">📄 Wow!manager公式マニュアル原文を見る（FTPを使って画像をアップロードする）</summary>
         <div class="rule-box" style="margin-top:10px;line-height:1.8;">
           <p style="font-weight:700;color:#1E40AF;margin-bottom:4px;">概要</p>
@@ -306,7 +307,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 20;
+const APP_VERSION = 21;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
