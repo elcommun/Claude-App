@@ -123,16 +123,20 @@
     </ol>
   </div>
 
-  <div class="info-box">
-    <strong>主な変換ルール：</strong>
-    商品名の先頭装飾（＼P2倍＋クーポン／等）を削除 ／
-    itemPrice は「表示価格（定価）優先」か「販売価格（セール価格）」を選択 ／
-    説明文内の画像URLを image.rakuten.co.jp → image.wowma.jp に書き換え、商品リンクは /u/69585078/c/品番、カテゴリリンクは対応表（241件）で /user/69585078/shopcategory/ID に変換（対応が無いリンクはアンカー解除して警告一覧に表示） ／
-    店舗内カテゴリ（shopCategory）も同じ対応表でauPAYの正式カテゴリ名に変換（対応が無いものは除外して警告一覧に表示） ／
-    ジャンルID→auPAYカテゴリIDは実績データから自動マッピング（122ジャンル） ／
-    配送方法は配送方法セット＋送料区分から自動設定 ／
-    バリエーションは stock.csv の縦軸・横軸を既存データに合わせて出力
-  </div>
+  <details>
+    <summary style="cursor:pointer;font-size:13px;color:#92400E;font-weight:700;">▶ 主な変換ルールを見る</summary>
+    <div class="info-box" style="margin-top:8px;">
+      <ul style="margin:0 0 0 18px;padding:0;line-height:2;">
+        <li>商品名の先頭装飾（＼P2倍＋クーポン／等）を削除</li>
+        <li>itemPrice は「表示価格（定価）優先」か「販売価格（セール価格）」を選択</li>
+        <li>説明文内の画像URLを image.rakuten.co.jp → image.wowma.jp に書き換え、商品リンクは /u/69585078/c/品番、カテゴリリンクは対応表（241件）で /user/69585078/shopcategory/ID に変換（対応が無いリンクはアンカー解除して警告一覧に表示）</li>
+        <li>店舗内カテゴリ（shopCategory）も同じ対応表でauPAYの正式カテゴリ名に変換（対応が無いものは除外して警告一覧に表示）</li>
+        <li>ジャンルID→auPAYカテゴリIDは実績データから自動マッピング（122ジャンル）</li>
+        <li>配送方法は配送方法セット＋送料区分から自動設定</li>
+        <li>バリエーションは stock.csv の縦軸・横軸を既存データに合わせて出力</li>
+      </ul>
+    </div>
+  </details>
 
   <!-- STEP 1 -->
   <div class="card">
@@ -244,29 +248,37 @@
       </div>
       <details style="margin-top:14px;">
         <summary style="cursor:pointer;font-size:12px;color:var(--gray-600);font-weight:700;">📄 Wow!manager公式マニュアル原文を見る（FTPを使って画像をアップロードする）</summary>
-        <div class="rule-box" style="margin-top:10px;line-height:1.9;">
-          <b>概要</b><br>
-          FTPを使って画像をアップロードすることができます。<br>
-          ※FTPで画像管理を行うには、「一括商品CSVオプション」のお申し込み（有料）が必要です。<br>
-          <br>
-          <b>手順</b><br>
-          1. アップロードする画像をフォルダに入れ、zip形式に圧縮します（jpg画像・gif画像をそのままアップロードすることはできません）<br>
-          2. FTPアップロード用ソフトを使い、画像管理サーバーにアップロードします。ホスト名（アドレス）は「<b>img.manager.wowma.jp</b>」。ユーザーIDは「アカウント管理・権限設定 &gt; FTPパスワード変更」ページで確認できます<br>
-          <br>
-          <b>画像のディレクトリパスについて</b><br>
-          画像のディレクトリパスは、アップロードしたzipファイルで使用されたフォルダと階層がそのまま反映されます。<br>
-          例：「img」というフォルダの中に「a.jpg」という画像を入れ、zip形式にしてアップロードした場合、画像URLは <code>https://image.wowma.jp/会員番号/img/a.jpg</code> になります。<br>
-          ※アップロードしたときに同名のディレクトリが無い場合はディレクトリが作成され、存在する場合はそのディレクトリの中に画像が入ります<br>
-          <br>
-          <b>注意事項</b><br>
-          ・FFFTPなどのFTPアップロード用ソフトは、お店側でご用意いただく必要があります<br>
-          ・アップロードが完了した画像はFTPソフトからは確認できません<br>
-          ・フォルダ、画像の削除はWow!manager上から操作してください<br>
-          ・アップロード可能な画像1枚あたりの最大容量は2MB、1回で登録できる最大容量は2GBです<br>
-          ・画像はgif形式、jpg形式、jpeg形式のみ登録可能です<br>
-          ・画像フォルダ名、画像ファイル名は半角英数字のみ登録可能です<br>
-          ・一括登録できる画像フォルダは「zip」ファイル形式のみです。zipファイル名は半角英数字（名称は任意）で登録可能です<br>
-          ・zipファイル内に半角英数字のフォルダが存在する場合は、そのフォルダ名でディレクトリを作成します（ディレクトリ作成と画像登録を同時に行うことができます）
+        <div class="rule-box" style="margin-top:10px;line-height:1.8;">
+          <p style="font-weight:700;color:#1E40AF;margin-bottom:4px;">概要</p>
+          <p style="margin:0 0 14px;">
+            FTPを使って画像をアップロードすることができます。<br>
+            ※FTPで画像管理を行うには、「一括商品CSVオプション」のお申し込み（有料）が必要です。
+          </p>
+
+          <p style="font-weight:700;color:#1E40AF;margin-bottom:4px;">手順</p>
+          <ol style="margin:0 0 14px 18px;padding:0;">
+            <li>アップロードする画像をフォルダに入れ、zip形式に圧縮します（jpg画像・gif画像をそのままアップロードすることはできません）</li>
+            <li>FTPアップロード用ソフトを使い、画像管理サーバー（ホスト名：<b>img.manager.wowma.jp</b>）にアップロードします。ユーザーIDは「アカウント管理・権限設定 &gt; FTPパスワード変更」ページで確認できます</li>
+          </ol>
+
+          <p style="font-weight:700;color:#1E40AF;margin-bottom:4px;">画像のディレクトリパスについて</p>
+          <p style="margin:0 0 14px;">
+            アップロードしたzipファイルで使用されたフォルダと階層が、そのまま画像ディレクトリパスに反映されます。<br>
+            例：「img」フォルダの中に「a.jpg」を入れてzip化しアップロードした場合 → <code>https://image.wowma.jp/会員番号/img/a.jpg</code><br>
+            ※アップロード時に同名ディレクトリが無ければ新規作成、あればその中に画像が追加されます
+          </p>
+
+          <p style="font-weight:700;color:#1E40AF;margin-bottom:4px;">注意事項</p>
+          <ul style="margin:0;padding:0 0 0 18px;">
+            <li>FTPソフト（FFFTP等）はお店側でご用意ください</li>
+            <li>アップロードが完了した画像はFTPソフトからは確認できません</li>
+            <li>フォルダ・画像の削除はWow!manager上からのみ操作可能です</li>
+            <li>画像1枚あたり最大<b>2MB</b>、1回の登録で最大<b>2GB</b>まで</li>
+            <li>対応形式は<b>gif・jpg・jpeg</b>のみ</li>
+            <li>画像フォルダ名・画像ファイル名は<b>半角英数字のみ</b>登録可能</li>
+            <li>一括登録できるのは<b>zip形式のみ</b>（zipファイル名は半角英数字なら任意）</li>
+            <li>zip内に半角英数字のフォルダがあれば、そのフォルダ名でディレクトリを作成（ディレクトリ作成と画像登録を同時に実行）</li>
+          </ul>
         </div>
       </details>
     </div>
@@ -293,7 +305,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 18;
+const APP_VERSION = 19;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
