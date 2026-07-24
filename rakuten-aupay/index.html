@@ -201,9 +201,10 @@
       </div>
       <p style="font-size:12px;color:var(--gray-600);line-height:1.9;margin-bottom:8px;">
         下のボタンを押すと、画像をまとめてダウンロードする<b>実行コマンドがそのままコピー</b>されます（ファイルの保存は不要です）。
-        ターミナルに貼り付けて Enter すると、楽天CABINETの商品画像が <code>~/Downloads/aupay_images/</code> に
-        <b>CABINETと同じフォルダ構成のまま</b>保存されます。さらに各フォルダの中に、そのフォルダ名の
-        ZIP（<code>main-image-3.zip</code>・<code>sku-image.zip</code> 等）が自動で作成され、完了するとFinderが自動で開きます。
+        ターミナルに貼り付けて Enter すると、楽天CABINETの商品画像が <code>~/Downloads/aupay_images/elcommun/cabinet/...</code> に
+        <b>「elcommun &gt; cabinet」から始まる楽天CABINETと同じフォルダ構成のまま</b>保存されます。
+        ダウンロード後、<code>elcommun</code> フォルダ全体をまとめた <code>elcommun.zip</code> が自動作成され、完了するとFinderが自動で開きます。
+        この <code>elcommun.zip</code> をそのままCyberduck等でFTPアップロードできます。
       </p>
       <button class="dl-btn" id="dlImgScriptBtn">📋 画像DLコマンドをコピーする</button>
       <div class="saved-note" id="scriptSavedNote">
@@ -213,7 +214,7 @@
       <div class="hint-box">
         ターミナルの開き方：<strong>⌘ + スペース</strong> → <code>ターミナル</code> と入力 → Enter<br>
         貼り付けると<b>大量の文字がずらっと表示されますが正常です</b>。そのまま Enter を押すとダウンロードが始まり、
-        「⏬ ◯/◯（成功 ◯・失敗 ◯）」と進行状況が表示され、続けて各フォルダのZIP作成が行われます。完了すると <code>aupay_images</code> フォルダがFinderで自動的に開きます 🎉<br>
+        「⏬ ◯/◯（成功 ◯・失敗 ◯）」と進行状況が表示され、続けて <code>elcommun.zip</code> の作成が行われます。完了すると <code>aupay_images</code> フォルダがFinderで自動的に開きます 🎉<br>
         <br>
         ⚠️ <b>実行しても画像がダウンロードされない（「0枚成功」になる）場合：</b><br>
         ・Wi-Fi／インターネット接続を確認し（VPNを使っている場合はオフにして）、もう一度貼り付けて実行してください<br>
@@ -237,7 +238,7 @@
         📌 FTPソフト（Cyberduck・FFFTP等）はお店側で用意が必要です（利用には「一括商品CSVオプション」（有料）の申し込みが必要）
       </div>
       <p style="font-size:12px;color:var(--gray-600);line-height:1.9;margin-bottom:8px;">
-        ①でダウンロードした各フォルダ内の<b>ZIPファイルをそのまま</b>（展開せず）、FTPソフトで <code>img.manager.wowma.jp</code> のルートにアップロードしてください。zip内で使われているフォルダ階層が、そのままWow!manager側の画像ディレクトリとして反映されます（<code>main-image-7</code>・<code>sku-image</code> 等のフォルダ名・階層をそのままzip化してOK）。
+        ①でダウンロードした <code>elcommun.zip</code>（<code>~/Downloads/aupay_images/elcommun.zip</code>）を<b>展開せずそのまま</b>、FTPソフトで <code>img.manager.wowma.jp</code> のルートにアップロードしてください。zip内の <code>elcommun/cabinet/...</code> 以下のフォルダ階層が、そのままWow!manager側の画像ディレクトリとして反映されます。
       </p>
       <div class="hint-box">
         ✅ <b>実際に確認できた挙動：</b>zipファイルをFTPアップロードしてから、Wow!managerの画像管理画面にフォルダ・画像が反映されるまで<b>30分程度かかりました</b>。アップロード直後に画面をリロードしても出てこないことがありますが、エラーではないので数十分待ってから再度確認してください。<br>
@@ -305,7 +306,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 19;
+const APP_VERSION = 20;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -985,12 +986,17 @@ document.getElementById('dlZip').addEventListener('click', async () => {
 });
 
 /* ========== 商品画像の一括ダウンロード ==========
- * ターミナルで実行すると ~/Downloads/aupay_images/ に
- * 楽天CABINETと同じフォルダ構成のまま保存される（Wow!managerへアップロードしやすい） */
+ * ターミナルで実行すると ~/Downloads/aupay_images/elcommun/cabinet/ 以下に
+ * 楽天CABINETと同じフォルダ構成のまま保存され、そのまま Cyberduck 等でFTPアップロードできる
+ * elcommun.zip（elcommunフォルダ丸ごと）を自動作成する（Wow!managerで実際に反映確認済みの構成） */
+const CABINET_PREFIX = 'elcommun/cabinet/';
 function buildImageScript() {
   const shq = t => String(t).replace(/'/g, "'\\''");
   const dirs = new Set();
-  IMAGES.forEach(im => { if (im.path.includes('/')) dirs.add(im.path.slice(0, im.path.lastIndexOf('/'))); });
+  IMAGES.forEach(im => {
+    const full = CABINET_PREFIX + im.path;
+    dirs.add(full.slice(0, full.lastIndexOf('/')));
+  });
   const lines = [
     '#!/bin/bash',
     '# auPAY移行用 商品画像一括ダウンロード - ' + IMAGES.length + '枚',
@@ -1014,7 +1020,7 @@ function buildImageScript() {
   ];
   [...dirs].sort().forEach(d => lines.push('mkdir -p "$SAVE/' + d + '"'));
   lines.push('');
-  IMAGES.forEach(im => lines.push("dl '" + shq(im.url) + "' '" + shq(im.path) + "'"));
+  IMAGES.forEach(im => lines.push("dl '" + shq(im.url) + "' '" + shq(CABINET_PREFIX + im.path) + "'"));
   lines.push(
     '',
     'echo ""',
@@ -1031,17 +1037,13 @@ function buildImageScript() {
     '[ "$F" -eq 0 ] && rm -f "$ERRLOG"',
     '',
     'if ! command -v zip >/dev/null 2>&1; then',
-    '  echo "⚠️ zipコマンドが見つからないため、フォルダごとのZIP作成をスキップしました"',
+    '  echo "⚠️ zipコマンドが見つからないため、elcommun.zipの作成をスキップしました（elcommunフォルダはそのまま残っています）"',
     '  open "$SAVE"',
     '  exit 0',
     'fi',
-    'echo "📦 フォルダごとにZIP（main-image-3.zip・sku-image.zip 等）を作成しています..."'
-  );
-  [...dirs].sort().forEach(d => {
-    lines.push('(cd "$SAVE/' + d + '" && zip -rq "' + d.slice(d.lastIndexOf('/') + 1) + '.zip" . -x "*.zip")');
-  });
-  lines.push(
-    'echo "✅ ZIP作成完了。各フォルダの中にそのフォルダ名のZIPが入っています（Wow!managerへのアップロードにお使いください）"',
+    'echo "📦 elcommunフォルダ全体をelcommun.zipとして作成しています..."',
+    '(cd "$SAVE" && rm -f elcommun.zip && zip -rq elcommun.zip elcommun)',
+    'echo "✅ elcommun.zip 作成完了。このzipをそのままCyberduck等でimg.manager.wowma.jpのルートにアップロードしてください"',
     'open "$SAVE"'
   );
   return lines.join('\n');
