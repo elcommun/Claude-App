@@ -288,7 +288,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><span class="grad-txt">EC棚卸し</span></h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v36</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v38</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -436,7 +436,7 @@
         <li><span class="b">A</span><span><b>振り分け</b>：システム連携用SKU番号の接頭辞で判定（ec-monthly 準拠）。メーカー接頭辞（<code>8mw-</code><code>wh-</code><code>psm-</code> 等）はメーカー、<code>elco-</code><code>cal-</code> 等は自社。<code>apj-</code><code>rft-</code> は取り寄せ（非在庫）のため出力対象外。</span></li>
         <li><span class="b">B</span><span><b>商品名</b>：自社は商品データ（原価マスタ）の品名を<b>そのまま</b>使用。メーカーは itemdata から抽出し、装飾（<code>【…】</code><code>＼…／</code>）と <code>｜</code>/<code>|</code> 以降・HTMLタグを除去した上で「商品名：バリエーション」の形式。</span></li>
         <li><span class="b">C</span><span><b>自社</b>：商品名 / 品番 / 原価 / 在庫数 / 合計（＝原価×在庫数）。原価は商品データ（マスタ）の「原価」列から品番で突合。</span></li>
-        <li><span class="b">D</span><span><b>メーカー</b>：商品名 / システム連携用SKU番号 / バリエーション / 上代 / 掛け率 / 在庫数 / 原価合計（＝上代×掛け率×在庫数）。上代は dl-normal を連携SKUで突合。連携SKUが無い行（単体商品）は<code>商品管理番号（商品URL）</code>で参照。</span></li>
+        <li><span class="b">D</span><span><b>メーカー</b>：商品名 / システム連携用SKU番号 / 上代 / 掛け率 / 在庫数 / 原価合計（＝上代×掛け率×在庫数）。上代は dl-normal を連携SKUで突合。連携SKUが無い行（単体商品）は<code>商品管理番号（商品URL）</code>で参照。</span></li>
       </ul>
     </div>
   </div>
@@ -705,7 +705,7 @@ document.getElementById('goBtn').onclick=async()=>{
         // メーカーの商品名は「商品名：バリエーション項目選択肢1」
         const vari=(r['バリエーション項目選択肢1']||'').trim();
         const mkName=vari?`${name}：${vari}`:name;
-        maker.push({'商品名':mkName,'システム連携用SKU番号':sku,'バリエーション項目選択肢1':vari,
+        maker.push({'商品名':mkName,'システム連携用SKU番号':sku,
           '上代':joka!=null?joka:'','掛け率':rt!=null?rt:'','在庫数':qty,'原価合計':total});
         if(total===''){
           const kinds=[];if(joka==null)kinds.push('上代なし');if(rt==null)kinds.push('掛け率なし');
@@ -734,14 +734,22 @@ document.getElementById('goBtn').onclick=async()=>{
     const makerTotal=makerIncluded.reduce((s,r)=>s+r['原価合計'],0);
 
     // append total rows
-    const ownOut=ownIncluded.concat([{'商品名':'合計','品番':'','原価':'','在庫数':ownIncluded.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(ownTotal*100)/100}]);
-    const makerOut=makerIncluded.concat([{'商品名':'合計','システム連携用SKU番号':'','バリエーション項目選択肢1':'',
+    // 自社シート末尾: 自社合計行に続けて、自社/メーカー/総合計のまとめを記載
+    const grandTotal=Math.round((ownTotal+makerTotal)*100)/100;
+    const ownOut=ownIncluded.concat([
+      {'商品名':'合計','品番':'','原価':'','在庫数':ownIncluded.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(ownTotal*100)/100},
+      {'商品名':'','品番':'','原価':'','在庫数':'','合計':''},
+      {'商品名':'■ 自社 合計','品番':'','原価':'','在庫数':'','合計':Math.round(ownTotal*100)/100},
+      {'商品名':'■ メーカー 合計','品番':'','原価':'','在庫数':'','合計':Math.round(makerTotal)},
+      {'商品名':'■ 総合計（自社＋メーカー）','品番':'','原価':'','在庫数':'','合計':grandTotal}
+    ]);
+    const makerOut=makerIncluded.concat([{'商品名':'合計','システム連携用SKU番号':'',
       '上代':'','掛け率':'','在庫数':makerIncluded.reduce((s,r)=>s+r['在庫数'],0),'原価合計':Math.round(makerTotal)}]);
 
     // build workbook（自社 / メーカー / 掛け率 を1ファイルにまとめる）
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ownOut,{header:['商品名','品番','原価','在庫数','合計']}),'自社');
-    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(makerOut,{header:['商品名','システム連携用SKU番号','バリエーション項目選択肢1','上代','掛け率','在庫数','原価合計']}),'メーカー');
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(makerOut,{header:['商品名','システム連携用SKU番号','上代','掛け率','在庫数','原価合計']}),'メーカー');
     const rateSheet=[['接頭辞','掛け率']].concat(Object.keys(rates).sort().map(k=>[k,rates[k]]));
     XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rateSheet),'掛け率');
     outWb=wb;
