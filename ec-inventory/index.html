@@ -288,7 +288,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><span class="grad-txt">EC棚卸し</span></h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v34</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v35</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -534,8 +534,14 @@ function ownHinban(r){
   cands.push(base.replace(/^elco-[^-]+-/,''));
   cands.push(base.replace(/^[a-z0-9]+-/,''));
   const m=base.match(/([A-Z]{2,}-?\d[\w-]*)$/);if(m)cands.push(m[1]);
-  for(const c of cands){if(c&&GENKA[c.trim()]!==undefined)return{hinban:c.trim(),genka:GENKA[c.trim()]};}
-  return{hinban:special||sk||cands.find(Boolean)||sku,genka:null};
+  for(const c of cands){
+    const e=GENKA[c&&c.trim()];
+    if(e!==undefined){
+      // マスタは 品番→[品名, 原価]。品名はそのまま使用する（クリーニングしない）
+      return{hinban:c.trim(),genka:e[1],mname:(e[0]||null)};
+    }
+  }
+  return{hinban:special||sk||cands.find(Boolean)||sku,genka:null,mname:null};
 }
 function decodeSJIS(buf){return new TextDecoder('shift-jis').decode(buf);}
 function parseCSV(text){return Papa.parse(text,{header:true,skipEmptyLines:true,dynamicTyping:false}).data;}
@@ -564,8 +570,9 @@ async function loadMasterXlsx(f){
       const rows=XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1});
       for(let i=2;i<rows.length;i++){
         const row=rows[i];if(!row)continue;
-        const hb=row[8],g=row[13];
-        if(hb!=null&&g!=null&&g!==''){const k=String(hb).trim();const v=parseFloat(g);if(k&&!isNaN(v)){GENKA[k]=v;added++;}}
+        const hb=row[8],g=row[13],nm=row[9];
+        if(hb!=null&&g!=null&&g!==''){const k=String(hb).trim();const v=parseFloat(g);
+          if(k&&!isNaN(v)){GENKA[k]=[(nm!=null?String(nm).trim():''),v];added++;}}
       }
     });
     document.getElementById('genkaCount').textContent=Object.keys(GENKA).length.toLocaleString();
@@ -691,12 +698,15 @@ document.getElementById('goBtn').onclick=async()=>{
             'システム連携用SKU番号':sku,'在庫数':qty,'上代':joka!=null?joka:'','掛け率':rt!=null?rt:'','原価':''});
         }
       }else{
-        const {hinban,genka}=ownHinban(r);
+        const {hinban,genka,mname}=ownHinban(r);
+        // 自社の商品名は商品データ（原価マスタ）の品名をそのまま使用。
+        // クリーニング（区切り線以降の削除等）はメーカー商品のみに適用する。
+        const ownName=mname||name;
         const total=(genka!=null)?Math.round(genka*qty*100)/100:'';
         if(genka==null)noGenka[prefix]=(noGenka[prefix]||0)+1;
-        own.push({'商品名':name,'品番':hinban,'原価':genka!=null?genka:'','在庫数':qty,'合計':total});
+        own.push({'商品名':ownName,'品番':hinban,'原価':genka!=null?genka:'','在庫数':qty,'合計':total});
         if(total===''){
-          errors.push({'区分':'自社','エラー種別':'原価なし','商品名':name,'品番':hinban,
+          errors.push({'区分':'自社','エラー種別':'原価なし','商品名':ownName,'品番':hinban,
             'システム連携用SKU番号':sku,'在庫数':qty,'上代':'','掛け率':'','原価':''});
         }
       }
