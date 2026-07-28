@@ -155,6 +155,9 @@
   .rms-tags{display:flex;flex-wrap:wrap;gap:7px}
   .rms-tags span{font-size:.75rem;font-family:var(--mono);background:var(--card);border:1px solid var(--green-border);
        color:var(--text);padding:4px 11px;border-radius:var(--radius-xs)}
+  .rms-caution{margin-top:11px;padding:9px 12px;font-size:.8rem;line-height:1.6;color:var(--amber);
+       background:var(--amber-dim);border:1px solid var(--amber-border);border-radius:var(--radius-xs)}
+  .rms-caution b{font-weight:700}
   .rms-link{margin-top:12px;font-size:.83rem}
   .rms-link a,.dl-steps a{color:var(--green);font-weight:600;text-decoration:none;border-bottom:1px solid var(--green-border)}
   .rms-link a:hover,.dl-steps a:hover{border-bottom-color:var(--green)}
@@ -285,7 +288,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><span class="grad-txt">EC棚卸し</span></h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v32</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v33</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -349,6 +352,7 @@
             <div class="rms-tags">
               <span>商品番号</span><span>システム連携用SKU番号</span><span>通常購入販売価格</span><span>商品名</span><span>バリエーション項目名・選択肢</span>
             </div>
+            <div class="rms-caution">⚠ <b>対象商品の最終更新日は「4年前くらい」に設定</b>してください（期間が短いと古い商品がCSVに含まれず、上代を取得できません）</div>
             <div class="rms-link"><a href="https://item.rms.rakuten.co.jp/rms-item-download/shops/212778" target="_blank" rel="noopener">RMS「CSVファイルダウンロード」を開く</a></div>
           </div>
         </details>
