@@ -288,7 +288,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><span class="grad-txt">EC棚卸し</span></h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v37</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v38</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -734,7 +734,15 @@ document.getElementById('goBtn').onclick=async()=>{
     const makerTotal=makerIncluded.reduce((s,r)=>s+r['原価合計'],0);
 
     // append total rows
-    const ownOut=ownIncluded.concat([{'商品名':'合計','品番':'','原価':'','在庫数':ownIncluded.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(ownTotal*100)/100}]);
+    // 自社シート末尾: 自社合計行に続けて、自社/メーカー/総合計のまとめを記載
+    const grandTotal=Math.round((ownTotal+makerTotal)*100)/100;
+    const ownOut=ownIncluded.concat([
+      {'商品名':'合計','品番':'','原価':'','在庫数':ownIncluded.reduce((s,r)=>s+r['在庫数'],0),'合計':Math.round(ownTotal*100)/100},
+      {'商品名':'','品番':'','原価':'','在庫数':'','合計':''},
+      {'商品名':'■ 自社 合計','品番':'','原価':'','在庫数':'','合計':Math.round(ownTotal*100)/100},
+      {'商品名':'■ メーカー 合計','品番':'','原価':'','在庫数':'','合計':Math.round(makerTotal)},
+      {'商品名':'■ 総合計（自社＋メーカー）','品番':'','原価':'','在庫数':'','合計':grandTotal}
+    ]);
     const makerOut=makerIncluded.concat([{'商品名':'合計','システム連携用SKU番号':'',
       '上代':'','掛け率':'','在庫数':makerIncluded.reduce((s,r)=>s+r['在庫数'],0),'原価合計':Math.round(makerTotal)}]);
 
