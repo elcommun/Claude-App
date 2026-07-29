@@ -1176,6 +1176,36 @@ function renderLeftoverPreview(leftovers, fromSlug) {
      ${leftovers.length > 20 ? `<div class="lo-more">…他 ${leftovers.length - 20}件（先頭20件を表示しています）</div>` : ''}`;
 }
 
+// ========== 変換完了メール（Google Apps Script経由の自動送信） ==========
+// Google Apps Script のウェブアプリURL（デプロイ後の https://script.google.com/macros/s/…/exec）。
+// 空の間はメール送信しない。GAS側は token を検証し ec@elcommun.co.jp へ送信する
+const MAIL_WEBHOOK_URL = '';
+const MAIL_TOKEN = 'laikle-convert-mail-2026';
+let MAIL_SENT = false; // ページを開いてから最初の変換完了時のみ送信する
+
+function sendCompletionMail(stats) {
+  if (!MAIL_WEBHOOK_URL || MAIL_SENT) return;
+  MAIL_SENT = true;
+  const body = [
+    'laikle-convert（店舗間 商品データ変換）で変換が完了しました。',
+    '',
+    `日時：${new Date().toLocaleString('ja-JP')}`,
+    `変換商品数：${stats.items}商品`,
+    `URL置換箇所：${stats.urls}箇所`,
+    `商品画像数：${stats.images}件`,
+    `変換もれ：${stats.leftovers}件`,
+    '',
+    'このメールは laikle-convert から自動送信されています。',
+  ].join('\n');
+  fetch(MAIL_WEBHOOK_URL, {
+    method: 'POST',
+    body: JSON.stringify({ token: MAIL_TOKEN, subject: '【laikle-convert】変換が完了しました', body }),
+  }).then(r => r.json()).then(res => {
+    if (res && res.ok) log('📧 完了メールを ec@elcommun.co.jp に送信しました', 'log-ok');
+    else log(`⚠️ 完了メールの送信に失敗しました（${(res && res.error) || '不明なエラー'}）`, 'log-warn');
+  }).catch(() => log('⚠️ 完了メールの送信に失敗しました（通信エラー）', 'log-warn'));
+}
+
 // ========== Step3: 変換実行 ==========
 function doConvert() {
   document.getElementById('logBox').innerHTML = '';
@@ -1389,6 +1419,7 @@ function doConvert() {
   setBadge('badgeItem', 'done', '✓ 変換済');
   setStepper(1);
   setNextAction('download');
+  sendCompletionMail({ items: itemUnique, urls: urlCounter.n + imgCounter.n + catUrlN, images: IMAGES.length, leftovers: leftovers.length });
   document.getElementById('resultSection').classList.add('show');
   document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
