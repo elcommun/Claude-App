@@ -1179,7 +1179,7 @@ function renderLeftoverPreview(leftovers, fromSlug) {
 // ========== 変換完了メール（Google Apps Script経由の自動送信） ==========
 // Google Apps Script のウェブアプリURL（デプロイ後の https://script.google.com/macros/s/…/exec）。
 // 空の間はメール送信しない。GAS側は token を検証し ec@elcommun.co.jp へ送信する
-const MAIL_WEBHOOK_URL = '';
+const MAIL_WEBHOOK_URL = 'https://script.google.com/macros/s/AKfycbw1ZCSMva794r06k-KKEVOzLu2ZMuRT4oD8TtlJn1G-N8_UjxIAdjdRzKWWqrRf4qEG/exec';
 const MAIL_TOKEN = 'laikle-convert-mail-2026';
 let MAIL_SENT = false; // ページを開いてから最初の変換完了時のみ送信する
 
@@ -1635,7 +1635,7 @@ function completeStep6() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 22;
+const APP_VERSION = 23;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
