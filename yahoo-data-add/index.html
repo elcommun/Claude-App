@@ -90,7 +90,7 @@ header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
       <ol class="about-steps">
         <li>下の「①Yahoo data_add CSV」「②楽天 normal-item CSV」にそれぞれファイルをアップロード</li>
         <li>「変換する」ボタンを押す</li>
-        <li>「data_add（配送保管済み）をダウンロード」ボタンから変換済みファイルを保存</li>
+        <li>「data（配送保管済み）をダウンロード」ボタンから変換済みファイルを保存</li>
         <li>保存したCSVをそのままYahoo!ショッピングにアップロード</li>
       </ol>
       <p class="about-note">配送ルールは下表のとおり自動判定されます。リードタイムは全商品一律で instock=1000／outstock=空白に設定し、出力はShift_JISのまま保持されます。また、<code>code</code>が「cal-」で始まる商品は brand-code=64324／product-code=11495 に設定します。</p>
@@ -180,7 +180,7 @@ header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
   <!-- 結果 -->
   <div class="result-section" id="resultSection">
     <h3>✅ 変換完了！</h3>
-    <button class="dl-btn" id="dlBtn">⬇️ data_add（配送保管済み）をダウンロード</button>
+    <button class="dl-btn" id="dlBtn">⬇️ data（配送保管済み）をダウンロード</button>
     <div class="stats-grid" id="statsGrid"></div>
   </div>
 
@@ -401,7 +401,7 @@ async function doConvert(){
   const blob=buildCSVBlob(outRows);
   const url=URL.createObjectURL(blob);
   document.getElementById('dlBtn').onclick=()=>{
-    const a=document.createElement('a'); a.href=url; a.download='data_add（配送保管済み）.csv'; a.click();
+    const a=document.createElement('a'); a.href=url; a.download='data（配送保管済み）.csv'; a.click();
   };
   document.getElementById('statsGrid').innerHTML=
     '<div class="stat"><div class="num">'+addData.rows.length+'</div><div class="label">総商品数</div></div>'+
