@@ -288,7 +288,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><span class="grad-txt">EC棚卸し</span></h1>
-      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v38</span></div>
+      <div class="sub">自社 / メーカー 振り分け出力 <span class="ver">v39</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -310,7 +310,7 @@
     <span class="ic-wrap"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>
     <div class="body">
       <div class="ttl">未入荷の予約商品はご注意ください</div>
-      <div class="txt">手帳・カレンダーなど、<b>まだ入荷していない予約商品</b>が <b>itemdata CSV</b> に含まれている場合は、棚卸しデータを生成する<b>前</b>に、該当行を <b>itemdata CSV</b> から削除してください。入荷前の在庫数がそのまま棚卸し対象に含まれてしまいます。</div>
+      <div class="txt">手帳・カレンダーなど、<b>まだ入荷していない予約商品</b>が <b>itemdata CSV</b> に含まれている場合は、棚卸しデータを生成する<b>前</b>に、該当行を <b>itemdata CSV</b> から削除してください。入荷前の在庫数がそのまま棚卸し対象に含まれてしまいます。<br>※「【ご予約 8月中旬発送】」「【ご予約 8月下旬発送】」を含む商品は <b>2026/8/27 まで自動で除外</b>されます（8/28以降は通常どおり含まれます）。</div>
     </div>
   </div>
 
@@ -456,6 +456,11 @@ themeBtn.onclick=()=>applyTheme(document.documentElement.getAttribute('data-them
 const EXCLUDE_PREFIXES=['apj-','rft-'];
 // 個別に棚卸し対象外とする商品（連携SKU 先頭一致・小文字）
 const EXCLUDE_SKU_PREFIXES=['elco-crb111','elco-wpk101'];  // elco-crb111-, WPK-101(elco-wpk101)
+// 予約商品の期間限定除外:
+// 「【ご予約 8月中旬発送】」「【ご予約 8月下旬発送】」を含む商品は 2026/8/27 まで棚卸しから除外し、
+// 2026/8/28 以降は通常どおり含める（実行日の日付で自動判定）
+const RESERVE_EXCLUDE_BEFORE=new Date(2026,7,28);  // 2026年8月28日 0:00
+const RESERVE_RE=/【ご予約[ 　]*8月(中旬|下旬)発送】/;
 const MAKER_PREFIXES=['4on-','8mw-','af','ai-','aito-','ak-','alsk-','bm-','cocochi-','cre-','ef','ldw',
   'ma-','mgt-','MO','nlf','nm-','pb-','psm-','rio-','sh-','SLW-','tp-','tri-','wf','wh-','ky-'];
 const DEFAULT_RATES={'4on-':0.55,'8mw-':0.5,'ak-':0.6,'alsk-':0.6,'bm-':0.45,'cocochi-':0.5,'cre-':0.5,'ky-':0.6,
@@ -688,11 +693,13 @@ document.getElementById('goBtn').onclick=async()=>{
     const hideZero=document.getElementById('hideZero').checked;
     const own=[],maker=[],errors=[];
     const noGenka={},noPrice={},noRate={};
-    let excluded=0;
+    let excluded=0,reserveExcluded=0;
+    const reserveActive=new Date()<RESERVE_EXCLUDE_BEFORE;  // 2026/8/27 までは予約商品を除外
     itemRows.forEach(r=>{
       const sku=(r['システム連携用SKU番号']||'').trim();if(!sku)return;
       if(isExcluded(sku)){excluded++;return;}  // 取り寄せ(apj-/rft-)は除外
       if(isDropped(sku))return;                // 個別除外(elco-crb111-, WPK-101)
+      if(reserveActive&&RESERVE_RE.test(r['商品名']||'')){reserveExcluded++;return;}  // 予約商品(8月発送)の期間限定除外
       const qty=parseInt(r['総在庫数']||r['在庫数']||'0',10)||0;
       if(hideZero&&qty===0)return;
       const name=cleanName(r['商品名']);
@@ -795,7 +802,7 @@ document.getElementById('goBtn').onclick=async()=>{
       errBlock.classList.add('hidden');errTableWrap.innerHTML='';
     }
 
-    showMsg(`生成完了！　自社 ${ownIncluded.length}件・メーカー ${makerIncluded.length}件${errors.length?`（合計未算出 ${errors.length}件は棚卸しデータから除外）`:''}${excluded?`　／ 取り寄せ(apj-・rft-) ${excluded}件は除外`:''}。下のボタンからダウンロードできます。`,'success');
+    showMsg(`生成完了！　自社 ${ownIncluded.length}件・メーカー ${makerIncluded.length}件${errors.length?`（合計未算出 ${errors.length}件は棚卸しデータから除外）`:''}${excluded?`　／ 取り寄せ(apj-・rft-) ${excluded}件は除外`:''}${reserveExcluded?`　／ 予約商品(8月中旬・下旬発送) ${reserveExcluded}件は除外（2026/8/27まで）`:''}。下のボタンからダウンロードできます。`,'success');
     flowGenerated=true;flowDownloaded=false;updateFlow();
   }catch(e){console.error(e);showMsg('エラー: '+e.message,'error');}
 };
