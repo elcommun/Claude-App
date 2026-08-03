@@ -1183,7 +1183,7 @@ async function processData() {
     else if (pn.match(/^elco-lln(.+?)-/))                { pn=pn.replace(/^elco-lln(.+?)-.*$/,'LLN-$1'); }
     else if (pn.match(/^elco-ecl(.+?)-/))                { pn=pn.replace(/^elco-ecl(.+?)-.*$/,'ECL-$1'); }
     else if (pn==='elco-wpk101')                         { pn='WPK-101'; }
-    else if (pn.match(/^elco-wcl(\d+)$/))                { pn=pn.replace(/^elco-wcl(\d+)$/,'WCL-$1'); }
+    else if (pn.match(/^elco-wcl-?(\d+)$/i))             { pn=pn.replace(/^elco-wcl-?(\d+)$/i,'WCL-$1'); }
     else if (pn.match(/^elco-CRB(\d+)-?$/))              { pn=pn.replace(/^elco-CRB(\d+)-?$/,'CRB-$1'); }
     else if (pn.match(/^elco-lln-.+wf-(LLN-.+?)wf-.+$/)) { pn=pn.replace(/^elco-lln-.+wf-(LLN-.+?)wf-.+$/,'$1'); }
     else if (pn.match(/^elco-elc-.+wf-(ECL-.+?)wf-.+$/)) { pn=pn.replace(/^elco-elc-.+wf-(ECL-.+?)wf-.+$/,'$1'); }
