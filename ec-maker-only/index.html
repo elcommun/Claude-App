@@ -156,7 +156,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v23</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v24</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -289,7 +289,7 @@ function extractProductCode(pn, store) {
     const mmpfx = pn.match(/^mm-\d+-(X?DR-.+)$/i);
     if (mmpfx) return mmpfx[1];
   }
-  if (/^elco-wcl-/i.test(pn)) return 'WCL-' + pn.slice(9);
+  if (/^elco-wcl-/i.test(pn)) return normalizeCode('WCL-' + pn.slice(9));
   if (/DR-MK-\d+/i.test(pn)) { const m = pn.match(/DR-MK-(\d+)/i); if (m) return 'MK-' + m[1]; }
   const auPAY = store && store.includes('auPAY');
   if (/^(?:ma|mg|mh|mc|mk|mb|wb|wk|ws|wv|wx|wl|mm)-/i.test(pn)) {
@@ -348,7 +348,7 @@ function normalizeCode(code) {
   if (cm) return cm[1] + '-' + cm[2].padStart(3, '0');
   const dbl = code.match(/^[A-Z]{2,4}-\d+([A-Z]{2,4}-\d+.*)$/) || code.match(/^[A-Z]{2,4}\d+-([A-Z]{2,4}-\d+.*)$/);
   if (dbl) return dbl[1];
-  if (/^elco-wcl-/i.test(code)) return 'WCL-' + code.slice(9);
+  if (/^elco-wcl-/i.test(code)) return normalizeCode('WCL-' + code.slice(9));
   if (/^DRMC-/i.test(code)) return 'DR-MC-' + code.slice(5);
   if (/^DRMH-/i.test(code)) return 'DR-MH-' + code.slice(5);
   if (/^DRMG-/i.test(code)) return 'DR-MG-' + code.slice(5);
