@@ -383,7 +383,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v226</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v227</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1281,15 +1281,44 @@ function catShortName(name, fmtName){
   const short=toks.slice(i).join(' ').trim();
   return short||String(name||'');
 }
+// 全期間での「カテゴリ→品番」対応表（カタログプレビュー用）。
+// 選択期間内に販売がない商品（販売数0）もカタログに載せるため、
+// 全販売履歴からカテゴリごとの品番一覧を一度だけ作ってキャッシュする
+let CATALOG_ALLTIME=null;
+function catalogAllTimeIndex(){
+  if(CATALOG_ALLTIME) return CATALOG_ALLTIME;
+  const idx={};
+  for(const bs of Object.values(PRELOADED.by_store)){
+    for(const byCat of Object.values(bs)){
+      for(const [rawCat,codes] of Object.entries(byCat)){
+        for(const rawCode of Object.keys(codes)){
+          const code=CODE_REMAP[rawCode]||rawCode;
+          if(CODE_SKIP_PREFIXES.some(p=>code.startsWith(p))) continue;
+          const p=DATA.products[code]||DATA.products[rawCode]||['',0];
+          let cat=getCodeCat(code)||mapCategory(rawCat);
+          if(cat==='ポーチ・ケース'&&p[0]&&p[0].includes('ペンケース'))cat='ペンケース';
+          if(cat==='食器'&&p[0]&&p[0].includes('STAINLESS FOOD POT'))cat='ランチボックス';
+          if(!idx[cat])idx[cat]={};
+          if(!idx[cat][code])idx[cat][code]={code,name:p[0],price:p[1]};
+        }
+      }
+    }
+  }
+  CATALOG_ALLTIME=idx;
+  return idx;
+}
 // チェック済みの手帳/カレンダーカテゴリを、フォーマット別グループ→品番順で組み立てる
 function buildCatalogData(){
   const cats=pdfEligibleCats();
+  const allTime=catalogAllTimeIndex();
   const sections=[];
   for(const cat of cats){
     const catType=getCatType(cat);
     const realCats=getGroupCats(cat)||[cat];
     const combined={};
     for(const rc of realCats){for(const[code,item] of Object.entries(aggregated[rc]||{})){if(!combined[code])combined[code]={...item,qty:0,amount:0};combined[code].qty+=item.qty;combined[code].amount+=item.amount;}}
+    // 選択期間内に販売がなかった商品も「0個」としてカタログに含める
+    for(const rc of realCats){for(const[code,item] of Object.entries(allTime[rc]||{})){if(!combined[code])combined[code]={...item,qty:0,amount:0};}}
     const items=Object.values(combined);
     if(!items.length) continue;
     const maxQty=items.reduce((m,i)=>Math.max(m,i.qty),1);
