@@ -562,7 +562,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-05-23l</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-08-04</span>
 </header>
 
 <!-- ── Page ── -->
@@ -1009,7 +1009,7 @@ function extractProductCode(pn, store) {
     if (mmpfx) return mmpfx[1];
   }
   // elco-wcl-NNN → WCL-NNN（extractProductCode の elco ルールを補完）
-  if (/^elco-wcl-/i.test(pn)) return 'WCL-' + pn.slice(9);
+  if (/^elco-wcl-/i.test(pn)) return normalizeCode('WCL-' + pn.slice(9));
   // DR-MK-NNN → MK-NNN（モイッカボートバッグ: DR-プレフィックスを除去）
   if (/DR-MK-\d+/i.test(pn)) { const m = pn.match(/DR-MK-(\d+)/i); if (m) return 'MK-' + m[1]; }
   const auPAY = store && store.includes('auPAY');
@@ -1114,7 +1114,7 @@ function normalizeCode(code) {
            || code.match(/^[A-Z]{2,4}\d+-([A-Z]{2,4}-\d+.*)$/);
   if (dbl) return dbl[1];
   // elco-wcl-NNN → WCL-NNN
-  if (/^elco-wcl-/i.test(code)) return 'WCL-' + code.slice(9);
+  if (/^elco-wcl-/i.test(code)) return normalizeCode('WCL-' + code.slice(9));
   // DRXX- 明示ルール (drn汎用ルールのフォールバック)
   if (/^DRMC-/i.test(code)) return 'DR-MC-' + code.slice(5);
   if (/^DRMH-/i.test(code)) return 'DR-MH-' + code.slice(5);
