@@ -1089,7 +1089,7 @@ function addColResizer(th, table, ths) {
   });
 }
 
-// 商品名の整形（プレビュー用）：先頭の装飾（【…】［…］〔…〕／＼…／）と「｜」以降を除去し30文字以内に
+// 商品名の整形（プレビュー用）：先頭の装飾（【…】［…］〔…〕／＼…／）と「｜」以降を除去（全文表示・省略しない）
 function cleanPreviewName(name) {
   let n=String(name||''), prev;
   do {
@@ -1099,8 +1099,7 @@ function cleanPreviewName(name) {
     n=n.replace(/^\s*\\[^/]*\/\s*/,'');                    // \…/（半角）
   } while (n!==prev);
   n=n.split(/[｜|]/)[0].trim();                            // 「｜」以降を削除
-  if (n.length>30) n=n.slice(0,30)+'…';                   // 30文字以内
-  return n;
+  return n;                                                // 30文字制限は撤廃（CSSで折り返して全文表示）
 }
 
 // 「項目・選択肢」から「デザイン:」「カラー:」の右側の値だけを抽出する。
