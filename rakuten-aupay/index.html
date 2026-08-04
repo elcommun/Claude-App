@@ -218,6 +218,8 @@
           <br>
           ⚠️ 「0枚成功」になる場合：Wi-Fi／インターネット接続（VPN使用時はオフ）を確認し、もう一度貼り付けて実行してください。失敗理由は <code>aupay_images/_download_errors.log</code> に記録されます<br>
           <br>
+          🔁 画像の枚数が多い場合、楽天サーバー側の混雑等で一部が失敗することがあります。<b>同じコマンドをもう一度実行すると、既に成功した画像はそのままに、失敗した分だけ再取得</b>します（最初からやり直しにはなりません）。数回繰り返すと成功件数が増えていきます<br>
+          <br>
           💡 コマンドは常に「いま画面に表示されている最新の変換結果」を反映します。やり直しはもう一度ボタンを押してコピー→貼り付けでOKです
         </div>
       </details>
@@ -328,7 +330,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 25;
+const APP_VERSION = 26;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -1039,19 +1041,23 @@ function buildImageScript() {
     '# auPAY移行用 商品画像一括ダウンロード - ' + IMAGES.length + '枚',
     '# 取得元: ' + RAKUTEN_IMG_BASE + '/',
     'SAVE="$HOME/Downloads/aupay_images"',
-    'rm -rf "$SAVE" && mkdir -p "$SAVE"',
+    'mkdir -p "$SAVE"',
     'ERRLOG="$SAVE/_download_errors.log"; : > "$ERRLOG"',
-    'TOTAL=' + IMAGES.length + '; S=0; F=0',
+    'TOTAL=' + IMAGES.length + '; S=0; F=0; SK=0',
     "REF='Referer: https://www.rakuten.co.jp/'",
     "UA='User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'",
-    'echo "🖼️ $TOTAL 枚を $SAVE にダウンロードします..."',
+    'echo "🖼️ $TOTAL 枚を $SAVE にダウンロードします（既にダウンロード済みの画像はスキップします）..."',
     'dl() {',
-    '  if curl -sSfL --retry 2 -H "$REF" -H "$UA" -o "$SAVE/$2" "$1" 2>>"$ERRLOG"; then',
+    '  if [ -s "$SAVE/$2" ]; then',
+    '    SK=$((SK+1))',
+    '  elif curl -sSfL --http1.1 --connect-timeout 10 --retry 5 --retry-delay 2 -H "$REF" -H "$UA" -o "$SAVE/$2" "$1" 2>>"$ERRLOG"; then',
     '    S=$((S+1))',
     '  else',
+    '    rm -f "$SAVE/$2"',
     '    F=$((F+1)); echo "❌ $2  ← $1" >> "$ERRLOG"',
     '  fi',
-    '  printf "\\r⏬ %d/%d（成功 %d・失敗 %d）" "$((S+F))" "$TOTAL" "$S" "$F"',
+    '  printf "\\r⏬ %d/%d（成功 %d・スキップ %d・失敗 %d）" "$((S+F+SK))" "$TOTAL" "$S" "$SK" "$F"',
+    '  sleep 0.1',
     '}',
     ''
   ];
@@ -1062,15 +1068,15 @@ function buildImageScript() {
     '',
     'echo ""',
     'echo "════════════════════"',
-    'if [ "$S" -eq 0 ]; then',
+    'if [ "$((S+SK))" -eq 0 ]; then',
     '  echo "❌ 1枚もダウンロードできませんでした（$F 枚失敗）"',
     '  echo "・Wi-Fi／インターネット接続（VPNを使っている場合はオフ）を確認して、もう一度同じコマンドを実行してください"',
     '  echo "・エラーの詳細はこのファイルに記録されています → $ERRLOG"',
     '  open "$SAVE"',
     '  exit 1',
     'fi',
-    'echo "✅ ダウンロード完了: $S 枚成功 / $F 枚失敗"',
-    '[ "$F" -gt 0 ] && echo "⚠️ 失敗した画像は $ERRLOG に記録されています。もう一度同じコマンドを実行すると再取得を試せます"',
+    'echo "✅ ダウンロード完了: 今回 $S 枚成功 ／ 既にダウンロード済みで $SK 枚スキップ ／ $F 枚失敗"',
+    '[ "$F" -gt 0 ] && echo "⚠️ 失敗した画像は $ERRLOG に記録されています。もう一度同じコマンドを実行すると、失敗した分だけ再取得を試します（成功済みの画像は再ダウンロードしません）"',
     '[ "$F" -eq 0 ] && rm -f "$ERRLOG"',
     '',
     'if ! command -v zip >/dev/null 2>&1; then',
@@ -1079,8 +1085,11 @@ function buildImageScript() {
     '  exit 0',
     'fi',
     'echo "📦 elcommunフォルダ全体をelcommun.zipとして作成しています..."',
-    '(cd "$SAVE" && rm -f elcommun.zip && zip -rq elcommun.zip elcommun)',
-    'echo "✅ elcommun.zip 作成完了。このzipをそのままCyberduck等でimg.manager.wowma.jpのルートにアップロードしてください"',
+    'if (cd "$SAVE" && rm -f elcommun.zip && zip -rq elcommun.zip elcommun); then',
+    '  echo "✅ elcommun.zip 作成完了。このzipをそのままCyberduck等でimg.manager.wowma.jpのルートにアップロードしてください"',
+    'else',
+    '  echo "❌ elcommun.zipの作成に失敗しました。elcommunフォルダ自体は $SAVE に残っているので、Finderで手動でZIP圧縮してください"',
+    'fi',
     'open "$SAVE"'
   );
   return lines.join('\n');
