@@ -252,8 +252,12 @@
   .pv-table td { padding: 8px 12px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: top; overflow: hidden; }
   .pv-table tbody tr:hover { background: var(--surface2); }
   .pv-table tbody tr:last-child td { border-bottom: none; }
-  /* 商品名・項目選択肢: 1行表示。初期幅は文字数に合わせて自動。列ヘッダーのドラッグで列ごとに幅変更。全文はホバーで確認可 */
-  .pv-name, .pv-optv { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* 商品名: 折り返して全文表示（省略しない）。列ヘッダーのドラッグで列ごとに幅変更可 */
+  .pv-table th:first-child, .pv-table td:first-child { min-width: 180px; }
+  .pv-name { display: block; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
+  .pv-sort { cursor: pointer; user-select: none; }
+  .pv-sort:hover { background: #dbeafe; }
+  .pv-caret { font-size: 0.85em; color: var(--accent); }
   .pv-optv { color: var(--text2); }
 
   /* ── 処理内容カード ── */
@@ -986,7 +990,7 @@ function renderPreview(summaries, totalSku) {
       <div class="pv-sheet-head">${esc(s.label)}<span class="pv-badge">${s.summary.length} SKU ／ 計 ${qtyTotal} 個</span></div>
       <div class="pv-wrap">
         <table class="pv-table">
-          <thead><tr><th>商品名</th><th>商品番号</th><th class="num">数量</th></tr></thead>
+          <thead><tr><th>商品名</th><th class="pv-sort" data-key="code">商品番号<span class="pv-caret"></span></th><th class="num pv-sort" data-key="qty">数量<span class="pv-caret"></span></th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -1026,9 +1030,38 @@ function setupPreviewColumnResize() {
       table.style.width = widths.reduce((a, b) => a + b, 0) + 'px';
       // 各列ヘッダー（最後の数量列以外）にリサイザーを付与し、列全体の幅をドラッグで変更できるようにする
       ths.forEach((th, idx) => { if (idx < ths.length - 1) addColResizer(th, table, ths); });
+      setupPreviewSort(table, ths);
       table.dataset.colInit = '1';
     });
   });
+}
+// プレビュー表のソート（商品番号・数量の列ヘッダークリックで昇順/降順トグル）
+function setupPreviewSort(table, ths) {
+  ths.forEach(th => {
+    if (!th.classList.contains('pv-sort')) return;
+    th.addEventListener('click', e => {
+      if (e.target.closest('.col-resizer')) return;   // 列幅リサイザーのドラッグ時はソートしない
+      const key = th.dataset.key;
+      const dir = th.dataset.dir === 'asc' ? 'desc' : 'asc';
+      ths.forEach(o => { if (o !== th) { o.dataset.dir=''; const c=o.querySelector('.pv-caret'); if (c) c.textContent=''; } });
+      th.dataset.dir = dir;
+      const caret = th.querySelector('.pv-caret'); if (caret) caret.textContent = dir === 'asc' ? ' ▲' : ' ▼';
+      sortPreviewRows(table, key, dir);
+    });
+  });
+}
+function sortPreviewRows(table, key, dir) {
+  const tb = table.tBodies[0]; if (!tb) return;
+  const rows = Array.from(tb.rows);
+  const getVal = row => key === 'qty'
+    ? (parseFloat(row.cells[row.cells.length-1].textContent) || 0)
+    : ((row.querySelector('.pv-code') && row.querySelector('.pv-code').dataset.code) || '');
+  rows.sort((a, b) => {
+    const va = getVal(a), vb = getVal(b);
+    const c = key === 'qty' ? (va - vb) : String(va).localeCompare(String(vb), 'ja', { numeric: true });
+    return dir === 'asc' ? c : -c;
+  });
+  rows.forEach(r => tb.appendChild(r));
 }
 function addColResizer(th, table, ths) {
   const r = document.createElement('div');
