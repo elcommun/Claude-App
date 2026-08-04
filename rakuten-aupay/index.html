@@ -92,6 +92,8 @@
   .preview-wrap{max-height:420px;overflow:auto;border:1px solid var(--gray-200);border-radius:8px;}
   #warnCard{display:none;}
   #warnCard.show{display:block;}
+  #skipCard{display:none;}
+  #skipCard.show{display:block;}
   .saved-note{display:none;font-size:11.5px;color:#065F46;font-weight:700;margin-top:8px;line-height:1.7;}
   .saved-note.show{display:block;}
   .hint-box{background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:12px 16px;margin-top:10px;font-size:12px;color:#065F46;line-height:1.9;}
@@ -289,6 +291,22 @@
     </div>
   </div>
 
+  <!-- スキップされた商品 -->
+  <div class="card" id="skipCard">
+    <div class="card-header">
+      <div class="step" style="background:var(--gray-600);">⏭</div>
+      <h2>スキップされた商品（出力対象外） <span class="sub" id="skipListCount"></span></h2>
+    </div>
+    <div class="card-body">
+      <div class="preview-wrap">
+        <table class="data-table">
+          <thead><tr><th>商品コード</th><th>商品名</th><th>理由</th></tr></thead>
+          <tbody id="skipBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- 警告一覧 -->
   <div class="card" id="warnCard">
     <div class="card-header">
@@ -310,7 +328,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 23;
+const APP_VERSION = 24;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -925,16 +943,18 @@ document.getElementById('execBtn').addEventListener('click', () => {
     return;
   }
   const s = result.stats;
+  const skips = result.warns.filter(w => w.status === 'スキップ');
+  const others = result.warns.filter(w => w.status !== 'スキップ');
   log('✅ 変換完了：' + s.converted + '商品（すべて新規登録 n・在庫0で出力）、stock ' + s.stockRows + '行', 'log-ok');
   if (s.skipped) log('⏭️ スキップ：' + s.skipped + '商品（楽天で倉庫指定・非公開）', 'log-warn');
   if (!state.cat) log('ℹ️ dl-item-cat.csv 未読み込みのため店舗内カテゴリ（shopCategory）は空欄です', 'log-info');
-  result.warns.forEach(w => w.msgs.forEach(m => log('⚠️ ' + escHtml(w.code) + '：' + escHtml(m), 'log-warn')));
+  others.forEach(w => w.msgs.forEach(m => log('⚠️ ' + escHtml(w.code) + '：' + escHtml(m), 'log-warn')));
 
   document.getElementById('statsGrid').innerHTML =
     '<div class="stat"><div class="num">' + s.converted + '</div><div class="label">出力商品数</div></div>' +
     '<div class="stat"><div class="num">' + s.stockRows + '</div><div class="label">stock行数</div></div>' +
     '<div class="stat"><div class="num">' + s.skipped + '</div><div class="label">スキップ</div></div>' +
-    '<div class="stat"><div class="num">' + result.warns.length + '</div><div class="label">要確認</div></div>';
+    '<div class="stat"><div class="num">' + others.length + '</div><div class="label">要確認</div></div>';
   document.getElementById('resultSection').classList.add('show');
 
   IMAGES = result.images || [];
@@ -943,14 +963,26 @@ document.getElementById('execBtn').addEventListener('click', () => {
   document.getElementById('imgStepCard').style.display = IMAGES.length ? '' : 'none';
   document.getElementById('imgUploadCard').style.display = IMAGES.length ? '' : 'none';
 
+  const sc = document.getElementById('skipCard');
+  const sb = document.getElementById('skipBody');
+  if (skips.length) {
+    sb.innerHTML = skips.map(w =>
+      '<tr><td style="white-space:nowrap;">' + escHtml(w.code) + '</td><td>' + escHtml(w.name).slice(0, 60) + '</td>' +
+      '<td>' + w.msgs.map(escHtml).join('<br>') + '</td></tr>').join('');
+    document.getElementById('skipListCount').textContent = skips.length + '件';
+    sc.classList.add('show');
+  } else {
+    sc.classList.remove('show');
+  }
+
   const wc = document.getElementById('warnCard');
   const wb = document.getElementById('warnBody');
-  if (result.warns.length) {
-    wb.innerHTML = result.warns.map(w =>
+  if (others.length) {
+    wb.innerHTML = others.map(w =>
       '<tr><td style="white-space:nowrap;">' + escHtml(w.code) + '</td><td>' + escHtml(w.name).slice(0, 60) + '</td>' +
       '<td><span class="badge ' + (w.status === '新規' ? 'badge-blue' : w.status === '更新' ? 'badge-green' : 'badge-gray') + '">' + w.status + '</span></td>' +
       '<td>' + w.msgs.map(escHtml).join('<br>') + '</td></tr>').join('');
-    document.getElementById('warnCount').textContent = result.warns.length + '件';
+    document.getElementById('warnCount').textContent = others.length + '件';
     wc.classList.add('show');
   } else {
     wc.classList.remove('show');
