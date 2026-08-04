@@ -457,7 +457,7 @@
     </div>
   </div>
 
-  <div class="footer">EL COMMUN EC事業部 — ECカテゴリ別販売数 <span id="verBadge" style="opacity:.6;font-size:.85em">v2</span></div>
+  <div class="footer">EL COMMUN EC事業部 — ECカテゴリ別販売数 <span id="verBadge" style="opacity:.6;font-size:.85em">v3</span></div>
 </div>
 
 <script>
@@ -483,7 +483,7 @@ const previewBody = document.getElementById('previewBody');
 // プレビューを表示するSKU数の上限
 const PREVIEW_SKU_LIMIT = 30;
 
-const APP_VERSION = 2;   // 変更のたびに +1（サーバー側が大きければ自動リロードしてキャッシュ更新）
+const APP_VERSION = 3;   // 変更のたびに +1（サーバー側が大きければ自動リロードしてキャッシュ更新）
 let csvFile = null;
 
 // ─────────────────────────────────────────────
@@ -864,7 +864,6 @@ async function processData(download = true) {
       let n = MASTER[pn] || '';
       if (!n) {
         n = (pd.names.elcommun||pd.names.laikle||pd.names.other||'').replace(/ダイアリー スケジュール帳/g,'').trim();
-        const idx=n.indexOf('』'); if (idx!==-1) n=n.substring(0,idx+1).trim();
         n = cleanPreviewName(n);
       }
       return {'商品番号':pn,'商品名':n,'個数':pd.quantity,'商品URL':pd.url};
@@ -1090,7 +1089,8 @@ function addColResizer(th, table, ths) {
   });
 }
 
-// 商品名の整形（プレビュー用）：先頭の装飾（【…】［…］〔…〕／＼…／）と「｜」以降を除去（全文表示・省略しない）
+// 商品名の整形（プレビュー用）：先頭の装飾（【…】［…］〔…〕／＼…／）を除去し、
+// 『…』のタイトルは閉じ括弧まで残す（以降のキーワード列は除去）。省略・文字数制限はしない。
 function cleanPreviewName(name) {
   let n=String(name||''), prev;
   do {
@@ -1099,8 +1099,10 @@ function cleanPreviewName(name) {
     n=n.replace(/^\s*＼[^／]*／\s*/,'');                   // ＼…／
     n=n.replace(/^\s*\\[^/]*\/\s*/,'');                    // \…/（半角）
   } while (n!==prev);
-  n=n.split(/[｜|]/)[0].trim();                            // 「｜」以降を削除
-  return n;                                                // 30文字制限は撤廃（CSSで折り返して全文表示）
+  const q=n.indexOf('』');
+  if (q!==-1) n=n.slice(0,q+1).trim();                     // 『…』は閉じ括弧まで（タイトル内の｜も保持）、以降のキーワード列を除去
+  else n=n.split(/[｜|]/)[0].trim();                        // 『』が無い場合のみ「｜」以降を除去
+  return n;
 }
 
 // 「項目・選択肢」から「デザイン:」「カラー:」の右側の値だけを抽出する。
