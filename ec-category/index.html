@@ -6,7 +6,7 @@
 <title>ECカテゴリ別販売数 — EL COMMUN EC事業部</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="product-names.js"></script>
+<script src="product-names.js?v=2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -457,7 +457,7 @@
     </div>
   </div>
 
-  <div class="footer">EL COMMUN EC事業部 — ECカテゴリ別販売数</div>
+  <div class="footer">EL COMMUN EC事業部 — ECカテゴリ別販売数 <span id="verBadge" style="opacity:.6;font-size:.85em">v2</span></div>
 </div>
 
 <script>
@@ -483,6 +483,7 @@ const previewBody = document.getElementById('previewBody');
 // プレビューを表示するSKU数の上限
 const PREVIEW_SKU_LIMIT = 30;
 
+const APP_VERSION = 2;   // 変更のたびに +1（サーバー側が大きければ自動リロードしてキャッシュ更新）
 let csvFile = null;
 
 // ─────────────────────────────────────────────
@@ -1193,6 +1194,22 @@ previewBody.addEventListener('mouseout', e => {
   const from = e.target.closest('.pv-code');
   if (from && (!e.relatedTarget || !from.contains(e.relatedTarget))) hideThumb();
 });
+
+// ── 自動アップデート: サーバー側の APP_VERSION が大きければリロードして新版に更新 ──
+// （作業中＝CSV選択済みのときはリロードしない）
+(function () {
+  function checkForUpdate() {
+    fetch(location.pathname + '?_v=' + Date.now(), { cache: 'no-store' })
+      .then(r => r.text())
+      .then(t => {
+        const m = t.match(/const APP_VERSION\s*=\s*(\d+)/);
+        if (m && parseInt(m[1], 10) > APP_VERSION && !csvFile) location.reload(true);
+      })
+      .catch(() => {});
+  }
+  setTimeout(checkForUpdate, 8000);
+  setInterval(checkForUpdate, 3 * 60 * 1000);   // 3分ごと
+})();
 </script>
 </body>
 </html>
