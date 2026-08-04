@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>画像かんたん縮小 | EL COMMUN</title>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  /* === EL COMMUN UI デザインシステム === */
+  :root {
+    --primary:#E85D26;--primary-light:#FFF3EE;--primary-dark:#C4461B;
+    --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+    --gray-400:#9CA3AF;--gray-600:#4B5563;--gray-800:#1F2937;
+    --green:#10B981;--green-light:#ECFDF5;
+    --red:#EF4444;--red-light:#FEF2F2;
+    --yellow-light:#FFFBEB;--blue-light:#EFF6FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Hiragino Sans','Noto Sans JP','Meiryo',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh;}
+  header{background:white;border-bottom:3px solid var(--primary);padding:16px 32px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .logo{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;}
+  header h1{font-size:18px;font-weight:700;}
+  header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .container{max-width:960px;margin:0 auto;padding:32px 16px;}
+  .info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.6;}
+  .info-box strong{color:#78350F;}
+  .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
+  .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
+  .card-header h2{font-size:15px;font-weight:700;}
+  .sub{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .card-body{padding:20px;}
+  .upload-zone{border:2px dashed var(--gray-200);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--primary);background:var(--primary-light);}
+  .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{font-size:32px;margin-bottom:8px;}
+  .upload-zone p{font-size:14px;color:var(--gray-600);margin-bottom:4px;}
+  .upload-zone small{font-size:12px;color:var(--gray-400);}
+  .file-status{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;}
+  .file-status.ok{background:var(--green-light);color:#065F46;}
+  .file-status.err{background:var(--red-light);color:#991B1B;}
+  .data-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .data-table th{background:var(--gray-100);padding:8px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200);}
+  .data-table td{padding:8px 12px;border-bottom:1px solid var(--gray-200);vertical-align:middle;}
+  .data-table tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;}
+  .badge-green{background:#D1FAE5;color:#065F46;}
+  .badge-gray{background:#F3F4F6;color:#374151;}
+  .badge-red{background:#FEE2E2;color:#991B1B;}
+  .rule-box{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:8px;padding:12px 16px;font-size:12px;color:#1E40AF;line-height:2;}
+  .primary-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .primary-btn:hover:not(:disabled){background:var(--primary-dark);}
+  .primary-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+  .log-box{margin-top:16px;background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;max-height:320px;overflow-y:auto;display:none;}
+  .log-box.show{display:block;}
+  .log-ok{color:#6EE7B7;}.log-warn{color:#FCD34D;}.log-err{color:#FCA5A5;}.log-info{color:#93C5FD;}
+  .log-sep{color:#4B5563;border-top:1px solid #374151;margin:4px 0;}
+  .result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:20px;margin-top:20px;text-align:center;}
+  .result-section.show{display:block;}
+  .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
+  .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
+  .dl-btn:hover{background:#059669;}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+  .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
+  .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
+  .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
+
+  /* === このアプリ固有 === */
+  .settings-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  @media(max-width:640px){.settings-grid{grid-template-columns:1fr;}.stats-grid{grid-template-columns:repeat(2,1fr);}}
+  .setting label{display:block;font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:6px;}
+  .setting select{width:100%;padding:9px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:13px;background:white;color:var(--gray-800);}
+  .setting input[type=range]{width:100%;accent-color:var(--primary);}
+  .quality-val{font-weight:700;color:var(--primary);}
+  .thumb{width:52px;height:52px;object-fit:contain;background:var(--gray-100);border-radius:6px;border:1px solid var(--gray-200);}
+  .fname{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mini-btn{padding:5px 12px;background:var(--green);color:white;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;}
+  .mini-btn:hover{background:#059669;}
+  .del-btn{padding:5px 10px;background:var(--gray-100);color:var(--gray-600);border:1px solid var(--gray-200);border-radius:6px;font-size:11px;cursor:pointer;}
+  .del-btn:hover{background:var(--red-light);color:#991B1B;border-color:#FECACA;}
+  .clear-btn{margin-top:10px;padding:7px 16px;background:white;color:var(--gray-600);border:1px solid var(--gray-200);border-radius:8px;font-size:12px;cursor:pointer;}
+  .clear-btn:hover{background:var(--gray-50);}
+  .tbl-wrap{overflow-x:auto;margin-top:14px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">縮</div>
+  <div><h1>画像かんたん縮小 <span>EL COMMUN</span><span id="verBadge">v1</span></h1></div>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    <strong>処理概要：</strong>画像をドロップするだけで、指定サイズにリサイズ＆圧縮してファイルサイズを小さくします。
+    処理はすべてブラウザ内で完結し、画像がサーバーに送信されることはありません。
+  </div>
+
+  <!-- Step 1: 画像アップロード -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">1</div>
+      <h2>画像を追加 <span class="sub">JPEG / PNG / WebP・複数可</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="zone">
+        <input type="file" accept="image/jpeg,image/png,image/webp" multiple id="fileInput">
+        <div class="upload-icon">🖼️</div>
+        <p>画像をここにドロップ</p>
+        <small>またはクリックして選択（複数選択OK）</small>
+      </div>
+      <div id="fileStatus"></div>
+      <div class="tbl-wrap" id="fileListWrap" style="display:none">
+        <table class="data-table">
+          <thead><tr><th></th><th>ファイル名</th><th>元サイズ</th><th>ピクセル</th><th></th></tr></thead>
+          <tbody id="fileList"></tbody>
+        </table>
+        <button class="clear-btn" onclick="clearAll()">🗑️ すべてクリア</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: 設定 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">2</div>
+      <h2>縮小設定</h2>
+    </div>
+    <div class="card-body">
+      <div class="settings-grid">
+        <div class="setting">
+          <label>最大サイズ（長辺）</label>
+          <select id="maxSize">
+            <option value="600">600px</option>
+            <option value="800">800px（EC標準）</option>
+            <option value="1200" selected>1200px</option>
+            <option value="1600">1600px</option>
+            <option value="2000">2000px</option>
+            <option value="0">リサイズしない（圧縮のみ）</option>
+          </select>
+        </div>
+        <div class="setting">
+          <label>画質 <span class="quality-val" id="qualityVal">82</span>%</label>
+          <input type="range" id="quality" min="50" max="95" value="82" oninput="document.getElementById('qualityVal').textContent=this.value">
+        </div>
+        <div class="setting">
+          <label>出力形式</label>
+          <select id="format">
+            <option value="auto" selected>自動（元の形式を維持）</option>
+            <option value="jpeg">JPEG（最も軽い）</option>
+            <option value="png">PNG（透過を維持）</option>
+            <option value="webp">WebP</option>
+          </select>
+        </div>
+      </div>
+      <div class="rule-box" style="margin-top:16px">
+        💡 <strong>ヒント：</strong>楽天・Amazon等の商品画像は「800px・画質82%・JPEG」で十分きれいです。<br>
+        ⚠️ 透過PNGをJPEGにすると背景が白になります。透過を残したい場合はPNGまたは自動を選択してください。
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: 実行 -->
+  <div class="card">
+    <div class="card-header"><div class="step">3</div><h2>縮小を実行</h2></div>
+    <div class="card-body">
+      <button class="primary-btn" id="actionBtn" disabled onclick="doAction()">
+        ⚙️ 画像を縮小する
+      </button>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="result-section" id="resultSection">
+    <h3>✅ 縮小完了！</h3>
+    <button class="dl-btn" id="dlBtn" onclick="downloadZip()">⬇️ まとめてダウンロード（ZIP）</button>
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="tbl-wrap">
+      <table class="data-table" style="background:white;border-radius:8px">
+        <thead><tr><th>ファイル名</th><th>変換前</th><th>変換後</th><th>削減率</th><th>ピクセル</th><th></th></tr></thead>
+        <tbody id="resultList"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const APP_VERSION = 1;
+
+let FILES = [];    // {file, name, size, w, h, url}
+let RESULTS = [];  // {name, blob, before, after, w, h}
+
+const zone = document.getElementById('zone');
+const fileInput = document.getElementById('fileInput');
+
+fileInput.addEventListener('change', e => addFiles(e.target.files));
+['dragover','dragenter'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('drag'); }));
+zone.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+function fmtSize(bytes) {
+  if (bytes >= 1048576) return (bytes / 1048576).toFixed(2) + ' MB';
+  if (bytes >= 1024) return Math.round(bytes / 1024) + ' KB';
+  return bytes + ' B';
+}
+
+async function addFiles(list) {
+  const ok = ['image/jpeg','image/png','image/webp'];
+  let added = 0, skipped = 0;
+  for (const f of list) {
+    if (!ok.includes(f.type)) { skipped++; continue; }
+    if (FILES.some(x => x.name === f.name && x.size === f.size)) { skipped++; continue; }
+    const url = URL.createObjectURL(f);
+    try {
+      const img = await loadImg(url);
+      FILES.push({ file: f, name: f.name, size: f.size, w: img.naturalWidth, h: img.naturalHeight, url });
+      added++;
+    } catch { URL.revokeObjectURL(url); skipped++; }
+  }
+  fileInput.value = '';
+  renderFileList();
+  const st = document.getElementById('fileStatus');
+  if (added || skipped) {
+    st.innerHTML = skipped
+      ? `<div class="file-status err">⚠️ ${added}枚追加、${skipped}枚スキップ（対応外の形式または重複）</div>`
+      : `<div class="file-status ok">✅ ${added}枚追加しました（合計 ${FILES.length}枚）</div>`;
+  }
+}
+
+function loadImg(url) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = url;
+  });
+}
+
+function renderFileList() {
+  const wrap = document.getElementById('fileListWrap');
+  const tbody = document.getElementById('fileList');
+  wrap.style.display = FILES.length ? '' : 'none';
+  document.getElementById('actionBtn').disabled = !FILES.length;
+  tbody.innerHTML = FILES.map((f, i) => `
+    <tr>
+      <td><img class="thumb" src="${f.url}" alt=""></td>
+      <td class="fname" title="${f.name}">${f.name}</td>
+      <td>${fmtSize(f.size)}</td>
+      <td>${f.w}×${f.h}</td>
+      <td><button class="del-btn" onclick="removeFile(${i})">✕</button></td>
+    </tr>`).join('');
+}
+
+function removeFile(i) {
+  URL.revokeObjectURL(FILES[i].url);
+  FILES.splice(i, 1);
+  renderFileList();
+  document.getElementById('fileStatus').innerHTML = '';
+}
+
+function clearAll() {
+  FILES.forEach(f => URL.revokeObjectURL(f.url));
+  FILES = [];
+  renderFileList();
+  document.getElementById('fileStatus').innerHTML = '';
+}
+
+function log(msg, cls = '') {
+  const box = document.getElementById('logBox');
+  box.classList.add('show');
+  box.innerHTML += `<div class="${cls}">${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function outType(srcType, fmt) {
+  if (fmt === 'jpeg') return 'image/jpeg';
+  if (fmt === 'png') return 'image/png';
+  if (fmt === 'webp') return 'image/webp';
+  return srcType; // auto
+}
+
+function extFor(type) {
+  return { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }[type] || 'jpg';
+}
+
+function renameExt(name, type) {
+  const base = name.replace(/\.[^.]+$/, '');
+  return base + '.' + extFor(type);
+}
+
+async function doAction() {
+  const btn = document.getElementById('actionBtn');
+  btn.disabled = true;
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('resultSection').classList.remove('show');
+  RESULTS.forEach(r => { if (r.url) URL.revokeObjectURL(r.url); });
+  RESULTS = [];
+
+  const maxSize = parseInt(document.getElementById('maxSize').value, 10);
+  const quality = parseInt(document.getElementById('quality').value, 10) / 100;
+  const fmt = document.getElementById('format').value;
+
+  log(`🔧 設定：長辺 ${maxSize ? maxSize + 'px' : 'そのまま'} / 画質 ${Math.round(quality * 100)}% / 形式 ${fmt === 'auto' ? '自動' : fmt.toUpperCase()}`, 'log-info');
+
+  let okCount = 0, errCount = 0;
+  for (const f of FILES) {
+    try {
+      const img = await loadImg(f.url);
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (maxSize > 0 && Math.max(w, h) > maxSize) {
+        const scale = maxSize / Math.max(w, h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+      const type = outType(f.file.type, fmt);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (type === 'image/jpeg') { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); }
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, w, h);
+
+      let blob = await new Promise(res => canvas.toBlob(res, type, quality));
+      if (!blob) throw new Error('変換失敗');
+      // 変換後の方が大きくなった場合（形式変更なし時）は元ファイルを採用
+      if (blob.size >= f.size && type === f.file.type && w === img.naturalWidth) {
+        blob = f.file;
+        w = img.naturalWidth; h = img.naturalHeight;
+      }
+      const name = renameExt(f.name, blob === f.file ? f.file.type : type);
+      RESULTS.push({ name, blob, before: f.size, after: blob.size, w, h, url: URL.createObjectURL(blob) });
+      const pct = Math.max(0, Math.round((1 - blob.size / f.size) * 100));
+      log(`✅ ${f.name} … ${fmtSize(f.size)} → ${fmtSize(blob.size)}（-${pct}%）`, 'log-ok');
+      okCount++;
+    } catch (e) {
+      log(`❌ ${f.name} … 変換エラー`, 'log-err');
+      errCount++;
+    }
+  }
+
+  log('─────────────────────', 'log-sep');
+  log(`🏁 完了：成功 ${okCount}枚 / エラー ${errCount}枚`, okCount ? 'log-ok' : 'log-err');
+  btn.disabled = false;
+  if (RESULTS.length) showResults(okCount, errCount);
+}
+
+function showResults(okCount, errCount) {
+  const totalBefore = RESULTS.reduce((s, r) => s + r.before, 0);
+  const totalAfter = RESULTS.reduce((s, r) => s + r.after, 0);
+  const pct = totalBefore ? Math.max(0, Math.round((1 - totalAfter / totalBefore) * 100)) : 0;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat"><div class="num">${okCount}</div><div class="label">処理枚数</div></div>
+    <div class="stat"><div class="num">${fmtSize(totalBefore)}</div><div class="label">変換前 合計</div></div>
+    <div class="stat"><div class="num">${fmtSize(totalAfter)}</div><div class="label">変換後 合計</div></div>
+    <div class="stat"><div class="num">-${pct}%</div><div class="label">削減率</div></div>`;
+
+  document.getElementById('resultList').innerHTML = RESULTS.map((r, i) => {
+    const p = Math.round((1 - r.after / r.before) * 100);
+    const badge = p > 0 ? `<span class="badge badge-green">-${p}%</span>`
+      : p === 0 ? `<span class="badge badge-gray">±0%</span>`
+      : `<span class="badge badge-red">+${-p}%</span>`;
+    return `<tr>
+      <td class="fname" title="${r.name}" style="text-align:left">${r.name}</td>
+      <td>${fmtSize(r.before)}</td>
+      <td><strong>${fmtSize(r.after)}</strong></td>
+      <td>${badge}</td>
+      <td>${r.w}×${r.h}</td>
+      <td><button class="mini-btn" onclick="downloadOne(${i})">⬇️ DL</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('resultSection').classList.add('show');
+  document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function downloadOne(i) {
+  const r = RESULTS[i];
+  const a = document.createElement('a');
+  a.href = r.url;
+  a.download = r.name;
+  a.click();
+}
+
+async function downloadZip() {
+  if (!RESULTS.length) return;
+  if (RESULTS.length === 1) { downloadOne(0); return; }
+  if (typeof JSZip === 'undefined') {
+    // CDN読込失敗時は個別ダウンロードにフォールバック
+    for (let i = 0; i < RESULTS.length; i++) {
+      downloadOne(i);
+      await new Promise(r => setTimeout(r, 300));
+    }
+    return;
+  }
+  const zip = new JSZip();
+  const used = new Set();
+  for (const r of RESULTS) {
+    let name = r.name, n = 1;
+    while (used.has(name)) {
+      name = r.name.replace(/(\.[^.]+)$/, `_${n}$1`);
+      n++;
+    }
+    used.add(name);
+    zip.file(name, r.blob);
+  }
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const d = new Date();
+  const pad = x => String(x).padStart(2, '0');
+  a.download = `resized_${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.zip`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+</script>
+</body>
+</html>
