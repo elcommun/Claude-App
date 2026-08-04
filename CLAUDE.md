@@ -35,6 +35,12 @@ EC（楽天・Amazon等）の販売データをExcelでインポートし、カ�
 - **このファイルを変更してコミットするたびに `APP_VERSION` を必ず1つ増やすこと**
 - 5分ごとにサーバー側と比較し、未作業なら自動リロード、作業中（CSV読込済み）ならバッジで更新を通知する仕組み
 
+### ec-category のバージョン番号
+- `ec-category/index.html` に `const APP_VERSION = N;`（フッターの `#verBadge` に `vN` 表示）がある
+- **このファイルを変更してコミットするたびに `APP_VERSION` を必ず1つ増やすこと**（フッターの `vN` 表示も合わせて更新）
+- 3分ごとにサーバー側の `APP_VERSION` と比較し、大きければ自動リロード（作業中＝CSV選択済みのときはリロードしない）
+- `product-names.js` を更新した場合は `<script src="product-names.js?v=N">` の `?v=N` も上げてキャッシュを更新する
+
 ### laikle-convert の変換完了メール
 - 変換完了時に `ec@elcommun.co.jp` へ自動送信する仕組み（Google Apps Script のウェブアプリ経由）
 - GAS側のコードと設定手順は `laikle-convert/mail-gas/`（`Code.gs` / `README.md`）
