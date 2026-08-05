@@ -330,7 +330,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 27;
+const APP_VERSION = 28;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -533,8 +533,12 @@ function buildShopCats(entries, unmappedOut) {
         if (ym) name = name.split('20＊＊').join(ym[1]);
       }
       list.push(name);
+    } else {
+      /* 対応表に無いカテゴリは除外せず、楽天の表示先カテゴリ名をそのまま（\→:変換のみ）使用する */
+      const fallback = raw.replace(/\\/g, ':');
+      list.push(fallback);
+      if (unmappedOut) unmappedOut.push(fallback + (m ? '（c/' + m[1] + '）' : ''));
     }
-    else if (unmappedOut) unmappedOut.push(raw.replace(/\\/g, ':') + (m ? '（c/' + m[1] + '）' : ''));
   }
   let uniq = [...new Set(list)];
   // 他カテゴリの親階層（前方一致）になっているものは除外
@@ -732,7 +736,7 @@ function convertAll(input, opt) {
       const cats = buildShopCats(catMap.get(id), unmapped);
       if (cats.length > 10) itemWarns.push('店舗内カテゴリが10件を超えるため11件目以降を省略（' + cats.length + '件）');
       for (let n = 1; n <= 10; n++) o['shopCategory' + n] = cats[n-1] || '';
-      [...new Set(unmapped)].forEach(u => itemWarns.push('対応するauPAYカテゴリが無いため除外: ' + u));
+      [...new Set(unmapped)].forEach(u => itemWarns.push('対応表に無いカテゴリのため、楽天の表示名をそのまま使用: ' + u));
     } else if (input.cat && isNew) {
       itemWarns.push('店舗内カテゴリ情報がありません');
     }
