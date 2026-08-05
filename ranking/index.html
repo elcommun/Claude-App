@@ -383,7 +383,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v227</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v228</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2002,7 +2002,7 @@ function showCategory(cat, updateSidebar=true) {
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
   const showCmp = comparisonMode;
   const showSo = !!catType;
-  const showImg = !!catType;
+  const showImg = true;
   document.getElementById('rank-tbl').classList.toggle('show-cmp', showCmp);
   document.getElementById('rank-tbl').classList.toggle('show-so', showSo);
   document.getElementById('rank-tbl').classList.toggle('show-img', showImg);
@@ -2019,7 +2019,7 @@ function showCategory(cat, updateSidebar=true) {
       <td>${ri}</td>
       <td class="cc">${x(item.code)}</td>
       <td class="nc"><div class="nm" onclick="toggleNameExpand(this,'${esc(item.code)}')">${x(item.name)}</div></td>
-      <td class="img-col">${catType?thumb:''}</td>
+      <td class="img-col">${thumb}</td>
       <td class="num price-col">¥${item.price.toLocaleString()}</td>
       <td class="num qty-col" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
       ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
@@ -2554,7 +2554,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   // 前年比較列: 期間を1年・2年ずらしたコード索引で前年/前々年の個数を取得
   document.getElementById('search-tbl').classList.toggle('show-cmp', comparisonMode);
   const anyDC=results.some(r=>_dcGroups.some(g=>g.match(r.cat)));
-  document.getElementById('search-tbl').classList.toggle('show-img', anyDC);
+  document.getElementById('search-tbl').classList.toggle('show-img', true);
   document.getElementById('search-tbl').classList.toggle('show-so', anyDC);
   function cmpCellS(code,curQty){
     const qa=prevByCode[code], p2=prev2ByCode[code];
@@ -2568,7 +2568,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   }
   let html='';
   if(!results.length){
-    html=`<tr><td colspan="${anyDC?11:9}"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
+    html=`<tr><td colspan="${7+(comparisonMode?2:0)+1+(anyDC?1:0)}"><div class="empty"><div class="empty-icon">🔍</div>「${x(q)}」に一致する商品はありません</div></td></tr>`;
   }else{
     // カテゴリ別にグループ化し、カテゴリ合計qty降順で並べる
     const catMap=new Map();
@@ -2607,7 +2607,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
         if(typeof va==='string'){const c=searchSortCol==='code'?codeCompare(va,vb):va.localeCompare(vb,'ja');return searchSortDir==='asc'?c:-c;}
         return searchSortDir==='asc'?va-vb:vb-va;
       });
-      const colspan=anyDC?11:9;
+      const colspan=7+(comparisonMode?2:0)+1+(anyDC?1:0);
       const isDC=_dcGroups.some(g2=>g2.match(cat));
       html+=`<tr class="fmt-hdr"><td colspan="${colspan}">▌ ${x(cat)} <span style="font-weight:normal;font-size:10px;color:var(--ink4)">(${g.items.length}種 / ${g.totalQty.toLocaleString()}個)</span></td></tr>`;
       g.items.forEach(r=>{
@@ -2620,7 +2620,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
           <td><span class="ct">${x(r.cat)}</span></td>
           <td class="cc">${x(r.code)}</td>
           <td class="nc"><div class="nm" onclick="toggleNameExpand(this,'${esc(r.code)}')">${hl(r.name,words,trans)}</div></td>
-          <td class="img-col">${isDC?thumb:''}</td>
+          <td class="img-col">${thumb}</td>
           <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
           <td class="num qty-col" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
           ${cmpCellS(r.code,r.qty)}
