@@ -245,7 +245,7 @@
 <script src="lib/jspdf.min.js"></script>
 <script src="lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -315,19 +315,52 @@ function replaceStatus(html, isErr) {
 }
 
 /* ---------- PSD 読み込み（ag-psd・Web Workerで並列処理） ----------
-   重い展開処理をワーカーに逃がしてUIをブロックしない。
-   埋め込みサムネイルがあれば先に表示し、高解像度が出来たら差し替える。 */
+   重い展開処理はワーカー側で、レイヤーセクションを取り除いた最小PSDに対して行う
+   （レイヤー数に関係なく統合画像のデコード時間だけで済む）。
+   埋め込みサムネイルはメインスレッドでファイルから直接抜き出して即表示し、
+   高解像度が出来たら差し替える。 */
 const PSD_ERR_PARSE = 'PSDの解析に失敗しました。CMYKなど特殊なカラーモードの場合は、RGBに変換して保存し直してください。';
 const PSD_ERR_NO_IMG = 'プレビュー画像が含まれていません。Photoshopで「互換性を優先」にチェックして保存し直してください。';
 const PSD_NOTE_THUMB = '<span class="badge badge-orange">低解像度サムネイル表示（「互換性を優先」OFFで保存されたファイルです）</span>';
 
+// PSDのimage resourcesセクションを直接走査して、埋め込みサムネイル(ID 1036)の
+// JPEGバイト列とキャンバスサイズを取り出す（構造解析なし・数ms）
+function findPsdThumb(buf) {
+  try {
+    const v = new DataView(buf);
+    if (v.getUint32(0) !== 0x38425053) return null;   // '8BPS'
+    const info = { width: v.getUint32(18), height: v.getUint32(14), jpeg: null };
+    let off = 26;
+    off += 4 + v.getUint32(off);                       // カラーモードデータ
+    const resLen = v.getUint32(off); off += 4;
+    const resEnd = Math.min(off + resLen, buf.byteLength);
+    while (off + 12 <= resEnd) {
+      if (v.getUint32(off) !== 0x3842494D) break;      // '8BIM'
+      const id = v.getUint16(off + 4);
+      const nameLen = v.getUint8(off + 6);
+      let p = off + 7 + nameLen;
+      if ((1 + nameLen) % 2) p++;                      // 名前は偶数長にパディング
+      const size = v.getUint32(p); p += 4;
+      if (id === 1036 && size > 28 && p + size <= resEnd) {
+        info.jpeg = new Uint8Array(buf.slice(p + 28, p + size));   // 先頭28Bはサムネイルヘッダー。転送前にコピー
+        break;
+      }
+      off = p + size + (size % 2);
+    }
+    return info;
+  } catch (e) { return null; }
+}
+
 function loadPsd(f, buf) {
   return new Promise((resolve, reject) => {
+    const entry = { name: f.name, size: f.size, kind: 'PSD', numPages: 1, pages: {}, width: 0, height: 0, note: '', pending: true, thumb: null };
+    const info = findPsdThumb(buf);   // 転送前にサムネイルを取り出す
+    if (info) { entry.width = info.width; entry.height = info.height; }
+
     let worker;
     try { worker = new Worker('lib/psd-worker.js'); }
     catch (e) { loadPsdSync(f, buf).then(resolve, reject); return; }
 
-    const entry = { name: f.name, size: f.size, kind: 'PSD', numPages: 1, pages: {}, width: 0, height: 0, note: '', pending: true, thumb: null };
     let resolved = false;
     const settle = (fn, arg) => { if (!resolved) { resolved = true; fn(arg); } };
 
@@ -336,23 +369,9 @@ function loadPsd(f, buf) {
       // ワーカーが使えない環境では従来の同期処理にフォールバック（bufは転送済みなので再読込）
       if (!resolved) { resolved = true; f.arrayBuffer().then(b => loadPsdSync(f, b)).then(resolve, reject); }
     };
-    // メッセージ処理を直列化（quickのサムネイルデコード中にfull/errorを処理しない）
-    let chain = Promise.resolve();
-    worker.onmessage = ev => { chain = chain.then(() => handleMsg(ev.data)); };
-    const handleMsg = async m => {
-      if (m.type === 'quick') {
-        entry.width = m.width; entry.height = m.height;
-        if (m.jpeg) {
-          try {
-            const bmp = await createImageBitmap(new Blob([m.jpeg], { type: 'image/jpeg' }));
-            const c = document.createElement('canvas');
-            c.width = bmp.width; c.height = bmp.height;
-            c.getContext('2d').drawImage(bmp, 0, 0);
-            entry.thumb = c;
-          } catch (e) { /* サムネイル破損時は高解像度待ち */ }
-        }
-        if (entry.thumb) settle(resolve, entry);   // 先にサムネイルで表示開始
-      } else if (m.type === 'full') {
+    worker.onmessage = ev => {
+      const m = ev.data;
+      if (m.type === 'full') {
         worker.terminate();
         if (m.data) {
           const c = document.createElement('canvas');
@@ -378,6 +397,21 @@ function loadPsd(f, buf) {
       }
     };
     worker.postMessage({ id: 1, buf }, [buf]);   // ArrayBufferは転送（コピーなし）
+
+    // 埋め込みサムネイルをメインスレッドで即デコードして先に表示
+    if (info && info.jpeg) {
+      createImageBitmap(new Blob([info.jpeg], { type: 'image/jpeg' })).then(bmp => {
+        const c = document.createElement('canvas');
+        c.width = bmp.width; c.height = bmp.height;
+        c.getContext('2d').drawImage(bmp, 0, 0);
+        entry.thumb = c;
+        // 解析エラー後にサムネイルが届いた場合は低解像度表示として確定
+        if (!entry.pending && !entry.pages[1]) { entry.pages[1] = c; entry.note = PSD_NOTE_THUMB; }
+        settle(resolve, entry);
+        renderGallery();
+        if (isFs() && FILES[current] === entry) renderPage();
+      }).catch(() => { /* サムネイル破損時は高解像度待ち */ });
+    }
   });
 }
 
