@@ -67,6 +67,21 @@
   .g-name{font-size:12px;font-weight:600;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
   .g-del{color:var(--gray-400);font-weight:bold;padding:2px 6px;border-radius:6px;flex-shrink:0;}
   .g-del:hover{background:var(--red-light);color:var(--red);}
+  .g-chk{position:absolute;top:6px;left:6px;z-index:2;background:rgba(255,255,255,.92);border-radius:6px;padding:4px;display:flex;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
+  .g-chk input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;margin:0;}
+  .g-item.checked{border-color:var(--primary);box-shadow:0 0 0 2px rgba(232,93,38,.25);}
+
+  /* まとめて変換バー */
+  .bulk-bar{display:none;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;padding:10px 14px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;}
+  .bulk-bar.show{display:flex;}
+  .bulk-all{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--gray-600);cursor:pointer;}
+  .bulk-all input{width:16px;height:16px;accent-color:var(--primary);margin:0;}
+  .bulk-count{font-size:12px;color:var(--gray-400);min-width:60px;}
+  .bulk-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--green);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;}
+  .bulk-btn:hover:not(:disabled){background:#059669;}
+  .bulk-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+  .size-sel{padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;color:var(--gray-600);background:white;font-weight:600;cursor:pointer;}
+  .fs-wrap.fs .size-sel{background:#374151;border-color:#4B5563;color:#E5E7EB;}
 
   /* ツールバー（機能ごとにグループ化） */
   .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;}
@@ -164,9 +179,22 @@
   <div class="card" id="previewCard" style="display:none">
     <div class="card-header">
       <div class="step">2</div>
-      <h2>プレビュー一覧 <span class="sub">クリックで拡大表示・JPG/PDF保存</span></h2>
+      <h2>プレビュー一覧 <span class="sub">クリックで拡大表示・チェックでまとめて変換</span></h2>
     </div>
     <div class="card-body">
+      <div class="bulk-bar" id="bulkBar">
+        <label class="bulk-all"><input type="checkbox" id="chkAll" onchange="toggleAll(this.checked)">全選択</label>
+        <span class="bulk-count" id="bulkCount">0件選択</span>
+        <select class="size-sel" id="sizeSel" title="変換後の画像サイズ" onchange="setExportSize(this.value)">
+          <option value="0">元のサイズ</option>
+          <option value="2000">長辺2000px</option>
+          <option value="1600">長辺1600px</option>
+          <option value="1200">長辺1200px</option>
+          <option value="800">長辺800px</option>
+        </select>
+        <button class="bulk-btn" id="bulkPdfBtn" onclick="bulkPdf()" disabled>⬇ まとめてPDF</button>
+        <button class="bulk-btn" id="bulkJpgBtn" onclick="bulkJpg()" disabled>⬇ まとめてJPG</button>
+      </div>
       <div class="gallery" id="gallery"></div>
       <div class="fs-wrap" id="fsWrap">
         <div class="toolbar">
@@ -182,6 +210,13 @@
             <button class="tb-btn" onclick="zoomBy(1)">＋</button>
             <button class="tb-btn" onclick="setZoom(100)">100%</button>
           </div>
+          <select class="size-sel" id="sizeSelV" title="変換後の画像サイズ" onchange="setExportSize(this.value)">
+            <option value="0">元のサイズ</option>
+            <option value="2000">長辺2000px</option>
+            <option value="1600">長辺1600px</option>
+            <option value="1200">長辺1200px</option>
+            <option value="800">長辺800px</option>
+          </select>
           <div class="tb-group">
             <button class="tb-btn save" onclick="saveImage('jpeg')">⬇ JPG保存</button>
             <button class="tb-btn save" onclick="savePdf()">⬇ PDF保存</button>
@@ -203,8 +238,9 @@
 <script src="lib/ag-psd.min.js"></script>
 <script src="lib/pdf.min.js"></script>
 <script src="lib/jspdf.min.js"></script>
+<script src="lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -455,6 +491,17 @@ function renderGallery() {
     }
     if (!f.pages[1]) img.insertAdjacentHTML('beforeend', '<span class="g-wait">⏳ 生成中</span>');
     if (f.numPages > 1) img.insertAdjacentHTML('beforeend', `<span class="g-pages">${f.numPages}ページ</span>`);
+    const chk = document.createElement('label');
+    chk.className = 'g-chk';
+    chk.innerHTML = `<input type="checkbox"${f.checked ? ' checked' : ''}>`;
+    chk.onclick = e => e.stopPropagation();
+    chk.querySelector('input').onchange = e => {
+      f.checked = e.target.checked;
+      item.classList.toggle('checked', f.checked);
+      updateBulkBar();
+    };
+    img.appendChild(chk);
+    if (f.checked) item.classList.add('checked');
     const meta = document.createElement('div');
     meta.className = 'g-meta';
     const badgeCls = f.kind === 'PSD' ? 'badge-blue' : (f.kind === 'AI' || f.kind === 'PDF') ? 'badge-orange' : 'badge-green';
@@ -463,6 +510,101 @@ function renderGallery() {
     item.append(img, meta);
     g.appendChild(item);
   });
+  updateBulkBar();
+}
+
+/* ---------- まとめて変換（チェック選択 → PDF / JPG） ---------- */
+function updateBulkBar() {
+  $('bulkBar').classList.toggle('show', FILES.length >= 2);
+  const n = FILES.filter(f => f.checked).length;
+  $('bulkCount').textContent = n + '件選択';
+  $('bulkPdfBtn').disabled = !n;
+  $('bulkJpgBtn').disabled = !n;
+  $('chkAll').checked = n > 0 && n === FILES.length;
+}
+
+function toggleAll(on) {
+  FILES.forEach(f => f.checked = on);
+  renderGallery();
+}
+
+// 選択ファイルの全ページ分のcanvasを集める（未生成があればnull）
+async function collectPages(files) {
+  const out = [];
+  for (const f of files) {
+    for (let n = 1; n <= f.numPages; n++) {
+      const canvas = await getPageCanvas(f, n);
+      if (!canvas) { alert(`${f.name} のプレビュー生成が完了してから実行してください`); return null; }
+      out.push({ f, n, canvas });
+    }
+  }
+  return out;
+}
+
+function setBusy(btn, busy, label) {
+  btn.disabled = busy;
+  btn.textContent = busy ? '⏳ 変換中...' : label;
+}
+
+async function bulkPdf() {
+  const sel = FILES.filter(f => f.checked);
+  if (!sel.length) return;
+  const btn = $('bulkPdfBtn');
+  setBusy(btn, true);
+  try {
+    const pages = await collectPages(sel);
+    if (!pages) return;
+    let pdf = null;
+    for (const p of pages) {
+      const c = exportCanvas(p.canvas);
+      const w = c.width, h = c.height, o = w > h ? 'l' : 'p';
+      if (!pdf) pdf = new jspdf.jsPDF({ orientation: o, unit: 'px', format: [w, h], hotfixes: ['px_scaling'] });
+      else pdf.addPage([w, h], o);
+      pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h);
+    }
+    downloadBlob(pdf.output('blob'), `まとめ_${sel.length}件.pdf`);
+  } catch (e) {
+    console.error(e);
+    alert('PDFの生成に失敗しました');
+  } finally {
+    setBusy(btn, false, '⬇ まとめてPDF');
+    updateBulkBar();
+  }
+}
+
+function canvasJpegBlob(canvas) {
+  return new Promise((res, rej) => exportCanvas(canvas).toBlob(b => b ? res(b) : rej(new Error('JPEG生成に失敗')), 'image/jpeg', 0.92));
+}
+
+async function bulkJpg() {
+  const sel = FILES.filter(f => f.checked);
+  if (!sel.length) return;
+  const btn = $('bulkJpgBtn');
+  setBusy(btn, true);
+  try {
+    const pages = await collectPages(sel);
+    if (!pages) return;
+    if (pages.length === 1) {
+      downloadBlob(await canvasJpegBlob(pages[0].canvas), baseName(pages[0].f) + '.jpg');
+    } else {
+      // 複数枚はZIPにまとめて1ファイルでダウンロード
+      const zip = new JSZip();
+      const used = {};
+      for (const p of pages) {
+        let name = baseName(p.f) + (p.f.numPages > 1 ? '_p' + p.n : '');
+        used[name] = (used[name] || 0) + 1;
+        if (used[name] > 1) name += '_' + used[name];
+        zip.file(name + '.jpg', await canvasJpegBlob(p.canvas));
+      }
+      downloadBlob(await zip.generateAsync({ type: 'blob' }), `まとめJPG_${sel.length}件.zip`);
+    }
+  } catch (e) {
+    console.error(e);
+    alert('JPGの生成に失敗しました');
+  } finally {
+    setBusy(btn, false, '⬇ まとめてJPG');
+    updateBulkBar();
+  }
 }
 
 function removeFile(idx) {
@@ -576,15 +718,31 @@ $('viewer').addEventListener('pointerup', e => {
   if (Math.abs(e.clientX - vDownX) < 8 && Math.abs(e.clientY - vDownY) < 8) closeViewer();
 });
 
-/* ---------- 保存（JPG / PNG / PDF） ---------- */
-function whiteBgCopy(canvas) {
-  // JPG・PDFは透過を扱えないため白背景に合成
+/* ---------- 保存（JPG / PDF） ---------- */
+// 変換後の画像サイズ（長辺px、0=元のサイズ）。選択はlocalStorageに保存
+let exportSize = parseInt(localStorage.getItem('dp_export_size'), 10) || 0;
+function setExportSize(v) {
+  exportSize = parseInt(v, 10) || 0;
+  localStorage.setItem('dp_export_size', exportSize);
+  ['sizeSel', 'sizeSelV'].forEach(id => { const el = $(id); if (el) el.value = String(exportSize); });
+}
+
+setExportSize(exportSize);   // 前回選択したサイズを両方のセレクトに反映
+
+function exportCanvas(canvas) {
+  // JPG・PDFは透過を扱えないため白背景に合成し、サイズ指定があれば長辺に合わせて縮小
+  let w = canvas.width, h = canvas.height;
+  if (exportSize > 0) {
+    const s = Math.min(1, exportSize / Math.max(w, h));
+    w = Math.max(1, Math.round(w * s));
+    h = Math.max(1, Math.round(h * s));
+  }
   const c = document.createElement('canvas');
-  c.width = canvas.width; c.height = canvas.height;
+  c.width = w; c.height = h;
   const ctx = c.getContext('2d');
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, c.width, c.height);
-  ctx.drawImage(canvas, 0, 0);
+  ctx.fillRect(0, 0, w, h);
+  ctx.drawImage(canvas, 0, 0, w, h);
   return c;
 }
 function baseName(f) { return f.name.replace(/\.[^.]+$/, ''); }
@@ -607,9 +765,9 @@ async function saveImage(fmt) {
   if (!f) return;
   const canvas = await getPageCanvas(f, curPage);
   if (!canvas) { alert('プレビューの生成が完了してから保存してください'); return; }
-  const src = fmt === 'jpeg' ? whiteBgCopy(canvas) : canvas;
-  const name = baseName(f) + (f.numPages > 1 ? '_p' + curPage : '') + (fmt === 'jpeg' ? '.jpg' : '.png');
-  src.toBlob(b => b ? downloadBlob(b, name) : alert('画像の生成に失敗しました'), 'image/' + fmt, 0.92);
+  const src = exportCanvas(canvas);
+  const name = baseName(f) + (f.numPages > 1 ? '_p' + curPage : '') + '.jpg';
+  src.toBlob(b => b ? downloadBlob(b, name) : alert('画像の生成に失敗しました'), 'image/jpeg', 0.92);
 }
 
 async function savePdf() {
@@ -620,7 +778,7 @@ async function savePdf() {
     for (let n = 1; n <= f.numPages; n++) {   // 複数ページ（アートボード）は全ページをまとめて1つのPDFに
       const canvas = await getPageCanvas(f, n);
       if (!canvas) { alert('プレビューの生成が完了してから保存してください'); return; }
-      const c = whiteBgCopy(canvas);
+      const c = exportCanvas(canvas);
       const w = c.width, h = c.height, orient = w > h ? 'l' : 'p';
       if (!pdf) pdf = new jspdf.jsPDF({ orientation: orient, unit: 'px', format: [w, h], hotfixes: ['px_scaling'] });
       else pdf.addPage([w, h], orient);
