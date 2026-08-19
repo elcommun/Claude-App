@@ -53,14 +53,18 @@
   .badge-blue{background:#DBEAFE;color:#1D4ED8;}
   .badge-gray{background:#F3F4F6;color:#374151;}
 
-  /* ファイル切替タブ */
-  .file-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
-  .file-tab{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--gray-200);background:var(--gray-50);color:var(--gray-600);cursor:pointer;transition:all .15s;max-width:280px;}
-  .file-tab .fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .file-tab.active{background:var(--primary);border-color:var(--primary);color:white;}
-  .file-tab.active .badge{background:rgba(255,255,255,.25);color:white;}
-  .file-tab .close{font-weight:bold;opacity:.6;padding:0 2px;}
-  .file-tab .close:hover{opacity:1;}
+  /* サムネイル一覧ギャラリー */
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;}
+  .g-item{background:white;border:1px solid var(--gray-200);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .15s;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+  .g-item:hover{border-color:var(--primary);box-shadow:0 4px 14px rgba(232,93,38,.18);transform:translateY(-2px);}
+  .g-img{height:150px;display:flex;align-items:center;justify-content:center;background:repeating-conic-gradient(#f4f4f5 0% 25%, #fbfbfc 0% 50%) 0 0 / 16px 16px;position:relative;}
+  .g-img canvas{max-width:92%;max-height:92%;box-shadow:0 1px 6px rgba(0,0,0,.15);border-radius:2px;}
+  .g-wait{position:absolute;bottom:6px;right:6px;font-size:10px;background:rgba(255,255,255,.92);border-radius:999px;padding:2px 8px;color:var(--gray-600);}
+  .g-pages{position:absolute;top:6px;right:6px;font-size:10px;background:rgba(31,41,55,.75);color:white;border-radius:999px;padding:2px 8px;}
+  .g-meta{display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--gray-100);}
+  .g-name{font-size:12px;font-weight:600;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+  .g-del{color:var(--gray-400);font-weight:bold;padding:2px 6px;border-radius:6px;flex-shrink:0;}
+  .g-del:hover{background:var(--red-light);color:var(--red);}
 
   /* ツールバー（機能ごとにグループ化） */
   .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;}
@@ -82,8 +86,9 @@
   .viewer canvas{display:block;margin:0 auto;box-shadow:0 3px 16px rgba(0,0,0,.14);border-radius:2px;}
   .viewer .loading{padding:50px 20px;font-size:14px;color:var(--gray-600);background:rgba(255,255,255,.9);border-radius:8px;display:inline-block;margin-top:14px;}
 
-  /* 全画面表示 */
+  /* 拡大ビュー（全画面オーバーレイ） */
   body.fs-mode{overflow:hidden;}
+  .fs-wrap{display:none;}
   .fs-wrap.fs{position:fixed;inset:0;z-index:1000;background:#111;padding:0;display:flex;flex-direction:column;}
   .fs-wrap.fs .toolbar{background:#1F2937;padding:10px 14px;margin:0;}
   .fs-wrap.fs .tb-group{background:#374151;border-color:#4B5563;box-shadow:none;}
@@ -153,10 +158,10 @@
   <div class="card" id="previewCard" style="display:none">
     <div class="card-header">
       <div class="step">2</div>
-      <h2>プレビュー <span class="sub">切替・拡大縮小・JPG/PDF保存</span></h2>
+      <h2>プレビュー一覧 <span class="sub">クリックで拡大表示・JPG/PDF保存</span></h2>
     </div>
     <div class="card-body">
-      <div class="file-tabs" id="fileTabs"></div>
+      <div class="gallery" id="gallery"></div>
       <div class="fs-wrap" id="fsWrap">
         <div class="toolbar">
           <div class="tb-group" id="pgGroup">
@@ -172,13 +177,13 @@
             <button class="tb-btn" onclick="setZoom(100)">100%</button>
           </div>
           <div class="tb-group">
-            <button class="tb-btn" id="fsBtn" onclick="toggleFs()">⛶ 全画面</button>
-          </div>
-          <div class="tb-group">
             <button class="tb-btn save" onclick="saveImage('jpeg')">⬇ JPG保存</button>
             <button class="tb-btn save" onclick="savePdf()">⬇ PDF保存</button>
           </div>
           <span class="tb-info" id="fileInfo"></span>
+          <div class="tb-group">
+            <button class="tb-btn" onclick="closeViewer()">✕ 閉じる</button>
+          </div>
         </div>
         <div class="viewer" id="viewer"></div>
       </div>
@@ -193,7 +198,7 @@
 <script src="lib/pdf.min.js"></script>
 <script src="lib/jspdf.min.js"></script>
 <script>
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -230,12 +235,17 @@ async function handleFiles(fileList) {
         : await loadAiPdf(f, buf, ext);
       FILES.push(entry);
       replaceStatus(`✅ ${esc(f.name)}（${fmtSize(f.size)}・${entry.width}×${entry.height}px${entry.numPages > 1 ? '・' + entry.numPages + 'ページ' : ''}）${entry.note ? ' ' + entry.note : ''}`);
-      selectFile(FILES.length - 1);
+      $('previewCard').style.display = '';
+      renderGallery();
+      // AI/PDFは一覧サムネイル用に1ページ目を非同期レンダリング
+      if (entry.pdfDoc && !entry.pages[1]) renderPdfPage(entry, 1).then(renderGallery).catch(() => {});
     } catch (err) {
       console.error(err);
       replaceStatus(`❌ ${esc(f.name)} — ${esc(err.message || '読み込みに失敗しました')}`, true);
     }
   }
+  // 1ファイルだけのときはそのまま拡大表示を開く
+  if (FILES.length === 1) openViewer(0);
 }
 
 let lastStatus = null;
@@ -305,12 +315,13 @@ function loadPsd(f, buf) {
         entry.pending = false;
         if (!entry.pages[1]) { settle(reject, new Error(PSD_ERR_NO_IMG)); return; }
         settle(resolve, entry);
-        if (FILES[current] === entry) renderPage();   // サムネイル表示中なら高解像度に差し替え
+        renderGallery();   // 一覧サムネイルを高解像度に更新
+        if (isFs() && FILES[current] === entry) renderPage();   // 拡大表示中なら差し替え
       } else if (m.type === 'error') {
         worker.terminate();
         entry.pending = false;
         if (entry.thumb) { entry.pages[1] = entry.thumb; entry.note = PSD_NOTE_THUMB; }
-        if (entry.pages[1]) { settle(resolve, entry); if (FILES[current] === entry) renderPage(); }
+        if (entry.pages[1]) { settle(resolve, entry); renderGallery(); if (isFs() && FILES[current] === entry) renderPage(); }
         else settle(reject, new Error(PSD_ERR_PARSE));
       }
     };
@@ -402,30 +413,42 @@ function capCanvas(src) {
   return c;
 }
 
-/* ---------- 表示 ---------- */
-function selectFile(idx) {
-  current = idx;
-  curPage = 1;
-  zoom = 'fit';
-  $('previewCard').style.display = '';
-  renderTabs();
-  renderPage();
-  $('previewCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
-function renderTabs() {
-  $('fileTabs').innerHTML = FILES.map((f, i) => `
-    <div class="file-tab ${i === current ? 'active' : ''}" onclick="selectFile(${i})">
-      <span class="badge ${f.kind === 'PSD' ? 'badge-blue' : 'badge-orange'}">${f.kind}</span>
-      <span class="fname">${esc(f.name)}</span>
-      <span class="close" onclick="event.stopPropagation();removeFile(${i})">✕</span>
-    </div>`).join('');
+/* ---------- サムネイル一覧 ---------- */
+function renderGallery() {
+  const g = $('gallery');
+  g.innerHTML = '';
+  FILES.forEach((f, i) => {
+    const item = document.createElement('div');
+    item.className = 'g-item';
+    item.onclick = () => openViewer(i);
+    const img = document.createElement('div');
+    img.className = 'g-img';
+    const src = f.pages[1] || f.thumb;
+    if (src) {
+      const scale = Math.min(1, 300 / src.width, 138 / src.height);
+      const t = document.createElement('canvas');
+      t.width = Math.max(1, Math.round(src.width * scale));
+      t.height = Math.max(1, Math.round(src.height * scale));
+      t.getContext('2d').drawImage(src, 0, 0, t.width, t.height);
+      img.appendChild(t);
+    }
+    if (!f.pages[1]) img.insertAdjacentHTML('beforeend', '<span class="g-wait">⏳ 生成中</span>');
+    if (f.numPages > 1) img.insertAdjacentHTML('beforeend', `<span class="g-pages">${f.numPages}ページ</span>`);
+    const meta = document.createElement('div');
+    meta.className = 'g-meta';
+    meta.innerHTML = `<span class="badge ${f.kind === 'PSD' ? 'badge-blue' : 'badge-orange'}">${f.kind}</span><span class="g-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="g-del" title="一覧から削除">✕</span>`;
+    meta.querySelector('.g-del').onclick = e => { e.stopPropagation(); removeFile(i); };
+    item.append(img, meta);
+    g.appendChild(item);
+  });
 }
 
 function removeFile(idx) {
   FILES.splice(idx, 1);
-  if (!FILES.length) { current = -1; $('previewCard').style.display = 'none'; if (isFs()) toggleFs(); return; }
-  selectFile(Math.min(idx, FILES.length - 1));
+  if (current === idx) closeViewer();
+  if (current > idx) current--;
+  if (!FILES.length) { current = -1; $('previewCard').style.display = 'none'; }
+  renderGallery();
 }
 
 async function renderPage() {
@@ -503,18 +526,23 @@ function applyZoom() {
 
 window.addEventListener('resize', () => { if (zoom === 'fit') applyZoom(); });
 
-/* ---------- 全画面 ---------- */
+/* ---------- 拡大ビュー ---------- */
 function isFs() { return $('fsWrap').classList.contains('fs'); }
-function toggleFs() {
-  const on = !isFs();
-  $('fsWrap').classList.toggle('fs', on);
-  document.body.classList.toggle('fs-mode', on);
-  $('fsBtn').textContent = on ? '✕ 閉じる' : '⛶ 全画面';
-  applyZoom();
+function openViewer(idx) {
+  current = idx;
+  curPage = 1;
+  zoom = 'fit';
+  $('fsWrap').classList.add('fs');
+  document.body.classList.add('fs-mode');
+  renderPage();
+}
+function closeViewer() {
+  $('fsWrap').classList.remove('fs');
+  document.body.classList.remove('fs-mode');
 }
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && isFs()) toggleFs();
-  if (current < 0) return;
+  if (!isFs()) return;
+  if (e.key === 'Escape') closeViewer();
   if (e.key === 'ArrowLeft') changePage(-1);
   if (e.key === 'ArrowRight') changePage(1);
 });
