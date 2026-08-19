@@ -41,6 +41,12 @@ EC（楽天・Amazon等）の販売データをExcelでインポートし、カ�
 - 3分ごとにサーバー側の `APP_VERSION` と比較し、大きければ自動リロード（作業中＝CSV選択済みのときはリロードしない）
 - `product-names.js` を更新した場合は `<script src="product-names.js?v=N">` の `?v=N` も上げてキャッシュを更新する
 
+### design-preview のバージョン番号
+- `design-preview/index.html` に `const APP_VERSION = N;`（フッターの `#verBadge` に `vN` 表示）がある
+- **このファイルを変更してコミットするたびに `APP_VERSION` を必ず1つ増やすこと**
+- 3分ごとにサーバー側と比較し、大きければ自動リロード（ファイル読込済みのときはリロードしない）
+- PSD/AI/PDFのブラウザプレビュー専用アプリ。描画ライブラリは `design-preview/lib/` に同梱（ag-psd 14.3.6 / pdfjs-dist 3.11.174 legacy）
+
 ### laikle-convert の変換完了メール
 - 変換完了時に `ec@elcommun.co.jp` へ自動送信する仕組み（Google Apps Script のウェブアプリ経由）
 - GAS側のコードと設定手順は `laikle-convert/mail-gas/`（`Code.gs` / `README.md`）
