@@ -21,8 +21,18 @@
   header h1{font-size:18px;font-weight:700;}
   header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
   .container{max-width:1200px;margin:0 auto;padding:32px 16px;}
-  .info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.6;}
-  .info-box strong{color:#78350F;}
+  /* イントロ＋対応形式カード */
+  .intro{margin-bottom:24px;}
+  .intro-main{font-size:13px;color:var(--gray-600);line-height:1.7;margin-bottom:12px;}
+  .fmt-cards{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:10px;}
+  .fmt-card{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .fmt-card b{font-size:13px;}
+  .fmt-card small{display:block;font-size:11px;color:var(--gray-400);line-height:1.55;margin-top:3px;}
+  .fmt-ic{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;letter-spacing:.5px;}
+  .fmt-ic.psd{background:#001E36;color:#31A8FF;}
+  .fmt-ic.ai{background:#330000;color:#FF9A00;}
+  .fmt-ic.pdf{background:#B91C1C;color:white;font-size:9px;}
+  .fmt-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#FED7AA;color:#C2410C;font-size:10px;font-weight:600;vertical-align:1px;white-space:nowrap;}
   .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
   .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
   .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
@@ -52,37 +62,46 @@
   .file-tab .close{font-weight:bold;opacity:.6;padding:0 2px;}
   .file-tab .close:hover{opacity:1;}
 
-  /* ツールバー */
-  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px;}
-  .tb-btn{padding:7px 12px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid var(--gray-200);background:white;color:var(--gray-600);cursor:pointer;transition:all .15s;}
-  .tb-btn:hover:not(:disabled){border-color:var(--primary);color:var(--primary);}
-  .tb-btn:disabled{opacity:.4;cursor:not-allowed;}
-  .tb-btn.on{background:var(--primary);border-color:var(--primary);color:white;}
-  .tb-sep{width:1px;height:22px;background:var(--gray-200);margin:0 4px;}
-  .tb-label{font-size:12px;color:var(--gray-600);font-weight:600;min-width:52px;text-align:center;}
+  /* ツールバー（機能ごとにグループ化） */
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;}
+  .tb-group{display:inline-flex;align-items:center;background:white;border:1px solid var(--gray-200);border-radius:9px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .tb-group>*:not(:last-child){border-right:1px solid var(--gray-100);}
+  .tb-btn{padding:8px 13px;font-size:13px;font-weight:600;border:none;background:transparent;color:var(--gray-600);cursor:pointer;transition:all .15s;}
+  .tb-btn:hover:not(:disabled){background:var(--primary-light);color:var(--primary);}
+  .tb-btn:disabled{opacity:.35;cursor:not-allowed;}
+  .tb-btn.on{background:var(--primary);color:white;}
+  .tb-btn.save{color:#047857;}
+  .tb-btn.save:hover{background:var(--green-light);color:#065F46;}
+  .tb-label{font-size:12px;color:var(--gray-600);font-weight:600;min-width:52px;text-align:center;padding:0 6px;}
   .tb-info{font-size:12px;color:var(--gray-400);margin-left:auto;}
 
   /* プレビュー領域（市松模様背景で透過部分を可視化） */
   .viewer{border:1px solid var(--gray-200);border-radius:10px;overflow:auto;max-height:78vh;min-height:200px;
-    background:repeating-conic-gradient(#f1f1f1 0% 25%, #ffffff 0% 50%) 0 0 / 24px 24px;
-    text-align:center;position:relative;}
-  .viewer canvas{display:block;margin:0 auto;box-shadow:0 2px 12px rgba(0,0,0,.15);}
-  .viewer .loading{padding:60px 20px;font-size:14px;color:var(--gray-600);background:white;}
+    background:repeating-conic-gradient(#f4f4f5 0% 25%, #fbfbfc 0% 50%) 0 0 / 22px 22px;
+    text-align:center;position:relative;padding:18px;}
+  .viewer canvas{display:block;margin:0 auto;box-shadow:0 3px 16px rgba(0,0,0,.14);border-radius:2px;}
+  .viewer .loading{padding:50px 20px;font-size:14px;color:var(--gray-600);background:rgba(255,255,255,.9);border-radius:8px;display:inline-block;margin-top:14px;}
 
   /* 全画面表示 */
   body.fs-mode{overflow:hidden;}
   .fs-wrap.fs{position:fixed;inset:0;z-index:1000;background:#111;padding:0;display:flex;flex-direction:column;}
   .fs-wrap.fs .toolbar{background:#1F2937;padding:10px 14px;margin:0;}
-  .fs-wrap.fs .toolbar .tb-btn{background:#374151;border-color:#4B5563;color:#E5E7EB;}
-  .fs-wrap.fs .toolbar .tb-btn.on{background:var(--primary);border-color:var(--primary);color:white;}
+  .fs-wrap.fs .tb-group{background:#374151;border-color:#4B5563;box-shadow:none;}
+  .fs-wrap.fs .tb-group>*:not(:last-child){border-right-color:#4B5563;}
+  .fs-wrap.fs .toolbar .tb-btn{color:#E5E7EB;}
+  .fs-wrap.fs .toolbar .tb-btn:hover:not(:disabled){background:#4B5563;color:white;}
+  .fs-wrap.fs .toolbar .tb-btn.on{background:var(--primary);color:white;}
+  .fs-wrap.fs .toolbar .tb-btn.save{color:#6EE7B7;}
   .fs-wrap.fs .toolbar .tb-label,.fs-wrap.fs .toolbar .tb-info{color:#D1D5DB;}
   .fs-wrap.fs .viewer{flex:1;max-height:none;border:none;border-radius:0;}
 
   footer{text-align:center;padding:10px 0 30px;font-size:11px;color:var(--gray-400);}
-  @media(max-width:600px){
+  @media(max-width:700px){
     header{padding:12px 16px;}
     .container{padding:16px 8px;}
     .tb-info{width:100%;margin-left:0;}
+    .fmt-cards{grid-template-columns:1fr;}
+    .viewer{padding:10px;}
   }
 </style>
 </head>
@@ -95,10 +114,22 @@
 
 <div class="container">
 
-  <div class="info-box">
-    <strong>Photoshop（.psd）・Illustrator（.ai）・PDF をブラウザでそのままプレビューします。</strong><br>
-    ファイルはサーバーに送信されず、すべてこの端末内で処理されます（編集不可）。プレビューは JPG・PDF で保存できます。<br>
-    ※ .ai は保存時に「<strong>PDF互換ファイルを作成</strong>」にチェックが必要です（OFFだとAdobeの案内ページしか含まれず表示できません。「別名で保存」でチェックを入れて保存し直してください）。.psd は「互換性を優先」で保存されたものが表示できます。どちらも通常は初期設定でONです。
+  <div class="intro">
+    <p class="intro-main">Photoshop・Illustrator・PDF をそのまま大きくプレビューできます（編集不可）。ファイルは端末の外へ送信されません。プレビューは JPG / PDF で保存できます。</p>
+    <div class="fmt-cards">
+      <div class="fmt-card">
+        <span class="fmt-ic psd">Ps</span>
+        <div><b>.psd / .psb</b><small>「互換性を優先」ONで保存されたもの（通常は初期設定でON）</small></div>
+      </div>
+      <div class="fmt-card">
+        <span class="fmt-ic ai">Ai</span>
+        <div><b>.ai</b><span class="fmt-tag">送り主の保存設定に依存</span><small>「PDF互換ファイルを作成」ONで保存されたものだけ表示できます。表示できないときは、送り主にONでの再保存を依頼してください</small></div>
+      </div>
+      <div class="fmt-card">
+        <span class="fmt-ic pdf">PDF</span>
+        <div><b>.pdf</b><small>そのまま表示できます</small></div>
+      </div>
+    </div>
   </div>
 
   <!-- Step 1: ファイル選択 -->
@@ -128,20 +159,25 @@
       <div class="file-tabs" id="fileTabs"></div>
       <div class="fs-wrap" id="fsWrap">
         <div class="toolbar">
-          <button class="tb-btn" id="pgPrev" onclick="changePage(-1)">‹</button>
-          <span class="tb-label" id="pgLabel">1 / 1</span>
-          <button class="tb-btn" id="pgNext" onclick="changePage(1)">›</button>
-          <div class="tb-sep"></div>
-          <button class="tb-btn" id="zoomFit" onclick="setZoom('fit')">フィット</button>
-          <button class="tb-btn" onclick="zoomBy(-1)">−</button>
-          <span class="tb-label" id="zoomLabel">100%</span>
-          <button class="tb-btn" onclick="zoomBy(1)">＋</button>
-          <button class="tb-btn" onclick="setZoom(100)">100%</button>
-          <div class="tb-sep"></div>
-          <button class="tb-btn" id="fsBtn" onclick="toggleFs()">⛶ 全画面</button>
-          <div class="tb-sep"></div>
-          <button class="tb-btn" onclick="saveImage('jpeg')">⬇ JPG</button>
-          <button class="tb-btn" onclick="savePdf()">⬇ PDF</button>
+          <div class="tb-group" id="pgGroup">
+            <button class="tb-btn" id="pgPrev" onclick="changePage(-1)">‹</button>
+            <span class="tb-label" id="pgLabel">1 / 1</span>
+            <button class="tb-btn" id="pgNext" onclick="changePage(1)">›</button>
+          </div>
+          <div class="tb-group">
+            <button class="tb-btn" id="zoomFit" onclick="setZoom('fit')">フィット</button>
+            <button class="tb-btn" onclick="zoomBy(-1)">−</button>
+            <span class="tb-label" id="zoomLabel">100%</span>
+            <button class="tb-btn" onclick="zoomBy(1)">＋</button>
+            <button class="tb-btn" onclick="setZoom(100)">100%</button>
+          </div>
+          <div class="tb-group">
+            <button class="tb-btn" id="fsBtn" onclick="toggleFs()">⛶ 全画面</button>
+          </div>
+          <div class="tb-group">
+            <button class="tb-btn save" onclick="saveImage('jpeg')">⬇ JPG保存</button>
+            <button class="tb-btn save" onclick="savePdf()">⬇ PDF保存</button>
+          </div>
           <span class="tb-info" id="fileInfo"></span>
         </div>
         <div class="viewer" id="viewer"></div>
@@ -157,7 +193,7 @@
 <script src="lib/pdf.min.js"></script>
 <script src="lib/jspdf.min.js"></script>
 <script>
-const APP_VERSION = 4;
+const APP_VERSION = 5;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -406,7 +442,7 @@ async function renderPage() {
     viewer.innerHTML = '';
     if (f.thumb) {
       viewer.appendChild(f.thumb);
-      f.thumb.style.width = Math.min(viewer.clientWidth - 2, f.width || f.thumb.width * 4) + 'px';
+      f.thumb.style.width = Math.min(viewer.clientWidth - 40, f.width || f.thumb.width * 4) + 'px';
     }
     viewer.insertAdjacentHTML('beforeend', '<div class="loading">⏳ 高解像度プレビューを生成中...</div>');
     return;
@@ -452,7 +488,7 @@ function currentPct() {
   const f = FILES[current], canvas = f && f.pages[curPage];
   if (zoom !== 'fit') return zoom;
   if (!canvas) return 100;
-  const avail = $('viewer').clientWidth - 2;
+  const avail = $('viewer').clientWidth - 40;   // 余白(padding 18px×2)ぶんを差し引く
   return Math.min(100, avail / canvas.width * 100);
 }
 
