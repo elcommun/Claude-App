@@ -97,7 +97,7 @@
 
   <div class="info-box">
     <strong>Photoshop（.psd）・Illustrator（.ai）・PDF をブラウザでそのままプレビューします。</strong><br>
-    ファイルはサーバーに送信されず、すべてこの端末内で処理されます（閲覧専用・編集不可）。<br>
+    ファイルはサーバーに送信されず、すべてこの端末内で処理されます（編集不可）。プレビューは JPG・PNG・PDF で保存できます。<br>
     ※ .ai は保存時に「<strong>PDF互換ファイルを作成</strong>」にチェックが必要です（OFFだとAdobeの案内ページしか含まれず表示できません。「別名で保存」でチェックを入れて保存し直してください）。.psd は「互換性を優先」で保存されたものが表示できます。どちらも通常は初期設定でONです。
   </div>
 
@@ -122,7 +122,7 @@
   <div class="card" id="previewCard" style="display:none">
     <div class="card-header">
       <div class="step">2</div>
-      <h2>プレビュー <span class="sub">クリックで切替・拡大縮小</span></h2>
+      <h2>プレビュー <span class="sub">切替・拡大縮小・JPG/PNG/PDF保存</span></h2>
     </div>
     <div class="card-body">
       <div class="file-tabs" id="fileTabs"></div>
@@ -139,6 +139,10 @@
           <button class="tb-btn" onclick="setZoom(100)">100%</button>
           <div class="tb-sep"></div>
           <button class="tb-btn" id="fsBtn" onclick="toggleFs()">⛶ 全画面</button>
+          <div class="tb-sep"></div>
+          <button class="tb-btn" onclick="saveImage('jpeg')">⬇ JPG</button>
+          <button class="tb-btn" onclick="saveImage('png')">⬇ PNG</button>
+          <button class="tb-btn" onclick="savePdf()">⬇ PDF</button>
           <span class="tb-info" id="fileInfo"></span>
         </div>
         <div class="viewer" id="viewer"></div>
@@ -152,8 +156,9 @@
 
 <script src="lib/ag-psd.min.js"></script>
 <script src="lib/pdf.min.js"></script>
+<script src="lib/jspdf.min.js"></script>
 <script>
-const APP_VERSION = 2;
+const APP_VERSION = 3;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -212,20 +217,86 @@ function replaceStatus(html, isErr) {
   lastStatus.innerHTML = html;
 }
 
-/* ---------- PSD 読み込み（ag-psd） ---------- */
-async function loadPsd(f, buf) {
+/* ---------- PSD 読み込み（ag-psd・Web Workerで並列処理） ----------
+   重い展開処理をワーカーに逃がしてUIをブロックしない。
+   埋め込みサムネイルがあれば先に表示し、高解像度が出来たら差し替える。 */
+const PSD_ERR_PARSE = 'PSDの解析に失敗しました。CMYKなど特殊なカラーモードの場合は、RGBに変換して保存し直してください。';
+const PSD_ERR_NO_IMG = 'プレビュー画像が含まれていません。Photoshopで「互換性を優先」にチェックして保存し直してください。';
+const PSD_NOTE_THUMB = '<span class="badge badge-orange">低解像度サムネイル表示（「互換性を優先」OFFで保存されたファイルです）</span>';
+
+function loadPsd(f, buf) {
+  return new Promise((resolve, reject) => {
+    let worker;
+    try { worker = new Worker('lib/psd-worker.js'); }
+    catch (e) { loadPsdSync(f, buf).then(resolve, reject); return; }
+
+    const entry = { name: f.name, size: f.size, kind: 'PSD', numPages: 1, pages: {}, width: 0, height: 0, note: '', pending: true, thumb: null };
+    let resolved = false;
+    const settle = (fn, arg) => { if (!resolved) { resolved = true; fn(arg); } };
+
+    worker.onerror = () => {
+      worker.terminate();
+      // ワーカーが使えない環境では従来の同期処理にフォールバック（bufは転送済みなので再読込）
+      if (!resolved) { resolved = true; f.arrayBuffer().then(b => loadPsdSync(f, b)).then(resolve, reject); }
+    };
+    // メッセージ処理を直列化（quickのサムネイルデコード中にfull/errorを処理しない）
+    let chain = Promise.resolve();
+    worker.onmessage = ev => { chain = chain.then(() => handleMsg(ev.data)); };
+    const handleMsg = async m => {
+      if (m.type === 'quick') {
+        entry.width = m.width; entry.height = m.height;
+        if (m.jpeg) {
+          try {
+            const bmp = await createImageBitmap(new Blob([m.jpeg], { type: 'image/jpeg' }));
+            const c = document.createElement('canvas');
+            c.width = bmp.width; c.height = bmp.height;
+            c.getContext('2d').drawImage(bmp, 0, 0);
+            entry.thumb = c;
+          } catch (e) { /* サムネイル破損時は高解像度待ち */ }
+        }
+        if (entry.thumb) settle(resolve, entry);   // 先にサムネイルで表示開始
+      } else if (m.type === 'full') {
+        worker.terminate();
+        if (m.data) {
+          const c = document.createElement('canvas');
+          c.width = m.imgW; c.height = m.imgH;
+          c.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(m.data), m.imgW, m.imgH), 0, 0);
+          entry.pages[1] = capCanvas(c);
+          entry.width = m.width; entry.height = m.height;
+        } else if (entry.thumb) {
+          entry.pages[1] = entry.thumb;
+          entry.note = PSD_NOTE_THUMB;
+        }
+        entry.pending = false;
+        if (!entry.pages[1]) { settle(reject, new Error(PSD_ERR_NO_IMG)); return; }
+        settle(resolve, entry);
+        if (FILES[current] === entry) renderPage();   // サムネイル表示中なら高解像度に差し替え
+      } else if (m.type === 'error') {
+        worker.terminate();
+        entry.pending = false;
+        if (entry.thumb) { entry.pages[1] = entry.thumb; entry.note = PSD_NOTE_THUMB; }
+        if (entry.pages[1]) { settle(resolve, entry); if (FILES[current] === entry) renderPage(); }
+        else settle(reject, new Error(PSD_ERR_PARSE));
+      }
+    };
+    worker.postMessage({ id: 1, buf }, [buf]);   // ArrayBufferは転送（コピーなし）
+  });
+}
+
+// フォールバック用の同期版（Web Workerが使えない環境のみ）
+async function loadPsdSync(f, buf) {
   let psd;
   try {
     psd = agPsd.readPsd(buf, { skipLayerImageData: true, skipThumbnail: false, throwForMissingFeatures: false });
   } catch (e) {
-    throw new Error('PSDの解析に失敗しました。CMYKなど特殊なカラーモードの場合は、RGBに変換して保存し直してください。');
+    throw new Error(PSD_ERR_PARSE);
   }
   let source = psd.canvas, note = '';
   if (!source && psd.imageResources && psd.imageResources.thumbnail) {
     source = psd.imageResources.thumbnail;
-    note = '<span class="badge badge-orange">低解像度サムネイル表示（「互換性を優先」OFFで保存されたファイルです）</span>';
+    note = PSD_NOTE_THUMB;
   }
-  if (!source) throw new Error('プレビュー画像が含まれていません。Photoshopで「互換性を優先」にチェックして保存し直してください。');
+  if (!source) throw new Error(PSD_ERR_NO_IMG);
   const canvas = capCanvas(source);
   return { name: f.name, size: f.size, kind: 'PSD', numPages: 1, pages: { 1: canvas }, width: psd.width, height: psd.height, note };
 }
@@ -331,6 +402,16 @@ async function renderPage() {
   $('pgNext').disabled = curPage >= f.numPages;
   $('fileInfo').textContent = `${f.name}（${f.width}×${f.height}px）`;
   let canvas = f.pages[curPage];
+  if (!canvas && f.kind === 'PSD') {
+    // 高解像度生成中：サムネイルがあれば仮表示
+    viewer.innerHTML = '';
+    if (f.thumb) {
+      viewer.appendChild(f.thumb);
+      f.thumb.style.width = Math.min(viewer.clientWidth - 2, f.width || f.thumb.width * 4) + 'px';
+    }
+    viewer.insertAdjacentHTML('beforeend', '<div class="loading">⏳ 高解像度プレビューを生成中...</div>');
+    return;
+  }
   if (!canvas) {
     viewer.innerHTML = '<div class="loading">⏳ レンダリング中...</div>';
     try {
@@ -402,6 +483,63 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') changePage(-1);
   if (e.key === 'ArrowRight') changePage(1);
 });
+
+/* ---------- 保存（JPG / PNG / PDF） ---------- */
+function whiteBgCopy(canvas) {
+  // JPG・PDFは透過を扱えないため白背景に合成
+  const c = document.createElement('canvas');
+  c.width = canvas.width; c.height = canvas.height;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(canvas, 0, 0);
+  return c;
+}
+function baseName(f) { return f.name.replace(/\.[^.]+$/, ''); }
+function downloadBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+}
+
+async function getPageCanvas(f, n) {
+  if (f.pages[n]) return f.pages[n];
+  if (f.pdfDoc) return renderPdfPage(f, n);
+  return null;   // PSDの高解像度生成中
+}
+
+async function saveImage(fmt) {
+  const f = FILES[current];
+  if (!f) return;
+  const canvas = await getPageCanvas(f, curPage);
+  if (!canvas) { alert('プレビューの生成が完了してから保存してください'); return; }
+  const src = fmt === 'jpeg' ? whiteBgCopy(canvas) : canvas;
+  const name = baseName(f) + (f.numPages > 1 ? '_p' + curPage : '') + (fmt === 'jpeg' ? '.jpg' : '.png');
+  src.toBlob(b => b ? downloadBlob(b, name) : alert('画像の生成に失敗しました'), 'image/' + fmt, 0.92);
+}
+
+async function savePdf() {
+  const f = FILES[current];
+  if (!f) return;
+  try {
+    let pdf = null;
+    for (let n = 1; n <= f.numPages; n++) {   // 複数ページ（アートボード）は全ページをまとめて1つのPDFに
+      const canvas = await getPageCanvas(f, n);
+      if (!canvas) { alert('プレビューの生成が完了してから保存してください'); return; }
+      const c = whiteBgCopy(canvas);
+      const w = c.width, h = c.height, orient = w > h ? 'l' : 'p';
+      if (!pdf) pdf = new jspdf.jsPDF({ orientation: orient, unit: 'px', format: [w, h], hotfixes: ['px_scaling'] });
+      else pdf.addPage([w, h], orient);
+      pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h);
+    }
+    downloadBlob(pdf.output('blob'), baseName(f) + '.pdf');
+  } catch (e) {
+    console.error(e);
+    alert('PDFの生成に失敗しました');
+  }
+}
 
 /* ---------- ユーティリティ ---------- */
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }

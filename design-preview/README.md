@@ -9,6 +9,8 @@ Photoshop（.psd / .psb）・Illustrator（.ai）・PDF をブラウザ上でそ
 - ファイルタブで切替、✕で削除
 - ページ送り（複数アートボードのAI・複数ページのPDF、←→キー対応）
 - ズーム（フィット / 10〜400% / 100%）、全画面表示（Escで解除）
+- プレビューの保存：JPG / PNG（表示中ページ）、PDF（全ページまとめて1ファイル、jsPDF使用）
+- PSDはWeb Workerで展開（UIをブロックしない）。埋め込みサムネイルを先に即表示し、高解像度が完成したら自動で差し替え
 - 3分ごとの自動更新チェック（`APP_VERSION`、ファイル未読込時のみ自動リロード）
 
 ## 対応形式と制限
@@ -24,4 +26,6 @@ Photoshop（.psd / .psb）・Illustrator（.ai）・PDF をブラウザ上でそ
 ## ライブラリ（lib/ に同梱）
 
 - `ag-psd.min.js` — ag-psd 14.3.6（PSD解析）
+- `psd-worker.js` — PSD解析用Web Worker（ag-psdをバックグラウンドで実行）
 - `pdf.min.js` / `pdf.worker.min.js` — pdfjs-dist 3.11.174 legacy build（AI/PDF描画）
+- `jspdf.min.js` — jsPDF 2.5.2（PDF保存）
