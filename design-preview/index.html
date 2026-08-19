@@ -245,7 +245,7 @@
 <script src="lib/jspdf.min.js"></script>
 <script src="lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -262,6 +262,12 @@ const $ = id => document.getElementById(id);
 
 /* ---------- ファイル受付 ---------- */
 const zone = $('zone'), input = $('fileInput');
+// iOS/Androidでは accept の拡張子指定が認識されず、.psd/.ai が選択できなくなる
+// （グレーアウトする）ため、スマホ・タブレットでは受付制限を外す。
+// 形式チェックはhandleFiles側の拡張子検証で行っているので安全。
+if (/Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 1) {
+  input.removeAttribute('accept');
+}
 zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
 zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
 zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
