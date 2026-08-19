@@ -98,7 +98,7 @@
   <div class="info-box">
     <strong>Photoshop（.psd）・Illustrator（.ai）・PDF をブラウザでそのままプレビューします。</strong><br>
     ファイルはサーバーに送信されず、すべてこの端末内で処理されます（閲覧専用・編集不可）。<br>
-    ※ .ai は「PDF互換ファイルを作成」にチェックして保存されたもの、.psd は「互換性を優先」で保存されたものが表示できます（通常は初期設定でONです）。
+    ※ .ai は保存時に「<strong>PDF互換ファイルを作成</strong>」にチェックが必要です（OFFだとAdobeの案内ページしか含まれず表示できません。「別名で保存」でチェックを入れて保存し直してください）。.psd は「互換性を優先」で保存されたものが表示できます。どちらも通常は初期設定でONです。
   </div>
 
   <!-- Step 1: ファイル選択 -->
@@ -153,7 +153,7 @@
 <script src="lib/ag-psd.min.js"></script>
 <script src="lib/pdf.min.js"></script>
 <script>
-const APP_VERSION = 1;
+const APP_VERSION = 2;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -239,12 +239,28 @@ async function loadAiPdf(f, buf, ext) {
   }
   const pdfDoc = await pdfjsLib.getDocument({ data: buf }).promise;
   const page1 = await pdfDoc.getPage(1);
+  if (ext === 'ai') await checkAiPlaceholder(page1);
   const vp = page1.getViewport({ scale: 1 });
   return {
     name: f.name, size: f.size, kind: ext === 'ai' ? 'AI' : 'PDF',
     pdfDoc, numPages: pdfDoc.numPages, pages: {},
     width: Math.round(vp.width), height: Math.round(vp.height), note: ''
   };
+}
+
+// 「PDF互換ファイルを作成」OFFで保存された.aiは、実際のアートワークの代わりに
+// Adobeのプレースホルダーページ（"saved without PDF Content" の透かし風テキスト）が入っている。
+// それを誤って表示しないよう、1ページ目のテキストを調べて検出する。
+async function checkAiPlaceholder(page1) {
+  let text = '';
+  try {
+    const tc = await page1.getTextContent();
+    text = tc.items.map(i => i.str).join('').replace(/\s+/g, '').toLowerCase();
+  } catch (e) { return; }
+  const markers = ['withoutpdfcontent', 'pdfcompatiblefile', 'pdf互換', 'pdfコンテンツ'];
+  if (markers.some(m => text.includes(m))) {
+    throw new Error('この .ai は「PDF互換ファイルを作成」OFFで保存されているため、プレビュー画像が含まれていません（Adobeの案内ページのみ表示される状態です）。Illustratorで「ファイル → 別名で保存」を開き、オプションの「PDF互換ファイルを作成」にチェックを入れて保存し直してください。');
+  }
 }
 
 // PDFページを高解像度でレンダリング（結果はキャッシュ）
