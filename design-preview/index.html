@@ -71,6 +71,7 @@
   .gallery.single{grid-template-columns:1fr;}
   .gallery.single .g-img{height:auto;min-height:200px;max-height:68vh;padding:16px;}
   .gallery.single .g-img canvas{max-width:100%;max-height:64vh;}
+  .gallery.single .g-chk{display:none;}   /* 1点のみのときはチェック不要（バーから直接保存） */
   .g-chk{position:absolute;top:6px;left:6px;z-index:2;background:rgba(255,255,255,.92);border-radius:6px;padding:4px;display:flex;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
   .g-chk input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;margin:0;}
   .g-item.checked{border-color:var(--primary);box-shadow:0 0 0 2px rgba(232,93,38,.25);}
@@ -244,7 +245,7 @@
 <script src="lib/jspdf.min.js"></script>
 <script src="lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 10;
+const APP_VERSION = 11;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -519,14 +520,27 @@ function renderGallery() {
   updateBulkBar();
 }
 
-/* ---------- まとめて変換（チェック選択 → PDF / JPG） ---------- */
+/* ---------- 変換バー（1点：そのまま保存 / 複数：チェック選択 → PDF / JPG） ---------- */
+let bulkBusy = false;
+
 function updateBulkBar() {
-  $('bulkBar').classList.toggle('show', FILES.length >= 2);
-  const n = FILES.filter(f => f.checked).length;
+  $('bulkBar').classList.toggle('show', FILES.length >= 1);
+  const single = FILES.length === 1;
+  $('chkAll').parentElement.style.display = single ? 'none' : '';
+  $('bulkCount').style.display = single ? 'none' : '';
+  if (bulkBusy) return;   // 変換中はボタンの表示を触らない
+  const n = single ? 1 : FILES.filter(f => f.checked).length;
   $('bulkCount').textContent = n + '件選択';
   $('bulkPdfBtn').disabled = !n;
   $('bulkJpgBtn').disabled = !n;
-  $('chkAll').checked = n > 0 && n === FILES.length;
+  $('bulkPdfBtn').textContent = single ? '⬇ PDF保存' : '⬇ まとめてPDF';
+  $('bulkJpgBtn').textContent = single ? '⬇ JPG保存' : '⬇ まとめてJPG';
+  $('chkAll').checked = !single && n > 0 && n === FILES.length;
+}
+
+// 1点のみのときはチェック不要でそのファイルを対象にする
+function bulkSelection() {
+  return FILES.length === 1 ? FILES.slice() : FILES.filter(f => f.checked);
 }
 
 function toggleAll(on) {
@@ -547,13 +561,14 @@ async function collectPages(files) {
   return out;
 }
 
-function setBusy(btn, busy, label) {
+function setBusy(btn, busy) {
+  bulkBusy = busy;
   btn.disabled = busy;
-  btn.textContent = busy ? '⏳ 変換中...' : label;
+  if (busy) btn.textContent = '⏳ 変換中...';
 }
 
 async function bulkPdf() {
-  const sel = FILES.filter(f => f.checked);
+  const sel = bulkSelection();
   if (!sel.length) return;
   const btn = $('bulkPdfBtn');
   setBusy(btn, true);
@@ -568,12 +583,12 @@ async function bulkPdf() {
       else pdf.addPage([w, h], o);
       pdf.addImage(c.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h);
     }
-    downloadBlob(pdf.output('blob'), `まとめ_${sel.length}件.pdf`);
+    downloadBlob(pdf.output('blob'), sel.length === 1 ? baseName(sel[0]) + '.pdf' : `まとめ_${sel.length}件.pdf`);
   } catch (e) {
     console.error(e);
     alert('PDFの生成に失敗しました');
   } finally {
-    setBusy(btn, false, '⬇ まとめてPDF');
+    setBusy(btn, false);
     updateBulkBar();
   }
 }
@@ -583,7 +598,7 @@ function canvasJpegBlob(canvas) {
 }
 
 async function bulkJpg() {
-  const sel = FILES.filter(f => f.checked);
+  const sel = bulkSelection();
   if (!sel.length) return;
   const btn = $('bulkJpgBtn');
   setBusy(btn, true);
@@ -602,13 +617,13 @@ async function bulkJpg() {
         if (used[name] > 1) name += '_' + used[name];
         zip.file(name + '.jpg', await canvasJpegBlob(p.canvas));
       }
-      downloadBlob(await zip.generateAsync({ type: 'blob' }), `まとめJPG_${sel.length}件.zip`);
+      downloadBlob(await zip.generateAsync({ type: 'blob' }), sel.length === 1 ? baseName(sel[0]) + '_jpg.zip' : `まとめJPG_${sel.length}件.zip`);
     }
   } catch (e) {
     console.error(e);
     alert('JPGの生成に失敗しました');
   } finally {
-    setBusy(btn, false, '⬇ まとめてJPG');
+    setBusy(btn, false);
     updateBulkBar();
   }
 }
