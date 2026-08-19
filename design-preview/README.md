@@ -1,6 +1,6 @@
 # デザインプレビュー
 
-Photoshop（.psd / .psb）・Illustrator（.ai）・PDF をブラウザ上でそのまま大きくプレビューする閲覧専用ツール。
+Photoshop（.psd / .psb）・Illustrator（.ai）・PDF・画像（.jpg / .png / .gif / .webp）をブラウザ上でそのまま大きくプレビューする閲覧専用ツール。
 ファイルはサーバーに送信されず、すべて端末内（JavaScript）で処理される。
 
 ## 機能
@@ -21,6 +21,7 @@ Photoshop（.psd / .psb）・Illustrator（.ai）・PDF をブラウザ上でそ
 | .psd / .psb | ag-psd（統合プレビュー画像） | 「互換性を優先」OFF保存はサムネイル表示のみ。CMYK等の特殊カラーモードは非対応（RGBで保存し直す） |
 | .ai | pdf.js（PDF互換データ） | 「PDF互換ファイルを作成」OFF保存は表示不可 |
 | .pdf | pdf.js | — |
+| .jpg / .png / .gif / .webp | ブラウザ標準（createImageBitmap） | GIFは1コマ目のみ表示 |
 
 大きな画像は端末のcanvas上限（iOS Safari 約16Mピクセル）に合わせて縮小描画される。
 
