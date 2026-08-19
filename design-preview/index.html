@@ -24,7 +24,7 @@
   /* イントロ＋対応形式カード */
   .intro{margin-bottom:24px;}
   .intro-main{font-size:13px;color:var(--gray-600);line-height:1.7;margin-bottom:12px;}
-  .fmt-cards{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:10px;}
+  .fmt-cards{display:grid;grid-template-columns:1fr 1.6fr 0.8fr 1fr;gap:10px;}
   .fmt-card{background:white;border:1px solid var(--gray-200);border-radius:10px;padding:12px 14px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
   .fmt-card b{font-size:13px;}
   .fmt-card small{display:block;font-size:11px;color:var(--gray-400);line-height:1.55;margin-top:3px;}
@@ -32,6 +32,7 @@
   .fmt-ic.psd{background:#001E36;color:#31A8FF;}
   .fmt-ic.ai{background:#330000;color:#FF9A00;}
   .fmt-ic.pdf{background:#B91C1C;color:white;font-size:9px;}
+  .fmt-ic.img{background:#047857;color:white;font-size:9px;}
   .fmt-tag{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#FED7AA;color:#C2410C;font-size:10px;font-weight:600;vertical-align:1px;white-space:nowrap;}
   .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
   .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
@@ -51,6 +52,7 @@
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;}
   .badge-orange{background:#FED7AA;color:#C2410C;}
   .badge-blue{background:#DBEAFE;color:#1D4ED8;}
+  .badge-green{background:#D1FAE5;color:#065F46;}
   .badge-gray{background:#F3F4F6;color:#374151;}
 
   /* サムネイル一覧ギャラリー */
@@ -98,7 +100,7 @@
   .fs-wrap.fs .toolbar .tb-btn.on{background:var(--primary);color:white;}
   .fs-wrap.fs .toolbar .tb-btn.save{color:#6EE7B7;}
   .fs-wrap.fs .toolbar .tb-label,.fs-wrap.fs .toolbar .tb-info{color:#D1D5DB;}
-  .fs-wrap.fs .viewer{flex:1;max-height:none;border:none;border-radius:0;}
+  .fs-wrap.fs .viewer{flex:1;max-height:none;border:none;border-radius:0;cursor:zoom-out;}
 
   footer{text-align:center;padding:10px 0 30px;font-size:11px;color:var(--gray-400);}
   @media(max-width:700px){
@@ -120,7 +122,7 @@
 <div class="container">
 
   <div class="intro">
-    <p class="intro-main">Photoshop・Illustrator・PDF をそのまま大きくプレビューできます（編集不可）。ファイルは端末の外へ送信されません。プレビューは JPG / PDF で保存できます。</p>
+    <p class="intro-main">Photoshop・Illustrator・PDF・画像をそのまま大きくプレビューできます（編集不可）。ファイルは端末の外へ送信されません。プレビューは JPG / PDF で保存できます。</p>
     <div class="fmt-cards">
       <div class="fmt-card">
         <span class="fmt-ic psd">Ps</span>
@@ -134,6 +136,10 @@
         <span class="fmt-ic pdf">PDF</span>
         <div><b>.pdf</b><small>そのまま表示できます</small></div>
       </div>
+      <div class="fmt-card">
+        <span class="fmt-ic img">IMG</span>
+        <div><b>画像</b><small>.jpg / .png / .gif / .webp をそのまま表示できます</small></div>
+      </div>
     </div>
   </div>
 
@@ -141,13 +147,13 @@
   <div class="card">
     <div class="card-header">
       <div class="step">1</div>
-      <h2>ファイルを選択 <span class="sub">.psd / .psb / .ai / .pdf（複数可）</span></h2>
+      <h2>ファイルを選択 <span class="sub">.psd / .psb / .ai / .pdf / 画像（複数可）</span></h2>
     </div>
     <div class="card-body">
       <div class="upload-zone" id="zone">
-        <input type="file" accept=".psd,.psb,.ai,.pdf" id="fileInput" multiple>
+        <input type="file" accept=".psd,.psb,.ai,.pdf,.jpg,.jpeg,.png,.gif,.webp" id="fileInput" multiple>
         <div class="upload-icon">🎨</div>
-        <p>PSD / AI ファイルをドロップ</p>
+        <p>PSD / AI / 画像ファイルをドロップ</p>
         <small>またはクリックして選択（複数ファイル可）</small>
       </div>
       <div id="statusArea"></div>
@@ -198,7 +204,7 @@
 <script src="lib/pdf.min.js"></script>
 <script src="lib/jspdf.min.js"></script>
 <script>
-const APP_VERSION = 6;
+const APP_VERSION = 8;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -223,15 +229,16 @@ input.addEventListener('change', () => { handleFiles(input.files); input.value =
 async function handleFiles(fileList) {
   for (const f of Array.from(fileList)) {
     const ext = (f.name.split('.').pop() || '').toLowerCase();
-    if (!['psd', 'psb', 'ai', 'pdf'].includes(ext)) {
-      addStatus('err', `❌ ${esc(f.name)} — 対応していない形式です（.psd / .psb / .ai / .pdf のみ）`);
+    const IMG_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    if (!['psd', 'psb', 'ai', 'pdf', ...IMG_EXTS].includes(ext)) {
+      addStatus('err', `❌ ${esc(f.name)} — 対応していない形式です（.psd / .psb / .ai / .pdf / .jpg / .png / .gif / .webp のみ）`);
       continue;
     }
     addStatus('ok', `⏳ ${esc(f.name)} を読み込み中...`, 'loading-' + FILES.length);
     try {
       const buf = await f.arrayBuffer();
-      const entry = (ext === 'psd' || ext === 'psb')
-        ? await loadPsd(f, buf)
+      const entry = (ext === 'psd' || ext === 'psb') ? await loadPsd(f, buf)
+        : IMG_EXTS.includes(ext) ? await loadImage(f, buf, ext)
         : await loadAiPdf(f, buf, ext);
       FILES.push(entry);
       replaceStatus(`✅ ${esc(f.name)}（${fmtSize(f.size)}・${entry.width}×${entry.height}px${entry.numPages > 1 ? '・' + entry.numPages + 'ページ' : ''}）${entry.note ? ' ' + entry.note : ''}`);
@@ -347,6 +354,20 @@ async function loadPsdSync(f, buf) {
   return { name: f.name, size: f.size, kind: 'PSD', numPages: 1, pages: { 1: canvas }, width: psd.width, height: psd.height, note };
 }
 
+/* ---------- 画像 読み込み（jpg / png / gif / webp） ---------- */
+async function loadImage(f, buf, ext) {
+  let bmp;
+  try {
+    bmp = await createImageBitmap(new Blob([buf]));   // GIFは1コマ目を表示
+  } catch (e) {
+    throw new Error('画像の読み込みに失敗しました。ファイルが破損している可能性があります。');
+  }
+  const c = document.createElement('canvas');
+  c.width = bmp.width; c.height = bmp.height;
+  c.getContext('2d').drawImage(bmp, 0, 0);
+  return { name: f.name, size: f.size, kind: ext === 'jpeg' ? 'JPG' : ext.toUpperCase(), numPages: 1, pages: { 1: capCanvas(c) }, width: bmp.width, height: bmp.height, note: '' };
+}
+
 /* ---------- AI / PDF 読み込み（pdf.js） ---------- */
 async function loadAiPdf(f, buf, ext) {
   // PDF互換のaiファイルは実体がPDF（先頭1KB以内に %PDF ヘッダー）
@@ -436,7 +457,8 @@ function renderGallery() {
     if (f.numPages > 1) img.insertAdjacentHTML('beforeend', `<span class="g-pages">${f.numPages}ページ</span>`);
     const meta = document.createElement('div');
     meta.className = 'g-meta';
-    meta.innerHTML = `<span class="badge ${f.kind === 'PSD' ? 'badge-blue' : 'badge-orange'}">${f.kind}</span><span class="g-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="g-del" title="一覧から削除">✕</span>`;
+    const badgeCls = f.kind === 'PSD' ? 'badge-blue' : (f.kind === 'AI' || f.kind === 'PDF') ? 'badge-orange' : 'badge-green';
+    meta.innerHTML = `<span class="badge ${badgeCls}">${f.kind}</span><span class="g-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="g-del" title="一覧から削除">✕</span>`;
     meta.querySelector('.g-del').onclick = e => { e.stopPropagation(); removeFile(i); };
     item.append(img, meta);
     g.appendChild(item);
@@ -545,6 +567,13 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeViewer();
   if (e.key === 'ArrowLeft') changePage(-1);
   if (e.key === 'ArrowRight') changePage(1);
+});
+
+// 画像のクリック / タップでも閉じる（スクロールのためのドラッグでは閉じない）
+let vDownX = 0, vDownY = 0;
+$('viewer').addEventListener('pointerdown', e => { vDownX = e.clientX; vDownY = e.clientY; });
+$('viewer').addEventListener('pointerup', e => {
+  if (Math.abs(e.clientX - vDownX) < 8 && Math.abs(e.clientY - vDownY) < 8) closeViewer();
 });
 
 /* ---------- 保存（JPG / PNG / PDF） ---------- */
