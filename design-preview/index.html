@@ -100,7 +100,7 @@
   .fs-wrap.fs .toolbar .tb-btn.on{background:var(--primary);color:white;}
   .fs-wrap.fs .toolbar .tb-btn.save{color:#6EE7B7;}
   .fs-wrap.fs .toolbar .tb-label,.fs-wrap.fs .toolbar .tb-info{color:#D1D5DB;}
-  .fs-wrap.fs .viewer{flex:1;max-height:none;border:none;border-radius:0;}
+  .fs-wrap.fs .viewer{flex:1;max-height:none;border:none;border-radius:0;cursor:zoom-out;}
 
   footer{text-align:center;padding:10px 0 30px;font-size:11px;color:var(--gray-400);}
   @media(max-width:700px){
@@ -204,7 +204,7 @@
 <script src="lib/pdf.min.js"></script>
 <script src="lib/jspdf.min.js"></script>
 <script>
-const APP_VERSION = 7;
+const APP_VERSION = 8;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -567,6 +567,13 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeViewer();
   if (e.key === 'ArrowLeft') changePage(-1);
   if (e.key === 'ArrowRight') changePage(1);
+});
+
+// 画像のクリック / タップでも閉じる（スクロールのためのドラッグでは閉じない）
+let vDownX = 0, vDownY = 0;
+$('viewer').addEventListener('pointerdown', e => { vDownX = e.clientX; vDownY = e.clientY; });
+$('viewer').addEventListener('pointerup', e => {
+  if (Math.abs(e.clientX - vDownX) < 8 && Math.abs(e.clientY - vDownY) < 8) closeViewer();
 });
 
 /* ---------- 保存（JPG / PNG / PDF） ---------- */
