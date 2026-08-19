@@ -67,6 +67,10 @@
   .g-name{font-size:12px;font-weight:600;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
   .g-del{color:var(--gray-400);font-weight:bold;padding:2px 6px;border-radius:6px;flex-shrink:0;}
   .g-del:hover{background:var(--red-light);color:var(--red);}
+  /* 1ファイルのみ：一覧枠内で大きく表示 */
+  .gallery.single{grid-template-columns:1fr;}
+  .gallery.single .g-img{height:auto;min-height:200px;max-height:68vh;padding:16px;}
+  .gallery.single .g-img canvas{max-width:100%;max-height:64vh;}
   .g-chk{position:absolute;top:6px;left:6px;z-index:2;background:rgba(255,255,255,.92);border-radius:6px;padding:4px;display:flex;box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:pointer;}
   .g-chk input{width:16px;height:16px;accent-color:var(--primary);cursor:pointer;margin:0;}
   .g-item.checked{border-color:var(--primary);box-shadow:0 0 0 2px rgba(232,93,38,.25);}
@@ -240,7 +244,7 @@
 <script src="lib/jspdf.min.js"></script>
 <script src="lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -287,8 +291,6 @@ async function handleFiles(fileList) {
       replaceStatus(`❌ ${esc(f.name)} — ${esc(err.message || '読み込みに失敗しました')}`, true);
     }
   }
-  // 1ファイルだけのときはそのまま拡大表示を開く
-  if (FILES.length === 1) openViewer(0);
 }
 
 let lastStatus = null;
@@ -474,6 +476,10 @@ function capCanvas(src) {
 function renderGallery() {
   const g = $('gallery');
   g.innerHTML = '';
+  // 1ファイルだけのときはページ内で大きく表示（クリックでさらに拡大）
+  const single = FILES.length === 1;
+  g.classList.toggle('single', single);
+  const thMaxW = single ? 1600 : 300, thMaxH = single ? 1600 : 138;
   FILES.forEach((f, i) => {
     const item = document.createElement('div');
     item.className = 'g-item';
@@ -482,7 +488,7 @@ function renderGallery() {
     img.className = 'g-img';
     const src = f.pages[1] || f.thumb;
     if (src) {
-      const scale = Math.min(1, 300 / src.width, 138 / src.height);
+      const scale = Math.min(1, thMaxW / src.width, thMaxH / src.height);
       const t = document.createElement('canvas');
       t.width = Math.max(1, Math.round(src.width * scale));
       t.height = Math.max(1, Math.round(src.height * scale));
