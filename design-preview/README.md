@@ -11,6 +11,8 @@ Photoshop（.psd / .psb）・Illustrator（.ai）・PDF・画像（.jpg / .png /
 - ページ送り（複数アートボードのAI・複数ページのPDF、←→キー対応）
 - ズーム（フィット / 10〜400% / 100%）、全画面表示（Escで解除）
 - プレビューの保存：JPG（表示中ページ）、PDF（全ページまとめて1ファイル、jsPDF使用）
+- まとめて変換：一覧のチェックボックスで複数選択 → 「まとめてPDF」（選択分を1つのPDFに結合）／「まとめてJPG」（複数枚はZIPにまとめてダウンロード、JSZip使用）
+- 変換サイズ指定：元のサイズ / 長辺2000・1600・1200・800px（JPG/PDF/まとめて変換すべてに適用、選択はlocalStorageに保存）
 - PSDはWeb Workerで展開（UIをブロックしない）。埋め込みサムネイルを先に即表示し、高解像度が完成したら自動で差し替え
 - 3分ごとの自動更新チェック（`APP_VERSION`、ファイル未読込時のみ自動リロード）
 
@@ -31,3 +33,4 @@ Photoshop（.psd / .psb）・Illustrator（.ai）・PDF・画像（.jpg / .png /
 - `psd-worker.js` — PSD解析用Web Worker（ag-psdをバックグラウンドで実行）
 - `pdf.min.js` / `pdf.worker.min.js` — pdfjs-dist 3.11.174 legacy build（AI/PDF描画）
 - `jspdf.min.js` — jsPDF 2.5.2（PDF保存）
+- `jszip.min.js` — JSZip 3.10.1（まとめてJPGのZIP生成）
