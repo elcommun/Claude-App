@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>在庫データ変換 | EL COMMUN</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/encoding-japanese/2.0.0/encoding.min.js"></script>
+<style>
+  /* === EL COMMUN UI デザインシステム === */
+  :root {
+    --primary:#E85D26;--primary-light:#FFF3EE;--primary-dark:#C4461B;
+    --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+    --gray-400:#9CA3AF;--gray-600:#4B5563;--gray-800:#1F2937;
+    --green:#10B981;--green-light:#ECFDF5;
+    --red:#EF4444;--red-light:#FEF2F2;
+    --yellow-light:#FFFBEB;--blue-light:#EFF6FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Hiragino Sans','Noto Sans JP','Meiryo',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh;}
+  header{background:white;border-bottom:3px solid var(--primary);padding:16px 32px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .logo{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;}
+  header h1{font-size:18px;font-weight:700;}
+  header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .container{max-width:960px;margin:0 auto;padding:32px 16px;}
+  .info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.6;}
+  .info-box strong{color:#78350F;}
+  .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
+  .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
+  .step.rule{background:var(--gray-600);font-size:11px;}
+  .card-header h2{font-size:15px;font-weight:700;}
+  .sub{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .card-body{padding:20px;}
+  .upload-zone{border:2px dashed var(--gray-200);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--primary);background:var(--primary-light);}
+  .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{font-size:32px;margin-bottom:8px;}
+  .upload-zone p{font-size:14px;color:var(--gray-600);margin-bottom:4px;}
+  .upload-zone small{font-size:12px;color:var(--gray-400);}
+  .file-status{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;}
+  .file-status.ok{background:var(--green-light);color:#065F46;}
+  .file-status.err{background:var(--red-light);color:#991B1B;}
+  .rule-box{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:8px;padding:12px 16px;font-size:12px;color:#1E40AF;line-height:2;}
+  .data-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .data-table th{background:var(--gray-100);padding:8px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200);position:sticky;top:0;}
+  .data-table td{padding:8px 12px;border-bottom:1px solid var(--gray-200);}
+  .data-table tr:last-child td{border-bottom:none;}
+  .data-table tr.row-err td{background:var(--red-light);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;}
+  .badge-red{background:#FEE2E2;color:#991B1B;}.badge-green{background:#D1FAE5;color:#065F46;}
+  .badge-orange{background:#FED7AA;color:#C2410C;}
+  .primary-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .primary-btn:hover:not(:disabled){background:var(--primary-dark);}
+  .primary-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+  .log-box{margin-top:16px;background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;max-height:320px;overflow-y:auto;display:none;}
+  .log-box.show{display:block;}
+  .log-ok{color:#6EE7B7;}.log-warn{color:#FCD34D;}.log-err{color:#FCA5A5;}.log-info{color:#93C5FD;}
+  .log-sep{color:#4B5563;border-top:1px solid #374151;margin:4px 0;}
+  .result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:20px;margin-top:20px;text-align:center;}
+  .result-section.show{display:block;}
+  .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
+  .result-section.has-err{background:var(--red-light);border-color:#FCA5A5;}
+  .result-section.has-err h3{color:#991B1B;}
+  .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
+  .dl-btn:hover{background:#059669;}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+  .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
+  .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
+  .stat .num.err{color:var(--red);}
+  .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
+  .preview-wrap{max-height:420px;overflow:auto;border:1px solid var(--gray-200);border-radius:8px;}
+  .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:640px){.upload-grid{grid-template-columns:1fr;}}
+  .enc-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:12px;font-size:12px;color:var(--gray-600);}
+  footer{text-align:center;padding:16px;font-size:11px;color:var(--gray-400);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">在</div>
+  <div><h1>在庫データ変換 <span>EL COMMUN</span></h1></div>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    <strong>処理概要：</strong>EC在庫の<strong>売上データ（xlsx）</strong>の「商品コード」を、<strong>itemdata（CSV）</strong>の「システム連携用SKU番号」の末尾と突合し、一致した行の「SKU管理番号」を <strong>SKU</strong> として、「売上数」の頭に <strong>+</strong> を付けた <strong>総在庫数</strong> と共にCSV出力します。一致しない商品コードはエラーとしてプレビューに表示されます。
+  </div>
+
+  <!-- Step 1 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">1</div>
+      <h2>ファイルをアップロード <span class="sub">売上データ xlsx ＋ itemdata CSV</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="upload-grid">
+        <div>
+          <div class="upload-zone" id="zoneXlsx">
+            <input type="file" accept=".xlsx" id="fileXlsx">
+            <div class="upload-icon">📊</div>
+            <p>売上データ（.xlsx）をドロップ</p>
+            <small>またはクリックして選択（商品コード・売上数を含むファイル）</small>
+          </div>
+          <div id="statusXlsx"></div>
+        </div>
+        <div>
+          <div class="upload-zone" id="zoneCsv">
+            <input type="file" accept=".csv" id="fileCsv">
+            <div class="upload-icon">📄</div>
+            <p>itemdata（.csv）をドロップ</p>
+            <small>またはクリックして選択（システム連携用SKU番号・SKU管理番号を含むファイル）</small>
+          </div>
+          <div id="statusCsv"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">2</div>
+      <h2>変換を実行</h2>
+    </div>
+    <div class="card-body">
+      <button class="primary-btn" id="convertBtn" disabled onclick="doConvert()">⚙️ SKU・総在庫数CSVに変換する</button>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- Step 3: プレビュー -->
+  <div class="card" id="previewCard" style="display:none">
+    <div class="card-header">
+      <div class="step">3</div>
+      <h2>プレビュー <span class="sub" id="previewSub"></span></h2>
+    </div>
+    <div class="card-body">
+      <div class="preview-wrap">
+        <table class="data-table">
+          <thead><tr><th>状態</th><th>商品コード</th><th>商品名</th><th>SKU</th><th>総在庫数</th></tr></thead>
+          <tbody id="previewBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="result-section" id="resultSection">
+    <h3 id="resultTitle">✅ 変換完了！</h3>
+    <button class="dl-btn" id="dlBtn" onclick="downloadCsv()">⬇️ CSVをダウンロード</button>
+    <div class="enc-row">
+      <span>文字コード：</span>
+      <label><input type="radio" name="enc" value="sjis" checked> Shift-JIS（推奨）</label>
+      <label><input type="radio" name="enc" value="utf8"> UTF-8（BOM付き）</label>
+    </div>
+    <div class="stats-grid" id="statsGrid"></div>
+  </div>
+
+</div>
+
+<footer>在庫データ変換 <span id="verBadge"></span> | EL COMMUN EC事業部</footer>
+
+<script>
+const APP_VERSION = 1;
+document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
+
+// ===== 状態 =====
+let SALES = null;      // [{code, name, qty}]
+let ITEMS = null;      // [{sys, sku}]
+let RESULT = null;     // {rows:[{status,code,name,sku,qty}], okRows, errCount}
+
+function log(msg, cls = '') {
+  const box = document.getElementById('logBox');
+  box.classList.add('show');
+  box.innerHTML += `<div class="${cls}">${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function setStatus(id, ok, msg) {
+  document.getElementById(id).innerHTML = `<div class="file-status ${ok?'ok':'err'}">${ok?'✅':'❌'} ${esc(msg)}</div>`;
+}
+function updateBtn() {
+  document.getElementById('convertBtn').disabled = !(SALES && ITEMS);
+}
+
+// ===== ドラッグ&ドロップ =====
+function setupZone(zoneId, inputId, handler) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  input.addEventListener('change', () => { if (input.files[0]) handler(input.files[0]); });
+  ['dragover','dragenter'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('drag'); }));
+  zone.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) handler(f); });
+}
+
+// ===== xlsx 読み込み =====
+async function loadXlsx(file) {
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+    // ヘッダー行（商品コード・売上数を含む行）を探す
+    let hi = -1, ci = -1, qi = -1, ni = -1;
+    for (let i = 0; i < Math.min(aoa.length, 20); i++) {
+      const row = aoa[i].map(v => String(v).trim());
+      const c = row.indexOf('商品コード'), q = row.indexOf('売上数');
+      if (c >= 0 && q >= 0) { hi = i; ci = c; qi = q; ni = row.indexOf('商品名１'); break; }
+    }
+    if (hi < 0) throw new Error('「商品コード」「売上数」の列が見つかりません');
+    const rows = [];
+    for (let i = hi + 1; i < aoa.length; i++) {
+      const code = String(aoa[i][ci] || '').trim();
+      if (!code) continue;
+      const qty = Number(String(aoa[i][qi] || '0').replace(/,/g, ''));
+      const name = ni >= 0 ? String(aoa[i][ni] || '').trim() : '';
+      rows.push({ code, name, qty });
+    }
+    if (!rows.length) throw new Error('データ行がありません');
+    SALES = rows;
+    setStatus('statusXlsx', true, `読み込み完了：${rows.length}件（${file.name}）`);
+  } catch (e) {
+    SALES = null;
+    setStatus('statusXlsx', false, 'エラー：' + e.message);
+  }
+  updateBtn();
+}
+
+// ===== CSV 読み込み（Shift-JIS / UTF-8 自動判定） =====
+function parseCsv(text) {
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQ) {
+      if (ch === '"') { if (text[i+1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ',') { row.push(field); field = ''; }
+    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (ch !== '\r') field += ch;
+  }
+  if (field !== '' || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+async function loadCsv(file) {
+  try {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    const detected = Encoding.detect(buf);
+    const text = Encoding.codeToString(Encoding.convert(buf, { to: 'UNICODE', from: detected }));
+    const rows = parseCsv(text);
+    if (!rows.length) throw new Error('空のファイルです');
+    const header = rows[0].map(v => v.trim());
+    const si = header.indexOf('システム連携用SKU番号');
+    const ki = header.indexOf('SKU管理番号');
+    if (si < 0 || ki < 0) throw new Error('「システム連携用SKU番号」「SKU管理番号」の列が見つかりません');
+    const items = [];
+    for (let i = 1; i < rows.length; i++) {
+      const sys = (rows[i][si] || '').trim();
+      const sku = (rows[i][ki] || '').trim();
+      if (sys) items.push({ sys, sku });
+    }
+    if (!items.length) throw new Error('SKUデータ行がありません');
+    ITEMS = items;
+    setStatus('statusCsv', true, `読み込み完了：${items.length}件（${file.name}／${detected}）`);
+  } catch (e) {
+    ITEMS = null;
+    setStatus('statusCsv', false, 'エラー：' + e.message);
+  }
+  updateBtn();
+}
+
+setupZone('zoneXlsx', 'fileXlsx', loadXlsx);
+setupZone('zoneCsv', 'fileCsv', loadCsv);
+
+// ===== 変換 =====
+function doConvert() {
+  document.getElementById('logBox').innerHTML = '';
+  log('🔄 変換を開始します…', 'log-info');
+
+  // 同一商品コードは売上数を合算
+  const agg = new Map();
+  for (const r of SALES) {
+    if (agg.has(r.code)) {
+      const a = agg.get(r.code);
+      a.qty += r.qty;
+      a.dup = true;
+    } else {
+      agg.set(r.code, { code: r.code, name: r.name, qty: r.qty, dup: false });
+    }
+  }
+  if (agg.size < SALES.length) {
+    log(`ℹ️ 同一商品コードの行を合算しました（${SALES.length}行 → ${agg.size}件）`, 'log-info');
+  }
+
+  const resultRows = [], okRows = [];
+  let errCount = 0;
+  for (const r of agg.values()) {
+    const skus = new Set();
+    for (const it of ITEMS) {
+      if (it.sys.endsWith(r.code)) skus.add(it.sku);
+    }
+    if (skus.size === 1) {
+      const sku = [...skus][0];
+      okRows.push({ sku, qty: r.qty });
+      resultRows.push({ status: 'ok', code: r.code, name: r.name, sku, qty: r.qty, dup: r.dup });
+    } else if (skus.size === 0) {
+      errCount++;
+      resultRows.push({ status: 'err', code: r.code, name: r.name, sku: '', qty: r.qty, msg: '一致なし' });
+      log(`❌ 一致なし：${r.code}（${r.name}）`, 'log-err');
+    } else {
+      errCount++;
+      resultRows.push({ status: 'err', code: r.code, name: r.name, sku: [...skus].join(' / '), qty: r.qty, msg: '複数SKUに一致' });
+      log(`❌ 複数SKUに一致：${r.code} → ${[...skus].join(', ')}`, 'log-err');
+    }
+  }
+  log('──────────', 'log-sep');
+  log(`✅ 一致：${okRows.length}件 ／ ❌ エラー：${errCount}件`, errCount ? 'log-warn' : 'log-ok');
+
+  RESULT = { rows: resultRows, okRows, errCount };
+  renderPreview();
+}
+
+function renderPreview() {
+  const { rows, okRows, errCount } = RESULT;
+  // エラー行を先頭に表示
+  const sorted = [...rows].sort((a, b) => (a.status === 'err' ? 0 : 1) - (b.status === 'err' ? 0 : 1));
+  const body = document.getElementById('previewBody');
+  body.innerHTML = sorted.map(r => {
+    const badge = r.status === 'ok'
+      ? '<span class="badge badge-green">OK</span>' + (r.dup ? ' <span class="badge badge-orange">合算</span>' : '')
+      : `<span class="badge badge-red">${esc(r.msg)}</span>`;
+    return `<tr class="${r.status === 'err' ? 'row-err' : ''}">
+      <td>${badge}</td>
+      <td>${esc(r.code)}</td>
+      <td>${esc(r.name)}</td>
+      <td>${esc(r.sku)}</td>
+      <td>${r.status === 'ok' ? '+' + r.qty : esc(String(r.qty))}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('previewSub').textContent = `全${rows.length}件（一致 ${okRows.length}／エラー ${errCount}）`;
+  document.getElementById('previewCard').style.display = 'block';
+
+  const rs = document.getElementById('resultSection');
+  rs.classList.add('show');
+  rs.classList.toggle('has-err', errCount > 0);
+  document.getElementById('resultTitle').textContent = errCount > 0
+    ? `⚠️ 変換完了（エラー${errCount}件あり — エラー行はCSVに含まれません）`
+    : '✅ 変換完了！';
+  document.getElementById('dlBtn').style.display = okRows.length ? '' : 'none';
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat"><div class="num">${rows.length}</div><div class="label">商品コード数</div></div>
+    <div class="stat"><div class="num">${okRows.length}</div><div class="label">一致（出力）</div></div>
+    <div class="stat"><div class="num ${errCount ? 'err' : ''}">${errCount}</div><div class="label">エラー</div></div>
+    <div class="stat"><div class="num">${okRows.reduce((s, r) => s + r.qty, 0)}</div><div class="label">総在庫数 合計</div></div>`;
+  document.getElementById('previewCard').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===== CSVダウンロード =====
+function downloadCsv() {
+  if (!RESULT || !RESULT.okRows.length) return;
+  const enc = document.querySelector('input[name=enc]:checked').value;
+  const lines = ['SKU,総在庫数'];
+  for (const r of RESULT.okRows) lines.push(`${r.sku},+${r.qty}`);
+  const text = lines.join('\r\n') + '\r\n';
+
+  let blob;
+  if (enc === 'sjis') {
+    const sjis = Encoding.convert(Encoding.stringToCode(text), { to: 'SJIS', from: 'UNICODE' });
+    blob = new Blob([new Uint8Array(sjis)], { type: 'text/csv' });
+  } else {
+    blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), text], { type: 'text/csv;charset=utf-8' });
+  }
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const name = `sku_stock_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.csv`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  log(`💾 ダウンロード：${name}（${enc === 'sjis' ? 'Shift-JIS' : 'UTF-8 BOM'}）`, 'log-ok');
+}
+
+// ===== 自動アップデートチェック（3分ごと。ファイル読込済みならスキップ） =====
+setInterval(async () => {
+  try {
+    const res = await fetch(location.pathname + '?t=' + Date.now(), { cache: 'no-store' });
+    const m = (await res.text()).match(/const APP_VERSION = (\d+);/);
+    if (m && Number(m[1]) > APP_VERSION && !SALES && !ITEMS) location.reload();
+  } catch (e) {}
+}, 3 * 60 * 1000);
+</script>
+</body>
+</html>

@@ -47,6 +47,12 @@ EC（楽天・Amazon等）の販売データをExcelでインポートし、カ�
 - 3分ごとにサーバー側と比較し、大きければ自動リロード（ファイル読込済みのときはリロードしない）
 - PSD/AI/PDFのブラウザプレビュー専用アプリ。描画ライブラリは `design-preview/lib/` に同梱（ag-psd 14.3.6 / pdfjs-dist 3.11.174 legacy）
 
+### inventory-convert のバージョン番号
+- `inventory-convert/index.html` に `const APP_VERSION = N;`（フッターの `#verBadge` に `vN` 表示）がある
+- **このファイルを変更してコミットするたびに `APP_VERSION` を必ず1つ増やすこと**
+- 3分ごとにサーバー側と比較し、大きければ自動リロード（ファイル読み込み済みのときはリロードしない）
+- 売上データxlsx（商品コード・売上数）と itemdata CSV（システム連携用SKU番号・SKU管理番号）を突合して「SKU,総在庫数（+N）」のCSVを出力するアプリ
+
 ### laikle-convert の変換完了メール
 - 変換完了時に `ec@elcommun.co.jp` へ自動送信する仕組み（Google Apps Script のウェブアプリ経由）
 - GAS側のコードと設定手順は `laikle-convert/mail-gas/`（`Code.gs` / `README.md`）
