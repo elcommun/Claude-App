@@ -72,9 +72,10 @@
   .csv-note{margin-top:12px;background:var(--yellow-light);border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;line-height:1.7;text-align:left;}
   .csv-note code{background:#FEF3C7;border-radius:4px;padding:1px 4px;font-size:11px;}
   /* 使い方マニュアル */
-  .manual-header{cursor:pointer;user-select:none;}
-  .manual-toggle{margin-left:auto;font-size:12px;color:var(--gray-400);flex-shrink:0;}
-  #manualBody.collapsed{display:none;}
+  .manual-more{display:block;width:100%;margin-top:16px;padding:10px 14px;background:var(--gray-50);border:1px dashed var(--gray-200);border-radius:8px;font-size:12px;font-weight:600;color:var(--gray-600);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
+  .manual-more:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light);}
+  #manualDetail{margin-top:20px;}
+  #manualDetail.collapsed{display:none;}
   .mn-sec{margin-bottom:20px;}
   .mn-sec:last-child{margin-bottom:0;}
   .mn-title{font-size:13px;font-weight:700;color:var(--gray-800);margin-bottom:8px;padding-left:8px;border-left:3px solid var(--primary);}
@@ -115,12 +116,11 @@
 
   <!-- 使い方マニュアル -->
   <div class="card">
-    <div class="card-header manual-header" onclick="toggleManual()">
+    <div class="card-header">
       <div class="step rule">📖</div>
       <h2>使い方マニュアル <span class="sub">はじめての方はこちら</span></h2>
-      <span class="manual-toggle" id="manualToggle">▲ 閉じる</span>
     </div>
-    <div class="card-body" id="manualBody">
+    <div class="card-body">
 
       <div class="mn-sec">
         <div class="mn-title">🎯 このアプリでできること</div>
@@ -133,6 +133,10 @@
           <div class="mn-flow-box out">📥<br>SKU・総在庫数<br><small>.csv</small></div>
         </div>
       </div>
+
+      <button class="manual-more" id="manualMoreBtn" onclick="toggleManualDetail()">▼ 詳しい使い方を見る（用意するファイル・手順・エラーの見方）</button>
+
+      <div id="manualDetail" class="collapsed">
 
       <div class="mn-sec">
         <div class="mn-title">📁 用意するファイル（2つとも必須）</div>
@@ -183,6 +187,8 @@ BND-004,+5
           <li><strong>CSVをExcelでダブルクリックして開くと</strong>「+」が消えたりSKUが通貨表示に化けて<strong>見える</strong>ことがありますが、ファイルの中身は正しい形式です。内容確認には青色の「📊 Excel確認用（.xlsx）」ボタンを使ってください。</li>
         </ul>
       </div>
+
+      </div><!-- /#manualDetail -->
 
     </div>
   </div>
@@ -266,20 +272,17 @@ BND-004,+5
 <footer>在庫データ変換 <span id="verBadge"></span> | EL COMMUN EC事業部</footer>
 
 <script>
-const APP_VERSION = 3;
+const APP_VERSION = 4;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
-// ===== 使い方マニュアルの開閉（前回の状態を記憶） =====
-function applyManualState(collapsed) {
-  document.getElementById('manualBody').classList.toggle('collapsed', collapsed);
-  document.getElementById('manualToggle').textContent = collapsed ? '▼ 開く' : '▲ 閉じる';
+// ===== 使い方マニュアル詳細の開閉（通常は「できること」のみ表示） =====
+function toggleManualDetail() {
+  const detail = document.getElementById('manualDetail');
+  const collapsed = detail.classList.toggle('collapsed');
+  document.getElementById('manualMoreBtn').textContent = collapsed
+    ? '▼ 詳しい使い方を見る（用意するファイル・手順・エラーの見方）'
+    : '▲ 詳しい使い方を閉じる';
 }
-function toggleManual() {
-  const collapsed = !document.getElementById('manualBody').classList.contains('collapsed');
-  applyManualState(collapsed);
-  try { localStorage.setItem('inv_conv_manual_collapsed', collapsed ? '1' : '0'); } catch (e) {}
-}
-try { applyManualState(localStorage.getItem('inv_conv_manual_collapsed') === '1'); } catch (e) {}
 
 // ===== 状態 =====
 let SALES = null;      // [{code, name, qty}]
