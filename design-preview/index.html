@@ -85,6 +85,8 @@
   .bulk-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--green);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s;}
   .bulk-btn:hover:not(:disabled){background:#059669;}
   .bulk-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+  .bulk-btn.danger{background:white;color:var(--red);border:1px solid #FCA5A5;margin-left:auto;}
+  .bulk-btn.danger:hover:not(:disabled){background:var(--red-light);color:#991B1B;}
   .size-sel{padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;font-size:12px;color:var(--gray-600);background:white;font-weight:600;cursor:pointer;}
   .fs-wrap.fs .size-sel{background:#374151;border-color:#4B5563;color:#E5E7EB;}
 
@@ -199,6 +201,7 @@
         </select>
         <button class="bulk-btn" id="bulkPdfBtn" onclick="bulkPdf()" disabled>⬇ まとめてPDF</button>
         <button class="bulk-btn" id="bulkJpgBtn" onclick="bulkJpg()" disabled>⬇ まとめてJPG</button>
+        <button class="bulk-btn danger" id="clearAllBtn" onclick="clearAllFiles()">🗑 全て削除</button>
       </div>
       <div class="gallery" id="gallery"></div>
       <div class="fs-wrap" id="fsWrap">
@@ -245,7 +248,7 @@
 <script src="lib/jspdf.min.js"></script>
 <script src="lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 13;
+const APP_VERSION = 14;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -281,37 +284,37 @@ async function handleFiles(fileList) {
       addStatus('err', `❌ ${esc(f.name)} — 対応していない形式です（.psd / .psb / .ai / .pdf / .jpg / .png / .gif / .webp のみ）`);
       continue;
     }
-    addStatus('ok', `⏳ ${esc(f.name)} を読み込み中...`, 'loading-' + FILES.length);
+    const statusEl = addStatus('ok', `⏳ ${esc(f.name)} を読み込み中...`);
     try {
       const buf = await f.arrayBuffer();
       const entry = (ext === 'psd' || ext === 'psb') ? await loadPsd(f, buf)
         : IMG_EXTS.includes(ext) ? await loadImage(f, buf, ext)
         : await loadAiPdf(f, buf, ext);
+      entry.statusEl = statusEl;   // 一覧から削除したときに対応する状態表示も消すための参照
       FILES.push(entry);
-      replaceStatus(`✅ ${esc(f.name)}（${fmtSize(f.size)}・${entry.width}×${entry.height}px${entry.numPages > 1 ? '・' + entry.numPages + 'ページ' : ''}）${entry.note ? ' ' + entry.note : ''}`);
+      replaceStatus(statusEl, `✅ ${esc(f.name)}（${fmtSize(f.size)}・${entry.width}×${entry.height}px${entry.numPages > 1 ? '・' + entry.numPages + 'ページ' : ''}）${entry.note ? ' ' + entry.note : ''}`);
       $('previewCard').style.display = '';
       renderGallery();
       // AI/PDFは一覧サムネイル用に1ページ目を非同期レンダリング
       if (entry.pdfDoc && !entry.pages[1]) renderPdfPage(entry, 1).then(renderGallery).catch(() => {});
     } catch (err) {
       console.error(err);
-      replaceStatus(`❌ ${esc(f.name)} — ${esc(err.message || '読み込みに失敗しました')}`, true);
+      replaceStatus(statusEl, `❌ ${esc(f.name)} — ${esc(err.message || '読み込みに失敗しました')}`, true);
     }
   }
 }
 
-let lastStatus = null;
 function addStatus(cls, html) {
   const div = document.createElement('div');
   div.className = 'file-status ' + cls;
   div.innerHTML = html;
   $('statusArea').appendChild(div);
-  lastStatus = div;
+  return div;
 }
-function replaceStatus(html, isErr) {
-  if (!lastStatus) return;
-  lastStatus.className = 'file-status ' + (isErr ? 'err' : 'ok');
-  lastStatus.innerHTML = html;
+function replaceStatus(el, html, isErr) {
+  if (!el) return;
+  el.className = 'file-status ' + (isErr ? 'err' : 'ok');
+  el.innerHTML = html;
 }
 
 /* ---------- PSD 読み込み（ag-psd・Web Workerで並列処理） ----------
@@ -669,10 +672,23 @@ async function bulkJpg() {
 }
 
 function removeFile(idx) {
+  const f = FILES[idx];
+  if (f && f.statusEl) f.statusEl.remove();   // 「ファイルを選択」欄の状態表示も連動して削除
   FILES.splice(idx, 1);
   if (current === idx) closeViewer();
   if (current > idx) current--;
   if (!FILES.length) { current = -1; $('previewCard').style.display = 'none'; }
+  renderGallery();
+}
+
+function clearAllFiles() {
+  if (!FILES.length) return;
+  if (!confirm(`読み込んだ${FILES.length}件のファイルをすべて削除します。よろしいですか？`)) return;
+  FILES.length = 0;
+  current = -1;
+  if (isFs()) closeViewer();
+  $('previewCard').style.display = 'none';
+  $('statusArea').innerHTML = '';
   renderGallery();
 }
 
