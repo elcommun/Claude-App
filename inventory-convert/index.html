@@ -50,6 +50,7 @@
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;}
   .badge-red{background:#FEE2E2;color:#991B1B;}.badge-green{background:#D1FAE5;color:#065F46;}
   .badge-orange{background:#FED7AA;color:#C2410C;}
+  .badge-blue{background:#DBEAFE;color:#1D4ED8;}
   .primary-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
   .primary-btn:hover:not(:disabled){background:var(--primary-dark);}
   .primary-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
@@ -70,6 +71,27 @@
   .dl-row{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
   .csv-note{margin-top:12px;background:var(--yellow-light);border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;line-height:1.7;text-align:left;}
   .csv-note code{background:#FEF3C7;border-radius:4px;padding:1px 4px;font-size:11px;}
+  /* 使い方マニュアル */
+  .manual-header{cursor:pointer;user-select:none;}
+  .manual-toggle{margin-left:auto;font-size:12px;color:var(--gray-400);flex-shrink:0;}
+  #manualBody.collapsed{display:none;}
+  .mn-sec{margin-bottom:20px;}
+  .mn-sec:last-child{margin-bottom:0;}
+  .mn-title{font-size:13px;font-weight:700;color:var(--gray-800);margin-bottom:8px;padding-left:8px;border-left:3px solid var(--primary);}
+  .mn-text{font-size:13px;line-height:1.7;color:var(--gray-600);}
+  .mn-flow{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .mn-flow-box{background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:10px 16px;text-align:center;font-size:12px;font-weight:700;line-height:1.5;}
+  .mn-flow-box small{font-weight:600;color:var(--gray-400);}
+  .mn-flow-box.out{background:var(--green-light);border-color:#6EE7B7;color:#065F46;}
+  .mn-flow-plus,.mn-flow-arrow{font-size:18px;font-weight:700;color:var(--gray-400);}
+  .mn-flow-arrow{color:var(--primary);}
+  .mn-table td{vertical-align:top;line-height:1.8;}
+  .mn-steps{margin:0 0 0 20px;font-size:13px;line-height:1.8;color:var(--gray-600);}
+  .mn-steps li{margin-bottom:8px;}
+  .mn-steps li:last-child{margin-bottom:0;}
+  .mn-code{background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:12px 16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.7;overflow-x:auto;margin-bottom:8px;}
+  .mn-list{margin:0 0 0 20px;font-size:12px;line-height:1.9;color:var(--gray-600);}
+  .mn-list code{background:var(--gray-100);border-radius:4px;padding:1px 4px;font-size:11px;}
   .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
   .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
   .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
@@ -91,8 +113,78 @@
 
 <div class="container">
 
-  <div class="info-box">
-    <strong>処理概要：</strong>EC在庫の<strong>売上データ（xlsx）</strong>の「商品コード」を、<strong>itemdata（CSV）</strong>の「システム連携用SKU番号」の末尾と突合し、一致した行の「SKU管理番号」を <strong>SKU</strong> として、「売上数」の頭に <strong>+</strong> を付けた <strong>総在庫数</strong> と共にCSV出力します。一致しない商品コードはエラーとしてプレビューに表示されます。
+  <!-- 使い方マニュアル -->
+  <div class="card">
+    <div class="card-header manual-header" onclick="toggleManual()">
+      <div class="step rule">📖</div>
+      <h2>使い方マニュアル <span class="sub">はじめての方はこちら</span></h2>
+      <span class="manual-toggle" id="manualToggle">▲ 閉じる</span>
+    </div>
+    <div class="card-body" id="manualBody">
+
+      <div class="mn-sec">
+        <div class="mn-title">🎯 このアプリでできること</div>
+        <p class="mn-text">EC在庫の<strong>売上データ（xlsx）</strong>を、在庫連携システムに取り込める<strong>「SKU」「総在庫数」の2列だけのCSV</strong>に変換します。</p>
+        <div class="mn-flow">
+          <div class="mn-flow-box">📊<br>売上データ<br><small>.xlsx</small></div>
+          <div class="mn-flow-plus">＋</div>
+          <div class="mn-flow-box">📄<br>itemdata<br><small>.csv</small></div>
+          <div class="mn-flow-arrow">→</div>
+          <div class="mn-flow-box out">📥<br>SKU・総在庫数<br><small>.csv</small></div>
+        </div>
+      </div>
+
+      <div class="mn-sec">
+        <div class="mn-title">📁 用意するファイル（2つとも必須）</div>
+        <table class="data-table mn-table">
+          <thead><tr><th>ファイル</th><th>入手元</th><th>必要な列</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>① 売上データ（.xlsx）</strong></td>
+              <td>販売管理システムからダウンロードした売上明細</td>
+              <td><span class="badge badge-orange">商品コード</span> <span class="badge badge-orange">売上数</span></td>
+            </tr>
+            <tr>
+              <td><strong>② itemdata（.csv）</strong></td>
+              <td>GoQ System の在庫連携からCSV出力（文字コードは自動判定）</td>
+              <td><span class="badge badge-blue">システム連携用SKU番号</span> <span class="badge badge-blue">SKU管理番号</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mn-sec">
+        <div class="mn-title">🖱️ 操作手順（3ステップ）</div>
+        <ol class="mn-steps">
+          <li><strong>ファイルを2つアップロード</strong> — 下の①の枠に売上データxlsx、②の枠にitemdata CSVをドロップ（クリックして選択でもOK）。読み込みに成功すると緑色の「✅ 読み込み完了」が表示されます。</li>
+          <li><strong>「SKU・総在庫数CSVに変換する」ボタンを押す</strong> — 商品コードとSKUの突合が実行され、プレビューに結果が表示されます。</li>
+          <li><strong>プレビューを確認してダウンロード</strong> — 緑色の<span class="badge badge-green">OK</span>行が出力対象です。「⬇️ CSVをダウンロード」でシステム取込用CSVを保存します。</li>
+        </ol>
+      </div>
+
+      <div class="mn-sec">
+        <div class="mn-title">📥 出力されるCSVの形式</div>
+        <pre class="mn-code">SKU,総在庫数
+5A-CE-091,+1
+BND-004,+5
+9490,+2</pre>
+        <ul class="mn-list">
+          <li>総在庫数は売上数の頭に <strong>+</strong> を付けた値（在庫の加算）</li>
+          <li>SKUには itemdata の「SKU管理番号」が入ります（商品コードと同じ場合と、<code>9490</code> のような番号の場合があります）</li>
+          <li>同じ商品コードが複数行あった場合は売上数を<strong>合算</strong>します（プレビューに<span class="badge badge-orange">合算</span>バッジ）</li>
+        </ul>
+      </div>
+
+      <div class="mn-sec">
+        <div class="mn-title">⚠️ エラーと注意点</div>
+        <ul class="mn-list">
+          <li><span class="badge badge-red">一致なし</span> … 商品コードがitemdataのどのSKUとも一致しなかった行。プレビューの<strong>一番上に赤色で表示</strong>され、<strong>出力CSVには含まれません</strong>。itemdataが最新かを確認してください。</li>
+          <li><span class="badge badge-red">複数SKUに一致</span> … 商品コードが複数の異なるSKUに一致した行。同じく出力されないため、個別に確認が必要です。</li>
+          <li><strong>CSVをExcelでダブルクリックして開くと</strong>「+」が消えたりSKUが通貨表示に化けて<strong>見える</strong>ことがありますが、ファイルの中身は正しい形式です。内容確認には青色の「📊 Excel確認用（.xlsx）」ボタンを使ってください。</li>
+        </ul>
+      </div>
+
+    </div>
   </div>
 
   <!-- Step 1 -->
@@ -174,8 +266,20 @@
 <footer>在庫データ変換 <span id="verBadge"></span> | EL COMMUN EC事業部</footer>
 
 <script>
-const APP_VERSION = 2;
+const APP_VERSION = 3;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
+
+// ===== 使い方マニュアルの開閉（前回の状態を記憶） =====
+function applyManualState(collapsed) {
+  document.getElementById('manualBody').classList.toggle('collapsed', collapsed);
+  document.getElementById('manualToggle').textContent = collapsed ? '▼ 開く' : '▲ 閉じる';
+}
+function toggleManual() {
+  const collapsed = !document.getElementById('manualBody').classList.contains('collapsed');
+  applyManualState(collapsed);
+  try { localStorage.setItem('inv_conv_manual_collapsed', collapsed ? '1' : '0'); } catch (e) {}
+}
+try { applyManualState(localStorage.getItem('inv_conv_manual_collapsed') === '1'); } catch (e) {}
 
 // ===== 状態 =====
 let SALES = null;      // [{code, name, qty}]
