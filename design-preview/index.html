@@ -65,8 +65,6 @@
   .g-pages{position:absolute;top:6px;right:6px;font-size:10px;background:rgba(31,41,55,.75);color:white;border-radius:999px;padding:2px 8px;}
   .g-meta{display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--gray-100);}
   .g-name{font-size:12px;font-weight:600;color:var(--gray-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
-  .g-del{color:var(--gray-400);font-weight:bold;padding:2px 6px;border-radius:6px;flex-shrink:0;}
-  .g-del:hover{background:var(--red-light);color:var(--red);}
   /* 1ファイルのみ：一覧枠内で大きく表示 */
   .gallery.single{grid-template-columns:1fr;}
   .gallery.single .g-img{height:auto;min-height:200px;max-height:68vh;padding:16px;}
@@ -186,7 +184,7 @@
   <div class="card" id="previewCard" style="display:none">
     <div class="card-header">
       <div class="step">2</div>
-      <h2>プレビュー一覧 <span class="sub">クリックで拡大表示・チェックでまとめて変換</span></h2>
+      <h2>プレビュー一覧 <span class="sub">クリックで拡大表示・チェックでまとめて変換／削除</span></h2>
     </div>
     <div class="card-body">
       <div class="bulk-bar" id="bulkBar">
@@ -201,7 +199,7 @@
         </select>
         <button class="bulk-btn" id="bulkPdfBtn" onclick="bulkPdf()" disabled>⬇ まとめてPDF</button>
         <button class="bulk-btn" id="bulkJpgBtn" onclick="bulkJpg()" disabled>⬇ まとめてJPG</button>
-        <button class="bulk-btn danger" id="clearAllBtn" onclick="clearAllFiles()">🗑 全て削除</button>
+        <button class="bulk-btn danger" id="deleteBtn" onclick="deleteSelected()" disabled>🗑 削除</button>
       </div>
       <div class="gallery" id="gallery"></div>
       <div class="fs-wrap" id="fsWrap">
@@ -248,7 +246,7 @@
 <script src="lib/jspdf.min.js"></script>
 <script src="lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 14;
+const APP_VERSION = 15;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
@@ -555,8 +553,7 @@ function renderGallery() {
     const meta = document.createElement('div');
     meta.className = 'g-meta';
     const badgeCls = f.kind === 'PSD' ? 'badge-blue' : (f.kind === 'AI' || f.kind === 'PDF') ? 'badge-orange' : 'badge-green';
-    meta.innerHTML = `<span class="badge ${badgeCls}">${f.kind}</span><span class="g-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="g-del" title="一覧から削除">✕</span>`;
-    meta.querySelector('.g-del').onclick = e => { e.stopPropagation(); removeFile(i); };
+    meta.innerHTML = `<span class="badge ${badgeCls}">${f.kind}</span><span class="g-name" title="${esc(f.name)}">${esc(f.name)}</span>`;
     item.append(img, meta);
     g.appendChild(item);
   });
@@ -576,8 +573,10 @@ function updateBulkBar() {
   $('bulkCount').textContent = n + '件選択';
   $('bulkPdfBtn').disabled = !n;
   $('bulkJpgBtn').disabled = !n;
+  $('deleteBtn').disabled = !n;
   $('bulkPdfBtn').textContent = single ? '⬇ PDF保存' : '⬇ まとめてPDF';
   $('bulkJpgBtn').textContent = single ? '⬇ JPG保存' : '⬇ まとめてJPG';
+  $('deleteBtn').textContent = single ? '🗑 削除' : '🗑 選択を削除';
   $('chkAll').checked = !single && n > 0 && n === FILES.length;
 }
 
@@ -671,24 +670,22 @@ async function bulkJpg() {
   }
 }
 
-function removeFile(idx) {
-  const f = FILES[idx];
-  if (f && f.statusEl) f.statusEl.remove();   // 「ファイルを選択」欄の状態表示も連動して削除
-  FILES.splice(idx, 1);
-  if (current === idx) closeViewer();
-  if (current > idx) current--;
-  if (!FILES.length) { current = -1; $('previewCard').style.display = 'none'; }
-  renderGallery();
-}
-
-function clearAllFiles() {
-  if (!FILES.length) return;
-  if (!confirm(`読み込んだ${FILES.length}件のファイルをすべて削除します。よろしいですか？`)) return;
+// チェックした（1点のみのときは自動選択された）ファイルを削除する
+function deleteSelected() {
+  const toDelete = new Set(bulkSelection());
+  if (!toDelete.size) return;
+  const curFile = FILES[current];
+  toDelete.forEach(f => { if (f.statusEl) f.statusEl.remove(); });   // 状態表示欄も連動して削除
+  const remaining = FILES.filter(f => !toDelete.has(f));
   FILES.length = 0;
-  current = -1;
-  if (isFs()) closeViewer();
-  $('previewCard').style.display = 'none';
-  $('statusArea').innerHTML = '';
+  FILES.push(...remaining);
+  if (curFile && toDelete.has(curFile)) {
+    if (isFs()) closeViewer();
+    current = -1;
+  } else if (curFile) {
+    current = FILES.indexOf(curFile);
+  }
+  if (!FILES.length) { current = -1; $('previewCard').style.display = 'none'; }
   renderGallery();
 }
 
