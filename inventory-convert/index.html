@@ -99,6 +99,21 @@
   .stat .num.err{color:var(--red);}
   .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
   .preview-wrap{max-height:420px;overflow:auto;border:1px solid var(--gray-200);border-radius:8px;}
+  /* プレビューの個別編集・一括変更 */
+  .bulk-bar{display:none;align-items:center;gap:10px;padding:10px 14px;background:var(--primary-light);border:1px solid #FFD9C2;border-radius:8px;margin-bottom:10px;font-size:12px;flex-wrap:wrap;color:var(--gray-800);}
+  .bulk-count{font-weight:700;color:var(--primary-dark);white-space:nowrap;}
+  .bulk-label{color:var(--gray-600);white-space:nowrap;}
+  .bulk-qty-input{width:90px;padding:6px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;font-family:'Courier New',monospace;text-align:center;}
+  .bulk-qty-input:focus{outline:none;border-color:var(--primary);}
+  .bulk-qty-input.invalid{border-color:var(--red);background:var(--red-light);}
+  .bulk-apply-btn{padding:6px 16px;background:var(--primary);color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s;}
+  .bulk-apply-btn:hover:not(:disabled){background:var(--primary-dark);}
+  .bulk-apply-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+  th.chk-col,td.chk-col{width:32px;text-align:center;padding-left:12px;padding-right:4px;}
+  .row-checkbox,#selectAllChk{width:15px;height:15px;cursor:pointer;}
+  .qty-input{width:72px;padding:4px 6px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;font-family:'Courier New',monospace;text-align:right;}
+  .qty-input:focus{outline:none;border-color:var(--primary);}
+  .qty-input.invalid{border-color:var(--red);background:var(--red-light);}
   .upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
   @media(max-width:640px){.upload-grid{grid-template-columns:1fr;}}
   .enc-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:12px;font-size:12px;color:var(--gray-600);}
@@ -164,6 +179,14 @@
           <li><strong>「SKU・総在庫数CSVに変換する」ボタンを押す</strong> — 商品コードとSKUの突合が実行され、プレビューに結果が表示されます。</li>
           <li><strong>プレビューを確認してダウンロード</strong> — 緑色の<span class="badge badge-green">OK</span>行が出力対象です。「⬇️ CSVをダウンロード」でシステム取込用CSVを保存します。</li>
         </ol>
+      </div>
+
+      <div class="mn-sec">
+        <div class="mn-title">✏️ 数量の編集</div>
+        <ul class="mn-list">
+          <li>「総在庫数」欄は<strong>直接クリックして書き換え</strong>できます（例: <code>+3</code> → <code>+5</code>）。数字だけ入力すると自動で<strong>+</strong>が付きます。減らす場合は <code>-3</code> のように入力してください。</li>
+          <li>チェックボックスで複数の商品にチェックを入れ、上部の入力欄に数量を入力して「適用」を押すと、<strong>選択した商品の総在庫数を一括で変更</strong>できます。</li>
+        </ul>
       </div>
 
       <div class="mn-sec">
@@ -242,9 +265,18 @@ BND-004,+5
       <h2>プレビュー <span class="sub" id="previewSub"></span></h2>
     </div>
     <div class="card-body">
+      <div class="bulk-bar" id="bulkBar">
+        <span class="bulk-count" id="bulkCount">0件選択中</span>
+        <span class="bulk-label">→ 選択した商品の総在庫数を一括変更：</span>
+        <input type="text" id="bulkQtyInput" class="bulk-qty-input" value="+" placeholder="+10">
+        <button type="button" class="bulk-apply-btn" id="bulkApplyBtn" onclick="applyBulkQty()" disabled>適用</button>
+      </div>
       <div class="preview-wrap">
         <table class="data-table">
-          <thead><tr><th>状態</th><th>商品コード</th><th>商品名</th><th>SKU</th><th>総在庫数</th></tr></thead>
+          <thead><tr>
+            <th class="chk-col"><input type="checkbox" id="selectAllChk" onchange="toggleSelectAll(this)"></th>
+            <th>状態</th><th>商品コード</th><th>商品名</th><th>SKU</th><th>総在庫数</th>
+          </tr></thead>
           <tbody id="previewBody"></tbody>
         </table>
       </div>
@@ -272,7 +304,7 @@ BND-004,+5
 <footer>在庫データ変換 <span id="verBadge"></span> | EL COMMUN EC事業部</footer>
 
 <script>
-const APP_VERSION = 4;
+const APP_VERSION = 5;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // ===== 使い方マニュアル詳細の開閉（通常は「できること」のみ表示） =====
@@ -287,7 +319,7 @@ function toggleManualDetail() {
 // ===== 状態 =====
 let SALES = null;      // [{code, name, qty}]
 let ITEMS = null;      // [{sys, sku}]
-let RESULT = null;     // {rows:[{status,code,name,sku,qty}], okRows, errCount}
+let RESULT = null;     // {rows:[{status,code,name,sku,qty,checked}]}
 
 function log(msg, cls = '') {
   const box = document.getElementById('logBox');
@@ -392,6 +424,14 @@ async function loadCsv(file) {
 setupZone('zoneXlsx', 'fileXlsx', loadXlsx);
 setupZone('zoneCsv', 'fileCsv', loadCsv);
 
+// ===== 数量の書式（常に符号付き。無指定入力は + 扱い） =====
+function formatQty(q) { return (q >= 0 ? '+' : '') + q; }
+function parseQtyInput(raw) {
+  const s = String(raw).trim().replace(/,/g, '');
+  if (!/^[+-]?\d+$/.test(s)) return null;
+  return parseInt(s, 10);
+}
+
 // ===== 変換 =====
 function doConvert() {
   document.getElementById('logBox').innerHTML = '';
@@ -412,7 +452,7 @@ function doConvert() {
     log(`ℹ️ 同一商品コードの行を合算しました（${SALES.length}行 → ${agg.size}件）`, 'log-info');
   }
 
-  const resultRows = [], okRows = [];
+  const resultRows = [];
   let errCount = 0;
   for (const r of agg.values()) {
     const skus = new Set();
@@ -421,8 +461,7 @@ function doConvert() {
     }
     if (skus.size === 1) {
       const sku = [...skus][0];
-      okRows.push({ sku, qty: r.qty });
-      resultRows.push({ status: 'ok', code: r.code, name: r.name, sku, qty: r.qty, dup: r.dup });
+      resultRows.push({ status: 'ok', code: r.code, name: r.name, sku, qty: r.qty, dup: r.dup, checked: false });
     } else if (skus.size === 0) {
       errCount++;
       resultRows.push({ status: 'err', code: r.code, name: r.name, sku: '', qty: r.qty, msg: '一致なし' });
@@ -433,30 +472,45 @@ function doConvert() {
       log(`❌ 複数SKUに一致：${r.code} → ${[...skus].join(', ')}`, 'log-err');
     }
   }
+  const okCount = resultRows.length - errCount;
   log('──────────', 'log-sep');
-  log(`✅ 一致：${okRows.length}件 ／ ❌ エラー：${errCount}件`, errCount ? 'log-warn' : 'log-ok');
+  log(`✅ 一致：${okCount}件 ／ ❌ エラー：${errCount}件`, errCount ? 'log-warn' : 'log-ok');
 
-  RESULT = { rows: resultRows, okRows, errCount };
+  RESULT = { rows: resultRows };
   renderPreview();
 }
 
+function getOkRows() {
+  return RESULT ? RESULT.rows.filter(r => r.status === 'ok') : [];
+}
+
+function rowHtml(r) {
+  const badge = r.status === 'ok'
+    ? '<span class="badge badge-green">OK</span>' + (r.dup ? ' <span class="badge badge-orange">合算</span>' : '')
+    : `<span class="badge badge-red">${esc(r.msg)}</span>`;
+  const chk = r.status === 'ok'
+    ? `<input type="checkbox" class="row-checkbox" data-code="${esc(r.code)}" ${r.checked ? 'checked' : ''}>`
+    : '';
+  const qtyCell = r.status === 'ok'
+    ? `<input type="text" class="qty-input" data-code="${esc(r.code)}" value="${esc(formatQty(r.qty))}">`
+    : esc(String(r.qty));
+  return `<tr class="${r.status === 'err' ? 'row-err' : ''}">
+    <td class="chk-col">${chk}</td>
+    <td>${badge}</td>
+    <td>${esc(r.code)}</td>
+    <td>${esc(r.name)}</td>
+    <td>${esc(r.sku)}</td>
+    <td>${qtyCell}</td>
+  </tr>`;
+}
+
 function renderPreview() {
-  const { rows, okRows, errCount } = RESULT;
+  const rows = RESULT.rows;
+  const okRows = getOkRows();
+  const errCount = rows.length - okRows.length;
   // エラー行を先頭に表示
   const sorted = [...rows].sort((a, b) => (a.status === 'err' ? 0 : 1) - (b.status === 'err' ? 0 : 1));
-  const body = document.getElementById('previewBody');
-  body.innerHTML = sorted.map(r => {
-    const badge = r.status === 'ok'
-      ? '<span class="badge badge-green">OK</span>' + (r.dup ? ' <span class="badge badge-orange">合算</span>' : '')
-      : `<span class="badge badge-red">${esc(r.msg)}</span>`;
-    return `<tr class="${r.status === 'err' ? 'row-err' : ''}">
-      <td>${badge}</td>
-      <td>${esc(r.code)}</td>
-      <td>${esc(r.name)}</td>
-      <td>${esc(r.sku)}</td>
-      <td>${r.status === 'ok' ? '+' + r.qty : esc(String(r.qty))}</td>
-    </tr>`;
-  }).join('');
+  document.getElementById('previewBody').innerHTML = sorted.map(rowHtml).join('');
   document.getElementById('previewSub').textContent = `全${rows.length}件（一致 ${okRows.length}／エラー ${errCount}）`;
   document.getElementById('previewCard').style.display = 'block';
 
@@ -468,20 +522,98 @@ function renderPreview() {
     : '✅ 変換完了！';
   document.getElementById('dlBtn').style.display = okRows.length ? '' : 'none';
   document.getElementById('dlXlsxBtn').style.display = okRows.length ? '' : 'none';
-  document.getElementById('statsGrid').innerHTML = `
-    <div class="stat"><div class="num">${rows.length}</div><div class="label">商品コード数</div></div>
-    <div class="stat"><div class="num">${okRows.length}</div><div class="label">一致（出力）</div></div>
-    <div class="stat"><div class="num ${errCount ? 'err' : ''}">${errCount}</div><div class="label">エラー</div></div>
-    <div class="stat"><div class="num">${okRows.reduce((s, r) => s + r.qty, 0)}</div><div class="label">総在庫数 合計</div></div>`;
+  document.getElementById('bulkBar').style.display = okRows.length ? 'flex' : 'none';
+
+  updateStatsGrid();
+  updateBulkBar();
   document.getElementById('previewCard').scrollIntoView({ behavior: 'smooth' });
 }
 
+function updateStatsGrid() {
+  const okRows = getOkRows();
+  const errCount = RESULT.rows.length - okRows.length;
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat"><div class="num">${RESULT.rows.length}</div><div class="label">商品コード数</div></div>
+    <div class="stat"><div class="num">${okRows.length}</div><div class="label">一致（出力）</div></div>
+    <div class="stat"><div class="num ${errCount ? 'err' : ''}">${errCount}</div><div class="label">エラー</div></div>
+    <div class="stat"><div class="num">${okRows.reduce((s, r) => s + r.qty, 0)}</div><div class="label">総在庫数 合計</div></div>`;
+}
+
+// ===== チェック選択・一括数量変更 =====
+function updateBulkBar() {
+  const okRows = getOkRows();
+  const selected = okRows.filter(r => r.checked);
+  document.getElementById('bulkCount').textContent = `${selected.length}件選択中`;
+  document.getElementById('bulkApplyBtn').disabled = selected.length === 0;
+  const allChk = document.getElementById('selectAllChk');
+  allChk.checked = okRows.length > 0 && selected.length === okRows.length;
+  allChk.indeterminate = selected.length > 0 && selected.length < okRows.length;
+}
+
+function toggleSelectAll(cb) {
+  const checked = cb.checked;
+  getOkRows().forEach(r => { r.checked = checked; });
+  document.querySelectorAll('#previewBody .row-checkbox').forEach(el => { el.checked = checked; });
+  updateBulkBar();
+}
+
+function applyBulkQty() {
+  const bulkInput = document.getElementById('bulkQtyInput');
+  const parsed = parseQtyInput(bulkInput.value);
+  if (parsed === null) {
+    bulkInput.classList.add('invalid');
+    log('⚠️ 一括変更：数量の入力が不正です（例：+10、-3）', 'log-warn');
+    return;
+  }
+  bulkInput.classList.remove('invalid');
+  const selectedCodes = new Set(getOkRows().filter(r => r.checked).map(r => r.code));
+  if (!selectedCodes.size) {
+    log('⚠️ 一括変更：商品が選択されていません', 'log-warn');
+    return;
+  }
+  RESULT.rows.forEach(r => { if (selectedCodes.has(r.code)) r.qty = parsed; });
+  document.querySelectorAll('#previewBody .qty-input').forEach(inp => {
+    if (selectedCodes.has(inp.dataset.code)) inp.value = formatQty(parsed);
+  });
+  updateStatsGrid();
+  log(`✏️ ${selectedCodes.size}件を数量 ${formatQty(parsed)} に一括変更しました`, 'log-ok');
+}
+
+// プレビュー内の個別編集・チェックはイベント委譲で処理
+const previewBodyEl = document.getElementById('previewBody');
+previewBodyEl.addEventListener('change', e => {
+  if (e.target.classList.contains('qty-input')) {
+    const input = e.target;
+    const row = RESULT.rows.find(r => r.code === input.dataset.code);
+    const parsed = parseQtyInput(input.value);
+    if (parsed === null) {
+      log(`⚠️ 数量の入力が不正なため元に戻しました：${row.code}`, 'log-warn');
+      input.value = formatQty(row.qty);
+      return;
+    }
+    row.qty = parsed;
+    input.value = formatQty(parsed);
+    updateStatsGrid();
+  } else if (e.target.classList.contains('row-checkbox')) {
+    const row = RESULT.rows.find(r => r.code === e.target.dataset.code);
+    row.checked = e.target.checked;
+    updateBulkBar();
+  }
+});
+previewBodyEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.classList.contains('qty-input')) e.target.blur();
+});
+document.getElementById('bulkQtyInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') applyBulkQty();
+});
+
 // ===== CSVダウンロード =====
 function downloadCsv() {
-  if (!RESULT || !RESULT.okRows.length) return;
+  const okRows = getOkRows();
+  if (!okRows.length) return;
   const enc = document.querySelector('input[name=enc]:checked').value;
   const lines = ['SKU,総在庫数'];
-  for (const r of RESULT.okRows) lines.push(`${r.sku},+${r.qty}`);
+  for (const r of okRows) lines.push(`${r.sku},${formatQty(r.qty)}`);
   const text = lines.join('\r\n') + '\r\n';
 
   let blob;
@@ -504,8 +636,9 @@ function downloadCsv() {
 
 // ===== Excel確認用 xlsx ダウンロード（全セルを文字列として保持） =====
 function downloadXlsx() {
-  if (!RESULT || !RESULT.okRows.length) return;
-  const aoa = [['SKU', '総在庫数'], ...RESULT.okRows.map(r => [String(r.sku), '+' + r.qty])];
+  const okRows = getOkRows();
+  if (!okRows.length) return;
+  const aoa = [['SKU', '総在庫数'], ...okRows.map(r => [String(r.sku), formatQty(r.qty)])];
   const ws = XLSX.utils.aoa_to_sheet(aoa, { raw: false });
   // 「+5」や「BND-004」が数値・通貨に変換されないよう、全セルを文字列型に固定
   Object.keys(ws).forEach(k => { if (k[0] !== '!') { ws[k].t = 's'; ws[k].v = String(ws[k].v); } });
