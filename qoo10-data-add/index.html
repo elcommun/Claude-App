@@ -159,10 +159,16 @@
             <tr><td>マグカップ / ティーカップ</td><td>300000503</td></tr>
             <tr><td>メモパッド</td><td>320000547</td></tr>
             <tr><td>ポーチ</td><td>300002863</td></tr>
-            <tr><td>マスキングテープ</td><td>320000539</td></tr>
           </tbody>
         </table>
         <p style="margin-top:10px;font-size:12px;color:var(--gray-600);">※ 変換後に <code>category_number</code> が<strong>空欄の商品のみ</strong>が対象です。すでに値が入力されている商品は上書きしません。上から順に判定し、最初に一致したキーワードのカテゴリ番号を設定します。</p>
+        <table class="mapping-table" style="margin-top:16px;">
+          <thead><tr><th>楽天CSVの「ジャンルID」</th><th>→ カテゴリ番号（category_number）</th></tr></thead>
+          <tbody>
+            <tr><td>567731</td><td>320000539</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:10px;font-size:12px;color:var(--gray-600);">※ こちらも <code>category_number</code> が<strong>空欄の商品のみ</strong>が対象です。ジャンルID一致を優先し、一致しない場合のみ上記キーワード判定を行います。</p>
       </div>
       <div class="tab-content" id="tab-fixed">
         <div class="fixed-rules">
@@ -193,7 +199,7 @@
 </div>
 
 <script>
-let qoo10Wb=null, rakutenShip={}, rakutenOrigin={}, fileReady={q:false,r:false};
+let qoo10Wb=null, rakutenShip={}, rakutenOrigin={}, rakutenGenre={}, fileReady={q:false,r:false};
 
 const SHIPPING_MAP={
   '2_1':['609566','609567$$609570'],
@@ -226,8 +232,7 @@ const CATEGORY_KEYWORD_MAP=[
   {keywords:['ラグ','カーペット','マルチマット'],category:'300003262'},
   {keywords:['マグカップ','ティーカップ'],category:'300000503'},
   {keywords:['メモパッド'],category:'320000547'},
-  {keywords:['ポーチ'],category:'300002863'},
-  {keywords:['マスキングテープ'],category:'320000539'}
+  {keywords:['ポーチ'],category:'300002863'}
 ];
 function matchCategory(name){
   for(const rule of CATEGORY_KEYWORD_MAP){
@@ -235,6 +240,10 @@ function matchCategory(name){
   }
   return null;
 }
+// 楽天CSVの「ジャンルID」からカテゴリ番号を自動判定（category_numberが空欄の場合のみ、キーワード判定より優先）
+const GENRE_CATEGORY_MAP={
+  '567731':'320000539'
+};
 
 // option_info（選択肢別在庫）の在庫数（末尾から2番目のフィールド）をすべて0にする
 // 形式: {オプション名}||*{オプション値}||*...||*{追加料金}||*{在庫数}||*{オプション管理番号} を $$ 区切りで連結
@@ -304,6 +313,7 @@ function handleCsv(file){
       const colSid=headers.findIndex(h=>h.includes('商品管理番号'));
       const colDeliv=headers.findIndex(h=>h.includes('配送方法セット管理番号'));
       const colFee=headers.findIndex(h=>h==='送料区分1');
+      const colGenre=headers.findIndex(h=>h==='ジャンルID');
       if(colDeliv<0)throw new Error('「配送方法セット管理番号」列が見つかりません');
       if(colFee<0)throw new Error('「送料区分1」列が見つかりません');
       // 商品属性（項目）n の列ペアを収集
@@ -315,7 +325,7 @@ function handleCsv(file){
           if(vi>=0)attrPairs.push({ii:i,vi});
         }
       });
-      rakutenShip={};rakutenOrigin={};
+      rakutenShip={};rakutenOrigin={};rakutenGenre={};
       for(let i=headerIdx+1;i<lines.length;i++){
         if(!lines[i].trim())continue;
         const cols=parseCsvLine(lines[i]);
@@ -334,10 +344,14 @@ function handleCsv(file){
             }
           }
         }
+        if(!rakutenGenre[sid]&&colGenre>=0){
+          const gv=(cols[colGenre]||'').trim();
+          if(gv)rakutenGenre[sid]=gv;
+        }
       }
-      const sc=Object.keys(rakutenShip).length,oc=Object.keys(rakutenOrigin).length;
+      const sc=Object.keys(rakutenShip).length,oc=Object.keys(rakutenOrigin).length,gc=Object.keys(rakutenGenre).length;
       fileReady.r=true;
-      setStatus('status2',true,`読み込み完了：送料データ ${sc} 件、原産地データ ${oc} 件`);
+      setStatus('status2',true,`読み込み完了：送料データ ${sc} 件、原産地データ ${oc} 件、ジャンルIDデータ ${gc} 件`);
       checkReady();
     }catch(err){
       fileReady.r=false;
@@ -425,15 +439,17 @@ function convert(){
         log(`✏️ [商品名] ${sid} → 装飾語を削除`, 'log-ok');
       }
 
-      // カテゴリ：category_numberが空欄の場合のみ、商品名キーワードから自動設定
+      // カテゴリ：category_numberが空欄の場合のみ、ジャンルID→キーワードの順に自動設定
       if(CAT>=0&&!getCell(ri,CAT).trim()){
-        const matchedCat=matchCategory(cleanedName);
+        const genreId=rakutenGenre[sid];
+        const matchedCat=(genreId&&GENRE_CATEGORY_MAP[genreId])||matchCategory(cleanedName);
         if(matchedCat){
           setCell(ri,CAT,matchedCat);
-          log(`🗂️ [カテゴリ] ${sid} → 空欄のため「${matchedCat}」を自動設定`, 'log-ok');
+          const via=(genreId&&GENRE_CATEGORY_MAP[genreId])?`ジャンルID ${genreId}`:'商品名キーワード';
+          log(`🗂️ [カテゴリ] ${sid} → 空欄のため「${matchedCat}」を自動設定（${via}）`, 'log-ok');
           cntCategory++;
         }else{
-          log(`━ [カテゴリ] ${sid} → 空欄だが該当キーワードなし`, 'log-warn');
+          log(`━ [カテゴリ] ${sid} → 空欄だが該当なし`, 'log-warn');
         }
       }
 
