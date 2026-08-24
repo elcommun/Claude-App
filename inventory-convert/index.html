@@ -64,6 +64,12 @@
   .result-section.has-err h3{color:#991B1B;}
   .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
   .dl-btn:hover{background:#059669;}
+  .dl-btn small{font-size:11px;font-weight:600;opacity:.85;}
+  .dl-btn.xlsx{background:#2563EB;}
+  .dl-btn.xlsx:hover{background:#1D4ED8;}
+  .dl-row{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
+  .csv-note{margin-top:12px;background:var(--yellow-light);border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;line-height:1.7;text-align:left;}
+  .csv-note code{background:#FEF3C7;border-radius:4px;padding:1px 4px;font-size:11px;}
   .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
   .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
   .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
@@ -150,12 +156,16 @@
   <!-- 結果 -->
   <div class="result-section" id="resultSection">
     <h3 id="resultTitle">✅ 変換完了！</h3>
-    <button class="dl-btn" id="dlBtn" onclick="downloadCsv()">⬇️ CSVをダウンロード</button>
+    <div class="dl-row">
+      <button class="dl-btn" id="dlBtn" onclick="downloadCsv()">⬇️ CSVをダウンロード<small>（システム取込用）</small></button>
+      <button class="dl-btn xlsx" id="dlXlsxBtn" onclick="downloadXlsx()">📊 Excel確認用<small>（.xlsx）</small></button>
+    </div>
     <div class="enc-row">
-      <span>文字コード：</span>
+      <span>CSVの文字コード：</span>
       <label><input type="radio" name="enc" value="sjis" checked> Shift-JIS（推奨）</label>
       <label><input type="radio" name="enc" value="utf8"> UTF-8（BOM付き）</label>
     </div>
+    <div class="csv-note">⚠️ CSVを<strong>Excelでダブルクリックして開くと</strong>、「+」が消えたり（<code>+5</code>→<code>5</code>）、SKUが通貨・日付に化けて見えることがあります（例: <code>BND-004</code>→<code>-BND 4.00</code>）。<strong>ファイルの中身は正しい形式</strong>なので、そのままシステムに取り込めます。Excelで内容を確認したいときは「Excel確認用（.xlsx）」を使ってください。</div>
     <div class="stats-grid" id="statsGrid"></div>
   </div>
 
@@ -164,7 +174,7 @@
 <footer>在庫データ変換 <span id="verBadge"></span> | EL COMMUN EC事業部</footer>
 
 <script>
-const APP_VERSION = 1;
+const APP_VERSION = 2;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // ===== 状態 =====
@@ -350,6 +360,7 @@ function renderPreview() {
     ? `⚠️ 変換完了（エラー${errCount}件あり — エラー行はCSVに含まれません）`
     : '✅ 変換完了！';
   document.getElementById('dlBtn').style.display = okRows.length ? '' : 'none';
+  document.getElementById('dlXlsxBtn').style.display = okRows.length ? '' : 'none';
   document.getElementById('statsGrid').innerHTML = `
     <div class="stat"><div class="num">${rows.length}</div><div class="label">商品コード数</div></div>
     <div class="stat"><div class="num">${okRows.length}</div><div class="label">一致（出力）</div></div>
@@ -382,6 +393,23 @@ function downloadCsv() {
   a.click();
   URL.revokeObjectURL(a.href);
   log(`💾 ダウンロード：${name}（${enc === 'sjis' ? 'Shift-JIS' : 'UTF-8 BOM'}）`, 'log-ok');
+}
+
+// ===== Excel確認用 xlsx ダウンロード（全セルを文字列として保持） =====
+function downloadXlsx() {
+  if (!RESULT || !RESULT.okRows.length) return;
+  const aoa = [['SKU', '総在庫数'], ...RESULT.okRows.map(r => [String(r.sku), '+' + r.qty])];
+  const ws = XLSX.utils.aoa_to_sheet(aoa, { raw: false });
+  // 「+5」や「BND-004」が数値・通貨に変換されないよう、全セルを文字列型に固定
+  Object.keys(ws).forEach(k => { if (k[0] !== '!') { ws[k].t = 's'; ws[k].v = String(ws[k].v); } });
+  ws['!cols'] = [{ wch: 16 }, { wch: 10 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'SKU在庫');
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const name = `sku_stock_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}.xlsx`;
+  XLSX.writeFile(wb, name);
+  log(`💾 ダウンロード：${name}（Excel確認用）`, 'log-ok');
 }
 
 // ===== 自動アップデートチェック（3分ごと。ファイル読込済みならスキップ） =====
