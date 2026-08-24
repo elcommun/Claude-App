@@ -159,6 +159,7 @@
             <tr><td>マグカップ / ティーカップ</td><td>300000503</td></tr>
             <tr><td>メモパッド</td><td>320000547</td></tr>
             <tr><td>ポーチ</td><td>300002863</td></tr>
+            <tr><td>マスキングテープ</td><td>320000539</td></tr>
           </tbody>
         </table>
         <p style="margin-top:10px;font-size:12px;color:var(--gray-600);">※ 変換後に <code>category_number</code> が<strong>空欄の商品のみ</strong>が対象です。すでに値が入力されている商品は上書きしません。上から順に判定し、最初に一致したキーワードのカテゴリ番号を設定します。</p>
@@ -225,7 +226,8 @@ const CATEGORY_KEYWORD_MAP=[
   {keywords:['ラグ','カーペット','マルチマット'],category:'300003262'},
   {keywords:['マグカップ','ティーカップ'],category:'300000503'},
   {keywords:['メモパッド'],category:'320000547'},
-  {keywords:['ポーチ'],category:'300002863'}
+  {keywords:['ポーチ'],category:'300002863'},
+  {keywords:['マスキングテープ'],category:'320000539'}
 ];
 function matchCategory(name){
   for(const rule of CATEGORY_KEYWORD_MAP){
