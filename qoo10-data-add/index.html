@@ -175,7 +175,7 @@
           📅 <strong>販売終了日</strong> → <code>2040-01-01 23:59</code>（全商品一律）<br>
           🚚 <strong>発送可能日</strong> → <code>1</code>（全商品一律）<br>
           🏷️ <strong>商品状態</strong>　 → <code>1</code>（新品・全商品一律）<br>
-          📦 <strong>在庫数量</strong>　 → オプション列が<strong>空欄</strong>のとき <code>0</code>、入力ありのとき <code>1</code><br>
+          📦 <strong>在庫数量</strong>　 → <strong>全商品一律</strong> <code>1</code><br>
           🔢 <strong>option_infoの在庫数</strong> → 選択肢別在庫（option_infoが空欄でない）の場合、各選択肢の在庫数フィールドを<strong>すべて0</strong>に統一（オプション名・価格・オプション管理番号はそのまま維持）<br>
           ✏️ <strong>商品名</strong>　　　 → 先頭の装飾語（＼〜／・【〜】・★〜★ 等）を自動削除。<strong>【限定】は保持</strong>
         </div>
@@ -419,7 +419,7 @@ function convert(){
       setCell(ri,AVAIL,'1');
       setCell(ri,COND,'1');
       const rawOpt=getCell(ri,OPT);
-      setCell(ri,QTY,rawOpt.trim()?'1':'0');
+      setCell(ri,QTY,'1');
 
       // 選択肢別在庫：option_info内の在庫数はすべて0に統一
       if(rawOpt.trim()){
