@@ -562,7 +562,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-08-26</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-08-26b</span>
 </header>
 
 <!-- ── Page ── -->
@@ -1301,9 +1301,13 @@ function run() {
       if (!dateMax || date > dateMax) dateMax = date;
 
       // 検索コード: 楽天市場店の商品URLを元に構築したマップから取得（全店舗共通）
-      const searchCode = /^(?:X?DR-|CAL-)/i.test(code)
-        ? (rakutenSearchMap.get(code) || '')
-        : '';
+      // CAL_PN_OVERRIDE（cal-NN- 変換表）に一致した行は商品管理番号を検索コードにする
+      const calKey = pn.trim().toLowerCase();
+      const searchCode = CAL_PN_OVERRIDE[calKey]
+        ? calKey
+        : /^(?:X?DR-|CAL-)/i.test(code)
+          ? (rakutenSearchMap.get(code) || '')
+          : '';
 
       const cats = categoryMap.get(code) || { cat1: '', cat2: '', cat3: '' };
       allRows.push({ date, store, code, name, price, qty, matched, searchCode, ...cats });
