@@ -194,7 +194,14 @@ td.cat-col{text-align:left}
 #sel-sum.show{display:block;opacity:1;transform:translateX(-50%) translateY(0) scale(var(--ss-scale,1))}
 #sel-sum b{color:#8ec6f5;font-weight:700;font-variant-numeric:tabular-nums}
 #sel-sum .ss-sep{opacity:.35;margin:0 9px}
-@media(max-width:600px){#sel-sum{font-size:11px;padding:7px 14px;bottom:14px}}
+#sel-sum .ss-l1,#sel-sum .ss-l2{white-space:nowrap}
+/* スマホ縦などの狭い画面では「カテゴリ名・種数」と「個数・金額」の2行に折り返し、
+   文字はなるべく大きく（はみ出す場合のみ--ss-scaleでさらに縮小） */
+@media(max-width:600px){
+  #sel-sum{font-size:14px;padding:8px 18px;bottom:14px;border-radius:16px;text-align:center;line-height:1.55}
+  #sel-sum .ss-l1,#sel-sum .ss-l2{display:block}
+  #sel-sum .ss-sep-mid{display:none}
+}
 @media(max-width:768px){
   :root{--hh:52px}
   .hd-menu{display:block}
@@ -223,7 +230,7 @@ td.cat-col{text-align:left}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v105</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v106</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1926,8 +1933,10 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
     if(w>avail) pill.style.setProperty('--ss-scale',(avail/w).toFixed(3));
   }
   window.addEventListener('resize',()=>{if(pill.classList.contains('show'))fitPill();});
-  function tail(n,qty,amt){
-    return `<b>${n}</b>種<span class="ss-sep">|</span>個数 <b>${qty.toLocaleString()}</b><span class="ss-sep">|</span>金額 <b>¥${Math.round(amt).toLocaleString()}</b>`;
+  // 1行目（ラベル＋種数）と2行目（個数・金額）に分けて組み立てる。
+  // デスクトップでは1行に連結、狭い画面ではCSSで2行に折り返す
+  function pillHtml(label,n,qty,amt){
+    return `<span class="ss-l1">${label}<b>${n}</b>種</span><span class="ss-sep ss-sep-mid">|</span><span class="ss-l2">個数 <b>${qty.toLocaleString()}</b><span class="ss-sep">|</span>金額 <b>¥${Math.round(amt).toLocaleString()}</b></span>`;
   }
   function hide(){pill.classList.remove('show');}
   function clearHdr(){if(hdrRow){hdrRow.classList.remove('fh-active');hdrRow=null;}}
@@ -1938,7 +1947,7 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
       if(el.dataset.qty!==undefined){n++;qty+=+el.dataset.qty;amt+=+el.dataset.amt;}
     }
     const name=hdrRow.textContent.replace(/^[\s▌]+/,'').replace(/\([^)]*\)\s*$/,'').trim();
-    pill.innerHTML=`${name}　`+tail(n,qty,amt);
+    pill.innerHTML=pillHtml(`${name}　`,n,qty,amt);
     pill.classList.add('show');
     fitPill();
   }
@@ -1959,7 +1968,7 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
     }
     if(n<2){if(hdrRow)showHdrSum();else hide();return;}
     clearHdr();
-    pill.innerHTML=`選択中 `+tail(n,qty,amt);
+    pill.innerHTML=pillHtml('選択中 ',n,qty,amt);
     pill.classList.add('show');
     fitPill();
   }
