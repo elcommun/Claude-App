@@ -160,12 +160,12 @@ input[type=file]{display:none}
 #img-lb.open{display:flex}
 #img-lb-img{max-width:90vw;max-height:90vh;min-width:min(70vw,500px);object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);cursor:zoom-out}
 /* 行選択サマリー: 表の行をドラッグ選択すると個数・金額の概算をピル表示 */
-#sel-sum{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(6px);background:#2d2926;color:#fff;border-radius:999px;padding:9px 20px;font-size:13px;z-index:500;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s}
-#sel-sum.show{display:block;opacity:1;transform:translateX(-50%) translateY(0)}
+#sel-sum{--ss-scale:1;display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(6px) scale(var(--ss-scale));transform-origin:50% 100%;background:#2d2926;color:#fff;border-radius:999px;padding:9px 20px;font-size:13px;z-index:500;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s}
+#sel-sum.show{display:block;opacity:1;transform:translateX(-50%) translateY(0) scale(var(--ss-scale))}
 #sel-sum b{color:#ffb38a;font-weight:700;font-variant-numeric:tabular-nums}
 #sel-sum .ss-sep{opacity:.35;margin:0 9px}
-/* スマホ縦: 画面幅に収まるよう縮小し、収まらない場合は折り返して全体を表示 */
-@media(max-width:600px){#sel-sum{font-size:10px;padding:6px 12px;bottom:14px;max-width:calc(100vw - 16px);white-space:normal;text-align:center;line-height:1.5;border-radius:14px}#sel-sum .ss-sep{margin:0 6px}}
+/* スマホ: 横一列のまま、画面幅に収まらない場合はJS側で--ss-scaleにより全体を縮小 */
+@media(max-width:600px){#sel-sum{font-size:11px;padding:7px 14px;bottom:14px}#sel-sum .ss-sep{margin:0 6px}}
 .prev-up{color:#2a8a3e;font-size:10px;white-space:nowrap}.prev-dn{color:#c0392b;font-size:10px;white-space:nowrap}
 .fmt-hdr td{background:var(--paper2);font-weight:600;font-size:11px;color:var(--ink3);padding:5px 10px;letter-spacing:.03em;border-bottom:1px solid var(--line)}
 .fmt-hdr{cursor:pointer}
@@ -393,7 +393,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v236</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v237</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2668,6 +2668,12 @@ document.getElementById('hd-search').addEventListener('input',e=>{
     return `<b>${n}</b>種<span class="ss-sep">|</span>個数 <b>${qty.toLocaleString()}</b><span class="ss-sep">|</span>金額 <b>¥${amt.toLocaleString()}</b>`;
   }
   function hide(){pill.classList.remove('show');}
+  // 横一列のまま画面幅に収まるよう、はみ出す場合はピル全体を縮小
+  function fitPill(){
+    pill.style.setProperty('--ss-scale',1);
+    const k=Math.min(1,(window.innerWidth-12)/pill.scrollWidth);
+    if(k<1)pill.style.setProperty('--ss-scale',k);
+  }
   function clearHdr(){if(hdrRow){hdrRow.classList.remove('fh-active');hdrRow=null;}}
   function showHdrSum(){
     if(!hdrRow||!hdrRow.isConnected){clearHdr();hide();return;}
@@ -2678,6 +2684,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
     const name=hdrRow.textContent.replace(/^[\s▌]+/,'').replace(/\([^)]*\)\s*$/,'').trim();
     pill.innerHTML=`${name}　`+tail(n,qty,amt);
     pill.classList.add('show');
+    fitPill();
   }
   function update(){
     raf=0;
@@ -2698,8 +2705,10 @@ document.getElementById('hd-search').addEventListener('input',e=>{
     clearHdr();
     pill.innerHTML=`選択中 `+tail(n,qty,amt);
     pill.classList.add('show');
+    fitPill();
   }
   document.addEventListener('selectionchange',()=>{if(!raf)raf=requestAnimationFrame(update);});
+  window.addEventListener('resize',()=>{if(pill.classList.contains('show'))fitPill();});
   document.addEventListener('click',e=>{
     const hdr=e.target.closest('#rank-tbl tr.fmt-hdr, #search-tbl tr.fmt-hdr');
     if(hdr){
