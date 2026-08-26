@@ -164,7 +164,8 @@ input[type=file]{display:none}
 #sel-sum.show{display:block;opacity:1;transform:translateX(-50%) translateY(0)}
 #sel-sum b{color:#ffb38a;font-weight:700;font-variant-numeric:tabular-nums}
 #sel-sum .ss-sep{opacity:.35;margin:0 9px}
-@media(max-width:600px){#sel-sum{font-size:11px;padding:7px 14px;bottom:14px}}
+/* スマホ縦: 画面幅に収まるよう縮小し、収まらない場合は折り返して全体を表示 */
+@media(max-width:600px){#sel-sum{font-size:10px;padding:6px 12px;bottom:14px;max-width:calc(100vw - 16px);white-space:normal;text-align:center;line-height:1.5;border-radius:14px}#sel-sum .ss-sep{margin:0 6px}}
 .prev-up{color:#2a8a3e;font-size:10px;white-space:nowrap}.prev-dn{color:#c0392b;font-size:10px;white-space:nowrap}
 .fmt-hdr td{background:var(--paper2);font-weight:600;font-size:11px;color:var(--ink3);padding:5px 10px;letter-spacing:.03em;border-bottom:1px solid var(--line)}
 .fmt-hdr{cursor:pointer}
@@ -392,7 +393,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v235</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v236</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
