@@ -562,7 +562,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-08-04</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-08-26</span>
 </header>
 
 <!-- ── Page ── -->
@@ -990,6 +990,15 @@ const QOO10_PN_OVERRIDE = {
 //  4. auPAY 括弧コード → （XXX-NNN）の中身、MC-NNN は DR-MC-NNN に変換
 //  5. その他 lowercase-PREFIX-UPPERCASE コード（メーカー商品含む: ldw001-LDW-006 など）
 //  6. 数値サフィックス (例: 8mw-mm110971-110972)
+// 楽天 商品管理番号（cal-NN-）→ カレンダー品番 変換表（完全一致で照合）
+const CAL_PN_OVERRIDE = {
+  'cal-37-':'CAL-168','cal-48-':'CAL-174','cal-47-':'CAL-175','cal-45-':'CAL-176','cal-43-':'CAL-177','cal-46-':'CAL-178',
+  'cal-41-':'CAL-179','cal-44-':'CAL-180','cal-07-':'CAL-181','cal-10-':'CAL-182','cal-14-':'CAL-183','cal-02-':'CAL-184',
+  'cal-05-':'CAL-185','cal-06-':'CAL-186','cal-03-':'CAL-187','cal-01-':'CAL-188','cal-11-':'CAL-189','cal-08-':'CAL-190',
+  'cal-21-':'CAL-191','cal-22-':'CAL-192','cal-15-':'CAL-193','cal-04-':'CAL-194','cal-13-':'CAL-195','cal-09-':'CAL-196',
+  'cal-42-':'CAL-197','cal-16-':'CAL-198','cal-17-':'CAL-199','cal-51-':'CAL-200','cal-52-':'CAL-201','cal-34-':'CAL-202',
+  'cal-36-':'CAL-203','cal-32-':'CAL-204','cal-33-':'CAL-205','cal-35-':'CAL-206','cal-31-':'CAL-207',
+};
 function extractProductCode(pn, store) {
   if (!pn) return null;
   // 在庫SFD- プレフィックス除去（例: 在庫SFD-001 → SFD-001）
@@ -1031,6 +1040,8 @@ function extractProductCode(pn, store) {
 
   // ② カレンダー: cal-**-CAL-NNN
   if (/^cal-/i.test(pn)) {
+    const calOv = CAL_PN_OVERRIDE[pn.trim().toLowerCase()];
+    if (calOv) return calOv;
     const m = pn.match(/^cal-[^-]+-(.+)$/i);
     return m ? normalizeCode(m[1]) : null;
   }
