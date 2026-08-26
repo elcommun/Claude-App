@@ -190,8 +190,8 @@ td.cat-col{text-align:left}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:155}
 .sb-overlay.open{display:block}
 /* 行選択サマリーのピル（表の行をドラッグ選択すると種数・個数・金額の合計を表示） */
-#sel-sum{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(6px);background:#2d2926;color:#fff;border-radius:999px;padding:9px 20px;font-size:13px;z-index:500;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s}
-#sel-sum.show{display:block;opacity:1;transform:translateX(-50%) translateY(0)}
+#sel-sum{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(6px) scale(var(--ss-scale,1));transform-origin:50% 100%;background:#2d2926;color:#fff;border-radius:999px;padding:9px 20px;font-size:13px;z-index:500;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s}
+#sel-sum.show{display:block;opacity:1;transform:translateX(-50%) translateY(0) scale(var(--ss-scale,1))}
 #sel-sum b{color:#8ec6f5;font-weight:700;font-variant-numeric:tabular-nums}
 #sel-sum .ss-sep{opacity:.35;margin:0 9px}
 @media(max-width:600px){#sel-sum{font-size:11px;padding:7px 14px;bottom:14px}}
@@ -223,7 +223,7 @@ td.cat-col{text-align:left}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v104</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v105</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1918,6 +1918,14 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
 (function(){
   const pill=document.getElementById('sel-sum');
   let raf=0, hdrRow=null;
+  // ピルが画面幅からはみ出す場合（スマホ縦など）は、画面に収まるよう自動縮小する
+  function fitPill(){
+    pill.style.setProperty('--ss-scale','1');
+    const avail=window.innerWidth-12;
+    const w=pill.offsetWidth;
+    if(w>avail) pill.style.setProperty('--ss-scale',(avail/w).toFixed(3));
+  }
+  window.addEventListener('resize',()=>{if(pill.classList.contains('show'))fitPill();});
   function tail(n,qty,amt){
     return `<b>${n}</b>種<span class="ss-sep">|</span>個数 <b>${qty.toLocaleString()}</b><span class="ss-sep">|</span>金額 <b>¥${Math.round(amt).toLocaleString()}</b>`;
   }
@@ -1932,6 +1940,7 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
     const name=hdrRow.textContent.replace(/^[\s▌]+/,'').replace(/\([^)]*\)\s*$/,'').trim();
     pill.innerHTML=`${name}　`+tail(n,qty,amt);
     pill.classList.add('show');
+    fitPill();
   }
   function update(){
     raf=0;
@@ -1952,6 +1961,7 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
     clearHdr();
     pill.innerHTML=`選択中 `+tail(n,qty,amt);
     pill.classList.add('show');
+    fitPill();
   }
   document.addEventListener('selectionchange',()=>{if(!raf)raf=requestAnimationFrame(update);});
   document.addEventListener('click',e=>{
