@@ -156,7 +156,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>メーカー商品のみ抽出</h1>
-      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v24</span></div>
+      <div class="sub">自社を除き、メーカー販売データを税抜・掛け率付きに変換 <span class="ver">v25</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -276,6 +276,15 @@ const QOO10_PN_OVERRIDE = {
 };
 
 // ── 商品番号から内部品番を抽出（item-data 準拠） ──────────────────────────────
+// 楽天 商品管理番号（cal-NN-）→ カレンダー品番 変換表（完全一致で照合）
+const CAL_PN_OVERRIDE = {
+  'cal-37-':'CAL-168','cal-48-':'CAL-174','cal-47-':'CAL-175','cal-45-':'CAL-176','cal-43-':'CAL-177','cal-46-':'CAL-178',
+  'cal-41-':'CAL-179','cal-44-':'CAL-180','cal-07-':'CAL-181','cal-10-':'CAL-182','cal-14-':'CAL-183','cal-02-':'CAL-184',
+  'cal-05-':'CAL-185','cal-06-':'CAL-186','cal-03-':'CAL-187','cal-01-':'CAL-188','cal-11-':'CAL-189','cal-08-':'CAL-190',
+  'cal-21-':'CAL-191','cal-22-':'CAL-192','cal-15-':'CAL-193','cal-04-':'CAL-194','cal-13-':'CAL-195','cal-09-':'CAL-196',
+  'cal-42-':'CAL-197','cal-16-':'CAL-198','cal-17-':'CAL-199','cal-51-':'CAL-200','cal-52-':'CAL-201','cal-34-':'CAL-202',
+  'cal-36-':'CAL-203','cal-32-':'CAL-204','cal-33-':'CAL-205','cal-35-':'CAL-206','cal-31-':'CAL-207',
+};
 function extractProductCode(pn, store) {
   if (!pn) return null;
   if (/^在庫SFD-/i.test(pn)) return pn.slice(2);
@@ -302,6 +311,8 @@ function extractProductCode(pn, store) {
     return null;
   }
   if (/^cal-/i.test(pn)) {
+    const calOv = CAL_PN_OVERRIDE[pn.trim().toLowerCase()];
+    if (calOv) return calOv;
     const m = pn.match(/^cal-[^-]+-(.+)$/i);
     return m ? normalizeCode(m[1]) : null;
   }
