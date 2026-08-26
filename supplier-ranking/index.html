@@ -179,6 +179,10 @@ td.cat-col{text-align:left}
 .empty{text-align:center;padding:70px 20px;color:var(--ink4)}
 .empty-icon{font-size:32px;margin-bottom:8px}
 .fmt-hdr td{background:var(--paper2);font-weight:600;font-size:11px;color:var(--ink3);padding:5px 10px;letter-spacing:.03em;border-bottom:1px solid var(--border2)}
+/* グループ見出しクリックでそのグループの合計をピル表示（クリック可能を示すホバー・選択中スタイル） */
+.fmt-hdr{cursor:pointer}
+.fmt-hdr:hover td{background:var(--accent-lt)}
+.fmt-hdr.fh-active td{background:var(--accent-lt);color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(146,117,74,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
 @keyframes spin{to{transform:rotate(360deg)}}
 /* Responsive */
@@ -219,7 +223,7 @@ td.cat-col{text-align:left}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v103</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v104</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1907,15 +1911,35 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
 })();
 
 // ── 行選択サマリー ─────────────────────────────────────────
-// 表の行をドラッグ選択（テキスト選択）すると、選択範囲に含まれる行の
-// 種数・個数・金額の合計を画面下部のピルに表示する。2行以上で表示。
+// (1) 表の行をドラッグ選択（テキスト選択）すると、選択範囲に含まれる行の
+//     種数・個数・金額の合計を画面下部のピルに表示する。2行以上で表示。
+// (2) グループ見出し行（▌ カテゴリ名 (20種) 等）をクリックすると、
+//     そのグループ全体の合計を同じピルに表示する。再クリックで解除。
 (function(){
   const pill=document.getElementById('sel-sum');
-  let raf=0;
+  let raf=0, hdrRow=null;
+  function tail(n,qty,amt){
+    return `<b>${n}</b>種<span class="ss-sep">|</span>個数 <b>${qty.toLocaleString()}</b><span class="ss-sep">|</span>金額 <b>¥${Math.round(amt).toLocaleString()}</b>`;
+  }
+  function hide(){pill.classList.remove('show');}
+  function clearHdr(){if(hdrRow){hdrRow.classList.remove('fh-active');hdrRow=null;}}
+  function showHdrSum(){
+    if(!hdrRow||!hdrRow.isConnected){clearHdr();hide();return;}
+    let n=0,qty=0,amt=0;
+    for(let el=hdrRow.nextElementSibling;el&&!el.classList.contains('fmt-hdr');el=el.nextElementSibling){
+      if(el.dataset.qty!==undefined){n++;qty+=+el.dataset.qty;amt+=+el.dataset.amt;}
+    }
+    const name=hdrRow.textContent.replace(/^[\s▌]+/,'').replace(/\([^)]*\)\s*$/,'').trim();
+    pill.innerHTML=`${name}　`+tail(n,qty,amt);
+    pill.classList.add('show');
+  }
   function update(){
     raf=0;
     const sel=window.getSelection();
-    if(!sel||sel.isCollapsed||sel.rangeCount===0){pill.classList.remove('show');return;}
+    if(!sel||sel.isCollapsed||sel.rangeCount===0){
+      if(hdrRow)showHdrSum();else hide();
+      return;
+    }
     const ranges=[];
     for(let i=0;i<sel.rangeCount;i++)ranges.push(sel.getRangeAt(i));
     let n=0,qty=0,amt=0;
@@ -1924,11 +1948,22 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
         n++;qty+=+tr.dataset.qty;amt+=+tr.dataset.amt;
       }
     }
-    if(n<2){pill.classList.remove('show');return;}
-    pill.innerHTML=`<b>${n}</b>種 選択中<span class="ss-sep">|</span>個数 <b>${qty.toLocaleString()}</b><span class="ss-sep">|</span>金額 <b>¥${Math.round(amt).toLocaleString()}</b>`;
+    if(n<2){if(hdrRow)showHdrSum();else hide();return;}
+    clearHdr();
+    pill.innerHTML=`選択中 `+tail(n,qty,amt);
     pill.classList.add('show');
   }
   document.addEventListener('selectionchange',()=>{if(!raf)raf=requestAnimationFrame(update);});
+  document.addEventListener('click',e=>{
+    const hdr=e.target.closest('#rank-tbl tr.fmt-hdr, #search-tbl tr.fmt-hdr');
+    if(hdr){
+      if(hdrRow===hdr){clearHdr();hide();}
+      else{clearHdr();hdrRow=hdr;hdr.classList.add('fh-active');showHdrSum();}
+    }else if(hdrRow){
+      clearHdr();
+      if(!raf)raf=requestAnimationFrame(update);
+    }
+  });
 })();
 
 // ── テーブル列幅リサイズ ──────────────────────────────────
