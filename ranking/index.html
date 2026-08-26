@@ -160,13 +160,18 @@ input[type=file]{display:none}
 #img-lb.open{display:flex}
 #img-lb-img{max-width:90vw;max-height:90vh;min-width:min(70vw,500px);object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);cursor:zoom-out}
 /* 行選択サマリー: 表の行をドラッグ選択すると個数・金額の概算をピル表示 */
-/* 常に「カテゴリー・種数」/「個数・金額」の2行表示。JS側で--ss-scaleにより画面幅いっぱいまで拡大・縮小 */
-#sel-sum{--ss-scale:1;display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(6px) scale(var(--ss-scale));transform-origin:50% 100%;background:#2d2926;color:#fff;border-radius:16px;padding:9px 22px;font-size:13px;z-index:500;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;text-align:center;opacity:0;transition:opacity .15s,transform .15s}
+/* PC等の広い画面: 従来どおり横一列のピル表示 */
+#sel-sum{--ss-scale:1;display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(6px) scale(var(--ss-scale));transform-origin:50% 100%;background:#2d2926;color:#fff;border-radius:999px;padding:9px 20px;font-size:13px;z-index:500;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s}
 #sel-sum.show{display:block;opacity:1;transform:translateX(-50%) translateY(0) scale(var(--ss-scale))}
 #sel-sum b{color:#ffb38a;font-weight:700;font-variant-numeric:tabular-nums}
 #sel-sum .ss-sep{opacity:.35;margin:0 9px}
-#sel-sum .ss-l1,#sel-sum .ss-l2{display:block;line-height:1.65}
-@media(max-width:600px){#sel-sum{font-size:11px;padding:7px 14px;bottom:14px}#sel-sum .ss-sep{margin:0 6px}}
+/* スマホ縦（600px以下）: 「カテゴリー・種数」/「個数・金額」の2行表示にし、JS側で画面幅いっぱいまで文字を拡大 */
+@media(max-width:600px){
+  #sel-sum{font-size:11px;padding:7px 14px;bottom:14px;border-radius:16px;text-align:center}
+  #sel-sum .ss-l1,#sel-sum .ss-l2{display:block;line-height:1.65}
+  #sel-sum .ss-br{display:none}
+  #sel-sum .ss-sep{margin:0 6px}
+}
 .prev-up{color:#2a8a3e;font-size:10px;white-space:nowrap}.prev-dn{color:#c0392b;font-size:10px;white-space:nowrap}
 .fmt-hdr td{background:var(--paper2);font-weight:600;font-size:11px;color:var(--ink3);padding:5px 10px;letter-spacing:.03em;border-bottom:1px solid var(--line)}
 .fmt-hdr{cursor:pointer}
@@ -394,7 +399,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v238</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v239</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2666,16 +2671,21 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   const pill=document.getElementById('sel-sum');
   let raf=0, hdrRow=null;
   function pillHtml(label,n,qty,amt){
-    return `<span class="ss-l1">${label}<b>${n}</b>種</span><span class="ss-l2">個数 <b>${qty.toLocaleString()}</b><span class="ss-sep">|</span>金額 <b>¥${amt.toLocaleString()}</b></span>`;
+    return `<span class="ss-l1">${label}<b>${n}</b>種</span><span class="ss-sep ss-br">|</span><span class="ss-l2">個数 <b>${qty.toLocaleString()}</b><span class="ss-sep">|</span>金額 <b>¥${amt.toLocaleString()}</b></span>`;
   }
   function hide(){pill.classList.remove('show');}
-  // 画面幅に収まる範囲でなるべく大きく表示（文字サイズ約16px相当を上限に拡大、長文なら縮小）
+  // スマホ縦（600px以下）: 2行表示のまま画面幅に収まる範囲でなるべく大きく（約16px相当を上限に拡大）。
+  // PC等の広い画面: 従来の横一列のまま、はみ出す場合のみ縮小。
   function fitPill(){
     pill.style.setProperty('--ss-scale',1);
     const avail=window.innerWidth-12;
-    const base=parseFloat(getComputedStyle(pill).fontSize)||13;
-    const k=Math.min(16/base, avail/pill.scrollWidth);
-    pill.style.setProperty('--ss-scale',k);
+    if(window.innerWidth<=600){
+      const base=parseFloat(getComputedStyle(pill).fontSize)||11;
+      pill.style.setProperty('--ss-scale',Math.min(16/base, avail/pill.scrollWidth));
+    }else{
+      const k=avail/pill.scrollWidth;
+      if(k<1)pill.style.setProperty('--ss-scale',k);
+    }
   }
   function clearHdr(){if(hdrRow){hdrRow.classList.remove('fh-active');hdrRow=null;}}
   function showHdrSum(){
