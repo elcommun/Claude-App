@@ -185,6 +185,12 @@ td.cat-col{text-align:left}
 .hd-menu{display:none;background:none;border:none;color:rgba(255,255,255,.8);font-size:22px;cursor:pointer;padding:2px 8px;line-height:1;flex-shrink:0;margin-right:2px}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:155}
 .sb-overlay.open{display:block}
+/* 行選択サマリーのピル（表の行をドラッグ選択すると種数・個数・金額の合計を表示） */
+#sel-sum{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(6px);background:#2d2926;color:#fff;border-radius:999px;padding:9px 20px;font-size:13px;z-index:500;box-shadow:0 6px 24px rgba(0,0,0,.35);pointer-events:none;white-space:nowrap;opacity:0;transition:opacity .15s,transform .15s}
+#sel-sum.show{display:block;opacity:1;transform:translateX(-50%) translateY(0)}
+#sel-sum b{color:#8ec6f5;font-weight:700;font-variant-numeric:tabular-nums}
+#sel-sum .ss-sep{opacity:.35;margin:0 9px}
+@media(max-width:600px){#sel-sum{font-size:11px;padding:7px 14px;bottom:14px}}
 @media(max-width:768px){
   :root{--hh:52px}
   .hd-menu{display:block}
@@ -213,7 +219,7 @@ td.cat-col{text-align:left}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v102</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v103</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -253,6 +259,7 @@ td.cat-col{text-align:left}
 </div>
 
 <div class="sb-overlay" id="sb-overlay"></div>
+<div id="sel-sum" aria-live="polite"></div>
 <div class="sb-resize" id="sb-resize"></div>
 <div class="layout">
   <aside class="sb">
@@ -1570,7 +1577,7 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
     const sign=diffPct>0?'+':'';
     cmpHtml=`<td class="num cmp-col">${prevQty.toLocaleString()}</td><td class="num cmp-col ${cls}">${sign}${diffPct.toFixed(0)}%</td>`;
   }
-  return `<tr>
+  return `<tr data-qty="${r.qty}" data-amt="${r.amount}">
     <td class="rank-col">${rankHtml}</td>
     <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
     <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
@@ -1669,7 +1676,7 @@ function renderSearch(){
   }
   const rowHtml=(r,rank)=>{
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
-    return `<tr>
+    return `<tr data-qty="${r.qty}" data-amt="${r.amount}">
       <td class="rank-col">${rankHtml}</td>
       <td><span class="ct">${makerHtml(r.maker)}</span></td>
       <td class="cc">${codeHtml(r.code)}</td>
@@ -1897,6 +1904,31 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
     if(dx>50 && Math.abs(dx)>Math.abs(dy)){ openSb(); tracking=false; }
   }, {passive:true});
   document.addEventListener('touchend', ()=>{ tracking=false; }, {passive:true});
+})();
+
+// ── 行選択サマリー ─────────────────────────────────────────
+// 表の行をドラッグ選択（テキスト選択）すると、選択範囲に含まれる行の
+// 種数・個数・金額の合計を画面下部のピルに表示する。2行以上で表示。
+(function(){
+  const pill=document.getElementById('sel-sum');
+  let raf=0;
+  function update(){
+    raf=0;
+    const sel=window.getSelection();
+    if(!sel||sel.isCollapsed||sel.rangeCount===0){pill.classList.remove('show');return;}
+    const ranges=[];
+    for(let i=0;i<sel.rangeCount;i++)ranges.push(sel.getRangeAt(i));
+    let n=0,qty=0,amt=0;
+    for(const tr of document.querySelectorAll('#rank-tbody tr[data-qty],#search-tbody tr[data-qty]')){
+      if(ranges.some(r=>{try{return r.intersectsNode(tr);}catch(e){return false;}})){
+        n++;qty+=+tr.dataset.qty;amt+=+tr.dataset.amt;
+      }
+    }
+    if(n<2){pill.classList.remove('show');return;}
+    pill.innerHTML=`<b>${n}</b>種 選択中<span class="ss-sep">|</span>個数 <b>${qty.toLocaleString()}</b><span class="ss-sep">|</span>金額 <b>¥${Math.round(amt).toLocaleString()}</b>`;
+    pill.classList.add('show');
+  }
+  document.addEventListener('selectionchange',()=>{if(!raf)raf=requestAnimationFrame(update);});
 })();
 
 // ── テーブル列幅リサイズ ──────────────────────────────────
