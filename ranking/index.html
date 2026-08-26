@@ -383,7 +383,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v230</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v231</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -708,7 +708,9 @@ const CODE_PREFIX_TO_CAT=[
   {prefix:'SM-0',cat:'ポーチ・ケース'},
 ];
 // Rename old/broken codes to correct codes
-const CODE_REMAP={'WCL-017WCL-018':'WCL-018','B6-1J7F-DA1E':'CPC-004'};
+const CODE_REMAP={'WCL-017WCL-018':'WCL-018','B6-1J7F-DA1E':'CPC-004',
+  // カレンダー: 楽天商品管理番号(cal-XX-) → 現行の商品番号（2027年版カレンダー対応表）
+  'cal-37-':'CAL-168','cal-48-':'CAL-174','cal-47-':'CAL-175','cal-45-':'CAL-176','cal-43-':'CAL-177','cal-46-':'CAL-178','cal-41-':'CAL-179','cal-44-':'CAL-180','cal-07-':'CAL-181','cal-10-':'CAL-182','cal-14-':'CAL-183','cal-02-':'CAL-184','cal-05-':'CAL-185','cal-06-':'CAL-186','cal-03-':'CAL-187','cal-01-':'CAL-188','cal-11-':'CAL-189','cal-08-':'CAL-190','cal-21-':'CAL-191','cal-22-':'CAL-192','cal-15-':'CAL-193','cal-04-':'CAL-194','cal-13-':'CAL-195','cal-09-':'CAL-196','cal-42-':'CAL-197','cal-16-':'CAL-198','cal-17-':'CAL-199','cal-51-':'CAL-200','cal-52-':'CAL-201','cal-34-':'CAL-202','cal-36-':'CAL-203','cal-32-':'CAL-204','cal-33-':'CAL-205','cal-35-':'CAL-206','cal-31-':'CAL-207'};
 // Category for remapped codes (assigned explicitly)
 const CODE_REMAP_CAT={'WCL-018':'ペンケース','CPC-004':'ペンケース','5A-CE-056':'食器','AMP-C037':'掛け時計','AMP-C038':'掛け時計','AMP-C040':'掛け時計','AMP-C061':'掛け時計','AMP-C062':'掛け時計','AMP-C063':'掛け時計','AMP-C116':'掛け時計','WPK-101':'その他','LNC-130':'箸セット','SM-05':'その他','SM-03':'ポーチ・ケース','MUS-014':'コースター他','MUS-016':'コースター他','XEC-004':'2022年 10月始まりダイアリー','XEC-005':'2022年 10月始まりダイアリー','XEC-006':'2022年 10月始まりダイアリー','CLB-110':'保冷バッグ','CLB-111':'保冷バッグ','CLB-112':'保冷バッグ','CLB-113':'保冷バッグ','CLB-114':'保冷バッグ','CLB-115':'保冷バッグ','CLB-116':'保冷バッグ','CLB-117':'保冷バッグ','CLB-118':'保冷バッグ','CLB-119':'保冷バッグ','SVT-001':'ブックカバー','SVT-002':'ブックカバー','SVT-003':'ブックカバー','SVT-004':'ブックカバー','SVT-005':'ブックカバー','SVT-006':'ブックカバー','PNT-001':'ネオンライト','PNT-002':'ネオンライト','PNT-003':'ネオンライト','PNT-004':'ネオンライト','PNT-005':'ネオンライト','PNT-006':'ネオンライト','JYX-011':'メモ','JYX-012':'メモ','JYX-013':'メモ','JYX-014':'メモ','JYX-015':'メモ','JYX-016':'メモ','JYX-017':'メモ','JYX-048':'メモ','JYX-041':'メモ','JYX-043':'メモ','JYX-044':'メモ','JYX-045':'メモ','JYX-047':'メモ','KRT-001':'デスクトップ','KRT-002':'デスクトップ','KRT-003':'デスクトップ','KRT-004':'デスクトップ','KRT-005':'デスクトップ','KRT-006':'デスクトップ','KRT-007':'デスクトップ','KRT-008':'デスクトップ','KRT-011':'デスクトップ','KRT-012':'デスクトップ','KRT-013':'デスクトップ','KRT-014':'デスクトップ','KRT-015':'デスクトップ','KRT-016':'デスクトップ','KRT-017':'デスクトップ','KRT-018':'デスクトップ','KRT-021':'デスクトップ','KRT-022':'デスクトップ','KRT-023':'デスクトップ','KRT-025':'デスクトップ','KRT-026':'デスクトップ','LNC-413':'ランチボックス'};
 // Code prefixes to exclude (non-EC products)
