@@ -399,7 +399,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v239</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v240</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1391,6 +1391,14 @@ function catalogBlocks(sections){
     }
     blocks.push({type:'calcol',html:`<div class="cal-col">${inner}</div>`});
   }
+  // カレンダーにも手帳と同様に、右の空きカラムへ売上TOP5表を入れる
+  {
+    const calSecs=sections.filter(s=>s.catType==='カレンダー');
+    if(calSecs.length){
+      const rt=buildCalRankTable(calSecs);
+      if(rt) blocks.push({type:'ranktable',html:rt});
+    }
+  }
   // 手帳など（従来どおり：全幅タイトル＋フォーマット）
   sections.filter(s=>s.catType!=='カレンダー').forEach((sec,si)=>{
     const ulMonth=(sec.cat.match(/(\d+)月始まり/)||[])[1];
@@ -1407,6 +1415,13 @@ function catalogBlocks(sections){
   });
   return blocks;
 }
+// ランキング表の1行分（順位バッジ・画像・名称・欠品・個数）
+function rtRowHtml(it){
+  const fn=it.code.replace(/-/g,'_');
+  const rk=it.rank<=3?('rt'+it.rank):'rto';
+  const so=STOCKOUT[it.code]||'';
+  return `<div class="rt-row"><span class="rt-rk ${rk}">${it.rank}</span><img class="rt-img" src="images/${fn}.jpg" loading="lazy" onerror="this.onerror=null;this.src='images/${fn}.png';this.dataset.f=(this.dataset.f|0)+1;if(this.dataset.f>1)this.style.visibility='hidden'"><span class="rt-nm">${x(it.shortName||it.name)}</span>${so?`<span class="rt-so">欠${x(so)}</span>`:''}<span class="rt-qty">${it.qty.toLocaleString()}</span></div>`;
+}
 // 各フォーマットの売上TOP5を、画像付き・2カラムで表示（新書判の右の空きスペースに配置）
 function buildRankTable(sec){
   let blocks='';
@@ -1414,15 +1429,23 @@ function buildRankTable(sec){
     const top=[...g.items].filter(it=>it.rank<=5).sort((a,b)=>a.rank-b.rank);
     if(!top.length) continue;
     let rows='';
-    for(const it of top){
-      const fn=it.code.replace(/-/g,'_');
-      const rk=it.rank<=3?('rt'+it.rank):'rto';
-      const so=STOCKOUT[it.code]||'';
-      rows+=`<div class="rt-row"><span class="rt-rk ${rk}">${it.rank}</span><img class="rt-img" src="images/${fn}.jpg" loading="lazy" onerror="this.onerror=null;this.src='images/${fn}.png';this.dataset.f=(this.dataset.f|0)+1;if(this.dataset.f>1)this.style.visibility='hidden'"><span class="rt-nm">${x(it.shortName||it.name)}</span>${so?`<span class="rt-so">欠${x(so)}</span>`:''}<span class="rt-qty">${it.qty.toLocaleString()}</span></div>`;
-    }
+    for(const it of top) rows+=rtRowHtml(it);
     blocks+=`<div class="rt-block"><div class="rt-fmt">${x(g.fmtName)}</div>${rows}</div>`;
   }
   return `<div class="cat-ranktbl-wrap"><div class="rt-title">種類別 売上ランキング（各TOP5）</div><div class="rt-grid">${blocks}</div></div>`;
+}
+// カレンダー用: 各年のカテゴリ内TOP5を1ブロックにまとめ、年カラムの右の空きに配置
+function buildCalRankTable(secs){
+  let blocks='';
+  for(const sec of secs){
+    const top=sec.groups.flatMap(g=>g.items).filter(it=>it.rank<=5).sort((a,b)=>a.rank-b.rank);
+    if(!top.length) continue;
+    let rows='';
+    for(const it of top) rows+=rtRowHtml(it);
+    blocks+=`<div class="rt-block"><div class="rt-fmt">${x(sec.cat)}</div>${rows}</div>`;
+  }
+  if(!blocks) return '';
+  return `<div class="cat-ranktbl-wrap"><div class="rt-title">売上ランキング（各年TOP5）</div><div class="rt-grid">${blocks}</div></div>`;
 }
 // ブロックを横向きA4ページ（2カラム）へ分配。左カラムを下端まで埋めてから右カラム、
 // 埋まったら次ページへ。1カラム＝1フォーマット（カテゴリ）になるよう、各フォーマット
@@ -1488,9 +1511,9 @@ function paginateCatalog(blocks, container){
       colHasFmt=true;
       place(b.html);
     } else if(b.type==='ranktable'){
-      // ランキング表は新書判の右カラム（空き）へ配置
+      // ランキング表は右カラム（空き）へ配置。両カラムとも埋まっていれば次ページへ
       if(!page) newPage(curTitle);
-      if(colIdx===0 && col.childElementCount>0) advance();
+      if(col.childElementCount>0) advance();
       place(b.html);
     } else {
       if(!page) newPage(curTitle);
