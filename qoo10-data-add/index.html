@@ -66,12 +66,13 @@
   .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
   .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
   .dl-btn:hover{background:#059669;}
-  .stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:14px;}
+  .stats-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:12px;margin-top:14px;}
   .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
   .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
   .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
   @media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
   @media(min-width:641px)and(max-width:860px){.stats-grid{grid-template-columns:repeat(3,1fr);}}
+  @media(min-width:861px)and(max-width:1100px){.stats-grid{grid-template-columns:repeat(4,1fr);}}
 </style>
 </head>
 <body>
@@ -169,6 +170,13 @@
           </tbody>
         </table>
         <p style="margin-top:10px;font-size:12px;color:var(--gray-600);">※ こちらも <code>category_number</code> が<strong>空欄の商品のみ</strong>が対象です。ジャンルID一致を優先し、一致しない場合のみ上記キーワード判定を行います。</p>
+        <table class="mapping-table" style="margin-top:16px;">
+          <thead><tr><th>seller_unique_item_id</th><th>→ カテゴリ番号（category_number）</th><th>→ origin_type</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-red">cal-</span> から始まる</td><td>320000559</td><td>1</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:10px;font-size:12px;color:var(--gray-600);">※ こちらは<strong>他の設定より優先</strong>し、<code>category_number</code>が既に入力されていても上書きします。</p>
       </div>
       <div class="tab-content" id="tab-fixed">
         <div class="fixed-rules">
@@ -407,12 +415,13 @@ function convert(){
     };
     const getCell=(r,c)=>{const a=XLSX.utils.encode_cell({r,c});return ws[a]?String(ws[a].v||''):''};
 
-    let cntTotal=0,cntShip=0,cntOriginForeign=0,cntOriginDomestic=0,cntCategory=0,cntOptionZeroed=0;
+    let cntTotal=0,cntShip=0,cntOriginForeign=0,cntOriginDomestic=0,cntCategory=0,cntOptionZeroed=0,cntCalFixed=0;
 
     for(let ri=4;ri<=rng.e.r;ri++){
       const sid=getCell(ri,SID).trim();
       if(!sid)continue;
       cntTotal++;
+      const isCal=sid.toLowerCase().startsWith('cal-');
 
       // 一律入力
       setCell(ri,END,'2040-01-01 23:59');
@@ -439,8 +448,10 @@ function convert(){
         log(`✏️ [商品名] ${sid} → 装飾語を削除`, 'log-ok');
       }
 
-      // カテゴリ：category_numberが空欄の場合のみ、ジャンルID→キーワードの順に自動設定
-      if(CAT>=0&&!getCell(ri,CAT).trim()){
+      // カテゴリ：seller_unique_item_idが「cal-」始まりの場合は固定値を優先設定
+      if(CAT>=0&&isCal){
+        setCell(ri,CAT,'320000559');
+      }else if(CAT>=0&&!getCell(ri,CAT).trim()){
         const genreId=rakutenGenre[sid];
         const matchedCat=(genreId&&GENRE_CATEGORY_MAP[genreId])||matchCategory(cleanedName);
         if(matchedCat){
@@ -469,23 +480,29 @@ function convert(){
         log(`━ [送料] ${sid} → 楽天データに対応商品なし`, 'log-warn');
       }
 
-      // 原産地
-      const country=rakutenOrigin[sid]||'';
-      if(country&&ORIGIN_MAP[country]){
-        const {type,region,country:cnt}=ORIGIN_MAP[country];
-        setCell(ri,ORIG,type);setCell(ri,ORIGR,region);setCell(ri,ORIGC,cnt);
-        log(`🌏 [原産地] ${sid} → ${country}（${type}/${region}/${cnt})`, 'log-ok');
-        cntOriginForeign++;
+      // 原産地：seller_unique_item_idが「cal-」始まりの場合はorigin_typeを固定設定
+      if(isCal){
+        setCell(ri,ORIG,'1');
+        log(`🌏 [原産地] ${sid} → 「cal-」のためorigin_typeを「1」に固定設定`, 'log-ok');
+        cntCalFixed++;
       }else{
-        setCell(ri,ORIG,'2');setCell(ri,ORIGR,'CN');setCell(ri,ORIGC,'CN');
-        const reason=country?`「${country}」はマッピング対象外`:'原産国データなし';
-        log(`━ [原産地] ${sid} → 中国扱い（2/CN/CN）※${reason}`, 'log-warn');
-        cntOriginDomestic++;
+        const country=rakutenOrigin[sid]||'';
+        if(country&&ORIGIN_MAP[country]){
+          const {type,region,country:cnt}=ORIGIN_MAP[country];
+          setCell(ri,ORIG,type);setCell(ri,ORIGR,region);setCell(ri,ORIGC,cnt);
+          log(`🌏 [原産地] ${sid} → ${country}（${type}/${region}/${cnt})`, 'log-ok');
+          cntOriginForeign++;
+        }else{
+          setCell(ri,ORIG,'2');setCell(ri,ORIGR,'CN');setCell(ri,ORIGC,'CN');
+          const reason=country?`「${country}」はマッピング対象外`:'原産国データなし';
+          log(`━ [原産地] ${sid} → 中国扱い（2/CN/CN）※${reason}`, 'log-warn');
+          cntOriginDomestic++;
+        }
       }
     }
 
     log('','log-sep');
-    log(`📊 完了 — 総商品 ${cntTotal} 件 | 送料設定 ${cntShip} 件 | 原産地（海外） ${cntOriginForeign} 件 | 原産地（国内） ${cntOriginDomestic} 件 | カテゴリ自動設定 ${cntCategory} 件 | オプション在庫0設定 ${cntOptionZeroed} 件`, 'log-info');
+    log(`📊 完了 — 総商品 ${cntTotal} 件 | 送料設定 ${cntShip} 件 | 原産地（海外） ${cntOriginForeign} 件 | 原産地（国内） ${cntOriginDomestic} 件 | カテゴリ自動設定 ${cntCategory} 件 | オプション在庫0設定 ${cntOptionZeroed} 件 | cal-固定設定 ${cntCalFixed} 件`, 'log-info');
 
     const wbout=XLSX.write(qoo10Wb,{bookType:'xlsx',type:'array'});
     const url=URL.createObjectURL(new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
@@ -499,6 +516,7 @@ function convert(){
       <div class="stat"><div class="num">${cntOriginDomestic}</div><div class="label">原産地（国内）</div></div>
       <div class="stat"><div class="num">${cntCategory}</div><div class="label">カテゴリ自動設定</div></div>
       <div class="stat"><div class="num">${cntOptionZeroed}</div><div class="label">オプション在庫0設定</div></div>
+      <div class="stat"><div class="num">${cntCalFixed}</div><div class="label">cal-固定設定</div></div>
     `;
     document.getElementById('resultSection').classList.add('show');
   }catch(err){
