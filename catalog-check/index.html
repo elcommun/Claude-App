@@ -300,7 +300,7 @@
 <script src="../design-preview/lib/pdf.min.js"></script>
 <script src="lib/tesseract.min.js"></script>
 <script>
-const APP_VERSION = 6;
+const APP_VERSION = 7;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -324,6 +324,7 @@ let PDF_FILES = [];         // [{name, file}]
 let FINDINGS = [];          // 指摘一覧
 let OCR_WORKER = null;
 let RUNNING = false;
+const COLOR_MIN_RATIO = 0.15;  // 画像色チェックに必要な有彩色ピクセル比率
 
 /* ============================== ユーティリティ ============================== */
 function log(msg, cls = '') {
@@ -823,16 +824,23 @@ function checkPage(pageData, label){
   const usedJan = new Set();
   codes.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
   for(const c of codes){
-    // 同じ行帯の隣の品番までを自分の列幅とする
-    const rowMates = codes.filter(o => o !== c && Math.abs(o.y0 - c.y0) < (c.y1 - c.y0) * 1.5 && o.x0 > c.x0);
-    const nextX = rowMates.length ? Math.min(...rowMates.map(o => o.x0)) : c.x0 + pageW * 0.24;
+    // 同じ行帯の隣の品番までを自分の列幅とする。最終列は左隣とのピッチを使う
+    // （固定幅にすると隣の注記や余白まで含んでしまい、バリエーション抽出や色判定が乱れる）
+    const rowAll = codes.filter(o => Math.abs(o.y0 - c.y0) < (c.y1 - c.y0) * 1.5).sort((a, b) => a.x0 - b.x0);
+    const idx = rowAll.indexOf(c);
+    const next = rowAll[idx + 1], prev = rowAll[idx - 1];
+    let rightX;
+    if(next) rightX = next.x0 - pageW * 0.008;
+    else if(prev) rightX = c.x0 + (c.x0 - prev.x0) - pageW * 0.008;
+    else rightX = c.x0 + pageW * 0.24;
     c.winX0 = c.x0 - pageW * 0.015;
-    c.winX1 = nextX - pageW * 0.008;
+    c.winX1 = rightX;
     let best = null, bestD = Infinity;
     for(const j of jans){
       if(usedJan.has(j)) continue;
       const jcx = (j.x0 + j.x1) / 2;
-      if(jcx < c.winX0 || jcx > c.winX1 + pageW * 0.06) continue;
+      // 自列のウィンドウ内に限定（広げると隣のセルのJANを拾ってしまう）
+      if(jcx < c.winX0 || jcx > c.winX1) continue;
       const dy = j.y0 - c.y1;
       const dyMax = Math.max(pageH * 0.09, (j.y1 - j.y0) * 4);  // 小さい画像でも行高さ4行分は許容
       if(dy < -pageH * 0.01 || dy > dyMax) continue;
@@ -914,6 +922,37 @@ function checkPage(pageData, label){
 
   const taxRate = parseFloat(document.getElementById('taxRate').value);
 
+  // ページ上で検出された全JANの集合（品番誤読の判別に使用）
+  const pageJanSet = new Set(jans.map(j => j.text));
+
+  // --- SOLD OUT表記の検出（廃盤品の意図的な掲載を判別する） ---
+  const soldOuts = [];
+  for(const ln of lines){
+    for(let i = 0; i < ln.words.length; i++){
+      const t1 = normText(ln.words[i].text).toUpperCase().replace(/[^A-Z0]/g, '');
+      if(/^S[O0]LD[O0]UT$/.test(t1)){
+        soldOuts.push({x: (ln.words[i].x0 + ln.words[i].x1) / 2, y: (ln.words[i].y0 + ln.words[i].y1) / 2});
+      } else if(/^S[O0]LD$/.test(t1) && i + 1 < ln.words.length){
+        const t2 = normText(ln.words[i + 1].text).toUpperCase().replace(/[^A-Z0]/g, '');
+        if(/^[O0]UT$/.test(t2)){
+          soldOuts.push({x: (ln.words[i].x0 + ln.words[i + 1].x1) / 2, y: (ln.words[i].y0 + ln.words[i + 1].y1) / 2});
+        }
+      }
+    }
+  }
+  const hasSoldOut = c => {
+    if(c.winX0 == null) return false;
+    const winW = c.winX1 - c.winX0;
+    const rowH = c.y1 - c.y0;
+    if(soldOuts.some(s =>
+      s.x >= c.winX0 - 10 && s.x <= c.winX1 + 10 &&
+      s.y >= c.y0 - Math.min(winW * 1.6, pageH * 0.25) &&
+      s.y <= (c.jan ? c.jan.y1 : c.y1) + rowH * 3)) return true;
+    // SOLD OUTの黒帯（白抜き文字はOCRで読めないことが多い）をピクセルで検出：
+    // 「横に長く連続した濃色の帯」がラベル領域にあるかを見る（列幅に依存しない）
+    return hasDarkBandRegion(pageData, c.winX0 - rowH * 2, c.y0 - rowH * 0.5, c.winX1, c.y0 + rowH * 4.5, rowH / 2);
+  };
+
   // --- 各品番のチェック ---
   for(const c of codes){
     let sev = 'ok';
@@ -921,65 +960,44 @@ function checkPage(pageData, label){
     let masterItem = MASTER.byCode.get(c.code) || null;
 
     if(!masterItem){
-      // 編集距離1で候補を探す
-      let cand = null;
-      for(const [mc, it] of MASTER.byCode){
-        if(editDist1(c.code, mc)){ cand = it; break; }
-      }
-      if(cand){
-        addFinding('error', label, '品番誤り疑い', c.code, cand.code, `マスタに一致なし。1文字違いの「${cand.code}」（${cand.name}）の誤植またはOCR誤読の可能性`);
-        raise('error');
-        masterItem = cand;
-      } else if(c.jan && MASTER.byJan.has(c.jan.text)){
-        const byJ = MASTER.byJan.get(c.jan.text);
-        addFinding('error', label, '品番未登録', c.code, byJ.code, `品番がマスタになし。併記JAN ${c.jan.text} はマスタでは品番「${byJ.code}」`);
-        raise('error');
+      // まず併記JANから特定を試みる（1文字違いなら品番の誤読/誤植として1件の警告に集約する）
+      const byJ = c.jan && MASTER.byJan.get(c.jan.text);
+      if(byJ && editDist1(c.code, byJ.code)){
+        addFinding('warn', label, '品番読取要確認', `${c.code} / ${c.jan.text}`, `${byJ.code} / ${byJ.jan}`,
+          `品番がマスタになく、記載JANはマスタの「${byJ.code}（${byJ.name}）」のもの。品番のOCR誤読または誤植の可能性（カタログの品番表記を目視確認してください）`);
+        raise('warn');
         masterItem = byJ;
       } else {
-        addFinding('warn', label, '品番未登録', c.code, '', 'マスタに存在しない品番（新商品・OCR誤読の可能性）');
-        raise('warn');
-      }
-    }
-
-    // JANチェック
-    if(c.jan){
-      const jan = c.jan.text;
-      if(c.jan.corrected){
-        addFinding('info', label, 'JAN読取補正', c.jan.corrected, jan,
-          `${c.code}: 読み取った${c.jan.corrected.length}桁の数字列から正しい13桁を抽出して照合しました（OCRの読み過ぎの可能性が高いですが、印刷の桁数も念のためご確認ください）`);
-      }
-      if(jan.length !== 13){
-        addFinding('warn', label, 'JAN桁数異常', jan, masterItem ? masterItem.jan : '', `13桁ではありません（${jan.length}桁・OCR読取欠けの可能性）`);
-        raise('warn');
-      } else if(!ean13Valid(jan)){
-        addFinding('error', label, 'JANチェックデジット不正', jan, masterItem ? masterItem.jan : '', 'JANコードのチェックデジットが合いません（誤植の可能性大）');
-        raise('error');
-      }
-      if(masterItem && masterItem.jan && jan !== masterItem.jan){
-        const other = MASTER.byJan.get(jan);
-        if(other && other.code !== masterItem.code){
-          addFinding('error', label, 'JAN組合せ不一致', `${c.code} / ${jan}`, `${masterItem.code} / ${masterItem.jan}`, `記載のJANは別商品「${other.code}（${other.name}）」のもの。JANの貼り違い・並び違いの可能性`);
+        // 編集距離1で候補を探す
+        let cand = null;
+        for(const [mc, it] of MASTER.byCode){
+          if(editDist1(c.code, mc)){ cand = it; break; }
+        }
+        if(cand){
+          addFinding('error', label, '品番誤り疑い', c.code, cand.code, `マスタに一致なし。1文字違いの「${cand.code}」（${cand.name}）の誤植またはOCR誤読の可能性`);
           raise('error');
-        } else if(editDist1(jan, masterItem.jan)){
-          addFinding(c.jan.conf < 70 ? 'warn' : 'error', label, 'JAN不一致', jan, masterItem.jan, `マスタと1桁違い${c.jan.conf < 70 ? '（OCR低信頼のため要目視確認）' : ''}`);
-          raise(c.jan.conf < 70 ? 'warn' : 'error');
+          masterItem = cand;
+        } else if(byJ){
+          addFinding('error', label, '品番未登録', c.code, byJ.code, `品番がマスタになし。併記JAN ${c.jan.text} はマスタでは品番「${byJ.code}」`);
+          raise('error');
+          masterItem = byJ;
         } else {
-          addFinding('error', label, 'JAN不一致', jan, masterItem.jan, 'マスタのJANと一致しません');
-          raise('error');
+          addFinding('warn', label, '品番未登録', c.code, '', 'マスタに存在しない品番（新商品・OCR誤読の可能性）');
+          raise('warn');
         }
       }
-    } else if(masterItem){
-      addFinding('info', label, 'JAN未検出', c.code, masterItem.jan, '品番の近くにJANが見つかりませんでした（レイアウトにより未検出の場合あり）');
     }
 
     // バリエーション名チェック
     // ウィンドウ内には周囲の注記等のノイズ語が混入することがあるため、
     // 「ウィンドウ内の語のうちマスタ品名に実在する語」を探す方式で照合する
-    c.varKey = ''; c.varDisp = '';
+    // ※後続のJANチェックで品番誤読の判別に使うため、JANチェックより先に実行する
+    c.varKey = ''; c.varDisp = ''; c.varCands = [];
     {
       const vCands = (c.variation ? c.variation.split(' ') : [])
         .map(w => ({disp: w, norm: normName(w)}))
         .filter(w => w.norm.length >= 3);
+      c.varCands = vCands.map(w => w.norm);
       const setVar = hits => {
         const uniq = [...new Map(hits.map(h => [h.norm, h])).values()];
         c.varKey = uniq.map(h => h.norm).sort().join('');
@@ -1016,6 +1034,55 @@ function checkPage(pageData, label){
       }
     }
 
+    // JANチェック
+    if(c.jan){
+      const jan = c.jan.text;
+      if(c.jan.corrected){
+        addFinding('info', label, 'JAN読取補正', c.jan.corrected, jan,
+          `${c.code}: 読み取った${c.jan.corrected.length}桁の数字列から正しい13桁を抽出して照合しました（OCRの読み過ぎの可能性が高いですが、印刷の桁数も念のためご確認ください）`);
+      }
+      if(jan.length !== 13){
+        addFinding('warn', label, 'JAN桁数異常', jan, masterItem ? masterItem.jan : '', `13桁ではありません（${jan.length}桁・OCR読取欠けの可能性）`);
+        raise('warn');
+      } else if(!ean13Valid(jan)){
+        addFinding('error', label, 'JANチェックデジット不正', jan, masterItem ? masterItem.jan : '', 'JANコードのチェックデジットが合いません（誤植の可能性大）');
+        raise('error');
+      }
+      if(masterItem && masterItem.jan && jan !== masterItem.jan){
+        const other = MASTER.byJan.get(jan);
+        if(other && other.code !== masterItem.code){
+          // 品番のOCR誤読（例: LNC-414→LNC-412）と本物のJAN貼り違いを判別する。
+          // 品番が1文字違いで、バリエーション名がJAN側の商品名により多く一致する
+          // （または名称情報がなく、検出品番のJANがページ上に存在しない）場合は誤読の可能性が高い
+          const scoreOf = name => { const mn = normName(name || ''); return c.varCands.filter(n => mn.includes(n)).length; };
+          const sJan = scoreOf(other.name), sCode = scoreOf(masterItem.name);
+          let misread = false;
+          if(editDist1(c.code, other.code)){
+            if(sJan > sCode) misread = true;
+            else if(sJan === sCode && sJan === 0 && !pageJanSet.has(masterItem.jan)) misread = true;
+          }
+          if(misread){
+            addFinding('warn', label, '品番読取要確認', `${c.code} / ${jan}`, `${other.code} / ${jan}`,
+              `JAN${sJan > sCode ? 'とバリエーション名' : ''}はマスタの「${other.code}（${other.name}）」と一致します。品番のOCR誤読の可能性が高いですが、カタログの品番表記を目視確認してください`);
+            raise('warn');
+            masterItem = other;  // 以降の価格・廃盤チェックはJAN側の商品として扱う
+          } else {
+            addFinding('error', label, 'JAN組合せ不一致', `${c.code} / ${jan}`, `${masterItem.code} / ${masterItem.jan}`, `記載のJANは別商品「${other.code}（${other.name}）」のもの。JANの貼り違い・並び違いの可能性`);
+            raise('error');
+          }
+        } else if(editDist1(jan, masterItem.jan)){
+          addFinding(c.jan.conf < 70 ? 'warn' : 'error', label, 'JAN不一致', jan, masterItem.jan, `マスタと1桁違い${c.jan.conf < 70 ? '（OCR低信頼のため要目視確認）' : ''}`);
+          raise(c.jan.conf < 70 ? 'warn' : 'error');
+        } else {
+          addFinding('error', label, 'JAN不一致', jan, masterItem.jan, 'マスタのJANと一致しません');
+          raise('error');
+        }
+      }
+    } else if(masterItem && !hasSoldOut(c)){
+      // SOLD OUT帯でJANが隠れている場合は未検出が正常なので指摘しない
+      addFinding('info', label, 'JAN未検出', c.code, masterItem.jan, '品番の近くにJANが見つかりませんでした（レイアウトにより未検出の場合あり）');
+    }
+
     // 価格チェック
     if(masterItem && masterItem.price != null && c.priceLine){
       const pl = c.priceLine;
@@ -1034,10 +1101,15 @@ function checkPage(pageData, label){
       }
     }
 
-    // 廃盤チェック
-    if(masterItem && masterItem.disc && c.code === masterItem.code){
-      addFinding('warn', label, '廃盤品掲載', c.code, '廃盤', `廃盤マークのある商品がカタログに掲載されています（${masterItem.name}）`);
-      raise('warn');
+    // 廃盤チェック（カタログにSOLD OUT表記がある場合は意図的な掲載なので指摘しない）
+    if(masterItem && c.code === masterItem.code){
+      const so = hasSoldOut(c);
+      if(masterItem.disc && !so){
+        addFinding('warn', label, '廃盤品掲載', c.code, '廃盤', `廃盤マークのある商品がSOLD OUT表記なしで掲載されています（${masterItem.name}）`);
+        raise('warn');
+      } else if(!masterItem.disc && so){
+        addFinding('info', label, 'SOLD OUT表記', c.code, '', `カタログにSOLD OUT表記がありますが、マスタに廃盤マークがありません（マスタ更新漏れの可能性・参考）`);
+      }
     }
 
     if(sev === 'ok') ok++;
@@ -1146,13 +1218,16 @@ function checkPage(pageData, label){
       const ry1 = c.y0 - 8;
       const ry0 = Math.max(0, c.y0 - Math.min(winW * 1.15, pageH * 0.16));
       const f = imageFeature(pageData, c.winX0, ry0, c.winX1, ry1);
-      if(!f) continue;
+      if(f) c.imgRatio = f.ratio;
+      // 有彩色の面積が小さい商品（銀色バッグで持ち手だけ色違い等）は色相推定が不安定なため対象外
+      if(!f || f.ratio < COLOR_MIN_RATIO) continue;
       c.imgHue = f.hue;
       c.imgRegion = {x0: c.winX0, y0: ry0, x1: c.winX1, y1: ry1};
       hueItems.push(c);
     }
     window.DEBUG_TK[window.DEBUG_TK.length - 1].hues =
-      codes.map(c => ({code: c.code, vk: c.varKey, hue: c.imgHue != null ? Math.round(c.imgHue) : null}));
+      codes.map(c => ({code: c.code, vk: c.varKey, hue: c.imgHue != null ? Math.round(c.imgHue) : null,
+                       ratio: c.imgRatio != null ? Math.round(c.imgRatio * 100) / 100 : null}));
     const byVar = new Map(), byBlock = new Map();
     hueItems.forEach(c => {
       if(!byVar.has(c.varKey)) byVar.set(c.varKey, []);
@@ -1163,17 +1238,24 @@ function checkPage(pageData, label){
     });
     const swapCands = [];
     for(const [bk, items] of byBlock){
-      // 参照色 = 他ブロックにある同じバリエーション名の画像色の平均
+      // 参照色 = 他ブロックにある同じバリエーション名の画像色の平均。
+      // 参照が2件以上あり、かつ参照同士の色が揃っている場合のみ判定に使う
+      // （銀色バッグ等は写真ごとに色相がバラつくため、参照が揃わない商品は判定しない）
       const val = items.filter(c => {
         const refs = (byVar.get(c.varKey) || []).filter(o => blockOf(o) !== bk).map(o => o.imgHue);
-        if(!refs.length) return false;
-        c.refHue = circMean(refs);
+        if(refs.length < 2) return false;
+        const m = circMean(refs);
+        if(Math.max(...refs.map(h => circDist(h, m))) > 25) return false;
+        c.refHue = m;
         return true;
       });
       for(let i = 0; i < val.length; i++) for(let j = i + 1; j < val.length; j++){
         const a = val[i], b = val[j];
         const ident = circDist(a.imgHue, a.refHue) + circDist(b.imgHue, b.refHue);
         const dAB = circDist(a.imgHue, b.refHue), dBA = circDist(b.imgHue, a.refHue);
+        // Black/Brown/Khakiのような近い色相同士は判定が不安定なため、
+        // 2商品の画像色・参照色がともに十分離れている場合のみ判定する
+        if(circDist(a.imgHue, b.imgHue) <= 40 || circDist(a.refHue, b.refHue) <= 40) continue;
         if(ident - (dAB + dBA) > 50 && Math.min(dAB, dBA) < 25){
           swapCands.push({pairKey: [a.varKey, b.varKey].sort().join('|'), a, b, ident,
                           sev: Math.max(dAB, dBA) < 30 ? 'error' : 'warn'});
@@ -1270,6 +1352,57 @@ function checkPage(pageData, label){
     addFinding('info', label, '商品未検出', '', '', 'このページから品番を検出できませんでした（表紙・イメージページの場合は問題ありません）');
   }
   return {marks, ok, total: codes.length};
+}
+
+/* 指定領域（OCR座標）の濃色ピクセル比率（SOLD OUT黒帯などの検出用） */
+function darkRatio(pageData, x0, y0, x1, y1){
+  const canvas = pageData.dispCanvas;
+  if(!canvas) return 0;
+  const k = pageData.dispScale / pageData.ocrScale;
+  const px = Math.max(0, Math.round(x0 * k)), py = Math.max(0, Math.round(y0 * k));
+  const pw = Math.min(canvas.width - px, Math.round((x1 - x0) * k));
+  const ph = Math.min(canvas.height - py, Math.round((y1 - y0) * k));
+  if(pw < 4 || ph < 4) return 0;
+  let d;
+  try { d = canvas.getContext('2d').getImageData(px, py, pw, ph).data; } catch(e){ return 0; }
+  let n = 0, dark = 0;
+  for(let i = 0; i < d.length; i += 16){
+    n++;
+    if(Math.max(d[i], d[i+1], d[i+2]) < 90) dark++;
+  }
+  return n ? dark / n : 0;
+}
+
+/* 指定領域（OCR座標）に「横に長く連続した濃色の帯」（SOLD OUTリボン等）があるかを判定する。
+   cellPx角のセルに分割し、濃色セルが横に7セル以上連続したら帯とみなす */
+function hasDarkBandRegion(pageData, x0, y0, x1, y1, cellPx){
+  const canvas = pageData.dispCanvas;
+  if(!canvas) return false;
+  const k = pageData.dispScale / pageData.ocrScale;
+  const px = Math.max(0, Math.round(x0 * k)), py = Math.max(0, Math.round(y0 * k));
+  const pw = Math.min(canvas.width - px, Math.round((x1 - x0) * k));
+  const ph = Math.min(canvas.height - py, Math.round((y1 - y0) * k));
+  if(pw < 8 || ph < 8) return false;
+  let d;
+  try { d = canvas.getContext('2d').getImageData(px, py, pw, ph).data; } catch(e){ return false; }
+  const cell = Math.max(3, Math.round(cellPx * k));
+  const cols = Math.floor(pw / cell), rows = Math.floor(ph / cell);
+  for(let r = 0; r < rows; r++){
+    let run = 0;
+    for(let cc = 0; cc < cols; cc++){
+      let n = 0, dark = 0;
+      for(let yy = r * cell; yy < (r + 1) * cell; yy += 2){
+        for(let xx = cc * cell; xx < (cc + 1) * cell; xx += 2){
+          const i = (yy * pw + xx) * 4;
+          n++;
+          if(Math.max(d[i], d[i+1], d[i+2]) < 90) dark++;
+        }
+      }
+      if(n && dark / n > 0.5){ run++; if(run >= 7) return true; }
+      else run = 0;
+    }
+  }
+  return false;
 }
 
 /* 指定領域（OCR座標）の代表色相を求める。白背景・文字などの無彩色は除外し、
