@@ -177,15 +177,15 @@
         <ol class="mn-steps">
           <li><strong>ファイルを2つアップロード</strong> — 下の①の枠に売上データxlsx、②の枠にitemdata CSVをドロップ（クリックして選択でもOK）。読み込みに成功すると緑色の「✅ 読み込み完了」が表示されます。</li>
           <li><strong>「SKU・総在庫数CSVに変換する」ボタンを押す</strong> — 商品コードとSKUの突合が実行され、プレビューに結果が表示されます。</li>
-          <li><strong>プレビューを確認してダウンロード</strong> — 緑色の<span class="badge badge-green">OK</span>行が出力対象です。「⬇️ CSVをダウンロード」でシステム取込用CSVを保存します。</li>
+          <li><strong>プレビューを確認し、必要なら数量を修正してダウンロード</strong> — 緑色の<span class="badge badge-green">OK</span>行が出力対象です。「総在庫数」欄はクリックしてその場で書き換えられます（詳しくは次項）。確認できたら「⬇️ CSVをダウンロード」でシステム取込用CSVを保存します。</li>
         </ol>
       </div>
 
       <div class="mn-sec">
-        <div class="mn-title">✏️ 数量の編集</div>
+        <div class="mn-title">✏️ 数量の編集（任意）</div>
         <ul class="mn-list">
-          <li>「総在庫数」欄は<strong>直接クリックして書き換え</strong>できます（例: <code>+3</code> → <code>+5</code>）。数字だけ入力すると自動で<strong>+</strong>が付きます。減らす場合は <code>-3</code> のように入力してください。</li>
-          <li>チェックボックスで複数の商品にチェックを入れ、上部の入力欄に数量を入力して「適用」を押すと、<strong>選択した商品の総在庫数を一括で変更</strong>できます。</li>
+          <li>「総在庫数」欄は<strong>直接クリックして書き換え</strong>できます（例: <code>+3</code> → <code>+5</code>）。数字だけ入力すると自動で<strong>+</strong>が付きます。デフォルトは売上数から自動計算された値ですが、必要に応じて自由に修正できます。減らす場合は <code>-3</code> のように入力してください。</li>
+          <li>チェックボックスで複数の商品にチェックを入れ、上部の入力欄に数量を入力して「適用」を押すと、<strong>選択した商品の総在庫数を一括で変更</strong>できます（ヘッダーのチェックボックスで全選択/全解除）。</li>
         </ul>
       </div>
 
@@ -196,7 +196,7 @@
 BND-004,+5
 9490,+2</pre>
         <ul class="mn-list">
-          <li>総在庫数は売上数の頭に <strong>+</strong> を付けた値（在庫の加算）</li>
+          <li>総在庫数は<strong>デフォルトでは売上数の頭に + を付けた値</strong>（在庫の加算）。プレビューで編集すれば <code>-3</code> のような減算値も出力できます。</li>
           <li>SKUには itemdata の「SKU管理番号」が入ります（商品コードと同じ場合と、<code>9490</code> のような番号の場合があります）</li>
           <li>同じ商品コードが複数行あった場合は売上数を<strong>合算</strong>します（プレビューに<span class="badge badge-orange">合算</span>バッジ）</li>
         </ul>
@@ -304,7 +304,7 @@ BND-004,+5
 <footer>在庫データ変換 <span id="verBadge"></span> | EL COMMUN EC事業部</footer>
 
 <script>
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // ===== 使い方マニュアル詳細の開閉（通常は「できること」のみ表示） =====
