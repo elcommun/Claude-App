@@ -53,6 +53,13 @@ EC（楽天・Amazon等）の販売データをExcelでインポートし、カ�
 - 3分ごとにサーバー側と比較し、大きければ自動リロード（ファイル読み込み済みのときはリロードしない）
 - 売上データxlsx（商品コード・売上数）と itemdata CSV（システム連携用SKU番号・SKU管理番号）を突合して「SKU,総在庫数（+N）」のCSVを出力するアプリ
 
+### catalog-check のバージョン番号
+- `catalog-check/index.html` に `const APP_VERSION = N;`（フッターの `#verBadge` に `vN` 表示）がある
+- **このファイルを変更してコミットするたびに `APP_VERSION` を必ず1つ増やすこと**
+- 3分ごとにサーバー側と比較し、大きければ自動リロード（ファイル読み込み済み・実行中のときはリロードしない）
+- カタログPDFの品番・JAN・バリエーション名・価格をExcelマスタとOCR照合する校正チェックアプリ
+- ライブラリは `catalog-check/lib/` に同梱（SheetJS / Tesseract.js + traineddata）。pdf.js は `design-preview/lib/` を共用しているため、design-preview の lib を移動・削除する場合は注意
+
 ### laikle-convert の変換完了メール
 - 変換完了時に `ec@elcommun.co.jp` へ自動送信する仕組み（Google Apps Script のウェブアプリ経由）
 - GAS側のコードと設定手順は `laikle-convert/mail-gas/`（`Code.gs` / `README.md`）

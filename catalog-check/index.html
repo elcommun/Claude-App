@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カタログ校正チェック | EL COMMUN</title>
+<style>
+  /* === EL COMMUN UI デザインシステム === */
+  :root {
+    --primary:#E85D26;--primary-light:#FFF3EE;--primary-dark:#C4461B;
+    --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+    --gray-400:#9CA3AF;--gray-600:#4B5563;--gray-800:#1F2937;
+    --green:#10B981;--green-light:#ECFDF5;
+    --red:#EF4444;--red-light:#FEF2F2;
+    --yellow-light:#FFFBEB;--blue-light:#EFF6FF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Hiragino Sans','Noto Sans JP','Meiryo',sans-serif;background:var(--gray-100);color:var(--gray-800);min-height:100vh;}
+  header{background:white;border-bottom:3px solid var(--primary);padding:16px 32px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .logo{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:14px;}
+  header h1{font-size:18px;font-weight:700;}
+  header span{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .container{max-width:1200px;margin:0 auto;padding:32px 16px;}
+  .info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.6;}
+  .info-box strong{color:#78350F;}
+  .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
+  .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
+  .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
+  .step.rule{background:var(--gray-600);font-size:11px;}
+  .card-header h2{font-size:15px;font-weight:700;}
+  .sub{font-size:12px;color:var(--gray-400);margin-left:4px;}
+  .card-body{padding:20px;}
+  .upload-zone{border:2px dashed var(--gray-200);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--gray-50);position:relative;}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--primary);background:var(--primary-light);}
+  .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+  .upload-icon{font-size:32px;margin-bottom:8px;}
+  .upload-zone p{font-size:14px;color:var(--gray-600);margin-bottom:4px;}
+  .upload-zone small{font-size:12px;color:var(--gray-400);}
+  .file-status{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;margin-top:10px;font-size:13px;}
+  .file-status.ok{background:var(--green-light);color:#065F46;}
+  .file-status.err{background:var(--red-light);color:#991B1B;}
+  .data-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .data-table th{background:var(--gray-100);padding:8px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200);}
+  .data-table td{padding:8px 12px;border-bottom:1px solid var(--gray-200);vertical-align:top;}
+  .data-table tr:last-child td{border-bottom:none;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;}
+  .badge-orange{background:#FED7AA;color:#C2410C;}.badge-blue{background:#DBEAFE;color:#1D4ED8;}
+  .badge-red{background:#FEE2E2;color:#991B1B;}.badge-green{background:#D1FAE5;color:#065F46;}
+  .badge-gray{background:#F3F4F6;color:#374151;}.badge-yellow{background:#FEF3C7;color:#92400E;}
+  .rule-box{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:8px;padding:12px 16px;font-size:12px;color:#1E40AF;line-height:2;}
+  .primary-btn{width:100%;padding:14px;background:var(--primary);color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .primary-btn:hover:not(:disabled){background:var(--primary-dark);}
+  .primary-btn:disabled{background:var(--gray-400);cursor:not-allowed;}
+  .log-box{margin-top:16px;background:var(--gray-800);color:#D1FAE5;border-radius:8px;padding:16px;font-size:12px;font-family:'Courier New',monospace;line-height:1.8;max-height:320px;overflow-y:auto;display:none;}
+  .log-box.show{display:block;}
+  .log-ok{color:#6EE7B7;}.log-warn{color:#FCD34D;}.log-err{color:#FCA5A5;}.log-info{color:#93C5FD;}
+  .log-sep{color:#4B5563;border-top:1px solid #374151;margin:4px 0;}
+  .result-section{display:none;background:var(--green-light);border:1px solid #6EE7B7;border-radius:10px;padding:20px;margin-top:20px;text-align:center;}
+  .result-section.show{display:block;}
+  .result-section h3{color:#065F46;font-size:16px;margin-bottom:12px;}
+  .dl-btn{display:inline-flex;align-items:center;gap:8px;padding:12px 28px;background:var(--green);color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;transition:background .2s;}
+  .dl-btn:hover{background:#059669;}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:14px;}
+  .stat{background:white;border-radius:8px;padding:12px;text-align:center;border:1px solid var(--gray-200);}
+  .stat .num{font-size:22px;font-weight:800;color:var(--primary);}
+  .stat .num.red{color:var(--red);}
+  .stat .num.yellow{color:#D97706;}
+  .stat .num.green{color:var(--green);}
+  .stat .label{font-size:11px;color:var(--gray-600);margin-top:2px;}
+  .pdf-list{list-style:none;margin-top:10px;}
+  .pdf-list li{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--gray-200);border-radius:8px;margin-bottom:6px;font-size:13px;background:var(--gray-50);}
+  .pdf-list li .rm{margin-left:auto;cursor:pointer;color:var(--gray-400);font-weight:bold;padding:0 6px;}
+  .pdf-list li .rm:hover{color:var(--red);}
+  .opt-row{display:flex;flex-wrap:wrap;gap:18px;align-items:center;font-size:13px;}
+  .opt-row label{display:flex;align-items:center;gap:6px;cursor:pointer;}
+  .opt-row select{padding:4px 8px;border:1px solid var(--gray-200);border-radius:6px;font-size:13px;}
+  .progress-wrap{margin-top:14px;display:none;}
+  .progress-wrap.show{display:block;}
+  .progress-label{font-size:12px;color:var(--gray-600);margin-bottom:6px;}
+  .progress-bar{height:10px;background:var(--gray-200);border-radius:999px;overflow:hidden;}
+  .progress-bar>div{height:100%;background:var(--primary);width:0%;transition:width .2s;}
+  .page-previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:16px;}
+  .page-thumb{border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;background:white;cursor:zoom-in;}
+  .page-thumb img{width:100%;display:block;}
+  .page-thumb .cap{font-size:11px;color:var(--gray-600);padding:6px 8px;border-top:1px solid var(--gray-200);display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--gray-600);margin-top:12px;align-items:center;}
+  .legend .sw{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:4px;vertical-align:-2px;}
+  #lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:100;overflow:auto;text-align:center;cursor:zoom-out;}
+  #lightbox.show{display:block;}
+  #lightbox img{margin:24px auto;display:block;max-width:none;width:min(1400px,96vw);}
+  .findings-filter{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
+  .findings-filter button{padding:5px 12px;border-radius:999px;border:1px solid var(--gray-200);background:var(--gray-50);font-size:12px;cursor:pointer;font-weight:600;color:var(--gray-600);}
+  .findings-filter button.on{background:var(--primary);border-color:var(--primary);color:white;}
+  .tbl-scroll{overflow-x:auto;}
+  footer{text-align:center;padding:18px;font-size:11px;color:var(--gray-400);}
+  @media(max-width:640px){.stats-grid{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">校</div>
+  <div><h1>カタログ校正チェック <span>EL COMMUN</span></h1></div>
+</header>
+
+<div class="container">
+
+  <div class="info-box">
+    <strong>処理概要：</strong>カタログPDFの記載内容（品番・JANコード・バリエーション名・価格）を、正しい情報のExcelマスタと自動照合します。
+    文字がアウトライン化されたPDF（テキストが選択できないPDF）もOCRで読み取ります。<br>
+    <strong>注意：</strong>OCR読み取りには誤認識の可能性があるため、指摘結果は最終的に目視でご確認ください。初回実行時はOCRエンジンのダウンロードに少し時間がかかります（1ページあたり20〜60秒程度）。
+  </div>
+
+  <!-- Step 1: Excel -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">1</div>
+      <h2>正しい情報のExcelマスタ <span class="sub">品番・JAN・品名・上代の列を自動検出</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="zoneXlsx">
+        <input type="file" accept=".xlsx,.xls" id="fileXlsx">
+        <div class="upload-icon">📊</div>
+        <p>商品マスタExcelをドロップ</p>
+        <small>またはクリックして選択（.xlsx）</small>
+      </div>
+      <div id="statusXlsx"></div>
+    </div>
+  </div>
+
+  <!-- Step 2: PDF -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">2</div>
+      <h2>カタログPDF <span class="sub">複数ファイルまとめてOK</span></h2>
+    </div>
+    <div class="card-body">
+      <div class="upload-zone" id="zonePdf">
+        <input type="file" accept=".pdf" id="filePdf" multiple>
+        <div class="upload-icon">📄</div>
+        <p>カタログPDFをドロップ</p>
+        <small>またはクリックして選択（複数可）</small>
+      </div>
+      <ul class="pdf-list" id="pdfList"></ul>
+    </div>
+  </div>
+
+  <!-- Step 3: options + run -->
+  <div class="card">
+    <div class="card-header">
+      <div class="step">3</div>
+      <h2>チェック実行</h2>
+    </div>
+    <div class="card-body">
+      <div class="opt-row" style="margin-bottom:16px">
+        <label>消費税率
+          <select id="taxRate">
+            <option value="0.10" selected>10%</option>
+            <option value="0.08">8%（軽減税率）</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="optText" checked> 文章の簡易チェック（括弧の対応・重複語）も行う</label>
+        <label><input type="checkbox" id="optLowConf" checked> OCRの自信が低い箇所をプレビューに表示</label>
+      </div>
+      <button class="primary-btn" id="runBtn" disabled onclick="runCheck()">🔍 照合チェックを実行</button>
+      <div class="progress-wrap" id="progWrap">
+        <div class="progress-label" id="progLabel"></div>
+        <div class="progress-bar"><div id="progBar"></div></div>
+      </div>
+      <div class="log-box" id="logBox"></div>
+    </div>
+  </div>
+
+  <!-- 結果サマリー -->
+  <div class="result-section" id="resultSection">
+    <h3>✅ チェック完了！</h3>
+    <button class="dl-btn" id="dlBtn" onclick="downloadCsv()">⬇️ 指摘一覧をCSVダウンロード</button>
+    <div class="stats-grid" id="statsGrid"></div>
+  </div>
+
+  <!-- 指摘一覧 -->
+  <div class="card" id="findingsCard" style="display:none">
+    <div class="card-header"><div class="step rule">指摘</div><h2>指摘一覧 <span class="sub" id="findingsCount"></span></h2></div>
+    <div class="card-body">
+      <div class="findings-filter" id="findingsFilter"></div>
+      <div class="tbl-scroll">
+        <table class="data-table" id="findingsTbl">
+          <thead><tr><th>重要度</th><th>ページ</th><th>種別</th><th>カタログ記載</th><th>マスタ値</th><th>詳細</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ページプレビュー -->
+  <div class="card" id="previewCard" style="display:none">
+    <div class="card-header"><div class="step rule">確認</div><h2>ページプレビュー <span class="sub">クリックで拡大</span></h2></div>
+    <div class="card-body">
+      <div class="legend">
+        <span><span class="sw" style="background:rgba(16,185,129,.85)"></span>マスタと一致</span>
+        <span><span class="sw" style="background:rgba(239,68,68,.85)"></span>エラー（不一致・未登録）</span>
+        <span><span class="sw" style="background:rgba(245,158,11,.85)"></span>警告（要確認）</span>
+        <span><span class="sw" style="background:rgba(59,130,246,.7)"></span>価格表記</span>
+        <span><span class="sw" style="background:rgba(217,119,6,.35)"></span>OCR低信頼箇所</span>
+      </div>
+      <div class="page-previews" id="pagePreviews"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="lightbox" onclick="this.classList.remove('show')"><img id="lightboxImg" alt=""></div>
+
+<footer>カタログ校正チェック <span id="verBadge"></span> — EL COMMUN 社内ツール</footer>
+
+<script src="lib/xlsx.full.min.js"></script>
+<script src="../design-preview/lib/pdf.min.js"></script>
+<script src="lib/tesseract.min.js"></script>
+<script>
+const APP_VERSION = 1;
+document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
+
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '../design-preview/lib/pdf.worker.min.js';
+}
+
+/* ============================== 状態 ============================== */
+let MASTER = null;          // {items, byCode:Map, byJan:Map}
+let PDF_FILES = [];         // [{name, file}]
+let FINDINGS = [];          // 指摘一覧
+let OCR_WORKER = null;
+let RUNNING = false;
+
+/* ============================== ユーティリティ ============================== */
+function log(msg, cls = '') {
+  const box = document.getElementById('logBox');
+  box.classList.add('show');
+  box.innerHTML += `<div class="${cls}">${escHtml(msg)}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+function escHtml(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function normText(s){ return String(s==null?'':s).normalize('NFKC').replace(/\s+/g,' ').trim(); }
+function normCode(s){ return normText(s).toUpperCase().replace(/[‐‑‒–—―−ー]/g,'-').replace(/\s/g,''); }
+function normName(s){ return normText(s).toLowerCase().replace(/\s/g,''); }
+function parseNum(s){ const d = String(s==null?'':s).replace(/[^\d]/g,''); return d ? parseInt(d,10) : null; }
+function ean13Valid(s){
+  if(!/^\d{13}$/.test(s)) return false;
+  let sum = 0;
+  for(let i=0;i<12;i++) sum += (+s[i]) * (i%2 ? 3 : 1);
+  return (10 - (sum % 10)) % 10 === +s[12];
+}
+function editDist1(a, b){ // 編集距離が1以下か（高速判定）
+  if(a === b) return true;
+  const la = a.length, lb = b.length;
+  if(Math.abs(la - lb) > 1) return false;
+  let i = 0, j = 0, diff = 0;
+  while(i < la && j < lb){
+    if(a[i] === b[j]){ i++; j++; continue; }
+    if(++diff > 1) return false;
+    if(la > lb) i++;
+    else if(lb > la) j++;
+    else { i++; j++; }
+  }
+  return diff + (la - i) + (lb - j) <= 1;
+}
+function looksLikeCode(t){
+  if(t.length < 4 || t.length > 20) return false;
+  if(!/^[A-Z0-9][A-Z0-9-]*[A-Z0-9-]$/.test(t)) return false;
+  if(!/-/.test(t)) return false;
+  return /[A-Z]/.test(t) && /\d/.test(t);
+}
+
+/* ============================== Excel 読み込み ============================== */
+const zoneXlsx = document.getElementById('zoneXlsx');
+setupZone(zoneXlsx, document.getElementById('fileXlsx'), files => loadExcel(files[0]));
+
+function loadExcel(file){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      const items = [];
+      const sheetInfo = [];
+      wb.SheetNames.forEach(name => {
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {header:1, raw:true, defval:''});
+        const parsed = parseMasterSheet(rows);
+        if(parsed.length){ items.push(...parsed); sheetInfo.push(`${name}: ${parsed.length}件`); }
+      });
+      if(!items.length) throw new Error('「品番」と「JAN（またはインストアコード）」のヘッダー行が見つかりませんでした');
+      const byCode = new Map(), byJan = new Map();
+      items.forEach(it => {
+        if(it.code && !byCode.has(it.code)) byCode.set(it.code, it);
+        if(it.jan && !byJan.has(it.jan)) byJan.set(it.jan, it);
+      });
+      const nameBlob = items.map(it => normName(it.name)).join('\n');
+      MASTER = {items, byCode, byJan, nameBlob};
+      setStatus('statusXlsx', true, `読み込み完了：${items.length}件（${sheetInfo.join(' / ')}）`);
+      updateRunBtn();
+    } catch(err){
+      MASTER = null;
+      setStatus('statusXlsx', false, 'エラー：' + err.message);
+      updateRunBtn();
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseMasterSheet(rows){
+  // 先頭10行からヘッダー行を探す
+  let hdrIdx = -1, col = {};
+  for(let r = 0; r < Math.min(rows.length, 10); r++){
+    const cells = rows[r].map(c => normText(c));
+    const ci = {};
+    cells.forEach((c, i) => {
+      if(c === 'JAN' || c === 'JANコード' || c === 'インストアコード'){ if(ci.jan == null) ci.jan = i; }
+      else if(c === '品番'){ if(ci.code == null) ci.code = i; }
+      else if(c.replace(/\s/g,'') === '品名' || c === '商品名'){ if(ci.name == null) ci.name = i; }
+      else if(c === '上代' || c === '本体価格' || c === '税抜価格'){ if(ci.price == null) ci.price = i; }
+      else if(c === '廃盤' || c === '廃番'){ if(ci.disc == null) ci.disc = i; }
+    });
+    if(ci.jan != null && ci.code != null){ hdrIdx = r; col = ci; break; }
+  }
+  if(hdrIdx < 0) return [];
+  const out = [];
+  for(let r = hdrIdx + 1; r < rows.length; r++){
+    const row = rows[r];
+    const code = normCode(row[col.code]);
+    const janRaw = String(row[col.jan] == null ? '' : row[col.jan]).replace(/[^\d]/g,'');
+    if(!code && !janRaw) continue;
+    out.push({
+      code,
+      codeRaw: normText(row[col.code]),
+      jan: janRaw,
+      name: col.name != null ? normText(row[col.name]) : '',
+      price: col.price != null ? parseNum(row[col.price]) : null,
+      disc: col.disc != null ? !!normText(row[col.disc]) : false,
+    });
+  }
+  return out;
+}
+
+/* ============================== PDF 選択 ============================== */
+setupZone(document.getElementById('zonePdf'), document.getElementById('filePdf'), files => {
+  for(const f of files){
+    if(!/\.pdf$/i.test(f.name)) continue;
+    if(!PDF_FILES.some(p => p.name === f.name && p.file.size === f.size)) PDF_FILES.push({name: f.name, file: f});
+  }
+  renderPdfList();
+  updateRunBtn();
+});
+
+function renderPdfList(){
+  const ul = document.getElementById('pdfList');
+  ul.innerHTML = PDF_FILES.map((p, i) =>
+    `<li>📄 ${escHtml(p.name)} <span class="badge badge-gray">${(p.file.size/1024/1024).toFixed(1)}MB</span><span class="rm" onclick="removePdf(${i})" title="削除">✕</span></li>`).join('');
+}
+function removePdf(i){ PDF_FILES.splice(i,1); renderPdfList(); updateRunBtn(); }
+
+function setupZone(zone, input, onFiles){
+  input.addEventListener('change', () => { onFiles(Array.from(input.files)); input.value = ''; });
+  ['dragover','dragenter'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove('drag'); }));
+  zone.addEventListener('drop', e => onFiles(Array.from(e.dataTransfer.files)));
+}
+function setStatus(id, ok, msg){
+  document.getElementById(id).innerHTML = `<div class="file-status ${ok?'ok':'err'}">${ok?'✅':'❌'} ${escHtml(msg)}</div>`;
+}
+function updateRunBtn(){
+  document.getElementById('runBtn').disabled = RUNNING || !MASTER || !PDF_FILES.length;
+}
+function setProgress(label, ratio){
+  const w = document.getElementById('progWrap');
+  w.classList.add('show');
+  document.getElementById('progLabel').textContent = label;
+  document.getElementById('progBar').style.width = Math.round(ratio*100) + '%';
+}
+
+/* ============================== メイン処理 ============================== */
+async function runCheck(){
+  if(RUNNING || !MASTER || !PDF_FILES.length) return;
+  RUNNING = true;
+  updateRunBtn();
+  FINDINGS = [];
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('pagePreviews').innerHTML = '';
+  document.getElementById('resultSection').classList.remove('show');
+  document.getElementById('findingsCard').style.display = 'none';
+  document.getElementById('previewCard').style.display = 'none';
+
+  let matchedOk = 0, itemTotal = 0;
+  try {
+    log(`マスタ ${MASTER.items.length}件 / PDF ${PDF_FILES.length}ファイルで照合を開始します`, 'log-info');
+    // 総ページ数を数える
+    const docs = [];
+    let totalPages = 0;
+    for(const p of PDF_FILES){
+      const buf = await p.file.arrayBuffer();
+      const doc = await pdfjsLib.getDocument({data: buf}).promise;
+      docs.push({name: p.name, doc});
+      totalPages += doc.numPages;
+    }
+    log(`合計 ${totalPages}ページを処理します`, 'log-info');
+
+    let done = 0;
+    for(const {name, doc} of docs){
+      for(let pn = 1; pn <= doc.numPages; pn++){
+        const label = `${name} p.${pn}`;
+        setProgress(`${label}（${done+1}/${totalPages}ページ）を読み取り中…`, done/totalPages);
+        const page = await doc.getPage(pn);
+        const pageData = await extractPage(page, label, done, totalPages);
+        const res = checkPage(pageData, label);
+        matchedOk += res.ok;
+        itemTotal += res.total;
+        renderPreview(pageData, label, res);
+        done++;
+        page.cleanup();
+      }
+    }
+    setProgress('完了', 1);
+    log('──────────', 'log-sep');
+    const errN = FINDINGS.filter(f => f.sev === 'error').length;
+    const warnN = FINDINGS.filter(f => f.sev === 'warn').length;
+    log(`✅ チェック完了：照合 ${itemTotal}商品 / OK ${matchedOk} / エラー ${errN} / 警告 ${warnN}`, errN ? 'log-warn' : 'log-ok');
+    showResults(itemTotal, matchedOk);
+  } catch(err){
+    console.error(err);
+    log('❌ エラー：' + err.message, 'log-err');
+  } finally {
+    RUNNING = false;
+    updateRunBtn();
+  }
+}
+
+/* ---------- ページからワード（文字＋座標）を抽出 ---------- */
+async function extractPage(page, label, doneCount, totalPages){
+  const vp1 = page.getViewport({scale: 1});
+  // まずテキストレイヤーを試す
+  const tc = await page.getTextContent();
+  const realItems = tc.items.filter(it => it.str && it.str.trim());
+  const charCount = realItems.reduce((s, it) => s + it.str.trim().length, 0);
+
+  // 表示用レンダリング（プレビュー・OCR兼用のスケール決定）
+  const ocrScale = Math.min(5, Math.max(2.5, 2400 / vp1.width));
+  const dispScale = Math.min(2.2, 1300 / vp1.width);
+
+  let words = []; // {text, x0,y0,x1,y1, conf}  ※OCRスケール座標
+  let usedOcr = false;
+
+  if(charCount >= 40){
+    // テキストレイヤーあり → OCR不要
+    log(`${label}: テキストレイヤーから抽出（${charCount}文字）`, 'log-info');
+    const vp = page.getViewport({scale: ocrScale});
+    for(const it of realItems){
+      const tx = pdfjsLib.Util.transform(vp.transform, it.transform);
+      const h = Math.abs(tx[3] || tx[1]) || 10;
+      const x = tx[4], yBottom = tx[5];
+      const w = (it.width || 0) * ocrScale;
+      // スペース区切りで単語に分割し、幅を文字数比で按分
+      const parts = it.str.split(/\s+/).filter(Boolean);
+      const totalLen = it.str.replace(/\s/g,'').length || 1;
+      let cursor = 0, consumed = 0;
+      for(const ptxt of parts){
+        const frac = ptxt.length / totalLen;
+        const px = x + w * consumed;
+        words.push({text: ptxt, x0: px, y0: yBottom - h, x1: px + w * frac, y1: yBottom, conf: 100});
+        consumed += frac;
+        cursor += ptxt.length;
+      }
+    }
+  } else {
+    // アウトライン化 or 画像PDF → OCR
+    usedOcr = true;
+    log(`${label}: テキストレイヤーなし → OCRで読み取ります`, 'log-info');
+    const canvas = await renderPage(page, ocrScale);
+    const worker = await getOcrWorker(m => {
+      if(m.status === 'recognizing text'){
+        setProgress(`${label}（${doneCount+1}/${totalPages}ページ）OCR中 ${Math.round(m.progress*100)}%`, (doneCount + m.progress) / totalPages);
+      }
+    });
+    const {data} = await worker.recognize(canvas, {}, {blocks: true, text: true});
+    words = collectOcrWords(data);
+    canvas.width = canvas.height = 0;
+  }
+
+  // プレビュー用画像
+  const dispCanvas = await renderPage(page, dispScale);
+
+  return {words, ocrScale, dispScale, dispCanvas, usedOcr,
+          pageW: vp1.width * ocrScale, pageH: vp1.height * ocrScale};
+}
+
+async function renderPage(page, scale){
+  const vp = page.getViewport({scale});
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.ceil(vp.width);
+  canvas.height = Math.ceil(vp.height);
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({canvasContext: ctx, viewport: vp}).promise;
+  return canvas;
+}
+
+let ocrLogger = null;
+async function getOcrWorker(logger){
+  ocrLogger = logger;
+  if(OCR_WORKER) return OCR_WORKER;
+  log('OCRエンジン（日本語＋英語）を読み込んでいます…初回は数MBのダウンロードがあります', 'log-info');
+  const libBase = new URL('lib/', location.href).href;
+  OCR_WORKER = await Tesseract.createWorker(['jpn', 'eng'], 1, {
+    workerPath: libBase + 'worker.min.js',
+    corePath: libBase.replace(/\/$/, ''),
+    langPath: libBase.replace(/\/$/, ''),
+    gzip: true,
+    logger: m => { if(ocrLogger) ocrLogger(m); },
+  });
+  log('OCRエンジンの準備ができました', 'log-ok');
+  return OCR_WORKER;
+}
+
+function collectOcrWords(data){
+  const out = [];
+  const push = w => {
+    const t = (w.text || '').trim();
+    if(!t) return;
+    const b = w.bbox || {};
+    out.push({text: t, x0: b.x0, y0: b.y0, x1: b.x1, y1: b.y1, conf: w.confidence != null ? w.confidence : 0});
+  };
+  if(Array.isArray(data.words) && data.words.length){ data.words.forEach(push); return out; }
+  (data.blocks || []).forEach(bl => (bl.paragraphs || []).forEach(pg => (pg.lines || []).forEach(ln => (ln.words || []).forEach(push))));
+  return out;
+}
+
+/* ---------- 行の再構築 ---------- */
+function buildLines(words){
+  const sorted = words.slice().sort((a, b) => (a.y0 + a.y1) - (b.y0 + b.y1) || a.x0 - b.x0);
+  const lines = [];
+  for(const w of sorted){
+    const cy = (w.y0 + w.y1) / 2, h = Math.max(6, w.y1 - w.y0);
+    let ln = lines.length ? lines[lines.length - 1] : null;
+    if(!ln || Math.abs(cy - ln.cy) > Math.max(h, ln.h) * 0.7){
+      ln = {words: [], cy, h, y0: w.y0, y1: w.y1};
+      lines.push(ln);
+    }
+    ln.words.push(w);
+    ln.cy = (ln.cy * (ln.words.length - 1) + cy) / ln.words.length;
+    ln.h = Math.max(ln.h, h);
+    ln.y0 = Math.min(ln.y0, w.y0);
+    ln.y1 = Math.max(ln.y1, w.y1);
+  }
+  lines.forEach(ln => {
+    ln.words.sort((a, b) => a.x0 - b.x0);
+    ln.text = ln.words.map(w => w.text).join(' ');
+    ln.x0 = ln.words[0].x0;
+    ln.x1 = ln.words[ln.words.length - 1].x1;
+  });
+  return lines;
+}
+
+/* ---------- トークン検出 ---------- */
+function detectTokens(pageData){
+  const {words, pageW, pageH} = pageData;
+  const lines = buildLines(words);
+  const codes = [], jans = [], prices = [];
+
+  // 品番（マスタ照合 or 品番らしい形）
+  for(const w of words){
+    const t = normCode(w.text);
+    if(!t) continue;
+    if(MASTER.byCode.has(t)){ codes.push({...w, code: t, exact: true}); continue; }
+    if(looksLikeCode(t)) codes.push({...w, code: t, exact: false});
+  }
+
+  // JAN：行内の連続する数字ワードを結合して13桁を探す
+  for(const ln of lines){
+    let run = [], runText = '';
+    const flush = () => {
+      const digits = runText.replace(/[^\d]/g, '');
+      if(digits.length >= 12 && digits.length <= 14 && run.length){
+        jans.push({text: digits, x0: run[0].x0, y0: Math.min(...run.map(w => w.y0)),
+                   x1: run[run.length-1].x1, y1: Math.max(...run.map(w => w.y1)),
+                   conf: Math.min(...run.map(w => w.conf))});
+      }
+      run = []; runText = '';
+    };
+    for(const w of ln.words){
+      const t = normText(w.text);
+      if(/^[\d]+$/.test(t.replace(/\s/g,''))){
+        const gap = run.length ? w.x0 - run[run.length-1].x1 : 0;
+        if(run.length && gap > ln.h * 1.5) flush();
+        run.push(w); runText += t;
+      } else flush();
+    }
+    flush();
+  }
+
+  // 価格行：税込/税抜パターン
+  for(const ln of lines){
+    const t = normText(ln.text).replace(/[¥\\￥]/g, '¥');
+    const tc = t.replace(/\s+/g, '');  // OCRで文字間にスペースが入るケースに対応
+    let incl = null, excl = null;
+    let m = tc.match(/税込[^\d]{0,4}([\d,\.]{3,9})/);
+    if(m) incl = parseNum(m[1]);
+    m = tc.match(/税抜[^\d]{0,4}([\d,\.]{3,9})/);
+    if(m) excl = parseNum(m[1]);
+    if(incl == null && excl == null){
+      m = tc.match(/([\d,]{3,9})円?[+＋]税/);
+      if(m) excl = parseNum(m[1]);
+    }
+    if(incl != null || excl != null){
+      prices.push({incl, excl, text: t, x0: ln.x0, y0: ln.y0, x1: ln.x1, y1: ln.y1, cy: ln.cy});
+    }
+  }
+
+  // 誤検出除去：JANと重なる品番候補などはそのまま（実害小）
+  return {lines, codes, jans, prices, pageW, pageH};
+}
+
+/* ---------- 照合チェック ---------- */
+function addFinding(sev, page, kind, catalog, master, detail){
+  FINDINGS.push({sev, page, kind, catalog: catalog || '', master: master || '', detail: detail || ''});
+}
+
+function checkPage(pageData, label){
+  const tk = detectTokens(pageData);
+  const {codes, jans, prices, lines} = tk;
+  const {pageW, pageH} = pageData;
+  const marks = []; // オーバーレイ {x0,y0,x1,y1,color}
+  let ok = 0;
+
+  // --- 品番とJANのペアリング（品番の下方にある最寄りJAN） ---
+  const usedJan = new Set();
+  codes.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
+  for(const c of codes){
+    // 同じ行帯の隣の品番までを自分の列幅とする
+    const rowMates = codes.filter(o => o !== c && Math.abs(o.y0 - c.y0) < (c.y1 - c.y0) * 1.5 && o.x0 > c.x0);
+    const nextX = rowMates.length ? Math.min(...rowMates.map(o => o.x0)) : c.x0 + pageW * 0.24;
+    c.winX0 = c.x0 - pageW * 0.015;
+    c.winX1 = nextX - pageW * 0.008;
+    let best = null, bestD = Infinity;
+    for(const j of jans){
+      if(usedJan.has(j)) continue;
+      const jcx = (j.x0 + j.x1) / 2;
+      if(jcx < c.winX0 || jcx > c.winX1 + pageW * 0.06) continue;
+      const dy = j.y0 - c.y1;
+      if(dy < -pageH * 0.01 || dy > pageH * 0.09) continue;
+      const d = dy + Math.abs(j.x0 - c.x0) * 0.3;
+      if(d < bestD){ bestD = d; best = j; }
+    }
+    if(best){ c.jan = best; usedJan.add(best); }
+  }
+
+  // --- バリエーション名（品番とJANの間のワード） ---
+  for(const c of codes){
+    if(!c.jan){ c.variation = ''; continue; }
+    const vw = pageData.words.filter(w =>
+      w !== c && w.y0 >= c.y1 - 3 && w.y1 <= c.jan.y0 + 3 &&
+      (w.x0 + w.x1) / 2 >= c.winX0 && (w.x0 + w.x1) / 2 <= c.winX1 &&
+      !/^\d+$/.test(w.text));
+    vw.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
+    c.variation = normText(vw.map(w => w.text).join(' '));
+  }
+
+  // --- 価格ブロック割り当て（最寄りの下方価格行） ---
+  for(const c of codes){
+    let best = null, bestD = Infinity;
+    for(const p of prices){
+      const dy = p.y0 - c.y1;
+      if(dy < 0 || dy > pageH * 0.38) continue;
+      if(dy < bestD){ bestD = dy; best = p; }
+    }
+    c.priceLine = best;
+  }
+  // ブロック（同じ価格行に属する品番グループ）
+  const blocks = new Map();
+  for(const c of codes){
+    const key = c.priceLine ? prices.indexOf(c.priceLine) : 'none-' + Math.round(c.y0 / (pageH * 0.2));
+    if(!blocks.has(key)) blocks.set(key, []);
+    blocks.get(key).push(c);
+  }
+
+  const taxRate = parseFloat(document.getElementById('taxRate').value);
+
+  // --- 各品番のチェック ---
+  for(const c of codes){
+    let sev = 'ok';
+    const raise = s => { if(s === 'error' || (s === 'warn' && sev !== 'error')) sev = s; };
+    let masterItem = MASTER.byCode.get(c.code) || null;
+
+    if(!masterItem){
+      // 編集距離1で候補を探す
+      let cand = null;
+      for(const [mc, it] of MASTER.byCode){
+        if(editDist1(c.code, mc)){ cand = it; break; }
+      }
+      if(cand){
+        addFinding('error', label, '品番誤り疑い', c.code, cand.code, `マスタに一致なし。1文字違いの「${cand.code}」（${cand.name}）の誤植またはOCR誤読の可能性`);
+        raise('error');
+        masterItem = cand;
+      } else if(c.jan && MASTER.byJan.has(c.jan.text)){
+        const byJ = MASTER.byJan.get(c.jan.text);
+        addFinding('error', label, '品番未登録', c.code, byJ.code, `品番がマスタになし。併記JAN ${c.jan.text} はマスタでは品番「${byJ.code}」`);
+        raise('error');
+        masterItem = byJ;
+      } else {
+        addFinding('warn', label, '品番未登録', c.code, '', 'マスタに存在しない品番（新商品・OCR誤読の可能性）');
+        raise('warn');
+      }
+    }
+
+    // JANチェック
+    if(c.jan){
+      const jan = c.jan.text;
+      if(jan.length !== 13){
+        addFinding('warn', label, 'JAN桁数異常', jan, masterItem ? masterItem.jan : '', `13桁ではありません（${jan.length}桁・OCR読取欠けの可能性）`);
+        raise('warn');
+      } else if(!ean13Valid(jan)){
+        addFinding('error', label, 'JANチェックデジット不正', jan, masterItem ? masterItem.jan : '', 'JANコードのチェックデジットが合いません（誤植の可能性大）');
+        raise('error');
+      }
+      if(masterItem && masterItem.jan && jan !== masterItem.jan){
+        const other = MASTER.byJan.get(jan);
+        if(other && other.code !== masterItem.code){
+          addFinding('error', label, 'JAN組合せ不一致', `${c.code} / ${jan}`, `${masterItem.code} / ${masterItem.jan}`, `記載のJANは別商品「${other.code}（${other.name}）」のもの。JANの貼り違い・並び違いの可能性`);
+          raise('error');
+        } else if(editDist1(jan, masterItem.jan)){
+          addFinding(c.jan.conf < 70 ? 'warn' : 'error', label, 'JAN不一致', jan, masterItem.jan, `マスタと1桁違い${c.jan.conf < 70 ? '（OCR低信頼のため要目視確認）' : ''}`);
+          raise(c.jan.conf < 70 ? 'warn' : 'error');
+        } else {
+          addFinding('error', label, 'JAN不一致', jan, masterItem.jan, 'マスタのJANと一致しません');
+          raise('error');
+        }
+      }
+    } else if(masterItem){
+      addFinding('info', label, 'JAN未検出', c.code, masterItem.jan, '品番の近くにJANが見つかりませんでした（レイアウトにより未検出の場合あり）');
+    }
+
+    // バリエーション名チェック
+    // レイアウトにより余計な語が混入することがあるため、前方一致（語単位のプレフィックス）で判定する
+    if(masterItem && c.variation && masterItem.name){
+      const vWords = c.variation.split(' ');
+      const prefixes = [];
+      for(let n = vWords.length; n >= 1; n--){
+        const p = normName(vWords.slice(0, n).join(' '));
+        if(p.length >= 3) prefixes.push(p);
+      }
+      const vn = normName(c.variation), mn = normName(masterItem.name);
+      const matched = prefixes.some(p => mn.includes(p));
+      if(prefixes.length && !matched){
+        // 同ブロック内の別商品に一致するか（＝並び違い検出）
+        const blockKey = c.priceLine ? prices.indexOf(c.priceLine) : null;
+        const mates = (blockKey != null && blocks.get(blockKey) || []).filter(o => o !== c);
+        const swapped = mates.find(o => {
+          const mi = MASTER.byCode.get(o.code);
+          return mi && mi.name && prefixes.some(p => normName(mi.name).includes(p));
+        });
+        if(swapped){
+          addFinding('error', label, 'バリエーション並び違い疑い', `${c.code} → ${c.variation}`, masterItem.name, `この名称はマスタでは「${swapped.code}」のもの。名称・画像の並び違いの可能性`);
+          raise('error');
+        } else {
+          addFinding('warn', label, 'バリエーション名不一致', `${c.code} → ${c.variation}`, masterItem.name, 'マスタ品名に含まれない名称です（表記違い・OCR誤読の可能性）');
+          raise('warn');
+        }
+      }
+    }
+
+    // 価格チェック
+    if(masterItem && masterItem.price != null && c.priceLine){
+      const pl = c.priceLine;
+      if(pl.excl != null && pl.excl !== masterItem.price){
+        addFinding('error', label, '税抜価格不一致', `¥${pl.excl.toLocaleString()}`, `¥${masterItem.price.toLocaleString()}`, `${c.code} の税抜価格がマスタ上代と一致しません`);
+        raise('error');
+        pl.bad = true;
+      }
+      if(pl.excl == null && pl.incl != null){
+        const expect = Math.round(masterItem.price * (1 + taxRate));
+        if(pl.incl !== expect){
+          addFinding('error', label, '税込価格不一致', `¥${pl.incl.toLocaleString()}`, `¥${expect.toLocaleString()}`, `${c.code} の税込価格がマスタ上代×${1 + taxRate}と一致しません`);
+          raise('error');
+          pl.bad = true;
+        }
+      }
+    }
+
+    // 廃盤チェック
+    if(masterItem && masterItem.disc && c.code === masterItem.code){
+      addFinding('warn', label, '廃盤品掲載', c.code, '廃盤', `廃盤マークのある商品がカタログに掲載されています（${masterItem.name}）`);
+      raise('warn');
+    }
+
+    if(sev === 'ok') ok++;
+    c.sev = sev;
+    const y1 = c.jan ? c.jan.y1 : c.y1;
+    marks.push({x0: c.winX0, y0: c.y0 - 4, x1: Math.max(c.x1, c.jan ? c.jan.x1 : 0) + 4, y1: y1 + 4,
+                color: sev === 'error' ? 'rgba(239,68,68,.85)' : sev === 'warn' ? 'rgba(245,158,11,.85)' : 'rgba(16,185,129,.85)'});
+  }
+
+  // --- 税込＝税抜×(1+税率) の整合 ---
+  for(const p of prices){
+    if(p.incl != null && p.excl != null){
+      const expect = Math.round(p.excl * (1 + taxRate));
+      if(p.incl !== expect){
+        addFinding('error', label, '税込計算不一致', `税込¥${p.incl.toLocaleString()} / 税抜¥${p.excl.toLocaleString()}`, `税込¥${expect.toLocaleString()}`, `税込が税抜×${1 + taxRate}になっていません`);
+        p.bad = true;
+      }
+    }
+    marks.push({x0: p.x0 - 4, y0: p.y0 - 3, x1: p.x1 + 4, y1: p.y1 + 3,
+                color: p.bad ? 'rgba(239,68,68,.85)' : 'rgba(59,130,246,.7)'});
+  }
+
+  // --- 並び順チェック（ブロック内で品番が昇順か） ---
+  for(const [key, group] of blocks){
+    if(group.length < 2) continue;
+    const sortedByPos = group.slice().sort((a, b) => {
+      const rowDiff = a.y0 - b.y0;
+      return Math.abs(rowDiff) > (a.y1 - a.y0) * 1.5 ? rowDiff : a.x0 - b.x0;
+    });
+    const codesInPos = sortedByPos.map(c => c.code);
+    const codesSorted = codesInPos.slice().sort(naturalCompare);
+    if(codesInPos.join('|') !== codesSorted.join('|')){
+      addFinding('info', label, '品番並び順', codesInPos.join(' → '), codesSorted.join(' → '), '品番が昇順に並んでいません（意図的な場合は無視してください）');
+    }
+  }
+
+  // --- 文章の簡易チェック ---
+  if(document.getElementById('optText').checked){
+    const pairs = [['（', '）'], ['(', ')'], ['「', '」'], ['『', '』'], ['【', '】']];
+    for(const ln of lines){
+      const t = normText(ln.text);
+      if(t.length < 8) continue;
+      for(const [o, cch] of pairs){
+        const no = (t.split(o).length - 1), nc = (t.split(cch).length - 1);
+        if(no !== nc && Math.abs(no - nc) === 1 && pageData.usedOcr === false){
+          addFinding('info', label, '括弧の対応', t.slice(0, 60), '', `「${o}${cch}」の開閉数が一致しません`);
+          break;
+        }
+      }
+      // 重複語チェック：OCR低信頼行・罫線等の記号・マスタ品名に実在する語（ブランド名等）は除外
+      const avgConf = ln.words.reduce((s, w) => s + w.conf, 0) / ln.words.length;
+      if(avgConf < 70) continue;
+      const tt = t.replace(/\s+/g, '');
+      const dup = tt.match(/([^\d]{2,6})\1/);
+      if(dup && !/[0-9ー\-—=~・.,·:/|()（）]/.test(dup[1]) &&
+         !/ぞれ|いろ|様々|次々|少々|別々|徐々|日々|各々|人々|色々|など|また|ます|それ|どんどん|わくわく|きらきら|ふわふわ|もこもこ/.test(dup[0]) &&
+         !MASTER.nameBlob.includes(normName(dup[0]))){
+        addFinding('info', label, '重複語の可能性', t.slice(0, 60), '', `「${dup[1]}」が連続しています（OCR誤読の場合あり）`);
+      }
+    }
+  }
+
+  // --- OCR低信頼ワード（写真上のノイズを除くため、複数語からなる本文行の中のみ対象） ---
+  if(document.getElementById('optLowConf').checked && pageData.usedOcr){
+    for(const ln of lines){
+      if(ln.words.length < 4) continue;
+      const avgConf = ln.words.reduce((s, w) => s + w.conf, 0) / ln.words.length;
+      if(avgConf < 55) continue;  // 行全体が低信頼＝写真等のノイズは対象外
+      for(const w of ln.words){
+        if(w.conf < 55 && normText(w.text).length >= 2 && /[0-9A-Za-zぁ-んァ-ヶ一-龯]/.test(w.text)){
+          marks.push({x0: w.x0 - 2, y0: w.y0 - 2, x1: w.x1 + 2, y1: w.y1 + 2, color: 'rgba(217,119,6,.35)', fill: true});
+        }
+      }
+    }
+  }
+
+  // 未ペアのJAN（品番に紐付かなかったもの）
+  for(const j of jans){
+    if(usedJan.has(j) || j.text.length !== 13) continue;
+    if(!MASTER.byJan.has(j.text)){
+      if(ean13Valid(j.text)){
+        addFinding('warn', label, 'JAN未登録', j.text, '', 'マスタに存在しないJANコードです');
+      } else {
+        addFinding('warn', label, 'JAN読取異常', j.text, '', 'チェックデジット不正（OCR誤読または誤植）');
+      }
+      marks.push({x0: j.x0 - 3, y0: j.y0 - 3, x1: j.x1 + 3, y1: j.y1 + 3, color: 'rgba(245,158,11,.85)'});
+    }
+  }
+
+  log(`${label}: 品番 ${codes.length}件検出 / OK ${ok}件`, codes.length ? 'log-ok' : 'log-warn');
+  if(!codes.length){
+    addFinding('info', label, '商品未検出', '', '', 'このページから品番を検出できませんでした（表紙・イメージページの場合は問題ありません）');
+  }
+  return {marks, ok, total: codes.length};
+}
+
+function naturalCompare(a, b){
+  const re = /(\d+)|(\D+)/g;
+  const as = a.match(re) || [], bs = b.match(re) || [];
+  for(let i = 0; i < Math.max(as.length, bs.length); i++){
+    const x = as[i] || '', y = bs[i] || '';
+    if(x === y) continue;
+    const nx = parseInt(x, 10), ny = parseInt(y, 10);
+    if(!isNaN(nx) && !isNaN(ny)) return nx - ny;
+    return x < y ? -1 : 1;
+  }
+  return 0;
+}
+
+/* ---------- プレビュー描画 ---------- */
+function renderPreview(pageData, label, res){
+  const {dispCanvas, dispScale, ocrScale} = pageData;
+  const k = dispScale / ocrScale;
+  const ctx = dispCanvas.getContext('2d');
+  for(const m of res.marks){
+    if(m.fill){
+      ctx.fillStyle = m.color;
+      ctx.fillRect(m.x0 * k, m.y0 * k, (m.x1 - m.x0) * k, (m.y1 - m.y0) * k);
+    } else {
+      ctx.strokeStyle = m.color;
+      ctx.lineWidth = 2.5;
+      ctx.strokeRect(m.x0 * k, m.y0 * k, (m.x1 - m.x0) * k, (m.y1 - m.y0) * k);
+    }
+  }
+  const url = dispCanvas.toDataURL('image/jpeg', 0.86);
+  dispCanvas.width = dispCanvas.height = 0;
+  pageData.dispCanvas = null;
+
+  const errN = res.marks.filter(m => m.color.startsWith('rgba(239')).length;
+  const div = document.createElement('div');
+  div.className = 'page-thumb';
+  div.innerHTML = `<img src="${url}" alt="${escHtml(label)}" loading="lazy">
+    <div class="cap">${escHtml(label)}
+      <span class="badge ${errN ? 'badge-red' : 'badge-green'}">${errN ? '要確認 ' + errN : 'OK'}</span>
+      ${pageData.usedOcr ? '<span class="badge badge-gray">OCR</span>' : ''}</div>`;
+  div.querySelector('img').addEventListener('click', () => {
+    document.getElementById('lightboxImg').src = url;
+    document.getElementById('lightbox').classList.add('show');
+  });
+  document.getElementById('pagePreviews').appendChild(div);
+  document.getElementById('previewCard').style.display = '';
+}
+
+/* ---------- 結果表示 ---------- */
+const SEV_LABEL = {error: ['エラー', 'badge-red'], warn: ['警告', 'badge-yellow'], info: ['参考', 'badge-blue']};
+let FILTER = 'all';
+
+function showResults(total, ok){
+  const errN = FINDINGS.filter(f => f.sev === 'error').length;
+  const warnN = FINDINGS.filter(f => f.sev === 'warn').length;
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat"><div class="num">${total}</div><div class="label">検出商品数</div></div>
+    <div class="stat"><div class="num green">${ok}</div><div class="label">マスタと一致</div></div>
+    <div class="stat"><div class="num ${errN ? 'red' : 'green'}">${errN}</div><div class="label">エラー</div></div>
+    <div class="stat"><div class="num ${warnN ? 'yellow' : 'green'}">${warnN}</div><div class="label">警告</div></div>`;
+  document.getElementById('resultSection').classList.add('show');
+  renderFindings();
+}
+
+function renderFindings(){
+  const card = document.getElementById('findingsCard');
+  card.style.display = '';
+  const order = {error: 0, warn: 1, info: 2};
+  const list = FINDINGS.slice().sort((a, b) => order[a.sev] - order[b.sev]);
+  const filtered = FILTER === 'all' ? list : list.filter(f => f.sev === FILTER);
+  document.getElementById('findingsCount').textContent =
+    `全${FINDINGS.length}件${FILTER !== 'all' ? '中 ' + filtered.length + '件表示' : ''}`;
+  const counts = {all: FINDINGS.length, error: 0, warn: 0, info: 0};
+  FINDINGS.forEach(f => counts[f.sev]++);
+  document.getElementById('findingsFilter').innerHTML =
+    [['all', 'すべて'], ['error', 'エラー'], ['warn', '警告'], ['info', '参考']].map(([k, lb]) =>
+      `<button class="${FILTER === k ? 'on' : ''}" onclick="FILTER='${k}';renderFindings()">${lb} ${counts[k]}</button>`).join('');
+  document.querySelector('#findingsTbl tbody').innerHTML = filtered.length ? filtered.map(f => {
+    const [lb, cls] = SEV_LABEL[f.sev];
+    return `<tr><td><span class="badge ${cls}">${lb}</span></td><td style="white-space:nowrap">${escHtml(f.page)}</td>
+      <td style="white-space:nowrap">${escHtml(f.kind)}</td><td>${escHtml(f.catalog)}</td>
+      <td>${escHtml(f.master)}</td><td>${escHtml(f.detail)}</td></tr>`;
+  }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray-400)">指摘はありません 🎉</td></tr>';
+}
+
+function downloadCsv(){
+  const rows = [['重要度', 'ページ', '種別', 'カタログ記載', 'マスタ値', '詳細']];
+  const order = {error: 0, warn: 1, info: 2};
+  FINDINGS.slice().sort((a, b) => order[a.sev] - order[b.sev]).forEach(f =>
+    rows.push([SEV_LABEL[f.sev][0], f.page, f.kind, f.catalog, f.master, f.detail]));
+  const csv = '﻿' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
+  const d = new Date();
+  a.download = `カタログ校正チェック_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ---------- 自動バージョンチェック（3分ごと・作業中はスキップ） ---------- */
+setInterval(async () => {
+  try {
+    const res = await fetch(location.href.split('?')[0] + '?_=' + Date.now(), {cache: 'no-store'});
+    const html = await res.text();
+    const m = html.match(/const APP_VERSION = (\d+)/);
+    if(m && parseInt(m[1], 10) > APP_VERSION && !MASTER && !PDF_FILES.length && !RUNNING){
+      location.reload();
+    }
+  } catch(e){}
+}, 3 * 60 * 1000);
+</script>
+</body>
+</html>
