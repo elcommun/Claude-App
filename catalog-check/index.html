@@ -217,7 +217,7 @@
 <script src="../design-preview/lib/pdf.min.js"></script>
 <script src="lib/tesseract.min.js"></script>
 <script>
-const APP_VERSION = 1;
+const APP_VERSION = 2;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 if (window.pdfjsLib) {
@@ -441,7 +441,8 @@ async function extractPage(page, label, doneCount, totalPages){
   const charCount = realItems.reduce((s, it) => s + it.str.trim().length, 0);
 
   // 表示用レンダリング（プレビュー・OCR兼用のスケール決定）
-  const ocrScale = Math.min(5, Math.max(2.5, 2400 / vp1.width));
+  // 大判PDF（アートボードが大きい入稿データ）では1未満に縮小して約2400px幅に揃える
+  const ocrScale = Math.max(0.6, Math.min(5, 2400 / vp1.width));
   const dispScale = Math.min(2.2, 1300 / vp1.width);
 
   let words = []; // {text, x0,y0,x1,y1, conf}  ※OCRスケール座標
@@ -608,6 +609,14 @@ function detectTokens(pageData){
       m = tc.match(/([\d,]{3,9})円?[+＋]税/);
       if(m) excl = parseNum(m[1]);
     }
+    if(incl == null && excl == null){
+      // OCRが「税込/税抜」の漢字を誤読しても、「¥2,420(¥2,200)」のような金額2つの行は価格行とみなす
+      const amounts = [...tc.matchAll(/¥([\d,\.]{3,9})/g)].map(x => parseNum(x[1])).filter(x => x != null && x >= 100);
+      if(amounts.length >= 2 && amounts[0] !== amounts[1]){
+        incl = Math.max(amounts[0], amounts[1]);
+        excl = Math.min(amounts[0], amounts[1]);
+      }
+    }
     if(incl != null || excl != null){
       prices.push({incl, excl, text: t, x0: ln.x0, y0: ln.y0, x1: ln.x1, y1: ln.y1, cy: ln.cy});
     }
@@ -654,10 +663,18 @@ function checkPage(pageData, label){
   // --- バリエーション名（品番とJANの間のワード） ---
   for(const c of codes){
     if(!c.jan){ c.variation = ''; continue; }
-    const vw = pageData.words.filter(w =>
-      w !== c && w.y0 >= c.y1 - 3 && w.y1 <= c.jan.y0 + 3 &&
-      (w.x0 + w.x1) / 2 >= c.winX0 && (w.x0 + w.x1) / 2 <= c.winX1 &&
-      !/^\d+$/.test(w.text));
+    // 品番の上端〜JANの下端の範囲・自列ウィンドウ内から、数字と品番らしきトークンを除いた語を集める
+    // （OCRが品番行とバリエーション名行を結合してもズレても拾えるように広めに取る）
+    const vw = pageData.words.filter(w => {
+      if(w.y1 <= c.y0 + 2 || w.y0 >= c.jan.y1) return false;
+      const cx = (w.x0 + w.x1) / 2;
+      if(cx < c.winX0 || cx > c.winX1) return false;
+      const t = w.text.replace(/\s/g, '');
+      if(/^[\d,\.]+$/.test(t)) return false;              // JAN等の数字
+      const nc = normCode(t);
+      if(nc === c.code || MASTER.byCode.has(nc) || looksLikeCode(nc)) return false; // 品番トークン
+      return true;
+    });
     vw.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
     c.variation = normText(vw.map(w => w.text).join(' '));
   }
@@ -665,13 +682,24 @@ function checkPage(pageData, label){
   // --- 価格ブロック割り当て（最寄りの下方価格行） ---
   for(const c of codes){
     let best = null, bestD = Infinity;
+    const rowH = c.y1 - c.y0;
     for(const p of prices){
       const dy = p.y0 - c.y1;
       if(dy < 0 || dy > pageH * 0.38) continue;
+      // アイテムと価格行の間に別の商品行がある場合、その価格行は別ブロックのもの
+      const rowBetween = codes.some(o => o.y0 > c.y1 + rowH && o.y1 < p.y0 - 4);
+      if(rowBetween) continue;
       if(dy < bestD){ bestD = dy; best = p; }
     }
     c.priceLine = best;
   }
+  // デバッグ用（サポート時にコンソールから確認できるよう検出状態を保持）
+  window.DEBUG_TK = window.DEBUG_TK || [];
+  window.DEBUG_TK.push({label,
+    prices: prices.map(p => ({incl: p.incl, excl: p.excl, y: Math.round(p.y0), text: p.text.slice(0, 60)})),
+    codes: codes.map(c => ({code: c.code, x: Math.round(c.x0), y: Math.round(c.y0), price: c.priceLine ? Math.round(c.priceLine.y0) : null})),
+    lines: lines.map(l => ({y: Math.round(l.y0), x: Math.round(l.x0), text: l.text.slice(0, 90)}))});
+
   // ブロック（同じ価格行に属する品番グループ）
   const blocks = new Map();
   for(const c of codes){
@@ -737,31 +765,47 @@ function checkPage(pageData, label){
     }
 
     // バリエーション名チェック
-    // レイアウトにより余計な語が混入することがあるため、前方一致（語単位のプレフィックス）で判定する
-    if(masterItem && c.variation && masterItem.name){
-      const vWords = c.variation.split(' ');
-      const prefixes = [];
-      for(let n = vWords.length; n >= 1; n--){
-        const p = normName(vWords.slice(0, n).join(' '));
-        if(p.length >= 3) prefixes.push(p);
-      }
-      const vn = normName(c.variation), mn = normName(masterItem.name);
-      const matched = prefixes.some(p => mn.includes(p));
-      if(prefixes.length && !matched){
-        // 同ブロック内の別商品に一致するか（＝並び違い検出）
-        const blockKey = c.priceLine ? prices.indexOf(c.priceLine) : null;
-        const mates = (blockKey != null && blocks.get(blockKey) || []).filter(o => o !== c);
-        const swapped = mates.find(o => {
-          const mi = MASTER.byCode.get(o.code);
-          return mi && mi.name && prefixes.some(p => normName(mi.name).includes(p));
-        });
-        if(swapped){
-          addFinding('error', label, 'バリエーション並び違い疑い', `${c.code} → ${c.variation}`, masterItem.name, `この名称はマスタでは「${swapped.code}」のもの。名称・画像の並び違いの可能性`);
-          raise('error');
+    // ウィンドウ内には周囲の注記等のノイズ語が混入することがあるため、
+    // 「ウィンドウ内の語のうちマスタ品名に実在する語」を探す方式で照合する
+    c.varKey = ''; c.varDisp = '';
+    {
+      const vCands = (c.variation ? c.variation.split(' ') : [])
+        .map(w => ({disp: w, norm: normName(w)}))
+        .filter(w => w.norm.length >= 3);
+      const setVar = hits => {
+        const uniq = [...new Map(hits.map(h => [h.norm, h])).values()];
+        c.varKey = uniq.map(h => h.norm).sort().join('');
+        c.varDisp = uniq.map(h => h.disp).join(' ');
+      };
+      if(masterItem && masterItem.name && vCands.length){
+        const mn = normName(masterItem.name);
+        const hits = vCands.filter(w => mn.includes(w.norm));
+        if(hits.length){
+          setVar(hits);  // 名称OK
         } else {
-          addFinding('warn', label, 'バリエーション名不一致', `${c.code} → ${c.variation}`, masterItem.name, 'マスタ品名に含まれない名称です（表記違い・OCR誤読の可能性）');
-          raise('warn');
+          // 同ブロック内の別商品の品名に一致するか（＝並び違い検出）
+          const blockKey = c.priceLine ? prices.indexOf(c.priceLine) : null;
+          const mates = (blockKey != null && blocks.get(blockKey) || []).filter(o => o !== c);
+          let swapped = null, swapHits = null;
+          for(const o of mates){
+            const mi = MASTER.byCode.get(o.code);
+            if(!mi || !mi.name) continue;
+            const mn2 = normName(mi.name);
+            const h2 = vCands.filter(w => mn2.includes(w.norm));
+            if(h2.length){ swapped = o; swapHits = h2; break; }
+          }
+          if(swapped){
+            setVar(swapHits);
+            addFinding('error', label, 'バリエーション並び違い疑い', `${c.code} → ${c.varDisp}`, masterItem.name, `この名称はマスタでは「${swapped.code}」のもの。名称・画像の並び違いの可能性`);
+            raise('error');
+          } else {
+            setVar([vCands[0]]);
+            addFinding('warn', label, 'バリエーション名不一致', `${c.code} → ${vCands.map(w => w.disp).join(' ')}`, masterItem.name, 'マスタ品名に含まれない名称です（表記違い・OCR誤読の可能性）');
+            raise('warn');
+          }
         }
+      } else if(vCands.length){
+        setVar([vCands[0]]);
       }
     }
 
@@ -810,16 +854,139 @@ function checkPage(pageData, label){
   }
 
   // --- 並び順チェック（ブロック内で品番が昇順か） ---
+  const posSort = (a, b) => {
+    const rowDiff = a.y0 - b.y0;
+    return Math.abs(rowDiff) > (a.y1 - a.y0) * 1.5 ? rowDiff : a.x0 - b.x0;
+  };
   for(const [key, group] of blocks){
     if(group.length < 2) continue;
-    const sortedByPos = group.slice().sort((a, b) => {
-      const rowDiff = a.y0 - b.y0;
-      return Math.abs(rowDiff) > (a.y1 - a.y0) * 1.5 ? rowDiff : a.x0 - b.x0;
-    });
-    const codesInPos = sortedByPos.map(c => c.code);
+    const codesInPos = group.slice().sort(posSort).map(c => c.code);
     const codesSorted = codesInPos.slice().sort(naturalCompare);
     if(codesInPos.join('|') !== codesSorted.join('|')){
       addFinding('info', label, '品番並び順', codesInPos.join(' → '), codesSorted.join(' → '), '品番が昇順に並んでいません（意図的な場合は無視してください）');
+    }
+  }
+
+  // --- バリエーション配置順チェック（他の商品グループと名称・画像の並びが逆になっていないか） ---
+  {
+    const seqBlocks = [];
+    for(const [key, group] of blocks){
+      if(group.length < 2) continue;
+      const seq = group.slice().sort(posSort).filter(c => c.varKey);
+      const counts = {};
+      seq.forEach(c => counts[c.varKey] = (counts[c.varKey] || 0) + 1);
+      const uniq = seq.filter(c => counts[c.varKey] === 1);
+      if(uniq.length >= 2) seqBlocks.push(uniq);
+    }
+    window.DEBUG_TK[window.DEBUG_TK.length - 1].seqBlocks =
+      seqBlocks.map(seq => seq.map(c => c.code + ':' + c.varKey));
+    if(seqBlocks.length >= 2){
+      // バリエーション名のペアごとに、各ブロックでの前後関係を集計する
+      const pairVotes = new Map(); // "k1|k2"(辞書順) → {fw:[blockIdx], bw:[blockIdx]}
+      seqBlocks.forEach((seq, bi) => {
+        for(let i = 0; i < seq.length; i++) for(let j = i + 1; j < seq.length; j++){
+          const a = seq[i].varKey, b = seq[j].varKey;
+          const k1 = a < b ? a : b, k2 = a < b ? b : a;
+          const pk = k1 + '|' + k2;
+          if(!pairVotes.has(pk)) pairVotes.set(pk, {fw: [], bw: []});
+          (a === k1 ? pairVotes.get(pk).fw : pairVotes.get(pk).bw).push(bi);
+        }
+      });
+      const flagged = new Map(); // blockIdx → [{k1,k2,majN,tie}]
+      for(const [pk, v] of pairVotes){
+        if(!v.fw.length || !v.bw.length) continue; // 全ブロックで並びが一致
+        const [k1, k2] = pk.split('|');
+        const tie = v.fw.length === v.bw.length;
+        const minority = tie ? v.fw.concat(v.bw) : (v.fw.length < v.bw.length ? v.fw : v.bw);
+        const majN = Math.max(v.fw.length, v.bw.length);
+        for(const bi of minority){
+          if(!flagged.has(bi)) flagged.set(bi, []);
+          flagged.get(bi).push({k1, k2, majN, tie});
+        }
+      }
+      for(const [bi, confs] of flagged){
+        const seq = seqBlocks[bi];
+        const disp = k => (seq.find(c => c.varKey === k) || {varDisp: k}).varDisp;
+        const seqStr = seq.map(c => `${c.varDisp}(${c.code})`).join(' → ');
+        const pairStrs = [...new Set(confs.map(cf => `「${disp(cf.k1)}」と「${disp(cf.k2)}」`))].join('、');
+        const tie = confs.every(cf => cf.tie);
+        addFinding(tie ? 'info' : 'warn', label, 'バリエーション配置順の相違',
+          seqStr, '',
+          `${pairStrs}の前後が、同ページの他の商品グループ${tie ? '' : `（${confs[0].majN}グループ）`}と逆になっています。商品名・画像の並び違いの可能性があるためご確認ください`);
+        for(const c of seq){
+          marks.push({x0: c.winX0, y0: c.y0 - 4, x1: Math.max(c.x1, c.jan ? c.jan.x1 : 0) + 4,
+                      y1: (c.jan ? c.jan.y1 : c.y1) + 4, color: 'rgba(245,158,11,.85)'});
+        }
+      }
+    }
+  }
+
+  // --- 商品画像の色チェック（画像だけの入れ違いを検出） ---
+  // 同じバリエーション名でも商品形状が違えば色味は多少ずれるため、「グループ内の外れ値」ではなく
+  // 「ブロック内の2商品の画像色を入れ替えると、他グループの色の並びに大きく近づくか」で判定する
+  {
+    const circDist = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+    const circMean = arr => {
+      let x = 0, y = 0;
+      arr.forEach(h => { x += Math.cos(h * Math.PI / 180); y += Math.sin(h * Math.PI / 180); });
+      return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+    };
+    const blockOf = c => c.priceLine ? prices.indexOf(c.priceLine) : 'none-' + Math.round(c.y0 / (pageH * 0.2));
+    const hueItems = [];
+    for(const c of codes){
+      if(!c.varKey || c.winX0 == null) continue;
+      const winW = c.winX1 - c.winX0;
+      const ry1 = c.y0 - 8;
+      const ry0 = Math.max(0, c.y0 - Math.min(winW * 1.15, pageH * 0.16));
+      const f = imageFeature(pageData, c.winX0, ry0, c.winX1, ry1);
+      if(!f) continue;
+      c.imgHue = f.hue;
+      c.imgRegion = {x0: c.winX0, y0: ry0, x1: c.winX1, y1: ry1};
+      hueItems.push(c);
+    }
+    window.DEBUG_TK[window.DEBUG_TK.length - 1].hues =
+      codes.map(c => ({code: c.code, vk: c.varKey, hue: c.imgHue != null ? Math.round(c.imgHue) : null}));
+    const byVar = new Map(), byBlock = new Map();
+    hueItems.forEach(c => {
+      if(!byVar.has(c.varKey)) byVar.set(c.varKey, []);
+      byVar.get(c.varKey).push(c);
+      const bk = blockOf(c);
+      if(!byBlock.has(bk)) byBlock.set(bk, []);
+      byBlock.get(bk).push(c);
+    });
+    const swapCands = [];
+    for(const [bk, items] of byBlock){
+      // 参照色 = 他ブロックにある同じバリエーション名の画像色の平均
+      const val = items.filter(c => {
+        const refs = (byVar.get(c.varKey) || []).filter(o => blockOf(o) !== bk).map(o => o.imgHue);
+        if(!refs.length) return false;
+        c.refHue = circMean(refs);
+        return true;
+      });
+      for(let i = 0; i < val.length; i++) for(let j = i + 1; j < val.length; j++){
+        const a = val[i], b = val[j];
+        const ident = circDist(a.imgHue, a.refHue) + circDist(b.imgHue, b.refHue);
+        const dAB = circDist(a.imgHue, b.refHue), dBA = circDist(b.imgHue, a.refHue);
+        if(ident - (dAB + dBA) > 50 && Math.min(dAB, dBA) < 25){
+          swapCands.push({pairKey: [a.varKey, b.varKey].sort().join('|'), a, b, ident,
+                          sev: Math.max(dAB, dBA) < 30 ? 'error' : 'warn'});
+        }
+      }
+    }
+    // 入れ違い画像は参照色自体も汚染するため、同じバリエーションペアで複数ブロックが候補に
+    // なった場合は、参照との乖離が最も大きいブロック（＝入れ違いの本体）だけを指摘する
+    const byPair = new Map();
+    swapCands.forEach(cd => {
+      const cur = byPair.get(cd.pairKey);
+      if(!cur || cd.ident > cur.ident) byPair.set(cd.pairKey, cd);
+    });
+    for(const cd of byPair.values()){
+      addFinding(cd.sev, label, '商品画像の入れ違い疑い',
+        `${cd.a.code}（${cd.a.varDisp}） ⇔ ${cd.b.code}（${cd.b.varDisp}）`, '',
+        `2商品の画像の色味が、同ページ他グループの「${cd.a.varDisp}」「${cd.b.varDisp}」の色の並びと逆になっています。商品画像の入れ違いの可能性`);
+      const col = cd.sev === 'error' ? 'rgba(239,68,68,.85)' : 'rgba(245,158,11,.85)';
+      marks.push({...cd.a.imgRegion, color: col});
+      marks.push({...cd.b.imgRegion, color: col});
     }
   }
 
@@ -881,6 +1048,40 @@ function checkPage(pageData, label){
     addFinding('info', label, '商品未検出', '', '', 'このページから品番を検出できませんでした（表紙・イメージページの場合は問題ありません）');
   }
   return {marks, ok, total: codes.length};
+}
+
+/* 指定領域（OCR座標）の代表色相を求める。白背景・文字などの無彩色は除外し、
+   有彩色ピクセルが少なすぎる場合は null（白系商品などは判定対象外）を返す */
+function imageFeature(pageData, x0, y0, x1, y1){
+  const canvas = pageData.dispCanvas;
+  if(!canvas) return null;
+  const k = pageData.dispScale / pageData.ocrScale;
+  const px = Math.max(0, Math.round(x0 * k)), py = Math.max(0, Math.round(y0 * k));
+  const pw = Math.min(canvas.width - px, Math.round((x1 - x0) * k));
+  const ph = Math.min(canvas.height - py, Math.round((y1 - y0) * k));
+  if(pw < 8 || ph < 8) return null;
+  let d;
+  try { d = canvas.getContext('2d').getImageData(px, py, pw, ph).data; } catch(e){ return null; }
+  let sx = 0, sy = 0, n = 0, colored = 0;
+  for(let i = 0; i < d.length; i += 16){  // 4ピクセルごとにサンプリング
+    const r = d[i], g = d[i+1], b = d[i+2];
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+    n++;
+    if(!mx) continue;
+    const dlt = mx - mn, v = mx / 255;
+    // パステルカラーも拾えるよう絶対クロマで判定。白背景・グレー・文字は除外
+    if(dlt < 14 || v < 0.3) continue;
+    let h;
+    if(mx === r) h = 60 * (((g - b) / dlt + 6) % 6);
+    else if(mx === g) h = 60 * ((b - r) / dlt + 2);
+    else h = 60 * ((r - g) / dlt + 4);
+    // 彩度加重にすると紐などの小さな濃色部が支配してしまうため、ピクセル数ベースで平均する
+    sx += Math.cos(h * Math.PI / 180);
+    sy += Math.sin(h * Math.PI / 180);
+    colored++;
+  }
+  if(!n || colored / n < 0.05 || !colored) return null;
+  return {hue: (Math.atan2(sy, sx) * 180 / Math.PI + 360) % 360, ratio: colored / n};
 }
 
 function naturalCompare(a, b){
