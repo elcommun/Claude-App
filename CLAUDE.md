@@ -57,7 +57,7 @@ EC（楽天・Amazon等）の販売データをExcelでインポートし、カ�
 - `catalog-check/index.html` に `const APP_VERSION = N;`（フッターの `#verBadge` に `vN` 表示）がある
 - **このファイルを変更してコミットするたびに `APP_VERSION` を必ず1つ増やすこと**
 - 3分ごとにサーバー側と比較し、大きければ自動リロード（ファイル読み込み済み・実行中のときはリロードしない）
-- カタログPDFの品番・JAN・バリエーション名・価格をExcelマスタとOCR照合する校正チェックアプリ
+- カタログPDF・画像（JPG/PNG/WebP）の品番・JAN・バリエーション名・価格をExcelマスタとOCR照合する校正チェックアプリ。容量制限なし（50MB超のPDFも動作確認済み）
 - ライブラリは `catalog-check/lib/` に同梱（SheetJS / Tesseract.js + traineddata）。pdf.js は `design-preview/lib/` を共用しているため、design-preview の lib を移動・削除する場合は注意
 
 ### laikle-convert の変換完了メール
