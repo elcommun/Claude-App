@@ -300,7 +300,7 @@
 <script src="../design-preview/lib/pdf.min.js"></script>
 <script src="lib/tesseract.min.js"></script>
 <script>
-const APP_VERSION = 5;
+const APP_VERSION = 6;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -680,13 +680,17 @@ function buildLines(words){
   for(const w of sorted){
     const cy = (w.y0 + w.y1) / 2, h = Math.max(6, w.y1 - w.y0);
     let ln = lines.length ? lines[lines.length - 1] : null;
-    if(!ln || Math.abs(cy - ln.cy) > Math.max(h, ln.h) * 0.7){
-      ln = {words: [], cy, h, y0: w.y0, y1: w.y1};
+    // クラスタ判定は「単語高さの平均」を基準にする。最大値基準だと括弧などの縦長ワードが
+    // しきい値を膨らませ、上下2段の行が1行に結合されてしまう
+    const hTyp = ln ? ln.hSum / ln.words.length : 0;
+    if(!ln || Math.abs(cy - ln.cy) > Math.max(h, hTyp) * 0.72){
+      ln = {words: [], cy, h, hSum: 0, y0: w.y0, y1: w.y1};
       lines.push(ln);
     }
     ln.words.push(w);
     ln.cy = (ln.cy * (ln.words.length - 1) + cy) / ln.words.length;
     ln.h = Math.max(ln.h, h);
+    ln.hSum += h;
     ln.y0 = Math.min(ln.y0, w.y0);
     ln.y1 = Math.max(ln.y1, w.y1);
   }
@@ -714,22 +718,51 @@ function detectTokens(pageData){
   }
 
   // JAN：行内の連続する数字ワードを結合して13桁を探す
+  // OCRや環境差で余分な桁が付く／複数のJANが結合されることがあるため、
+  // 13桁でない数字列からは「マスタに存在する13桁」または「チェックデジットが正しい13桁」を抽出して補正する
   for(const ln of lines){
     let run = [], runText = '';
     const flush = () => {
       const digits = runText.replace(/[^\d]/g, '');
-      if(digits.length >= 12 && digits.length <= 14 && run.length){
-        jans.push({text: digits, x0: run[0].x0, y0: Math.min(...run.map(w => w.y0)),
-                   x1: run[run.length-1].x1, y1: Math.max(...run.map(w => w.y1)),
-                   conf: Math.min(...run.map(w => w.conf))});
+      if(digits.length >= 12 && run.length){
+        const x0 = run[0].x0, x1 = run[run.length-1].x1, w = x1 - x0;
+        const y0 = Math.min(...run.map(v => v.y0)), y1 = Math.max(...run.map(v => v.y1));
+        const conf = Math.min(...run.map(v => v.conf));
+        const emit = (text, s, corrected) => jans.push({
+          text, corrected,
+          x0: x0 + w * s / digits.length, x1: x0 + w * (s + text.length) / digits.length,
+          y0, y1, conf});
+        if(digits.length <= 13){
+          emit(digits, 0, null);
+        } else {
+          const cands = [];
+          for(let s = 0; s + 13 <= digits.length; s++){
+            const c13 = digits.slice(s, s + 13);
+            if(MASTER.byJan.has(c13)) cands.push({s, c13, pri: 0});
+            else if(ean13Valid(c13)) cands.push({s, c13, pri: 1});
+          }
+          cands.sort((a, b) => a.pri - b.pri || a.s - b.s);
+          const used = [];
+          for(const cd of cands){
+            if(used.some(u => cd.s < u.s + 13 && u.s < cd.s + 13)) continue;
+            used.push(cd);
+          }
+          // 13の倍数できれいに分割できた場合は隣接JANの結合なので補正情報は出さない
+          const cleanSplit = digits.length % 13 === 0 && used.length === digits.length / 13;
+          used.sort((a, b) => a.s - b.s).forEach(cd => emit(cd.c13, cd.s, cleanSplit ? null : digits));
+          if(!used.length && digits.length <= 15) emit(digits, 0, null);  // 補正不能 → 桁数異常として報告
+        }
       }
       run = []; runText = '';
     };
     for(const w of ln.words){
       const t = normText(w.text);
       if(/^[\d]+$/.test(t.replace(/\s/g,''))){
-        const gap = run.length ? w.x0 - run[run.length-1].x1 : 0;
-        if(run.length && gap > ln.h * 1.5) flush();
+        // 間隔判定は行高さでなく単語自体の高さを基準にする（行結合時の誤結合防止）
+        const prev = run[run.length - 1];
+        const gap = prev ? w.x0 - prev.x1 : 0;
+        const wh = prev ? Math.max(12, Math.min(w.y1 - w.y0, prev.y1 - prev.y0)) : 12;
+        if(run.length && gap > wh * 1.5) flush();
         run.push(w); runText += t;
       } else flush();
     }
@@ -758,7 +791,15 @@ function detectTokens(pageData){
       }
     }
     if(incl != null || excl != null){
-      prices.push({incl, excl, text: t, x0: ln.x0, y0: ln.y0, x1: ln.x1, y1: ln.y1, cy: ln.cy});
+      // 「(CLB-402~430)」のような品番範囲の条件付き価格表記を解析する
+      const ranges = [];
+      const tcU = normCode(t);
+      const rre = /([A-Z]{1,6})-?(\d{2,5})[~〜](?:([A-Z]{1,6})-?)?(\d{2,5})/g;
+      let rm;
+      while((rm = rre.exec(tcU))){
+        ranges.push({prefix: rm[1], a: parseInt(rm[2], 10), b: parseInt(rm[4], 10)});
+      }
+      prices.push({incl, excl, ranges, text: t, x0: ln.x0, y0: ln.y0, x1: ln.x1, y1: ln.y1, cy: ln.cy});
     }
   }
 
@@ -793,7 +834,8 @@ function checkPage(pageData, label){
       const jcx = (j.x0 + j.x1) / 2;
       if(jcx < c.winX0 || jcx > c.winX1 + pageW * 0.06) continue;
       const dy = j.y0 - c.y1;
-      if(dy < -pageH * 0.01 || dy > pageH * 0.09) continue;
+      const dyMax = Math.max(pageH * 0.09, (j.y1 - j.y0) * 4);  // 小さい画像でも行高さ4行分は許容
+      if(dy < -pageH * 0.01 || dy > dyMax) continue;
       const d = dy + Math.abs(j.x0 - c.x0) * 0.3;
       if(d < bestD){ bestD = d; best = j; }
     }
@@ -823,12 +865,21 @@ function checkPage(pageData, label){
   for(const c of codes){
     let best = null, bestD = Infinity;
     const rowH = c.y1 - c.y0;
+    const cp = c.code.match(/^([A-Z]+)-?(\d+)/);
     for(const p of prices){
       const dy = p.y0 - c.y1;
-      if(dy < 0 || dy > pageH * 0.38) continue;
-      // アイテムと価格行の間に別の商品行がある場合、その価格行は別ブロックのもの
-      const rowBetween = codes.some(o => o.y0 > c.y1 + rowH && o.y1 < p.y0 - 4);
-      if(rowBetween) continue;
+      if(dy < 0) continue;
+      if(p.ranges && p.ranges.length){
+        // 品番範囲付きの価格行：範囲に入る品番だけに適用（明示指定なので距離ガードは不要）
+        if(!cp) continue;
+        const n = parseInt(cp[2], 10);
+        if(!p.ranges.some(r => r.prefix === cp[1] && n >= Math.min(r.a, r.b) && n <= Math.max(r.a, r.b))) continue;
+      } else {
+        if(dy > pageH * 0.38) continue;
+        // アイテムと価格行の間に別の商品行がある場合、その価格行は別ブロックのもの
+        const rowBetween = codes.some(o => o.y0 > c.y1 + rowH && o.y1 < p.y0 - 4);
+        if(rowBetween) continue;
+      }
       if(dy < bestD){ bestD = dy; best = p; }
     }
     c.priceLine = best;
@@ -838,12 +889,25 @@ function checkPage(pageData, label){
   window.DEBUG_TK.push({label,
     prices: prices.map(p => ({incl: p.incl, excl: p.excl, y: Math.round(p.y0), text: p.text.slice(0, 60)})),
     codes: codes.map(c => ({code: c.code, x: Math.round(c.x0), y: Math.round(c.y0), price: c.priceLine ? Math.round(c.priceLine.y0) : null})),
+    jans: jans.map(j => ({t: j.text, x: Math.round(j.x0), x1: Math.round(j.x1), y: Math.round(j.y0), conf: Math.round(j.conf)})),
     lines: lines.map(l => ({y: Math.round(l.y0), x: Math.round(l.x0), text: l.text.slice(0, 90)}))});
 
   // ブロック（同じ価格行に属する品番グループ）
+  // 品番範囲付きの価格行は複数の視覚ブロックにまたがるため、その場合は品番の視覚的な行単位でグループ化する
+  {
+    let rowIdx = -1, lastY = -Infinity;
+    for(const c of codes.slice().sort((a, b) => a.y0 - b.y0)){
+      if(c.y0 - lastY > (c.y1 - c.y0) * 1.5) rowIdx++;
+      c.rowIdx = rowIdx;
+      lastY = Math.max(lastY, c.y0);
+    }
+  }
+  const blockKeyOf = c => (c.priceLine && !(c.priceLine.ranges && c.priceLine.ranges.length))
+    ? prices.indexOf(c.priceLine)
+    : 'row-' + c.rowIdx;
   const blocks = new Map();
   for(const c of codes){
-    const key = c.priceLine ? prices.indexOf(c.priceLine) : 'none-' + Math.round(c.y0 / (pageH * 0.2));
+    const key = blockKeyOf(c);
     if(!blocks.has(key)) blocks.set(key, []);
     blocks.get(key).push(c);
   }
@@ -880,6 +944,10 @@ function checkPage(pageData, label){
     // JANチェック
     if(c.jan){
       const jan = c.jan.text;
+      if(c.jan.corrected){
+        addFinding('info', label, 'JAN読取補正', c.jan.corrected, jan,
+          `${c.code}: 読み取った${c.jan.corrected.length}桁の数字列から正しい13桁を抽出して照合しました（OCRの読み過ぎの可能性が高いですが、印刷の桁数も念のためご確認ください）`);
+      }
       if(jan.length !== 13){
         addFinding('warn', label, 'JAN桁数異常', jan, masterItem ? masterItem.jan : '', `13桁ではありません（${jan.length}桁・OCR読取欠けの可能性）`);
         raise('warn');
@@ -924,8 +992,7 @@ function checkPage(pageData, label){
           setVar(hits);  // 名称OK
         } else {
           // 同ブロック内の別商品の品名に一致するか（＝並び違い検出）
-          const blockKey = c.priceLine ? prices.indexOf(c.priceLine) : null;
-          const mates = (blockKey != null && blocks.get(blockKey) || []).filter(o => o !== c);
+          const mates = (blocks.get(blockKeyOf(c)) || []).filter(o => o !== c);
           let swapped = null, swapHits = null;
           for(const o of mates){
             const mi = MASTER.byCode.get(o.code);
@@ -1071,7 +1138,7 @@ function checkPage(pageData, label){
       arr.forEach(h => { x += Math.cos(h * Math.PI / 180); y += Math.sin(h * Math.PI / 180); });
       return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
     };
-    const blockOf = c => c.priceLine ? prices.indexOf(c.priceLine) : 'none-' + Math.round(c.y0 / (pageH * 0.2));
+    const blockOf = blockKeyOf;
     const hueItems = [];
     for(const c of codes){
       if(!c.varKey || c.winX0 == null) continue;
@@ -1143,15 +1210,30 @@ function checkPage(pageData, label){
           break;
         }
       }
-      // 重複語チェック：OCR低信頼行・罫線等の記号・マスタ品名に実在する語（ブランド名等）は除外
+      // 重複語チェック：OCR低信頼行・罫線等の記号・マスタ品名に実在する語（ブランド名等）は除外。
+      // 2段組の行結合で別々の列の語が隣接扱いにならないよう、「1単語内の繰り返し」か
+      // 「水平距離が近い同一語の連続」だけを対象にする
       const avgConf = ln.words.reduce((s, w) => s + w.conf, 0) / ln.words.length;
       if(avgConf < 70) continue;
-      const tt = t.replace(/\s+/g, '');
-      const dup = tt.match(/([^\d]{2,6})\1/);
-      if(dup && !/[0-9ー\-—=~・.,·:/|()（）]/.test(dup[1]) &&
-         !/ぞれ|いろ|様々|次々|少々|別々|徐々|日々|各々|人々|色々|など|また|ます|それ|どんどん|わくわく|きらきら|ふわふわ|もこもこ/.test(dup[0]) &&
-         !MASTER.nameBlob.includes(normName(dup[0]))){
-        addFinding('info', label, '重複語の可能性', t.slice(0, 60), '', `「${dup[1]}」が連続しています（OCR誤読の場合あり）`);
+      const isNoise = tok => /[0-9ー\-—=~・.,·:/|()（）\s]/.test(tok) ||
+        /ぞれ|いろ|様々|次々|少々|別々|徐々|日々|各々|人々|色々|など|また|ます|それ|どんどん|わくわく|きらきら|ふわふわ|もこもこ/.test(tok) ||
+        MASTER.nameBlob.includes(normName(tok));
+      for(let i = 0; i < ln.words.length; i++){
+        const w = ln.words[i], t1 = normText(w.text);
+        let dupTok = null;
+        const m = t1.match(/([^\d\s]{2,6})\1/);
+        if(m) dupTok = m[1];
+        if(!dupTok && i + 1 < ln.words.length){
+          const w2 = ln.words[i + 1];
+          // 単語自体の高さを基準に隣接を判定し、上下の別行由来の語（縦の重なりなし）は対象外にする
+          const wh = Math.max(8, Math.min(w.y1 - w.y0, w2.y1 - w2.y0));
+          const ovl = Math.min(w.y1, w2.y1) - Math.max(w.y0, w2.y0);
+          if(t1.length >= 2 && t1 === normText(w2.text) && (w2.x0 - w.x1) < wh * 1.2 && ovl > wh * 0.5) dupTok = t1;
+        }
+        if(dupTok && !isNoise(dupTok)){
+          addFinding('info', label, '重複語の可能性', t.slice(0, 60), '', `「${dupTok}」が連続しています（OCR誤読の場合あり）`);
+          break;
+        }
       }
     }
   }
