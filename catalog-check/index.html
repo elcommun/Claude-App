@@ -23,6 +23,31 @@
   .container{max-width:1200px;margin:0 auto;padding:32px 16px;}
   .info-box{background:var(--yellow-light);border:1px solid #FDE68A;border-radius:10px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#92400E;line-height:1.6;}
   .info-box strong{color:#78350F;}
+  /* 使い方ガイド */
+  .guide{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:24px;overflow:hidden;border-left:4px solid var(--primary);}
+  .guide summary{list-style:none;display:flex;align-items:center;gap:10px;padding:16px 20px;cursor:pointer;user-select:none;}
+  .guide summary::-webkit-details-marker{display:none;}
+  .guide summary:hover{background:var(--primary-light);}
+  .guide-icon{font-size:20px;}
+  .guide-title{font-size:15px;font-weight:700;}
+  .guide-chev{margin-left:auto;color:var(--gray-400);font-size:12px;transition:transform .2s;}
+  .guide[open] .guide-chev{transform:rotate(180deg);}
+  .guide-body{padding:4px 20px 20px;border-top:1px solid var(--gray-200);}
+  .guide-lead{font-size:13.5px;line-height:1.8;margin:14px 0 16px;color:var(--gray-800);}
+  .guide-lead b,.gstep b{color:var(--primary-dark);}
+  .guide-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;}
+  .gstep{display:flex;gap:10px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;padding:14px;font-size:12.5px;line-height:1.7;}
+  .gstep b{color:var(--gray-800);font-size:13px;}
+  .gnum{width:26px;height:26px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
+  .guide-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .guide-cols h4{font-size:13px;margin-bottom:8px;color:var(--gray-600);}
+  .guide-tbl{width:100%;border-collapse:collapse;font-size:12.5px;}
+  .guide-tbl td{padding:6px 8px;border-bottom:1px solid var(--gray-100);line-height:1.6;vertical-align:middle;}
+  .guide-tbl td:first-child{white-space:nowrap;width:1%;}
+  .gsw{display:inline-block;width:13px;height:13px;border-radius:3px;margin-right:5px;vertical-align:-2px;}
+  .guide-note{background:var(--blue-light);border:1px solid #BFDBFE;border-radius:10px;padding:12px 16px;font-size:12.5px;color:#1E40AF;line-height:1.8;}
+  .guide-note ul{margin:6px 0 0 18px;}
+  @media(max-width:700px){.guide-steps{grid-template-columns:1fr;}.guide-cols{grid-template-columns:1fr;}}
   .card{background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:20px;overflow:hidden;}
   .card-header{padding:16px 20px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;}
   .step{width:28px;height:28px;background:var(--primary);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:bold;flex-shrink:0;}
@@ -105,11 +130,68 @@
 
 <div class="container">
 
-  <div class="info-box">
-    <strong>処理概要：</strong>カタログPDFの記載内容（品番・JANコード・バリエーション名・価格）を、正しい情報のExcelマスタと自動照合します。
-    文字がアウトライン化されたPDF（テキストが選択できないPDF）もOCRで読み取ります。<br>
-    <strong>注意：</strong>OCR読み取りには誤認識の可能性があるため、指摘結果は最終的に目視でご確認ください。初回実行時はOCRエンジンのダウンロードに少し時間がかかります（1ページあたり20〜60秒程度）。
-  </div>
+  <!-- 使い方ガイド -->
+  <details class="guide" id="guideBox">
+    <summary>
+      <span class="guide-icon">📖</span>
+      <span class="guide-title">使い方ガイド <span class="sub">はじめての方はこちら</span></span>
+      <span class="guide-chev">▼</span>
+    </summary>
+    <div class="guide-body">
+      <p class="guide-lead">
+        カタログPDFに書かれた <b>品番・JANコード・商品名（色柄名）・価格・並び順</b> を、
+        正しい情報のExcelマスタと自動で見比べて、<b>誤植や入れ違いの疑いを一覧で表示する</b>ツールです。
+      </p>
+
+      <div class="guide-steps">
+        <div class="gstep">
+          <div class="gnum">1</div>
+          <div><b>Excelマスタを入れる</b><br>
+          品番・JAN・品名・上代が入ったExcelファイルを枠にドロップ。<b>列やシートは自動で見つける</b>ので、そのままのファイルでOKです。</div>
+        </div>
+        <div class="gstep">
+          <div class="gnum">2</div>
+          <div><b>カタログPDFを入れる</b><br>
+          チェックしたいカタログのPDFをドロップ。<b>複数ファイルまとめて</b>入れられます。</div>
+        </div>
+        <div class="gstep">
+          <div class="gnum">3</div>
+          <div><b>実行して結果を見る</b><br>
+          「照合チェックを実行」を押して待つだけ。間違いの疑いが<b>一覧とページ画像の色枠</b>で表示されます。</div>
+        </div>
+      </div>
+
+      <div class="guide-cols">
+        <div>
+          <h4>指摘一覧の見方</h4>
+          <table class="guide-tbl">
+            <tr><td><span class="badge badge-red">エラー</span></td><td>マスタと一致しない箇所。<b>誤植の可能性が高い</b>ので必ず確認</td></tr>
+            <tr><td><span class="badge badge-yellow">警告</span></td><td>間違いの疑いがある箇所。目視で確認</td></tr>
+            <tr><td><span class="badge badge-blue">参考</span></td><td>参考情報（意図的な場合は無視してOK）</td></tr>
+          </table>
+        </div>
+        <div>
+          <h4>ページ画像の枠の色</h4>
+          <table class="guide-tbl">
+            <tr><td><span class="gsw" style="background:#10B981"></span>緑</td><td>マスタと一致（問題なし）</td></tr>
+            <tr><td><span class="gsw" style="background:#EF4444"></span>赤</td><td>エラー箇所</td></tr>
+            <tr><td><span class="gsw" style="background:#F59E0B"></span>黄</td><td>要確認箇所</td></tr>
+            <tr><td><span class="gsw" style="background:#3B82F6"></span>青</td><td>読み取った価格表記</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="guide-note">
+        <b>💡 知っておくと安心</b>
+        <ul>
+          <li>読み取りには <b>1ページあたり20〜60秒</b> かかります（画像化されたPDFを文字認識するため）</li>
+          <li>文字認識には読み間違いの可能性があるため、<b>指摘ゼロでも最終確認は目視で</b>お願いします</li>
+          <li>ファイルは<b>外部に送信されません</b>（すべてお使いのブラウザ内で処理されます）</li>
+          <li>指摘一覧は <b>CSVでダウンロード</b>して共有できます</li>
+        </ul>
+      </div>
+    </div>
+  </details>
 
   <!-- Step 1: Excel -->
   <div class="card">
@@ -217,8 +299,19 @@
 <script src="../design-preview/lib/pdf.min.js"></script>
 <script src="lib/tesseract.min.js"></script>
 <script>
-const APP_VERSION = 2;
+const APP_VERSION = 3;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
+
+// 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
+(() => {
+  const guide = document.getElementById('guideBox');
+  try {
+    if(localStorage.getItem('catalog_check_guide') !== 'closed') guide.open = true;
+  } catch(e){ guide.open = true; }
+  guide.addEventListener('toggle', () => {
+    try { localStorage.setItem('catalog_check_guide', guide.open ? 'open' : 'closed'); } catch(e){}
+  });
+})();
 
 if (window.pdfjsLib) {
   pdfjsLib.GlobalWorkerOptions.workerSrc = '../design-preview/lib/pdf.worker.min.js';
