@@ -166,7 +166,7 @@
             <tr>
               <td><strong>② itemdata（.csv）</strong></td>
               <td>GoQ System の在庫連携からCSV出力（文字コードは自動判定）</td>
-              <td><span class="badge badge-blue">システム連携用SKU番号</span> <span class="badge badge-blue">SKU管理番号</span></td>
+              <td><span class="badge badge-blue">システム連携用SKU番号</span></td>
             </tr>
           </tbody>
         </table>
@@ -192,12 +192,12 @@
       <div class="mn-sec">
         <div class="mn-title">📥 出力されるCSVの形式</div>
         <pre class="mn-code">SKU,総在庫数
-5A-CE-091,+1
-BND-004,+5
-9490,+2</pre>
+elco-5ace083-5A-CE-091,+1
+elco-bnd001-BND-004,+5
+elco-brt001-BRT-002,+2</pre>
         <ul class="mn-list">
           <li>総在庫数は<strong>デフォルトでは入荷データの数量（列名「売上数」）の頭に + を付けた値</strong>（在庫の加算）。プレビューで編集すれば <code>-3</code> のような減算値も出力できます。</li>
-          <li>SKUには itemdata の「SKU管理番号」が入ります（商品コードと同じ場合と、<code>9490</code> のような番号の場合があります）</li>
+          <li>SKUには、商品コードが末尾に一致した itemdata の<strong>「システム連携用SKU番号」がそのまま</strong>入ります（例: 商品コード <code>BND-004</code> → SKU <code>elco-bnd001-BND-004</code>）</li>
           <li>同じ商品コードが複数行あった場合は入荷数量を<strong>合算</strong>します（プレビューに<span class="badge badge-orange">合算</span>バッジ）</li>
         </ul>
       </div>
@@ -207,7 +207,7 @@ BND-004,+5
         <ul class="mn-list">
           <li><span class="badge badge-red">一致なし</span> … 商品コードがitemdataのどのSKUとも一致しなかった行。プレビューの<strong>一番上に赤色で表示</strong>され、<strong>出力CSVには含まれません</strong>。itemdataが最新かを確認してください。</li>
           <li><span class="badge badge-red">複数SKUに一致</span> … 商品コードが複数の異なるSKUに一致した行。同じく出力されないため、個別に確認が必要です。</li>
-          <li><strong>CSVをExcelでダブルクリックして開くと</strong>「+」が消えたりSKUが通貨表示に化けて<strong>見える</strong>ことがありますが、ファイルの中身は正しい形式です。内容確認には青色の「📊 Excel確認用（.xlsx）」ボタンを使ってください。</li>
+          <li><strong>CSVをExcelでダブルクリックして開くと</strong>総在庫数の「+」が消えて<strong>見える</strong>ことがありますが、ファイルの中身は正しい形式です。内容確認には青色の「📊 Excel確認用（.xlsx）」ボタンを使ってください。</li>
         </ul>
       </div>
 
@@ -238,7 +238,7 @@ BND-004,+5
             <input type="file" accept=".csv" id="fileCsv">
             <div class="upload-icon">📄</div>
             <p>itemdata（.csv）をドロップ</p>
-            <small>またはクリックして選択（システム連携用SKU番号・SKU管理番号を含むファイル）</small>
+            <small>またはクリックして選択（システム連携用SKU番号を含むファイル）</small>
           </div>
           <div id="statusCsv"></div>
         </div>
@@ -295,7 +295,7 @@ BND-004,+5
       <label><input type="radio" name="enc" value="sjis" checked> Shift-JIS（推奨）</label>
       <label><input type="radio" name="enc" value="utf8"> UTF-8（BOM付き）</label>
     </div>
-    <div class="csv-note">⚠️ CSVを<strong>Excelでダブルクリックして開くと</strong>、「+」が消えたり（<code>+5</code>→<code>5</code>）、SKUが通貨・日付に化けて見えることがあります（例: <code>BND-004</code>→<code>-BND 4.00</code>）。<strong>ファイルの中身は正しい形式</strong>なので、そのままシステムに取り込めます。Excelで内容を確認したいときは「Excel確認用（.xlsx）」を使ってください。</div>
+    <div class="csv-note">⚠️ CSVを<strong>Excelでダブルクリックして開くと</strong>、総在庫数の「+」が消えて見えることがあります（<code>+5</code>→<code>5</code>）。<strong>ファイルの中身は正しい形式</strong>なので、そのままシステムに取り込めます。Excelで内容を確認したいときは「Excel確認用（.xlsx）」を使ってください。</div>
     <div class="stats-grid" id="statsGrid"></div>
   </div>
 
@@ -304,7 +304,7 @@ BND-004,+5
 <footer>在庫データ変換 <span id="verBadge"></span> | EL COMMUN EC事業部</footer>
 
 <script>
-const APP_VERSION = 7;
+const APP_VERSION = 8;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // ===== 使い方マニュアル詳細の開閉（通常は「できること」のみ表示） =====
@@ -318,7 +318,7 @@ function toggleManualDetail() {
 
 // ===== 状態 =====
 let SALES = null;      // [{code, name, qty}]
-let ITEMS = null;      // [{sys, sku}]
+let ITEMS = null;      // [システム連携用SKU番号, ...]
 let RESULT = null;     // {rows:[{status,code,name,sku,qty,checked}]}
 
 function log(msg, cls = '') {
@@ -403,13 +403,11 @@ async function loadCsv(file) {
     if (!rows.length) throw new Error('空のファイルです');
     const header = rows[0].map(v => v.trim());
     const si = header.indexOf('システム連携用SKU番号');
-    const ki = header.indexOf('SKU管理番号');
-    if (si < 0 || ki < 0) throw new Error('「システム連携用SKU番号」「SKU管理番号」の列が見つかりません');
+    if (si < 0) throw new Error('「システム連携用SKU番号」の列が見つかりません');
     const items = [];
     for (let i = 1; i < rows.length; i++) {
       const sys = (rows[i][si] || '').trim();
-      const sku = (rows[i][ki] || '').trim();
-      if (sys) items.push({ sys, sku });
+      if (sys) items.push(sys);
     }
     if (!items.length) throw new Error('SKUデータ行がありません');
     ITEMS = items;
@@ -455,9 +453,10 @@ function doConvert() {
   const resultRows = [];
   let errCount = 0;
   for (const r of agg.values()) {
+    // 一致したシステム連携用SKU番号そのものをSKUとして採用
     const skus = new Set();
-    for (const it of ITEMS) {
-      if (it.sys.endsWith(r.code)) skus.add(it.sku);
+    for (const sys of ITEMS) {
+      if (sys.endsWith(r.code)) skus.add(sys);
     }
     if (skus.size === 1) {
       const sku = [...skus][0];
@@ -642,7 +641,7 @@ function downloadXlsx() {
   const ws = XLSX.utils.aoa_to_sheet(aoa, { raw: false });
   // 「+5」や「BND-004」が数値・通貨に変換されないよう、全セルを文字列型に固定
   Object.keys(ws).forEach(k => { if (k[0] !== '!') { ws[k].t = 's'; ws[k].v = String(ws[k].v); } });
-  ws['!cols'] = [{ wch: 16 }, { wch: 10 }];
+  ws['!cols'] = [{ wch: 26 }, { wch: 10 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'SKU在庫');
   const d = new Date();
