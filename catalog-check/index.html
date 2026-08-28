@@ -304,7 +304,7 @@
 <script src="../design-preview/lib/pdf.min.js"></script>
 <script src="lib/tesseract.min.js"></script>
 <script>
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -1020,8 +1020,15 @@ function checkPage(pageData, label){
           if(editDist1(c.code, mc)){ cand = it; break; }
         }
         if(cand){
-          addFinding('error', label, '品番誤り疑い', c.code, cand.code, `マスタに一致なし。1文字違いの「${cand.code}」（${cand.name}）の誤植またはOCR誤読の可能性`);
-          raise('error');
+          if(c.jan && cand.jan && editDist(c.jan.text, cand.jan, 2) <= 1){
+            // 品番もJANも同じ商品の1文字違い → OCR誤読の可能性が高いので警告に格下げ
+            addFinding('warn', label, '品番読取要確認', `${c.code} / ${c.jan.text}`, `${cand.code} / ${cand.jan}`,
+              `品番・JANともマスタの「${cand.code}（${cand.name}）」と1文字違いです。OCR誤読の可能性が高いですが、カタログの表記を目視確認してください`);
+            raise('warn');
+          } else {
+            addFinding('error', label, '品番誤り疑い', c.code, cand.code, `マスタに一致なし。1文字違いの「${cand.code}」（${cand.name}）の誤植またはOCR誤読の可能性`);
+            raise('error');
+          }
           masterItem = cand;
         } else if(byJ){
           addFinding('error', label, '品番未登録', c.code, byJ.code, `品番がマスタになし。併記JAN ${c.jan.text} はマスタでは品番「${byJ.code}」`);
@@ -1087,14 +1094,23 @@ function checkPage(pageData, label){
         addFinding('info', label, 'JAN読取補正', c.jan.corrected, jan,
           `${c.code}: 読み取った${c.jan.corrected.length}桁の数字列から正しい13桁を抽出して照合しました（OCRの読み過ぎの可能性が高いですが、印刷の桁数も念のためご確認ください）`);
       }
+      let janHandled = false;
       if(jan.length !== 13){
         addFinding('warn', label, 'JAN桁数異常', jan, masterItem ? masterItem.jan : '', `13桁ではありません（${jan.length}桁・OCR読取欠けの可能性）`);
         raise('warn');
       } else if(!ean13Valid(jan)){
-        addFinding('error', label, 'JANチェックデジット不正', jan, masterItem ? masterItem.jan : '', 'JANコードのチェックデジットが合いません（誤植の可能性大）');
-        raise('error');
+        if(masterItem && masterItem.jan && editDist1(jan, masterItem.jan)){
+          // チェックデジット不正かつマスタと1桁違い → OCRの数字誤読の可能性が高いので1件の警告に集約
+          addFinding('warn', label, 'JAN要確認', jan, masterItem.jan,
+            'チェックデジットが不正で、マスタと1桁違いです。OCRの数字誤読の可能性が高いですが、印刷のJANも目視確認してください');
+          raise('warn');
+          janHandled = true;
+        } else {
+          addFinding('error', label, 'JANチェックデジット不正', jan, masterItem ? masterItem.jan : '', 'JANコードのチェックデジットが合いません（誤植の可能性大）');
+          raise('error');
+        }
       }
-      if(masterItem && masterItem.jan && jan !== masterItem.jan){
+      if(!janHandled && masterItem && masterItem.jan && jan !== masterItem.jan){
         const other = MASTER.byJan.get(jan);
         if(other && other.code !== masterItem.code){
           // 品番のOCR誤読（例: LNC-414→LNC-412）と本物のJAN貼り違いを判別する。
@@ -1291,7 +1307,9 @@ function checkPage(pageData, label){
         const refs = (byVar.get(c.varKey) || []).filter(o => blockOf(o) !== bk).map(o => o.imgHue);
         if(refs.length < 2) return false;
         const m = circMean(refs);
-        if(Math.max(...refs.map(h => circDist(h, m))) > 25) return false;
+        // 同じ色柄でも商品形状によって色相が±30°ほど振れることがあるため35°まで許容
+        // （銀色バッグ等の不安定な商品は参照2件条件とこの一貫性条件の両方で除外される）
+        if(Math.max(...refs.map(h => circDist(h, m))) > 35) return false;
         c.refHue = m;
         return true;
       });
