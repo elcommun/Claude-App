@@ -51,7 +51,7 @@ EC（楽天・Amazon等）の販売データをExcelでインポートし、カ�
 - `inventory-convert/index.html` に `const APP_VERSION = N;`（フッターの `#verBadge` に `vN` 表示）がある
 - **このファイルを変更してコミットするたびに `APP_VERSION` を必ず1つ増やすこと**
 - 3分ごとにサーバー側と比較し、大きければ自動リロード（ファイル読み込み済みのときはリロードしない）
-- 入荷データxlsx（商品コード・売上数列。※入荷数を表すが列名は「売上数」のまま）と itemdata CSV（システム連携用SKU番号・SKU管理番号）を突合して「SKU,総在庫数（+N）」のCSVを出力するアプリ。プレビューで数量の個別編集・チェック選択一括変更が可能
+- 入荷データxlsx（商品コード・売上数列。※入荷数を表すが列名は「売上数」のまま）と itemdata CSV（システム連携用SKU番号）を突合して「SKU,総在庫数（+N）」のCSVを出力するアプリ。SKUは一致したシステム連携用SKU番号をそのまま出力。プレビューで数量の個別編集・チェック選択一括変更が可能
 
 ### catalog-check のバージョン番号
 - `catalog-check/index.html` に `const APP_VERSION = N;`（フッターの `#verBadge` に `vN` 表示）がある
