@@ -68,6 +68,10 @@
   .data-table th{background:var(--gray-100);padding:8px 12px;text-align:left;font-weight:600;color:var(--gray-600);border-bottom:1px solid var(--gray-200);}
   .data-table td{padding:8px 12px;border-bottom:1px solid var(--gray-200);vertical-align:top;}
   .data-table tr:last-child td{border-bottom:none;}
+  #findingsTbl tbody tr:nth-child(even) td{background:var(--gray-50);}
+  .cell-data{font-family:ui-monospace,SFMono-Regular,Menlo,'Courier New',monospace;font-size:12px;line-height:1.7;white-space:nowrap;}
+  .cell-page{font-size:11px;color:var(--gray-600);word-break:break-all;min-width:110px;}
+  .diffch{background:#FEE2E2;color:#B91C1C;font-weight:700;border-radius:3px;padding:0 1px;}
   .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap;}
   .badge-orange{background:#FED7AA;color:#C2410C;}.badge-blue{background:#DBEAFE;color:#1D4ED8;}
   .badge-red{background:#FEE2E2;color:#991B1B;}.badge-green{background:#D1FAE5;color:#065F46;}
@@ -300,7 +304,7 @@
 <script src="../design-preview/lib/pdf.min.js"></script>
 <script src="lib/tesseract.min.js"></script>
 <script>
-const APP_VERSION = 8;
+const APP_VERSION = 9;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -1184,7 +1188,7 @@ function checkPage(pageData, label){
     const codesInPos = group.slice().sort(posSort).map(c => c.code);
     const codesSorted = codesInPos.slice().sort(naturalCompare);
     if(codesInPos.join('|') !== codesSorted.join('|')){
-      addFinding('info', label, '品番並び順', codesInPos.join(' → '), codesSorted.join(' → '), '品番が昇順に並んでいません（意図的な場合は無視してください）');
+      addFinding('info', label, '品番並び順', fmtSeq(codesInPos), fmtSeq(codesSorted), '品番が昇順に並んでいません（意図的な場合は無視してください）');
     }
   }
 
@@ -1228,7 +1232,7 @@ function checkPage(pageData, label){
       for(const [bi, confs] of flagged){
         const seq = seqBlocks[bi];
         const disp = k => (seq.find(c => c.varKey === k) || {varDisp: k}).varDisp;
-        const seqStr = seq.map(c => `${c.varDisp}(${c.code})`).join(' → ');
+        const seqStr = fmtSeq(seq.map(c => `${c.varDisp}(${c.code})`));
         const pairStrs = [...new Set(confs.map(cf => `「${disp(cf.k1)}」と「${disp(cf.k2)}」`))].join('、');
         const tie = confs.every(cf => cf.tie);
         addFinding(tie ? 'info' : 'warn', label, 'バリエーション配置順の相違',
@@ -1481,6 +1485,17 @@ function imageFeature(pageData, x0, y0, x1, y1){
   return {hue: (Math.atan2(sy, sx) * 180 / Math.PI + 360) % 360, ratio: colored / n};
 }
 
+/* 品番などの並びを2件ずつ改行して見やすく整形する */
+function fmtSeq(arr){
+  const lines = [];
+  for(let i = 0; i < arr.length; i += 2){
+    let seg = arr.slice(i, i + 2).join(' → ');
+    if(i + 2 < arr.length) seg += ' →';
+    lines.push(seg);
+  }
+  return lines.join('\n');
+}
+
 function naturalCompare(a, b){
   const re = /(\d+)|(\D+)/g;
   const as = a.match(re) || [], bs = b.match(re) || [];
@@ -1559,17 +1574,38 @@ function renderFindings(){
       `<button class="${FILTER === k ? 'on' : ''}" onclick="FILTER='${k}';renderFindings()">${lb} ${counts[k]}</button>`).join('');
   document.querySelector('#findingsTbl tbody').innerHTML = filtered.length ? filtered.map(f => {
     const [lb, cls] = SEV_LABEL[f.sev];
-    return `<tr><td><span class="badge ${cls}">${lb}</span></td><td style="white-space:nowrap">${escHtml(f.page)}</td>
-      <td style="white-space:nowrap">${escHtml(f.kind)}</td><td>${escHtml(f.catalog)}</td>
-      <td>${escHtml(f.master)}</td><td>${escHtml(f.detail)}</td></tr>`;
+    const [catHtml, masHtml] = diffCells(f.catalog, f.master);
+    return `<tr><td><span class="badge ${cls}">${lb}</span></td><td class="cell-page">${escHtml(f.page)}</td>
+      <td style="white-space:nowrap">${escHtml(f.kind)}</td><td class="cell-data">${catHtml}</td>
+      <td class="cell-data">${masHtml}</td><td>${escHtml(f.detail)}</td></tr>`;
   }).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--gray-400)">指摘はありません 🎉</td></tr>';
+}
+
+/* カタログ記載とマスタ値のセルを生成する。改行を反映し、
+   同じ長さの値同士（JAN・品番・価格など）は違っている文字を赤くハイライトする */
+function diffCells(cat, mas){
+  const a = String(cat == null ? '' : cat), b = String(mas == null ? '' : mas);
+  const nl = s => escHtml(s).replace(/\n/g, '<br>');
+  if(a && b && a !== b && a.length === b.length && a.length <= 40 && !a.includes('\n') && !b.includes('\n')){
+    let ha = '', hb = '';
+    for(let i = 0; i < a.length; i++){
+      if(a[i] === b[i]){ ha += escHtml(a[i]); hb += escHtml(b[i]); }
+      else {
+        ha += `<span class="diffch">${escHtml(a[i])}</span>`;
+        hb += `<span class="diffch">${escHtml(b[i])}</span>`;
+      }
+    }
+    return [ha, hb];
+  }
+  return [nl(a), nl(b)];
 }
 
 function downloadCsv(){
   const rows = [['重要度', 'ページ', '種別', 'カタログ記載', 'マスタ値', '詳細']];
   const order = {error: 0, warn: 1, info: 2};
   FINDINGS.slice().sort((a, b) => order[a.sev] - order[b.sev]).forEach(f =>
-    rows.push([SEV_LABEL[f.sev][0], f.page, f.kind, f.catalog, f.master, f.detail]));
+    rows.push([SEV_LABEL[f.sev][0], f.page, f.kind,
+               String(f.catalog).replace(/\n/g, ' '), String(f.master).replace(/\n/g, ' '), f.detail]));
   const csv = '﻿' + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'}));
