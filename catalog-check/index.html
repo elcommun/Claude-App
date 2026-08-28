@@ -300,7 +300,7 @@
 <script src="../design-preview/lib/pdf.min.js"></script>
 <script src="lib/tesseract.min.js"></script>
 <script>
-const APP_VERSION = 7;
+const APP_VERSION = 8;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -343,6 +343,20 @@ function ean13Valid(s){
   let sum = 0;
   for(let i=0;i<12;i++) sum += (+s[i]) * (i%2 ? 3 : 1);
   return (10 - (sum % 10)) % 10 === +s[12];
+}
+function editDist(a, b, cap){ // 編集距離（cap超過はcap+1を返す）
+  if(Math.abs(a.length - b.length) > cap) return cap + 1;
+  const dp = Array.from({length: b.length + 1}, (_, j) => j);
+  for(let i = 1; i <= a.length; i++){
+    let prev = dp[0];
+    dp[0] = i;
+    for(let j = 1; j <= b.length; j++){
+      const tmp = dp[j];
+      dp[j] = Math.min(dp[j] + 1, dp[j-1] + 1, prev + (a[i-1] === b[j-1] ? 0 : 1));
+      prev = tmp;
+    }
+  }
+  return dp[b.length];
 }
 function editDist1(a, b){ // 編集距離が1以下か（高速判定）
   if(a === b) return true;
@@ -771,8 +785,25 @@ function detectTokens(pageData){
   }
 
   // 価格行：税込/税抜パターン
+  // 横並びの別ブロックの価格行が1行に結合されると金額が混ざるため、
+  // 大きな水平ギャップで行をセグメントに分割してからセグメント単位で解析する
+  const priceSegs = [];
   for(const ln of lines){
-    const t = normText(ln.text).replace(/[¥\\￥]/g, '¥');
+    let cur = null;
+    for(const w of ln.words){
+      if(!cur || w.x0 - cur.x1 > pageW * 0.05){
+        cur = {words: [w], x0: w.x0, x1: w.x1, y0: w.y0, y1: w.y1, cy: ln.cy};
+        priceSegs.push(cur);
+      } else {
+        cur.words.push(w);
+        cur.x1 = Math.max(cur.x1, w.x1);
+        cur.y0 = Math.min(cur.y0, w.y0);
+        cur.y1 = Math.max(cur.y1, w.y1);
+      }
+    }
+  }
+  for(const ln of priceSegs){
+    const t = normText(ln.words.map(w => w.text).join(' ')).replace(/[¥\\￥]/g, '¥');
     const tc = t.replace(/\s+/g, '');  // OCRで文字間にスペースが入るケースに対応
     let incl = null, excl = null;
     let m = tc.match(/税込[^\d]{0,4}([\d,\.]{3,9})/);
@@ -884,6 +915,8 @@ function checkPage(pageData, label){
         if(!p.ranges.some(r => r.prefix === cp[1] && n >= Math.min(r.a, r.b) && n <= Math.max(r.a, r.b))) continue;
       } else {
         if(dy > pageH * 0.38) continue;
+        // 横方向に重ならない価格行は横並びの別ブロックのもの
+        if(p.x1 < c.winX0 - pageW * 0.03 || p.x0 > c.winX1 + pageW * 0.03) continue;
         // アイテムと価格行の間に別の商品行がある場合、その価格行は別ブロックのもの
         const rowBetween = codes.some(o => o.y0 > c.y1 + rowH && o.y1 < p.y0 - 4);
         if(rowBetween) continue;
@@ -960,12 +993,21 @@ function checkPage(pageData, label){
     let masterItem = MASTER.byCode.get(c.code) || null;
 
     if(!masterItem){
-      // まず併記JANから特定を試みる（1文字違いなら品番の誤読/誤植として1件の警告に集約する）
+      // まず併記JANから特定を試みる（2文字違いまでなら品番の誤読/誤植の可能性として扱う）
       const byJ = c.jan && MASTER.byJan.get(c.jan.text);
-      if(byJ && editDist1(c.code, byJ.code)){
-        addFinding('warn', label, '品番読取要確認', `${c.code} / ${c.jan.text}`, `${byJ.code} / ${byJ.jan}`,
-          `品番がマスタになく、記載JANはマスタの「${byJ.code}（${byJ.name}）」のもの。品番のOCR誤読または誤植の可能性（カタログの品番表記を目視確認してください）`);
-        raise('warn');
+      if(byJ && editDist(normCode(c.code), normCode(byJ.code), 2) <= 2){
+        // バリエーション名もJAN側の商品名と一致するなら、OCR誤読の可能性が高い → 参考に格下げ
+        const mnJ = normName(byJ.name || '');
+        const vScore = (c.variation ? c.variation.split(' ') : [])
+          .map(w => normName(w)).filter(n => n.length >= 3 && mnJ.includes(n)).length;
+        if(vScore >= 1){
+          addFinding('info', label, '品番読取補正', `${c.code} → ${byJ.code}`, `${byJ.code} / ${byJ.jan}`,
+            `品番がマスタにありませんが、JANとバリエーション名がマスタの「${byJ.code}（${byJ.name}）」と一致します。OCRの品番誤読の可能性が高いです（念のため目視確認してください）`);
+        } else {
+          addFinding('warn', label, '品番読取要確認', `${c.code} / ${c.jan.text}`, `${byJ.code} / ${byJ.jan}`,
+            `品番がマスタになく、記載JANはマスタの「${byJ.code}（${byJ.name}）」のもの。品番のOCR誤読または誤植の可能性（カタログの品番表記を目視確認してください）`);
+          raise('warn');
+        }
         masterItem = byJ;
       } else {
         // 編集距離1で候補を探す
