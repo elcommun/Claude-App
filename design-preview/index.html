@@ -169,7 +169,7 @@
     <div class="fmt-cards">
       <div class="fmt-card">
         <span class="fmt-ic ai">Ai</span>
-        <div><b>.ai</b><span class="fmt-tag">送り主の保存設定に依存</span><small>「PDF互換ファイルを作成」ONの保存が必要。表示できない時は送り主に再保存を依頼</small></div>
+        <div><b>.ai</b><span class="fmt-tag">送り主の保存設定に依存</span><small>「PDF互換ファイルを作成」ONの保存が必要（Illustratorの初期設定ではON）。表示できない時は送り主に再保存を依頼</small></div>
       </div>
       <div class="fmt-card">
         <span class="fmt-ic psd">Ps</span>
@@ -296,7 +296,7 @@
 <script src="lib/jspdf.min.js"></script>
 <script src="lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 18;
+const APP_VERSION = 19;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
