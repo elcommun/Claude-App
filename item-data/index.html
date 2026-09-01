@@ -562,7 +562,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-09-01</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-09-01b</span>
 </header>
 
 <!-- ── Page ── -->
@@ -1323,6 +1323,20 @@ function run() {
       const cats = categoryMap.get(code) || { cat1: '', cat2: '', cat3: '' };
       allRows.push({ date, store, code, name, price, qty, matched, searchCode, ...cats });
     }
+
+    // ── DR-/XDR- 両形式が存在する品番は XDR- に統一 ──
+    // （同一商品がモールにより DR-/XDR- どちらでも登録されているケース。
+    //   データ内に両形式がある、または商品マスタに XDR- 側が登録されている場合に XDR- へ寄せる）
+    const dxCodeSet = new Set(allRows.map(r => r.code));
+    allRows.forEach(r => {
+      if (!/^DR-/.test(r.code)) return;
+      const x = 'X' + r.code;
+      if (!dxCodeSet.has(x) && !productMap.has(x)) return;
+      r.code = x;
+      if (productMap.has(x)) { r.name = productMap.get(x); r.matched = true; }
+      const xc = categoryMap.get(x);
+      if (xc) { r.cat1 = xc.cat1; r.cat2 = xc.cat2; r.cat3 = xc.cat3; }
+    });
 
     // Populate filters
     const sel = document.getElementById('f-store');

@@ -182,7 +182,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>EC販売データ振り分け</h1>
-      <div class="sub">受注CSVを自社商品／メーカー商品に自動判定して2ファイル生成 <span class="ver">v6</span></div>
+      <div class="sub">受注CSVを自社商品／メーカー商品に自動判定して2ファイル生成 <span class="ver">v7</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -812,6 +812,21 @@ document.getElementById('goBtn').onclick=async()=>{
         maker.push(row);
       }
     }
+
+    // ── DR-/XDR- 両形式が存在する品番は XDR- に統一 ──
+    // （同一商品がモールにより DR-/XDR- どちらでも登録されているケース。
+    //   データ内に両形式がある、または商品マスタに XDR- 側が登録されている場合に XDR- へ寄せる）
+    const ownCodeSet=new Set(own.map(r=>r['商品番号']));
+    own.forEach(r=>{
+      const c=r['商品番号'];
+      if(!/^DR-/.test(c))return;
+      const x='X'+c;
+      if(!ownCodeSet.has(x)&&!productMap.has(x))return;
+      r['商品番号']=x;
+      if(productMap.has(x)){r['商品名']=productMap.get(x);r['マスター一致']='○';}
+      const xc=categoryMap.get(x);
+      if(xc){r['大分類']=xc.cat1;r['中分類']=xc.cat2;r['小分類']=xc.cat3;}
+    });
 
     ownRows=own; makerRows=maker; noMakerRows=noMaker; emptyRows=empty;
     srcName=formatPeriodName(dates);
