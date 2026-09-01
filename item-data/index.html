@@ -562,7 +562,7 @@
   </div>
   <div class="header-line"></div>
   <span class="header-tag">EL COMMUN</span>
-  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-08-26b</span>
+  <span class="header-tag" style="font-size:9px;opacity:.35;">v2026-09-01</span>
 </header>
 
 <!-- ── Page ── -->
@@ -999,6 +999,11 @@ const CAL_PN_OVERRIDE = {
   'cal-42-':'CAL-197','cal-16-':'CAL-198','cal-17-':'CAL-199','cal-51-':'CAL-200','cal-52-':'CAL-201','cal-34-':'CAL-202',
   'cal-36-':'CAL-203','cal-32-':'CAL-204','cal-33-':'CAL-205','cal-35-':'CAL-206','cal-31-':'CAL-207',
 };
+// CAL_PN_OVERRIDE の逆引き（CAL-NNN → 商品管理番号）。全モールの検索コード付与に使用
+const CAL_CODE_TO_MGMT={};
+for(const k in CAL_PN_OVERRIDE)CAL_CODE_TO_MGMT[CAL_PN_OVERRIDE[k]]=k;
+// 検索コード照合用キー（DR-/XDR-・大文字小文字の表記揺れを同一視）
+const searchKey=c=>String(c||'').toUpperCase().replace(/^XDR-/,'DR-');
 function extractProductCode(pn, store) {
   if (!pn) return null;
   // 在庫SFD- プレフィックス除去（例: 在庫SFD-001 → SFD-001）
@@ -1190,7 +1195,8 @@ function run() {
 
     // ── パス1: 楽天市場店の 品番 → 検索コード マップを構築 ──────────────────
     // 「EL COMMUN 楽天市場店」の商品URLを正とし、他店舗にも同じコードを適用する
-    const rakutenSearchMap = new Map(); // code → searchCode
+    const rakutenSearchMap = new Map(); // searchKey(code) → searchCode
+    const rakutenPrimaryKeys = new Set();
     for (let i = 1; i < csvRows.length; i++) {
       const r = csvRows[i];
       const g = k => (r[ci[k]] || '').trim();
@@ -1210,8 +1216,12 @@ function run() {
       const rawExtR = pnOverrideR || extractProductCode(pn, store);
       const extractedR = rawExtR || pn;
       const codeR = normalizeCode(extractedR) || extractedR;
-      if (/^(?:X?DR-|CAL-)/i.test(codeR) && !rakutenSearchMap.has(codeR)) {
-        rakutenSearchMap.set(codeR, sc);
+      if (/^(?:X?DR-|CAL-)/i.test(codeR)) {
+        // 「EL COMMUN 楽天市場店」の検索コードを正とし、他の楽天店舗（LAIKLE等）は未登録キーの補完のみ
+        const k = searchKey(codeR);
+        const primary = store.includes('EL COMMUN');
+        if (primary && !rakutenPrimaryKeys.has(k)) { rakutenSearchMap.set(k, sc); rakutenPrimaryKeys.add(k); }
+        else if (!primary && !rakutenSearchMap.has(k)) rakutenSearchMap.set(k, sc);
       }
     }
 
@@ -1305,9 +1315,10 @@ function run() {
       const calKey = pn.trim().toLowerCase();
       const searchCode = CAL_PN_OVERRIDE[calKey]
         ? calKey
-        : /^(?:X?DR-|CAL-)/i.test(code)
-          ? (rakutenSearchMap.get(code) || '')
-          : '';
+        : CAL_CODE_TO_MGMT[code]
+          || (/^(?:X?DR-|CAL-)/i.test(code)
+            ? (rakutenSearchMap.get(searchKey(code)) || '')
+            : '');
 
       const cats = categoryMap.get(code) || { cat1: '', cat2: '', cat3: '' };
       allRows.push({ date, store, code, name, price, qty, matched, searchCode, ...cats });

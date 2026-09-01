@@ -182,7 +182,7 @@
   <div class="topbar">
     <div class="brand">
       <h1><span class="logo"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>EC販売データ振り分け</h1>
-      <div class="sub">受注CSVを自社商品／メーカー商品に自動判定して2ファイル生成 <span class="ver">v5</span></div>
+      <div class="sub">受注CSVを自社商品／メーカー商品に自動判定して2ファイル生成 <span class="ver">v6</span></div>
     </div>
     <button class="theme-btn" id="themeBtn" title="テーマ切替">
       <svg id="themeIcon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -336,6 +336,11 @@ const CAL_PN_OVERRIDE = {
   'cal-42-':'CAL-197','cal-16-':'CAL-198','cal-17-':'CAL-199','cal-51-':'CAL-200','cal-52-':'CAL-201','cal-34-':'CAL-202',
   'cal-36-':'CAL-203','cal-32-':'CAL-204','cal-33-':'CAL-205','cal-35-':'CAL-206','cal-31-':'CAL-207',
 };
+// CAL_PN_OVERRIDE の逆引き（CAL-NNN → 商品管理番号）。全モールの検索コード付与に使用
+const CAL_CODE_TO_MGMT={};
+for(const k in CAL_PN_OVERRIDE)CAL_CODE_TO_MGMT[CAL_PN_OVERRIDE[k]]=k;
+// 検索コード照合用キー（DR-/XDR-・大文字小文字の表記揺れを同一視）
+const searchKey=c=>String(c||'').toUpperCase().replace(/^XDR-/,'DR-');
 function extractProductCode(pn, store) {
   if (!pn) return null;
   if (/^在庫SFD-/i.test(pn)) return pn.slice(2);
@@ -714,6 +719,7 @@ document.getElementById('goBtn').onclick=async()=>{
 
     // ── パス1: 楽天市場店の 品番→検索コード マップ ──
     const rakutenSearchMap=new Map();
+    const rakutenPrimaryKeys=new Set();
     for(let i=1;i<csvRows.length;i++){
       const r=csvRows[i]; const g=k=>ci[k]!==undefined?(r[ci[k]]||'').trim():'';
       const store=g('販売店舗');
@@ -727,7 +733,13 @@ document.getElementById('goBtn').onclick=async()=>{
       const rawExt=pnOv||extractProductCode(pn,store);
       const extracted=rawExt||pn;
       const code=normalizeCode(extracted)||extracted;
-      if(/^(?:X?DR-|CAL-)/i.test(code)&&!rakutenSearchMap.has(code))rakutenSearchMap.set(code,sc);
+      if(/^(?:X?DR-|CAL-)/i.test(code)){
+        // 「EL COMMUN 楽天市場店」の検索コードを正とし、他の楽天店舗（LAIKLE等）は未登録キーの補完のみ
+        const k=searchKey(code);
+        const primary=store.includes('EL COMMUN');
+        if(primary&&!rakutenPrimaryKeys.has(k)){rakutenSearchMap.set(k,sc);rakutenPrimaryKeys.add(k);}
+        else if(!primary&&!rakutenSearchMap.has(k))rakutenSearchMap.set(k,sc);
+      }
     }
 
     // ── パス2: 全行を自社／メーカー／要確認に振り分け ──
@@ -781,7 +793,8 @@ document.getElementById('goBtn').onclick=async()=>{
         const cats=categoryMap.get(code)||{cat1:'',cat2:'',cat3:''};
         // CAL_PN_OVERRIDE（cal-NN- 変換表）に一致した行は商品管理番号を検索コードにする
         const calKey=pn.trim().toLowerCase();
-        const searchCode=CAL_PN_OVERRIDE[calKey]?calKey:(/^(?:X?DR-|CAL-)/i.test(code)?(rakutenSearchMap.get(code)||''):'');
+        const searchCode=CAL_PN_OVERRIDE[calKey]?calKey
+          :(CAL_CODE_TO_MGMT[code]||(/^(?:X?DR-|CAL-)/i.test(code)?(rakutenSearchMap.get(searchKey(code))||''):''));
         own.push({
           '販売日':date,'大分類':cats.cat1,'中分類':cats.cat2,'小分類':cats.cat3,
           '商品名':name,'商品番号':code,'税抜単価':net,'数量':qty,'小計（税抜）':net*qty,
