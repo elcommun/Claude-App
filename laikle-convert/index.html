@@ -369,7 +369,7 @@
       </div>
       <div class="rule-card">
         <div class="rc-head">🏷️ カテゴリページのリンク<span class="rc-tag conv">対応表で変換</span></div>
-        <p>「…/c/カテゴリID/」（item.rakuten.co.jp・soko.rms.rakuten.co.jp・item.抜けの rakuten.co.jp いずれも）は店舗ごとにIDが異なるため、内蔵の対応表（363件）でLAIKLE店のIDに変換。表にないものは変換せず、ログでお知らせします。</p>
+        <p>「…/c/カテゴリID/」（item.rakuten.co.jp・soko.rms.rakuten.co.jp・item.抜けの rakuten.co.jp いずれも）は店舗ごとにIDが異なるため、内蔵の対応表（363件）でLAIKLE店のIDに変換。表にないものは変換せず、ログでお知らせします。<br><b>soko.</b> を含むリンクはEL COMMUN店で倉庫（未公開）のカテゴリなので、変換したうえでログに注意を表示します。</p>
       </div>
       <div class="rule-card">
         <div class="rc-head">🖼️ 商品画像<span class="rc-tag conv">変換＋画像も移行</span></div>
@@ -1048,9 +1048,12 @@ function buildReplacers(fromSlug, toSlug, catMap) {
   const reCat   = new RegExp('(?:item\\.rakuten\\.co\\.jp|soko\\.rms\\.rakuten\\.co\\.jp|(?<![.\\w])rakuten\\.co\\.jp)\\/' + f + '\\/c\\/(\\d+)', 'gi');
   const reImage = new RegExp('(image\\.rakuten\\.co\\.jp\\/)' + f + tail, 'gi');
   return {
-    category(cell, counter, unmapped) {
+    category(cell, counter, unmapped, soko) {
       if (!cell || cell.indexOf(fromSlug) === -1) return cell;
       return cell.replace(reCat, (m0, id) => {
+        // soko.rms… は EL COMMUN店でまだ倉庫（非公開）のカテゴリのリンク。
+        // 変換自体は行うが、公開漏れに気づけるよう後でまとめて注意を出す
+        if (soko && /^soko\./i.test(m0)) soko[id] = (soko[id] || 0) + 1;
         const toId = catMap[id];
         if (toId) { counter.n++; return 'item.rakuten.co.jp/' + toSlug + '/c/' + toId; }
         unmapped[id] = (unmapped[id] || 0) + 1;
@@ -1258,8 +1261,9 @@ function doConvert() {
   const imgCounter = { n: 0 };
   const catCounterItem = { n: 0 };
   const unmapped = {};
+  const sokoCats = {}; // 倉庫（soko.）カテゴリのリンクを含むカテゴリID → 出現数
   const converted = iRows.map(row => row.map((cell, j) => {
-    let v = rep.category(cell, catCounterItem, unmapped);
+    let v = rep.category(cell, catCounterItem, unmapped, sokoCats);
     v = rep.general(v, urlCounter);
     if (imgColSet.has(j)) v = rep.image(v, imgCounter);
     return v;
@@ -1349,7 +1353,7 @@ function doConvert() {
     const ctrlIdx = ch.findIndex(h => (h || '').trim() === 'コントロールカラム');
     let sepCount = 0;
     const convCat = cRows.map(row => row.map((cell, j) => {
-      let v = rep.category(cell, catCounter, unmapped);
+      let v = rep.category(cell, catCounter, unmapped, sokoCats);
       v = rep.general(v, catCounter);
       if (j === dispIdx && v && v.indexOf('＼') !== -1) {
         sepCount += (v.match(/＼/g) || []).length;
@@ -1375,6 +1379,18 @@ function doConvert() {
   } else {
     outCat = null;
     log('ℹ️ dl-item-cat はスキップ（未アップロード）', 'log-info');
+    logSep();
+  }
+
+  // 倉庫（soko.）カテゴリURLの注意喚起
+  const sokoIds = Object.keys(sokoCats);
+  if (sokoIds.length) {
+    const sokoTotal = sokoIds.reduce((a, id) => a + sokoCats[id], 0);
+    log(`⚠️ 倉庫（soko.）のカテゴリURL：${sokoIds.length}種類・${sokoTotal}箇所`, 'log-warn');
+    log('　　EL COMMUN店で「倉庫」に入ったまま（未公開）のカテゴリのリンクです。LAIKLE店のIDには変換しましたが、', 'log-warn');
+    log('　　LAIKLE店側で該当カテゴリが公開されているかご確認ください（未公開だとリンク先が表示されません）', 'log-warn');
+    sokoIds.slice(0, 20).forEach(id => log(`　　/c/${esc(id)}/（${sokoCats[id]}箇所）`, 'log-warn'));
+    if (sokoIds.length > 20) log(`　　…他 ${sokoIds.length - 20}種類`, 'log-warn');
     logSep();
   }
 
@@ -1635,7 +1651,7 @@ function completeStep6() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 24;
+const APP_VERSION = 25;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
