@@ -369,7 +369,7 @@
       </div>
       <div class="rule-card">
         <div class="rc-head">🏷️ カテゴリページのリンク<span class="rc-tag conv">対応表で変換</span></div>
-        <p>「…/c/カテゴリID/」（item.rakuten.co.jp・soko.rms.rakuten.co.jp・item.抜けの rakuten.co.jp いずれも）は店舗ごとにIDが異なるため、内蔵の対応表（362件）でLAIKLE店のIDに変換。表にないものは変換せず、ログでお知らせします。</p>
+        <p>「…/c/カテゴリID/」（item.rakuten.co.jp・soko.rms.rakuten.co.jp・item.抜けの rakuten.co.jp いずれも）は店舗ごとにIDが異なるため、内蔵の対応表（363件）でLAIKLE店のIDに変換。表にないものは変換せず、ログでお知らせします。</p>
       </div>
       <div class="rule-card">
         <div class="rc-head">🖼️ 商品画像<span class="rc-tag conv">変換＋画像も移行</span></div>
@@ -438,7 +438,7 @@
       <div style="height:16px;"></div>
 
       <details class="fold" style="margin-top:0;">
-        <summary><span>🔗 カテゴリページのリンクは、内蔵の対応表（<b id="catMapCount">362</b>件）で自動変換されます ─ 詳しい仕組み</span></summary>
+        <summary><span>🔗 カテゴリページのリンクは、内蔵の対応表（<b id="catMapCount">363</b>件）で自動変換されます ─ 詳しい仕組み</span></summary>
         <div class="fold-body" style="font-size:12px;color:var(--gray-600);line-height:2;">
           リンク内の <code>item.rakuten.co.jp/elcommun/c/カテゴリID/</code>（RMS管理画面の <code>soko.rms.rakuten.co.jp/…</code>、item.が抜けた <code>rakuten.co.jp/…</code> も同様）は店舗ごとにIDが異なるため、
           対応表を使って LAIKLE店の対応するカテゴリIDに変換し、正規の <code>item.rakuten.co.jp/laikle/c/…</code> に統一します。<br>
@@ -713,7 +713,7 @@ const CATEGORY_MAP_BUILTIN = {
   '0000001209':'0000000658','0000001210':'0000000659','0000001211':'0000000660','0000001212':'0000000646','0000001213':'0000000623',
   '0000001214':'0000000624','0000001215':'0000000625','0000001217':'0000000643','0000001218':'0000000663','0000001443':'0000000664',
   '0000001444':'0000000665','0000001445':'0000000666','0000001446':'0000000667','0000001447':'0000000741','0000001448':'0000000740',
-  '0000001449':'0000000738','0000001450':'0000000739'
+  '0000001449':'0000000738','0000001450':'0000000739','0000001522':'0000000743',
 };
 function activeCatMap() {
   return CATEGORY_MAP_BUILTIN;
@@ -1635,7 +1635,7 @@ function completeStep6() {
 
 // ========== バージョン表示・更新チェック ==========
 // このファイルを変更してコミットするたびに APP_VERSION を1つ増やすこと
-const APP_VERSION = 23;
+const APP_VERSION = 24;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 async function checkAppVersion() {
