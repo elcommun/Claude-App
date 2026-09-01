@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0">
   <title>EC 販売データ集計（自社商品）</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="search-codes.js?v=1"></script>
+  <script src="search-codes.js?v=2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1013,8 +1013,9 @@ function pastSearchCode(code){
   return PAST_SEARCH_CODES[u] || PAST_SEARCH_CODES[u.replace(/^XDR-/,'DR-')] || PAST_SEARCH_CODES['X'+u] || '';
 }
 // DR-/XDR- 統一の除外リスト（番号は同じだが別商品のペア。
-// 例: DR-WK-638=2025年度版4月始まり Point Kiwi ≠ XDR-WK-638=EC別注2025年版1月始まり ﾜﾝﾎﾟｲﾝﾄﾃﾞﾒﾆｷﾞｽ）
-const XDR_UNIFY_EXCLUDE = new Set(['DR-WK-638']);
+// 例: DR-WK-638=2025年度版4月始まり Point Kiwi ≠ XDR-WK-638=EC別注2025年版1月始まり ﾜﾝﾎﾟｲﾝﾄﾃﾞﾒﾆｷﾞｽ
+//     DR-MG-593=2027年版 Pieni Sheep ≠ XDR-MG-593=ﾄｺﾅｯﾂ別注2026年版 B6ﾏﾝｽﾘｰ ﾘﾌｨﾙ）
+const XDR_UNIFY_EXCLUDE = new Set(['DR-WK-638','DR-MG-593']);
 function extractProductCode(pn, store) {
   if (!pn) return null;
   // 在庫SFD- プレフィックス除去（例: 在庫SFD-001 → SFD-001）
