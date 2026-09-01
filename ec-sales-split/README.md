@@ -30,7 +30,7 @@
 
 `販売日 / 大分類 / 中分類 / 小分類 / 商品名 / 商品番号 / 税抜単価 / 数量 / 小計（税抜）/ 店舗 / 検索コード / マスター一致`
 
-ファイル名は実データの出荷日（無ければ注文日時）の範囲から自動生成（例: `2026年EC販売データ（7月1日〜7月7日）.xlsx`）。[ranking](https://elcommun.github.io/Claude-App/ranking/) アプリへの取込用（`item-data/update_sales.py` で `PRELOADED` に反映）。
+`DR-`/`XDR-` の両形式が存在する品番（データ内に両方ある、または商品マスタにXDR-側が登録されている場合）は `XDR-` に統一する。ファイル名は実データの出荷日（無ければ注文日時）の範囲から自動生成（例: `2026年EC販売データ（7月1日〜7月7日）.xlsx`）。[ranking](https://elcommun.github.io/Claude-App/ranking/) アプリへの取込用（`item-data/update_sales.py` で `PRELOADED` に反映）。
 
 ## 出力②: メーカー変換データ（`ec-maker-only` ルール・XLSX）
 
