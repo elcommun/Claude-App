@@ -8,6 +8,7 @@
   <meta http-equiv="Expires" content="0">
   <title>EC 販売データ集計（自社商品）</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="search-codes.js?v=1"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1004,6 +1005,16 @@ const CAL_CODE_TO_MGMT={};
 for(const k in CAL_PN_OVERRIDE)CAL_CODE_TO_MGMT[CAL_PN_OVERRIDE[k]]=k;
 // 検索コード照合用キー（DR-/XDR-・大文字小文字の表記揺れを同一視）
 const searchKey=c=>String(c||'').toUpperCase().replace(/^XDR-/,'DR-');
+// 過去の「EL COMMUN 楽天市場店」検索コード（search-codes.js のスナップショット）から補完。
+// 同一バッチに楽天行がない品番でも、過去に楽天で売れたことがあれば検索コードを付与できる
+function pastSearchCode(code){
+  if (typeof PAST_SEARCH_CODES === 'undefined') return '';
+  const u = String(code||'').toUpperCase();
+  return PAST_SEARCH_CODES[u] || PAST_SEARCH_CODES[u.replace(/^XDR-/,'DR-')] || PAST_SEARCH_CODES['X'+u] || '';
+}
+// DR-/XDR- 統一の除外リスト（番号は同じだが別商品のペア。
+// 例: DR-WK-638=2025年度版4月始まり Point Kiwi ≠ XDR-WK-638=EC別注2025年版1月始まり ﾜﾝﾎﾟｲﾝﾄﾃﾞﾒﾆｷﾞｽ）
+const XDR_UNIFY_EXCLUDE = new Set(['DR-WK-638']);
 function extractProductCode(pn, store) {
   if (!pn) return null;
   // 在庫SFD- プレフィックス除去（例: 在庫SFD-001 → SFD-001）
@@ -1317,7 +1328,7 @@ function run() {
         ? calKey
         : CAL_CODE_TO_MGMT[code]
           || (/^(?:X?DR-|CAL-)/i.test(code)
-            ? (rakutenSearchMap.get(searchKey(code)) || '')
+            ? (rakutenSearchMap.get(searchKey(code)) || pastSearchCode(code) || '')
             : '');
 
       const cats = categoryMap.get(code) || { cat1: '', cat2: '', cat3: '' };
@@ -1330,12 +1341,14 @@ function run() {
     const dxCodeSet = new Set(allRows.map(r => r.code));
     allRows.forEach(r => {
       if (!/^DR-/.test(r.code)) return;
+      if (XDR_UNIFY_EXCLUDE.has(r.code)) return;
       const x = 'X' + r.code;
       if (!dxCodeSet.has(x) && !productMap.has(x)) return;
       r.code = x;
       if (productMap.has(x)) { r.name = productMap.get(x); r.matched = true; }
       const xc = categoryMap.get(x);
       if (xc) { r.cat1 = xc.cat1; r.cat2 = xc.cat2; r.cat3 = xc.cat3; }
+      if (!r.searchCode) r.searchCode = pastSearchCode(x);
     });
 
     // Populate filters
