@@ -6,7 +6,7 @@
 <title>EC販売データ振り分け — 自社／メーカー変換｜EL COMMUN EC事業部</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="../ec-inventory/genka_master.js"></script>
-<script src="../item-data/search-codes.js?v=2"></script>
+<script src="../item-data/search-codes.js?v=3"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -351,7 +351,8 @@ function pastSearchCode(code){
 }
 // DR-/XDR- 統一の除外リスト（番号は同じだが別商品のペア。
 // 例: DR-WK-638=2025年度版4月始まり Point Kiwi ≠ XDR-WK-638=EC別注2025年版1月始まり ﾜﾝﾎﾟｲﾝﾄﾃﾞﾒﾆｷﾞｽ
-//     DR-MG-593=2027年版 Pieni Sheep ≠ XDR-MG-593=ﾄｺﾅｯﾂ別注2026年版 B6ﾏﾝｽﾘｰ ﾘﾌｨﾙ）
+//     DR-MG-593=2027年版 Pieni Sheep（マスタのXDR-MG-593はﾄｺﾅｯﾂ別注ﾘﾌｨﾙの誤登録行で実商品ではない）
+// ※統一処理自体も「DR-側がマスタ未登録のときのみ」動くガード付き。このリストは追加の保険）
 const XDR_UNIFY_EXCLUDE=new Set(['DR-WK-638','DR-MG-593']);
 function extractProductCode(pn, store) {
   if (!pn) return null;
@@ -833,6 +834,7 @@ document.getElementById('goBtn').onclick=async()=>{
       const c=r['商品番号'];
       if(!/^DR-/.test(c))return;
       if(XDR_UNIFY_EXCLUDE.has(c))return;
+      if(productMap.has(c))return;
       const x='X'+c;
       if(!ownCodeSet.has(x)&&!productMap.has(x))return;
       r['商品番号']=x;
