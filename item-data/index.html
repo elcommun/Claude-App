@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0">
   <title>EC 販売データ集計（自社商品）</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="search-codes.js?v=2"></script>
+  <script src="search-codes.js?v=3"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1014,7 +1014,8 @@ function pastSearchCode(code){
 }
 // DR-/XDR- 統一の除外リスト（番号は同じだが別商品のペア。
 // 例: DR-WK-638=2025年度版4月始まり Point Kiwi ≠ XDR-WK-638=EC別注2025年版1月始まり ﾜﾝﾎﾟｲﾝﾄﾃﾞﾒﾆｷﾞｽ
-//     DR-MG-593=2027年版 Pieni Sheep ≠ XDR-MG-593=ﾄｺﾅｯﾂ別注2026年版 B6ﾏﾝｽﾘｰ ﾘﾌｨﾙ）
+//     DR-MG-593=2027年版 Pieni Sheep（マスタのXDR-MG-593はﾄｺﾅｯﾂ別注ﾘﾌｨﾙの誤登録行で実商品ではない）
+// ※統一処理自体も「DR-側がマスタ未登録のときのみ」動くガード付き。このリストは追加の保険）
 const XDR_UNIFY_EXCLUDE = new Set(['DR-WK-638','DR-MG-593']);
 function extractProductCode(pn, store) {
   if (!pn) return null;
@@ -1337,12 +1338,14 @@ function run() {
     }
 
     // ── DR-/XDR- 両形式が存在する品番は XDR- に統一 ──
-    // （同一商品がモールにより DR-/XDR- どちらでも登録されているケース。
-    //   データ内に両形式がある、または商品マスタに XDR- 側が登録されている場合に XDR- へ寄せる）
+    // （同一商品がモールにより DR-/XDR- どちらでも登録されているケース＝Xが落ちた行のみ寄せる。
+    //   DR- 側がマスタに自分の商品として登録済みなら別商品なので改名しない。
+    //   例: DR-MG-593=Pieni Sheep はマスタ登録済 → XDR-MG-593 に寄せると売上が誤付け替えになる）
     const dxCodeSet = new Set(allRows.map(r => r.code));
     allRows.forEach(r => {
       if (!/^DR-/.test(r.code)) return;
       if (XDR_UNIFY_EXCLUDE.has(r.code)) return;
+      if (productMap.has(r.code)) return;
       const x = 'X' + r.code;
       if (!dxCodeSet.has(x) && !productMap.has(x)) return;
       r.code = x;
