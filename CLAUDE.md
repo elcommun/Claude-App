@@ -221,7 +221,9 @@ const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0);
 - デフォルト販売期間は最終更新日から遡って1年間
 - **検索コードの補完（手帳・カレンダー必須）**: 取り込み時、品番が `DR-`/`XDR-`/`CAL-` で始まる商品の検索コードが空欄なら、①同バッチの「EL COMMUN 楽天市場店」行の検索コード → ②既存マスタ（`ranking/data.js`）の同品番 → ③同一年度・同一デザインの色違いバリエーション（同じ楽天ページ）の検索コード、の順で必ず補完する
 - **DR-/XDR- 品番の統一**: 「X」以外が同一の品番（例: DR-MH-306 と XDR-MH-306）が同一商品を指す場合は **XDR- 側に統一**する。取り込みデータに DR-x が来てマスタに XDR-x のみ存在 → XDR-x として集計。XDR-x が来てマスタに DR-x のみ存在（同一商品） → マスタ側を XDR-x に改名し products/by_store/STOCKOUT/images を移行する
-  - **例外**: DR-WK-638（2025年度版4月始まり Point Kiwi）と XDR-WK-638（EC別注2025年版1月始まり ﾜﾝﾎﾟｲﾝﾄﾃﾞﾒﾆｷﾞｽ）は番号が同じだけの**別商品**なので統一しない（item-data / ec-sales-split の `XDR_UNIFY_EXCLUDE` にも登録済み）
+  - **例外（番号が同じだけの別商品ペア。統一しない。item-data / ec-sales-split の `XDR_UNIFY_EXCLUDE` にも登録済み）**:
+    - DR-WK-638（2025年度版4月始まり Point Kiwi）≠ XDR-WK-638（EC別注2025年版1月始まり ﾜﾝﾎﾟｲﾝﾄﾃﾞﾒﾆｷﾞｽ）
+    - DR-MG-593（2027年版 Pieni Sheep）≠ XDR-MG-593（ﾄｺﾅｯﾂ別注2026年版 B6ﾏﾝｽﾘｰ ﾘﾌｨﾙ）
 - **`ranking/data.js` の検索コードを追加・更新したら `item-data/search-codes.js`（過去検索コードのスナップショット、item-data と ec-sales-split の両方が読み込む）を再生成し、両アプリの `<script src=...search-codes.js?v=N>` の `?v=N` を上げること**
 
 ### 仕入れ商品アプリ（supplier-ranking）のカテゴリ固定ルール
