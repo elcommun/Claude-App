@@ -6,6 +6,7 @@
 <title>EC販売データ振り分け — 自社／メーカー変換｜EL COMMUN EC事業部</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="../ec-inventory/genka_master.js"></script>
+<script src="../item-data/search-codes.js?v=1"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -341,6 +342,16 @@ const CAL_CODE_TO_MGMT={};
 for(const k in CAL_PN_OVERRIDE)CAL_CODE_TO_MGMT[CAL_PN_OVERRIDE[k]]=k;
 // 検索コード照合用キー（DR-/XDR-・大文字小文字の表記揺れを同一視）
 const searchKey=c=>String(c||'').toUpperCase().replace(/^XDR-/,'DR-');
+// 過去の「EL COMMUN 楽天市場店」検索コード（item-data/search-codes.js のスナップショット）から補完。
+// 同一バッチに楽天行がない品番でも、過去に楽天で売れたことがあれば検索コードを付与できる
+function pastSearchCode(code){
+  if(typeof PAST_SEARCH_CODES==='undefined')return '';
+  const u=String(code||'').toUpperCase();
+  return PAST_SEARCH_CODES[u]||PAST_SEARCH_CODES[u.replace(/^XDR-/,'DR-')]||PAST_SEARCH_CODES['X'+u]||'';
+}
+// DR-/XDR- 統一の除外リスト（番号は同じだが別商品のペア。
+// 例: DR-WK-638=2025年度版4月始まり Point Kiwi ≠ XDR-WK-638=EC別注2025年版1月始まり ﾜﾝﾎﾟｲﾝﾄﾃﾞﾒﾆｷﾞｽ）
+const XDR_UNIFY_EXCLUDE=new Set(['DR-WK-638']);
 function extractProductCode(pn, store) {
   if (!pn) return null;
   if (/^在庫SFD-/i.test(pn)) return pn.slice(2);
@@ -794,7 +805,7 @@ document.getElementById('goBtn').onclick=async()=>{
         // CAL_PN_OVERRIDE（cal-NN- 変換表）に一致した行は商品管理番号を検索コードにする
         const calKey=pn.trim().toLowerCase();
         const searchCode=CAL_PN_OVERRIDE[calKey]?calKey
-          :(CAL_CODE_TO_MGMT[code]||(/^(?:X?DR-|CAL-)/i.test(code)?(rakutenSearchMap.get(searchKey(code))||''):''));
+          :(CAL_CODE_TO_MGMT[code]||(/^(?:X?DR-|CAL-)/i.test(code)?(rakutenSearchMap.get(searchKey(code))||pastSearchCode(code)||''):''));
         own.push({
           '販売日':date,'大分類':cats.cat1,'中分類':cats.cat2,'小分類':cats.cat3,
           '商品名':name,'商品番号':code,'税抜単価':net,'数量':qty,'小計（税抜）':net*qty,
@@ -820,12 +831,14 @@ document.getElementById('goBtn').onclick=async()=>{
     own.forEach(r=>{
       const c=r['商品番号'];
       if(!/^DR-/.test(c))return;
+      if(XDR_UNIFY_EXCLUDE.has(c))return;
       const x='X'+c;
       if(!ownCodeSet.has(x)&&!productMap.has(x))return;
       r['商品番号']=x;
       if(productMap.has(x)){r['商品名']=productMap.get(x);r['マスター一致']='○';}
       const xc=categoryMap.get(x);
       if(xc){r['大分類']=xc.cat1;r['中分類']=xc.cat2;r['小分類']=xc.cat3;}
+      if(!r['検索コード'])r['検索コード']=pastSearchCode(x);
     });
 
     ownRows=own; makerRows=maker; noMakerRows=noMaker; emptyRows=empty;
