@@ -230,7 +230,7 @@ td.cat-col{text-align:left}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v106</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v107</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -574,7 +574,7 @@ const CODE_NAME_CUT=[[/^apj-cff/i,'フォトフレーム'],[/^apj-ncb/i,'フォ�
 const CODE_NAME_CUT_AFTER=[[/^wh-plus-51876-/i,'プラス デコレーションテープ デコラッシュPLUS テープ 6mm']];
 // 商品名が指定フレーズで「始まる」場合、フレーズより後ろを非表示検索ワードに回すルール（商品番号を問わない）
 // 長いフレーズを先に並べること（先にマッチしたものを採用）
-const NAME_CUT_AFTER=['キングジム KITTA キッタミシン マスキングテープ','キングジム KITTA マスキングテープ','Ohhh BENTOU ランチボックス','松尾ミユキ マグカップ Cat handle mug','松尾ミユキ Sheer Drawstring pouch','ナタリーレテ ミニバッグ チェック柄'];
+const NAME_CUT_AFTER=['キングジム KITTA キッタミシン マスキングテープ','キングジム KITTA マスキングテープ','Ohhh BENTOU ランチボックス','松尾ミユキ マグカップ Cat handle mug','松尾ミユキ Sheer Drawstring pouch','ナタリーレテ ミニバッグ チェック柄','松尾ミユキ Stripe Mesh flat pouch','ナタリーレテ マルチマット（Mサイズ）'];
 // 商品名末尾の【…】ブロックは検索ワードの羅列とみなして商品名から外し、非表示検索ワードに回す。
 // ただし寸法表記（数字+mm/cm・数字×数字を含むもの。例:【特寸：450mm×500mm】）は商品名に残す
 const TRAIL_BRACKET_RE=/【([^【】]*)】\s*$/;
@@ -618,7 +618,7 @@ function normalizeProducts(){
       p[1]=cleaned.name;
       if(cleaned.searchExtra) p[6]=p[6]?(p[6]+' '+cleaned.searchExtra):cleaned.searchExtra;
     }
-    if(categorizeProduct(p[1],p[3])==='その他・額縁') p[1]=cutFullwidthSlash(p[1]);
+    if(categorizeProduct(p[1],p[3])==='額縁・フレーム') p[1]=cutFullwidthSlash(p[1]);
     // 商品番号パターン別の切り落とし（切った部分は非表示検索ワードとして保持）
     for(const [re,kw] of CODE_NAME_CUT){
       if(re.test(p[3]||'')){
@@ -1843,7 +1843,7 @@ function processFile(file){
           }
         }
         const macroCat=categorizeProduct(cleanedName,code);
-        if(macroCat==='その他・額縁') cleanedName=cutFullwidthSlash(cleanedName);
+        if(macroCat==='額縁・フレーム') cleanedName=cutFullwidthSlash(cleanedName);
         const category=subcategorize(macroCat,cleanedName,code);
         const key=code||(maker+''+cleanedName+''+varName);
         let pid=PRODUCT_INDEX[key];
