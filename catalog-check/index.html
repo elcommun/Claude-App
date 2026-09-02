@@ -156,7 +156,7 @@
         <div class="gstep">
           <div class="gnum">2</div>
           <div><b>カタログPDF・画像を入れる</b><br>
-          チェックしたいカタログのPDF、またはページの画像（JPG/PNG）をドロップ。<b>複数ファイルまとめて</b>入れられます。</div>
+          チェックしたいカタログのPDF、またはページの画像（JPG/PNG）をドロップ。<b>複数ファイルまとめて</b>入れられ、<b>ZIPに固めたまま</b>でもOKです。</div>
         </div>
         <div class="gstep">
           <div class="gnum">3</div>
@@ -223,10 +223,10 @@
     </div>
     <div class="card-body">
       <div class="upload-zone" id="zonePdf">
-        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" id="filePdf" multiple>
+        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.zip" id="filePdf" multiple>
         <div class="upload-icon">📄</div>
         <p>カタログPDF・画像をドロップ</p>
-        <small>またはクリックして選択（PDF / JPG / PNG・複数可・容量上限なし）</small>
+        <small>またはクリックして選択（PDF / JPG / PNG / ZIPまとめ可・複数可・容量上限なし）</small>
       </div>
       <ul class="pdf-list" id="pdfList"></ul>
     </div>
@@ -304,8 +304,9 @@
 <script src="../design-preview/lib/pdf.min.js"></script>
 <script src="lib/tesseract.min.js"></script>
 <script src="lib/zxing.min.js"></script>
+<script src="../design-preview/lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 12;
+const APP_VERSION = 13;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -455,10 +456,29 @@ function parseMasterSheet(rows){
 }
 
 /* ============================== PDF 選択 ============================== */
-setupZone(document.getElementById('zonePdf'), document.getElementById('filePdf'), files => {
-  for(const f of files){
-    if(!/\.(pdf|jpe?g|png|webp)$/i.test(f.name)) continue;
+setupZone(document.getElementById('zonePdf'), document.getElementById('filePdf'), async files => {
+  const addFile = f => {
+    if(!/\.(pdf|jpe?g|png|webp)$/i.test(f.name)) return;
     if(!PDF_FILES.some(p => p.name === f.name && p.file.size === f.size)) PDF_FILES.push({name: f.name, file: f});
+  };
+  for(const f of files){
+    if(/\.zip$/i.test(f.name)){
+      // ZIPは中のPDF・画像を展開して追加（__MACOSX や隠しファイルは無視、名前順に並べる）
+      try {
+        const zip = await JSZip.loadAsync(await f.arrayBuffer());
+        const entries = Object.values(zip.files)
+          .filter(e => !e.dir && /\.(pdf|jpe?g|png|webp)$/i.test(e.name) && !/(^|\/)(__MACOSX|\.)/.test(e.name))
+          .sort((a, b) => a.name.localeCompare(b.name, 'ja', {numeric: true}));
+        if(!entries.length) log(`${f.name}: ZIP内にPDF・画像が見つかりませんでした`, 'log-warn');
+        for(const e of entries){
+          const blob = await e.async('blob');
+          const base = e.name.split('/').pop();
+          addFile(new File([blob], `${f.name.replace(/\.zip$/i, '')}/${base}`, {type: blob.type}));
+        }
+      } catch(err){
+        log(`${f.name}: ZIPを展開できませんでした（${err.message}）`, 'log-err');
+      }
+    } else addFile(f);
   }
   renderPdfList();
   updateRunBtn();
