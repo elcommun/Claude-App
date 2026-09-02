@@ -303,8 +303,9 @@
 <script src="lib/xlsx.full.min.js"></script>
 <script src="../design-preview/lib/pdf.min.js"></script>
 <script src="lib/tesseract.min.js"></script>
+<script src="lib/zxing.min.js"></script>
 <script>
-const APP_VERSION = 10;
+const APP_VERSION = 11;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -525,11 +526,17 @@ async function runCheck(){
     log(`合計 ${totalPages}ページを処理します`, 'log-info');
 
     let done = 0;
-    const handlePage = (label, pageData) => {
-      const res = checkPage(pageData, label);
+    const noCodePages = new Map();  // ファイル名 → 品番未検出ページ番号の配列（まとめて1件で報告）
+    const handlePage = async (label, pageData, docName, pn) => {
+      const res = await checkPage(pageData, label);
       matchedOk += res.ok;
       itemTotal += res.total;
+      if(res.total === 0 && pn != null){
+        if(!noCodePages.has(docName)) noCodePages.set(docName, []);
+        noCodePages.get(docName).push(pn);
+      }
       renderPreview(pageData, label, res);
+      if(pageData.dispose) pageData.dispose();
       done++;
     };
     for(const d of docs){
@@ -538,13 +545,16 @@ async function runCheck(){
           const label = `${d.name} p.${pn}`;
           setProgress(`${label}（${done+1}/${totalPages}ページ）を読み取り中…`, done/totalPages);
           const page = await d.doc.getPage(pn);
-          handlePage(label, await extractPage(page, label, done, totalPages));
-          page.cleanup();
+          await handlePage(label, await extractPage(page, label, done, totalPages), d.name, pn);
         }
       } else {
         setProgress(`${d.name}（${done+1}/${totalPages}ページ）を読み取り中…`, done/totalPages);
-        handlePage(d.name, await extractImage(d.file, d.name, done, totalPages));
+        await handlePage(d.name, await extractImage(d.file, d.name, done, totalPages), d.name, null);
       }
+    }
+    for(const [docName, pages] of noCodePages){
+      addFinding('info', docName, '商品未検出ページ', 'p.' + pages.join(', '), '',
+        `品番を検出できなかったページです（表紙・イメージページの場合は問題ありません）`);
     }
     setProgress('完了', 1);
     log('──────────', 'log-sep');
@@ -616,7 +626,22 @@ async function extractPage(page, label, doneCount, totalPages){
   // プレビュー用画像
   const dispCanvas = await renderPage(page, dispScale);
 
-  return {words, ocrScale, dispScale, dispCanvas, usedOcr,
+  // バーコード読取用：指定領域（OCR座標）をk倍の解像度で再描画する
+  const renderCrop = async (x0, y0, x1, y1, k) => {
+    const s = ocrScale * k;
+    const vp = page.getViewport({scale: s});
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.ceil((x1 - x0) * k));
+    c.height = Math.max(1, Math.ceil((y1 - y0) * k));
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({canvasContext: ctx, viewport: vp, transform: [1, 0, 0, 1, -x0 * k, -y0 * k]}).promise;
+    return c;
+  };
+
+  return {words, ocrScale, dispScale, dispCanvas, usedOcr, renderCrop,
+          dispose: () => page.cleanup(),
           pageW: vp1.width * ocrScale, pageH: vp1.height * ocrScale};
 }
 
@@ -646,8 +671,18 @@ async function extractImage(file, label, doneCount, totalPages){
   const words = collectOcrWords(data);
   canvas.width = canvas.height = 0;
   const dispCanvas = draw(dispScale);
-  bmp.close();
-  return {words, ocrScale, dispScale, dispCanvas, usedOcr: true, pageW: w * ocrScale, pageH: h * ocrScale};
+  const renderCrop = async (x0, y0, x1, y1, k) => {
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.ceil((x1 - x0) * k));
+    c.height = Math.max(1, Math.ceil((y1 - y0) * k));
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.drawImage(bmp, x0 / ocrScale, y0 / ocrScale, (x1 - x0) / ocrScale, (y1 - y0) / ocrScale, 0, 0, c.width, c.height);
+    return c;
+  };
+  return {words, ocrScale, dispScale, dispCanvas, usedOcr: true, renderCrop,
+          dispose: () => bmp.close(), pageW: w * ocrScale, pageH: h * ocrScale};
 }
 
 async function renderPage(page, scale){
@@ -781,7 +816,7 @@ function detectTokens(pageData){
         const prev = run[run.length - 1];
         const gap = prev ? w.x0 - prev.x1 : 0;
         const wh = prev ? Math.max(12, Math.min(w.y1 - w.y0, prev.y1 - prev.y0)) : 12;
-        if(run.length && gap > wh * 1.5) flush();
+        if(run.length && gap > wh * 3) flush();  // バーコード下の「4 582529 548417」表記も結合できるよう3文字分まで許容
         run.push(w); runText += t;
       } else flush();
     }
@@ -806,8 +841,22 @@ function detectTokens(pageData){
       }
     }
   }
-  for(const ln of priceSegs){
+  // 一覧ページではセルごとの小さな価格表記が横に連なり1セグメントになるため、
+  // 「税込」を含む語が複数あるセグメントは、その語ごとにさらに分割する
+  const priceSegs2 = [];
+  for(const sg of priceSegs){
+    const starts = [];
+    sg.words.forEach((w, i) => { if(/税\s*込/.test(normText(w.text)) || (normText(w.text) === '税' && sg.words[i+1] && normText(sg.words[i+1].text).startsWith('込'))) starts.push(i); });
+    if(starts.length <= 1){ priceSegs2.push(sg); continue; }
+    for(let k = 0; k < starts.length; k++){
+      const ws = sg.words.slice(starts[k], k + 1 < starts.length ? starts[k+1] : sg.words.length);
+      priceSegs2.push({words: ws, x0: Math.min(...ws.map(w => w.x0)), x1: Math.max(...ws.map(w => w.x1)),
+                       y0: Math.min(...ws.map(w => w.y0)), y1: Math.max(...ws.map(w => w.y1)), cy: sg.cy});
+    }
+  }
+  for(const ln of priceSegs2){
     const t = normText(ln.words.map(w => w.text).join(' ')).replace(/[¥\\￥]/g, '¥');
+    const segConf = ln.words.reduce((a, w) => a + (w.conf || 0), 0) / ln.words.length;
     const tc = t.replace(/\s+/g, '');  // OCRで文字間にスペースが入るケースに対応
     let incl = null, excl = null;
     let m = tc.match(/税込[^\d]{0,4}([\d,\.]{3,9})/);
@@ -835,7 +884,7 @@ function detectTokens(pageData){
       while((rm = rre.exec(tcU))){
         ranges.push({prefix: rm[1], a: parseInt(rm[2], 10), b: parseInt(rm[4], 10)});
       }
-      prices.push({incl, excl, ranges, text: t, x0: ln.x0, y0: ln.y0, x1: ln.x1, y1: ln.y1, cy: ln.cy});
+      prices.push({incl, excl, ranges, text: t, conf: segConf, x0: ln.x0, y0: ln.y0, x1: ln.x1, y1: ln.y1, cy: ln.cy});
     }
   }
 
@@ -848,7 +897,7 @@ function addFinding(sev, page, kind, catalog, master, detail){
   FINDINGS.push({sev, page, kind, catalog: catalog || '', master: master || '', detail: detail || ''});
 }
 
-function checkPage(pageData, label){
+async function checkPage(pageData, label){
   const tk = detectTokens(pageData);
   const {codes, jans, prices, lines} = tk;
   const {pageW, pageH} = pageData;
@@ -885,6 +934,47 @@ function checkPage(pageData, label){
     if(best){ c.jan = best; usedJan.add(best); }
   }
 
+  // --- バーコード読取（ZXing）：ラベル下のEAN-13バーコードを高解像度で再描画して復号する ---
+  // 印字JANが小さくOCRで読めないカタログ（バーコード下の「4 582529 548417」表記）に対応。
+  // バーコードが読めた場合はOCRより信頼できるため、OCR結果と食い違うときはバーコードを優先する
+  if(window.ZXing && pageData.renderCrop && codes.length){
+    try {
+      const hints = new Map();
+      hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13]);
+      hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      const reader = new ZXing.MultiFormatReader();
+      reader.setHints(hints);
+      const K = 3;  // OCR解像度の3倍（1モジュール≈4px以上を確保）
+      for(const c of codes){
+        const rowH = Math.max(8, c.y1 - c.y0);
+        const x0 = Math.max(0, c.winX0), x1 = Math.min(pageW, c.winX1);
+        const y0 = Math.max(0, c.y1 - rowH * 0.3), y1 = Math.min(pageH, c.y1 + rowH * 4.5);
+        if(x1 - x0 < 20 || y1 - y0 < 10) continue;
+        let text = null;
+        try {
+          const crop = await pageData.renderCrop(x0, y0, x1, y1, K);
+          const src = new ZXing.HTMLCanvasElementLuminanceSource(crop);
+          const res = reader.decode(new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(src)));
+          text = res && res.getText();
+          crop.width = crop.height = 0;
+        } catch(e){ /* バーコードなし・復号失敗 */ }
+        reader.reset();
+        if(!text || !/^\d{13}$/.test(text) || !ean13Valid(text)) continue;
+        c.barcode = text;
+        if(!c.jan){
+          c.jan = {text, x0: c.winX0, x1: c.winX1, y0: c.y1 + rowH, y1: c.y1 + rowH * 3, conf: 100, fromBarcode: true};
+        } else if(c.jan.text !== text){
+          if(!ean13Valid(c.jan.text) || c.jan.corrected || !MASTER.byJan.has(c.jan.text)){
+            // OCRのJANが不正/補正あり/マスタ未登録ならバーコードで置き換える（OCR誤読の可能性が高い）
+            c.jan = {...c.jan, text, conf: 100, corrected: null, fromBarcode: true, ocrText: c.jan.text};
+          } else {
+            c.janBarcodeMismatch = text;  // 印字JANもバーコードも有効だが異なる → 後で警告
+          }
+        }
+      }
+    } catch(e){ console.warn('barcode decode skipped', e); }
+  }
+
   // --- バリエーション名（品番とJANの間のワード） ---
   for(const c of codes){
     if(!c.jan){ c.variation = ''; continue; }
@@ -896,6 +986,7 @@ function checkPage(pageData, label){
       if(cx < c.winX0 || cx > c.winX1) return false;
       const t = w.text.replace(/\s/g, '');
       if(/^[\d,\.]+$/.test(t)) return false;              // JAN等の数字
+      if(w.conf < 55) return false;                        // バーコードの縞などをOCRが文字化けさせたノイズ
       const nc = normCode(t);
       if(nc === c.code || MASTER.byCode.has(nc) || looksLikeCode(nc)) return false; // 品番トークン
       return true;
@@ -904,28 +995,48 @@ function checkPage(pageData, label){
     c.variation = normText(vw.map(w => w.text).join(' '));
   }
 
-  // --- 価格ブロック割り当て（最寄りの下方価格行） ---
+  // --- 価格ブロック割り当て ---
+  // レイアウトは2種類：価格行がブロックの「下」にあるリーフレット型と、
+  // 「上」の見出し行にある総合カタログ型。ページ内の最上位の価格行が最初の商品行より上にあれば見出し型とみなす
+  const plainPrices = prices.filter(p => !(p.ranges && p.ranges.length));
+  let headerLayout = false;
+  if(plainPrices.length && codes.length){
+    const topPrice = Math.min(...plainPrices.map(p => p.y0));
+    const topCode = Math.min(...codes.map(c => c.y0));
+    headerLayout = topPrice < topCode;
+  }
   for(const c of codes){
-    let best = null, bestD = Infinity;
+    let best = null, bestScore = Infinity;
     const rowH = c.y1 - c.y0;
     const cp = c.code.match(/^([A-Z]+)-?(\d+)/);
     for(const p of prices){
-      const dy = p.y0 - c.y1;
-      if(dy < 0) continue;
       if(p.ranges && p.ranges.length){
         // 品番範囲付きの価格行：範囲に入る品番だけに適用（明示指定なので距離ガードは不要）
-        if(!cp) continue;
+        if(p.y0 - c.y1 < 0 || !cp) continue;
         const n = parseInt(cp[2], 10);
         if(!p.ranges.some(r => r.prefix === cp[1] && n >= Math.min(r.a, r.b) && n <= Math.max(r.a, r.b))) continue;
-      } else {
-        if(dy > pageH * 0.38) continue;
-        // 横方向に重ならない価格行は横並びの別ブロックのもの
-        if(p.x1 < c.winX0 - pageW * 0.03 || p.x0 > c.winX1 + pageW * 0.03) continue;
-        // アイテムと価格行の間に別の商品行がある場合、その価格行は別ブロックのもの
-        const rowBetween = codes.some(o => o.y0 > c.y1 + rowH && o.y1 < p.y0 - 4);
-        if(rowBetween) continue;
+        const dy = p.y0 - c.y1;
+        if(dy < bestScore){ bestScore = dy; best = p; }
+        continue;
       }
-      if(dy < bestD){ bestD = dy; best = p; }
+      const below = p.y0 >= c.y1 - 4;
+      const above = p.y1 <= c.y0 + 4;
+      if(!below && !above) continue;
+      if(!headerLayout && !below) continue;   // 下型レイアウトでは上の価格行は見ない
+      const dy = below ? p.y0 - c.y1 : c.y0 - p.y1;
+      if(dy > pageH * 0.38) continue;
+      // 横方向に重ならない価格行は横並びの別ブロックのもの（ページ幅の半分以上ある行は全列に適用）
+      const wide = (p.x1 - p.x0) > pageW * 0.5;
+      const ovl = Math.min(p.x1, c.winX1) - Math.max(p.x0, c.winX0);
+      if(!wide && ovl < -pageW * 0.03) continue;
+      // アイテムと価格行の間に別の商品行がある場合、その価格行は別ブロックのもの
+      const rowBetween = below
+        ? codes.some(o => o.y0 > c.y1 + rowH && o.y1 < p.y0 - 4)
+        : codes.some(o => o.y1 < c.y0 - rowH && o.y0 > p.y1 + 4);
+      if(rowBetween) continue;
+      // 見出し型では上の行を優先（同点なら重なりが大きい方）
+      const score = dy + (headerLayout && below ? pageH * 0.2 : 0) - Math.min(Math.max(ovl, 0), rowH * 4) * 0.25;
+      if(score < bestScore){ bestScore = score; best = p; }
     }
     c.priceLine = best;
   }
@@ -987,7 +1098,7 @@ function checkPage(pageData, label){
       s.y <= (c.jan ? c.jan.y1 : c.y1) + rowH * 3)) return true;
     // SOLD OUTの黒帯（白抜き文字はOCRで読めないことが多い）をピクセルで検出：
     // 「横に長く連続した濃色の帯」がラベル領域にあるかを見る（列幅に依存しない）
-    return hasDarkBandRegion(pageData, c.winX0 - rowH * 2, c.y0 - rowH * 0.5, c.winX1, c.y0 + rowH * 4.5, rowH / 2);
+    return hasDarkBandRegion(pageData, c.winX0 - rowH * 2, c.y0 + rowH * 0.6, c.winX1, c.y0 + rowH * 5.5, rowH / 3);
   };
 
   // --- 各品番のチェック ---
@@ -1145,19 +1256,31 @@ function checkPage(pageData, label){
       addFinding('info', label, 'JAN未検出', c.code, masterItem.jan, '品番の近くにJANが見つかりませんでした（レイアウトにより未検出の場合あり）');
     }
 
-    // 価格チェック
+    // 印字JANとバーコードの不一致（両方とも有効な値なのに異なる）
+    if(c.janBarcodeMismatch){
+      addFinding('warn', label, '印字JANとバーコード不一致', c.jan.text, c.janBarcodeMismatch,
+        `${c.code}: 印字されたJANとバーコードの内容が異なります（バーコード側の値をマスタ値欄に表示）`);
+      raise('warn');
+    }
+
+    // 価格チェック（価格表記のOCR信頼度が低い場合は警告に留める）
     if(masterItem && masterItem.price != null && c.priceLine){
       const pl = c.priceLine;
+      pl.items = pl.items || [];
+      pl.items.push(masterItem.price);
+      const lowConf = pl.conf != null && pl.conf < 75;
+      const psev = lowConf ? 'warn' : 'error';
+      const psuf = lowConf ? '（価格表記が小さく読取精度が低いため要目視確認）' : '';
       if(pl.excl != null && pl.excl !== masterItem.price){
-        addFinding('error', label, '税抜価格不一致', `¥${pl.excl.toLocaleString()}`, `¥${masterItem.price.toLocaleString()}`, `${c.code} の税抜価格がマスタ上代と一致しません`);
-        raise('error');
+        addFinding(psev, label, '税抜価格不一致', `¥${pl.excl.toLocaleString()}`, `¥${masterItem.price.toLocaleString()}`, `${c.code} の税抜価格がマスタ上代と一致しません${psuf}`);
+        raise(psev);
         pl.bad = true;
       }
       if(pl.excl == null && pl.incl != null){
         const expect = Math.round(masterItem.price * (1 + taxRate));
         if(pl.incl !== expect){
-          addFinding('error', label, '税込価格不一致', `¥${pl.incl.toLocaleString()}`, `¥${expect.toLocaleString()}`, `${c.code} の税込価格がマスタ上代×${1 + taxRate}と一致しません`);
-          raise('error');
+          addFinding(psev, label, '税込価格不一致', `¥${pl.incl.toLocaleString()}`, `¥${expect.toLocaleString()}`, `${c.code} の税込価格がマスタ上代×${1 + taxRate}と一致しません${psuf}`);
+          raise(psev);
           pl.bad = true;
         }
       }
@@ -1186,8 +1309,15 @@ function checkPage(pageData, label){
     if(p.incl != null && p.excl != null){
       const expect = Math.round(p.excl * (1 + taxRate));
       if(p.incl !== expect){
-        addFinding('error', label, '税込計算不一致', `税込¥${p.incl.toLocaleString()} / 税抜¥${p.excl.toLocaleString()}`, `税込¥${expect.toLocaleString()}`, `税込が税抜×${1 + taxRate}になっていません`);
-        p.bad = true;
+        // 紐付いた商品のマスタ上代と片方が一致するなら、もう片方はOCRの読み誤り（例: 1,300→11,300）とみなして指摘しない
+        const items = p.items || [];
+        const explained = items.some(mp => mp === p.excl || Math.round(mp * (1 + taxRate)) === p.incl);
+        if(!explained){
+          const sev = items.length && !(p.conf != null && p.conf < 75) ? 'error' : 'warn';
+          addFinding(sev, label, '税込計算不一致', `税込¥${p.incl.toLocaleString()} / 税抜¥${p.excl.toLocaleString()}`, `税込¥${expect.toLocaleString()}`,
+            `税込が税抜×${1 + taxRate}になっていません${sev === 'warn' ? '（商品に紐付かない行・または読取精度が低いため要目視確認）' : ''}`);
+          p.bad = true;
+        }
       }
     }
     marks.push({x0: p.x0 - 4, y0: p.y0 - 3, x1: p.x1 + 4, y1: p.y1 + 3,
@@ -1376,6 +1506,7 @@ function checkPage(pageData, label){
           const ovl = Math.min(w.y1, w2.y1) - Math.max(w.y0, w2.y0);
           if(t1.length >= 2 && t1 === normText(w2.text) && (w2.x0 - w.x1) < wh * 1.2 && ovl > wh * 0.5) dupTok = t1;
         }
+        if(dupTok && /^[ぁ-んァ-ヶー]{2}$/.test(dupTok)) dupTok = null;  // ざらざら・さらさら等の畳語は正常
         if(dupTok && !isNoise(dupTok)){
           addFinding('info', label, '重複語の可能性', t.slice(0, 60), '', `「${dupTok}」が連続しています（OCR誤読の場合あり）`);
           break;
@@ -1412,9 +1543,6 @@ function checkPage(pageData, label){
   }
 
   log(`${label}: 品番 ${codes.length}件検出 / OK ${ok}件`, codes.length ? 'log-ok' : 'log-warn');
-  if(!codes.length){
-    addFinding('info', label, '商品未検出', '', '', 'このページから品番を検出できませんでした（表紙・イメージページの場合は問題ありません）');
-  }
   return {marks, ok, total: codes.length};
 }
 
@@ -1451,19 +1579,37 @@ function hasDarkBandRegion(pageData, x0, y0, x1, y1, cellPx){
   try { d = canvas.getContext('2d').getImageData(px, py, pw, ph).data; } catch(e){ return false; }
   const cell = Math.max(3, Math.round(cellPx * k));
   const cols = Math.floor(pw / cell), rows = Math.floor(ph / cell);
+  if(cols < 12 || rows < 2) return false;
+  // 濃色率65%超のセルだけを対象にする（バーコードの縞は約50%なので除外され、白抜き文字の帯は残る）
+  const dark = [];
   for(let r = 0; r < rows; r++){
-    let run = 0;
+    dark.push([]);
     for(let cc = 0; cc < cols; cc++){
-      let n = 0, dark = 0;
+      let n = 0, dk = 0;
       for(let yy = r * cell; yy < (r + 1) * cell; yy += 2){
         for(let xx = cc * cell; xx < (cc + 1) * cell; xx += 2){
           const i = (yy * pw + xx) * 4;
           n++;
-          if(Math.max(d[i], d[i+1], d[i+2]) < 90) dark++;
+          if(Math.max(d[i], d[i+1], d[i+2]) < 90) dk++;
         }
       }
-      if(n && dark / n > 0.5){ run++; if(run >= 7) return true; }
-      else run = 0;
+      dark[r].push(n && dk / n > 0.65);
+    }
+  }
+  // 横に10セル以上続く濃色の帯を探す。帯の約1.6行分下もまだ黒ければ（または確認できなければ）商品写真などの大きな黒い面とみなして除外
+  const tallCheck = Math.round(1.6 * 3);
+  for(let r = 0; r < rows; r++){
+    let run = 0;
+    for(let cc = 0; cc < cols; cc++){
+      if(dark[r][cc]){ run++; } else { run = 0; }
+      if(run >= 10){
+        const c0 = cc - run + 1, c1 = cc;
+        const rr = r + tallCheck;
+        let below = 0;
+        if(rr < rows){ for(let x = c0; x <= c1; x++) if(dark[rr][x]) below++; }
+        if(rr >= rows || below >= (c1 - c0 + 1) * 0.7){ run = 0; continue; }  // 背の高い黒い面（写真）または判定不能
+        return true;
+      }
     }
   }
   return false;
