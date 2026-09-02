@@ -190,6 +190,7 @@
         <ul>
           <li><b>ファイル容量の上限はありません</b>（サーバーに送らずお使いのPCで処理するため。目安としてPDFは1ファイル100MB程度・Excelは数万行でも快適に動作します。それ以上も動きますが、PCのメモリ量によっては動作が重くなることがあります）</li>
           <li>読み取りには <b>1ページあたり20〜60秒</b> かかります（画像化されたPDFを文字認識するため）</li>
+          <li>PDF内のページが<b>低解像度の画像（200dpi未満）</b>で作られている場合、小さなJANや価格は読み取れないことがあります。該当ページは「低解像度ページ」として指摘一覧に表示されます（入稿データ側の問題で、アプリでは補えません）</li>
           <li>文字認識には読み間違いの可能性があるため、<b>指摘ゼロでも最終確認は目視で</b>お願いします</li>
           <li>ファイルは<b>外部に送信されません</b>（すべてお使いのブラウザ内で処理されます）</li>
           <li>指摘一覧は <b>CSVでダウンロード</b>して共有できます</li>
@@ -306,7 +307,7 @@
 <script src="lib/zxing.min.js"></script>
 <script src="../design-preview/lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 14;
+const APP_VERSION = 15;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -555,6 +556,20 @@ async function runCheck(){
         if(!noCodePages.has(docName)) noCodePages.set(docName, []);
         noCodePages.get(docName).push(pn);
       }
+      if(pageData.lowRes && res.total > 0){
+        const lr = pageData.lowRes;
+        const how = lr.dpi != null ? `約${lr.dpi}dpiの画像として埋め込まれています` : `幅${lr.px}pxの画像です`;
+        addFinding('info', label, '低解像度ページ', lr.dpi != null ? `約${lr.dpi}dpi` : `幅${lr.px}px`, '',
+          `このページは${how}。小さなJAN・価格の文字やバーコードが読み取れず「JAN未検出」等になる場合があります（入稿データ側の解像度の問題で、アプリでは補えません）。ベクターデータのPDF、または幅2500px以上（A4で300dpi相当）の画像で書き出すと精度が上がります`);
+        log(`${label}: 低解像度ページ（${how}）`, 'log-warn');
+        // 低解像度ページでの1文字違い品番は、誤植よりOCR誤読の可能性が高いためエラーではなく警告に落とす
+        for(const f of FINDINGS){
+          if(f.page === label && f.sev === 'error' && f.kind === '品番誤り疑い'){
+            f.sev = 'warn';
+            f.detail += '（低解像度ページのためOCR誤読の可能性が高い）';
+          }
+        }
+      }
       renderPreview(pageData, label, res);
       if(pageData.dispose) pageData.dispose();
       done++;
@@ -606,6 +621,7 @@ async function extractPage(page, label, doneCount, totalPages){
 
   let words = []; // {text, x0,y0,x1,y1, conf}  ※OCRスケール座標
   let usedOcr = false;
+  let lowRes = null;  // ページ全体が低解像度の画像として埋め込まれている場合 {dpi}
 
   if(charCount >= 40){
     // テキストレイヤーあり → OCR不要
@@ -641,6 +657,7 @@ async function extractPage(page, label, doneCount, totalPages){
     const {data} = await worker.recognize(canvas, {}, {blocks: true, text: true});
     words = collectOcrWords(data);
     canvas.width = canvas.height = 0;
+    lowRes = await detectRasterPage(page, vp1);
   }
 
   // プレビュー用画像
@@ -660,9 +677,43 @@ async function extractPage(page, label, doneCount, totalPages){
     return c;
   };
 
-  return {words, ocrScale, dispScale, dispCanvas, usedOcr, renderCrop,
+  return {words, ocrScale, dispScale, dispCanvas, usedOcr, renderCrop, lowRes,
           dispose: () => page.cleanup(),
           pageW: vp1.width * ocrScale, pageH: vp1.height * ocrScale};
+}
+
+/* ---------- ラスタページ判定 ----------
+   ベクター描画（パス・文字）がほぼ無く、ページ全体が1枚の画像で構成されているページは
+   埋め込み画像の画素数がそのまま読み取り精度の上限になる（例: A4に815px幅の画像＝約99dpi）。
+   この場合、拡大しても細部は復元できないため、有効解像度が低ければ参考情報として報告する */
+const LOW_RES_DPI = 200;     // これ未満のラスタページは低解像度として報告
+const LOW_RES_IMG_PX = 1500; // 画像ファイルはこの幅（px）未満なら低解像度として報告
+async function detectRasterPage(page, vp1){
+  try {
+    const ops = await page.getOperatorList();
+    const O = pdfjsLib.OPS;
+    let paths = 0, texts = 0;
+    const imgIds = [];
+    for(let i = 0; i < ops.fnArray.length; i++){
+      const fn = ops.fnArray[i];
+      if(fn === O.constructPath) paths++;
+      else if(fn === O.showText || fn === O.showSpacedText) texts++;
+      else if(fn === O.paintImageXObject || fn === O.paintImageXObjectRepeat) imgIds.push(ops.argsArray[i][0]);
+    }
+    if(!imgIds.length || paths > 20 || texts > 5) return null;
+    let maxW = 0, maxH = 0;
+    for(const id of new Set(imgIds)){
+      let img = null;
+      try { img = page.objs.has(id) ? page.objs.get(id) : null; } catch(e){ img = null; }
+      if(img && img.width > maxW){ maxW = img.width; maxH = img.height; }
+    }
+    if(!maxW) return null;
+    // 最大画像がページとほぼ同じ縦横比なら「ページ全体を画像化したページ」とみなす
+    const arPage = vp1.width / vp1.height, arImg = maxW / maxH;
+    if(Math.abs(arPage - arImg) / arPage > 0.15 && Math.abs(1/arPage - arImg) / (1/arPage) > 0.15) return null;
+    const dpi = Math.round(Math.max(maxW, maxH) / (Math.max(vp1.width, vp1.height) / 72));
+    return dpi < LOW_RES_DPI ? {dpi, px: maxW} : null;
+  } catch(e){ return null; }
 }
 
 /* ---------- 画像ファイル（JPG/PNG等）を1ページとしてOCR ---------- */
@@ -701,7 +752,8 @@ async function extractImage(file, label, doneCount, totalPages){
     ctx.drawImage(bmp, x0 / ocrScale, y0 / ocrScale, (x1 - x0) / ocrScale, (y1 - y0) / ocrScale, 0, 0, c.width, c.height);
     return c;
   };
-  return {words, ocrScale, dispScale, dispCanvas, usedOcr: true, renderCrop,
+  const lowRes = Math.max(w, h) < LOW_RES_IMG_PX * 1.4 && Math.min(w, h) < LOW_RES_IMG_PX ? {px: Math.min(w, h)} : null;
+  return {words, ocrScale, dispScale, dispCanvas, usedOcr: true, renderCrop, lowRes,
           dispose: () => bmp.close(), pageW: w * ocrScale, pageH: h * ocrScale};
 }
 
