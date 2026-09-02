@@ -306,7 +306,7 @@
 <script src="lib/zxing.min.js"></script>
 <script src="../design-preview/lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 13;
+const APP_VERSION = 14;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -843,6 +843,42 @@ function detectTokens(pageData){
     flush();
   }
 
+  // 列ウィンドウを先に決める（セル価格の抽出・JAN紐付け・色判定で共用）
+  computeWindows(codes, pageW);
+
+  // セル単位の価格抽出（一覧ページ向け）：品番の列の中・ラベル下の帯にある語だけから価格を読む。
+  // 行全体から「税込」の語で区切る方式だと、隣のセルの「税込」が誤読されたときに
+  // 2セルが結合して隣の価格が漏れてくるため、文字ではなく位置（列）で切る
+  const usedByCell = new Set();
+  {
+    const sortedCodes = codes.slice().sort((a, b) => a.y0 - b.y0);
+    for(const c of codes){
+      const rowH = Math.max(8, c.y1 - c.y0);
+      const nextRow = sortedCodes.find(o => o.y0 > c.y1 + rowH);
+      // 帯の下端：次の商品行・6行分・自列のJAN数字（バーコード下）のうち最も近いもの
+      const janBelow = jans.filter(j => { const jx = (j.x0 + j.x1) / 2; return jx >= c.winX0 && jx <= c.winX1 && j.y0 > c.y1; })
+        .sort((a, b) => a.y0 - b.y0)[0];
+      const bandY1 = Math.min(nextRow ? nextRow.y0 - 4 : Infinity, c.y1 + rowH * 6, janBelow ? janBelow.y0 - 2 : Infinity);
+      c.bandY1 = bandY1;
+      const bw = words.filter(w => {
+        const cx = (w.x0 + w.x1) / 2;
+        return cx >= c.winX0 && cx <= c.winX1 && w.y0 >= c.y1 - 2 && w.y1 <= bandY1;
+      }).sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
+      if(!bw.length) continue;
+      const t = normText(bw.map(w => w.text).join(' ')).replace(/[¥\\￥]/g, '¥');
+      if(!/[¥税]/.test(t)) continue;   // 価格らしき表記がない（リーフレット型はここで対象外になる）
+      const pr = parsePriceText(t);
+      if(pr.incl == null && pr.excl == null) continue;
+      const pw = bw.filter(w => /[¥\\￥税\d]/.test(w.text));
+      pw.forEach(w => usedByCell.add(w));
+      const conf = pw.reduce((a, w) => a + (w.conf || 0), 0) / Math.max(1, pw.length);
+      c.cellPrice = {incl: pr.incl, excl: pr.excl, ranges: [], text: t, conf, cell: true,
+        x0: Math.min(...pw.map(w => w.x0)), x1: Math.max(...pw.map(w => w.x1)),
+        y0: Math.min(...pw.map(w => w.y0)), y1: Math.max(...pw.map(w => w.y1)), cy: 0};
+      prices.push(c.cellPrice);
+    }
+  }
+
   // 価格行：税込/税抜パターン
   // 横並びの別ブロックの価格行が1行に結合されると金額が混ざるため、
   // 大きな水平ギャップで行をセグメントに分割してからセグメント単位で解析する
@@ -850,6 +886,7 @@ function detectTokens(pageData){
   for(const ln of lines){
     let cur = null;
     for(const w of ln.words){
+      if(usedByCell.has(w)){ cur = null; continue; }  // セル価格として消費済みの語は行セグメントに含めない
       if(!cur || w.x0 - cur.x1 > pageW * 0.05){
         cur = {words: [w], x0: w.x0, x1: w.x1, y0: w.y0, y1: w.y1, cy: ln.cy};
         priceSegs.push(cur);
@@ -877,24 +914,7 @@ function detectTokens(pageData){
   for(const ln of priceSegs2){
     const t = normText(ln.words.map(w => w.text).join(' ')).replace(/[¥\\￥]/g, '¥');
     const segConf = ln.words.reduce((a, w) => a + (w.conf || 0), 0) / ln.words.length;
-    const tc = t.replace(/\s+/g, '');  // OCRで文字間にスペースが入るケースに対応
-    let incl = null, excl = null;
-    let m = tc.match(/税込[^\d]{0,4}([\d,\.]{3,9})/);
-    if(m) incl = parseNum(m[1]);
-    m = tc.match(/税抜[^\d]{0,4}([\d,\.]{3,9})/);
-    if(m) excl = parseNum(m[1]);
-    if(incl == null && excl == null){
-      m = tc.match(/([\d,]{3,9})円?[+＋]税/);
-      if(m) excl = parseNum(m[1]);
-    }
-    if(incl == null && excl == null){
-      // OCRが「税込/税抜」の漢字を誤読しても、「¥2,420(¥2,200)」のような金額2つの行は価格行とみなす
-      const amounts = [...tc.matchAll(/¥([\d,\.]{3,9})/g)].map(x => parseNum(x[1])).filter(x => x != null && x >= 100);
-      if(amounts.length >= 2 && amounts[0] !== amounts[1]){
-        incl = Math.max(amounts[0], amounts[1]);
-        excl = Math.min(amounts[0], amounts[1]);
-      }
-    }
+    const {incl, excl} = parsePriceText(t);
     if(incl != null || excl != null){
       // 「(CLB-402~430)」のような品番範囲の条件付き価格表記を解析する
       const ranges = [];
@@ -928,17 +948,6 @@ async function checkPage(pageData, label){
   const usedJan = new Set();
   codes.sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0);
   for(const c of codes){
-    // 同じ行帯の隣の品番までを自分の列幅とする。最終列は左隣とのピッチを使う
-    // （固定幅にすると隣の注記や余白まで含んでしまい、バリエーション抽出や色判定が乱れる）
-    const rowAll = codes.filter(o => Math.abs(o.y0 - c.y0) < (c.y1 - c.y0) * 1.5).sort((a, b) => a.x0 - b.x0);
-    const idx = rowAll.indexOf(c);
-    const next = rowAll[idx + 1], prev = rowAll[idx - 1];
-    let rightX;
-    if(next) rightX = next.x0 - pageW * 0.008;
-    else if(prev) rightX = c.x0 + (c.x0 - prev.x0) - pageW * 0.008;
-    else rightX = c.x0 + pageW * 0.24;
-    c.winX0 = c.x0 - pageW * 0.015;
-    c.winX1 = rightX;
     let best = null, bestD = Infinity;
     for(const j of jans){
       if(usedJan.has(j)) continue;
@@ -995,6 +1004,51 @@ async function checkPage(pageData, label){
     } catch(e){ console.warn('barcode decode skipped', e); }
   }
 
+  // --- 小さな価格表記の再OCR ---
+  // セル価格が無い／信頼度が低いセルは、ラベル下の帯を元の解像度で3倍に拡大して読み直す
+  // （ページ全体のOCRは約290dpi相当のため、5〜6ptの価格文字は誤読しやすい）
+  if(pageData.renderCrop && codes.length){
+    const sortedCodes = codes.slice().sort((a, b) => a.y0 - b.y0);
+    let worker = null;
+    for(const c of codes){
+      // 既に税込＝税抜×税率で整合する読みが取れているセルは再OCR不要
+      if(c.cellPrice && (priceConsistent(c.cellPrice) || c.cellPrice.conf >= 85)) continue;
+      const rowH = Math.max(8, c.y1 - c.y0);
+      const nextRow = sortedCodes.find(o => o.y0 > c.y1 + rowH);
+      const bandY1 = Math.min(c.bandY1 != null && isFinite(c.bandY1) ? c.bandY1 : Infinity,
+                              nextRow ? nextRow.y0 - 4 : pageH, c.y1 + rowH * 6);
+      // 帯に価格らしき語（¥・税・カンマ付き数字）が無ければ再OCRしない（リーフレット型は対象外）
+      const hint = pageData.words.some(w => {
+        const cx = (w.x0 + w.x1) / 2;
+        return cx >= c.winX0 && cx <= c.winX1 && w.y0 >= c.y1 - 2 && w.y1 <= bandY1 && /[¥\\￥税]|\d,\d{3}/.test(w.text);
+      });
+      if(!hint || bandY1 - c.y1 < rowH) continue;
+      try {
+        if(!worker) worker = await getOcrWorker(() => {});
+        const crop = await pageData.renderCrop(Math.max(0, c.winX0), c.y1 - 2, Math.min(pageW, c.winX1), bandY1, 3);
+        const {data} = await worker.recognize(crop, {}, {blocks: true, text: true});
+        crop.width = crop.height = 0;
+        const ws = collectOcrWords(data);
+        const t = normText(ws.map(w => w.text).join(' ')).replace(/[¥\\￥]/g, '¥');
+        const pr = parsePriceText(t);
+        if(pr.incl == null && pr.excl == null) continue;
+        const conf = ws.length ? ws.reduce((a, w) => a + (w.conf || 0), 0) / ws.length : 0;
+        // 採用ルール：税込＝税抜×税率で整合する読みを最優先。整合しない再OCR結果は、
+        // 元の読みより明確に信頼度が高い場合だけ採用する
+        if(c.cellPrice){
+          const newOk = priceConsistent(pr), oldOk = priceConsistent(c.cellPrice);
+          if(oldOk && !newOk) continue;
+          if(!newOk && conf < c.cellPrice.conf + 10) continue;
+        }
+        const np = {incl: pr.incl, excl: pr.excl, ranges: [], text: t, conf, cell: true, zoom: true,
+                    x0: c.winX0, x1: c.winX1, y0: c.y1, y1: bandY1, cy: 0};
+        if(c.cellPrice){ const i = prices.indexOf(c.cellPrice); if(i >= 0) prices[i] = np; else prices.push(np); }
+        else prices.push(np);
+        c.cellPrice = np;
+      } catch(e){ /* 再OCRに失敗した場合は元の結果を使う */ }
+    }
+  }
+
   // --- バリエーション名（品番とJANの間のワード） ---
   for(const c of codes){
     if(!c.jan){ c.variation = ''; continue; }
@@ -1026,11 +1080,24 @@ async function checkPage(pageData, label){
     const topCode = Math.min(...codes.map(c => c.y0));
     headerLayout = topPrice < topCode;
   }
+  // 同じ行の複数セルにまたがる行セグメント（隣のセルの「税込」が誤読されて結合したもの）は
+  // どのセルの価格か判別できないため紐付けに使わない
+  for(const p of prices){
+    if(p.cell || (p.ranges && p.ranges.length)) continue;
+    let n = 0;
+    for(const c of codes){
+      const rowH = c.y1 - c.y0, dy = p.y0 - c.y1;
+      if(dy > -rowH && dy < rowH * 3 && Math.min(p.x1, c.winX1) - Math.max(p.x0, c.winX0) > 0) n++;
+    }
+    p.multiCell = n >= 2;
+  }
   for(const c of codes){
+    if(c.cellPrice){ c.priceLine = c.cellPrice; continue; }  // 自セルの価格が読めていればそれを使う
     let best = null, bestScore = Infinity;
     const rowH = c.y1 - c.y0;
     const cp = c.code.match(/^([A-Z]+)-?(\d+)/);
     for(const p of prices){
+      if(p.cell || p.multiCell) continue;
       if(p.ranges && p.ranges.length){
         // 品番範囲付きの価格行：範囲に入る品番だけに適用（明示指定なので距離ガードは不要）
         if(p.y0 - c.y1 < 0 || !cp) continue;
@@ -1065,8 +1132,8 @@ async function checkPage(pageData, label){
   // デバッグ用（サポート時にコンソールから確認できるよう検出状態を保持）
   window.DEBUG_TK = window.DEBUG_TK || [];
   window.DEBUG_TK.push({label,
-    prices: prices.map(p => ({incl: p.incl, excl: p.excl, y: Math.round(p.y0), text: p.text.slice(0, 60)})),
-    codes: codes.map(c => ({code: c.code, x: Math.round(c.x0), y: Math.round(c.y0), price: c.priceLine ? Math.round(c.priceLine.y0) : null})),
+    prices: prices.map(p => ({incl: p.incl, excl: p.excl, y: Math.round(p.y0), x0: Math.round(p.x0), x1: Math.round(p.x1), conf: Math.round(p.conf || 0), text: p.text.slice(0, 60)})),
+    codes: codes.map(c => ({code: c.code, x: Math.round(c.x0), y: Math.round(c.y0), w0: Math.round(c.winX0), w1: Math.round(c.winX1), price: c.priceLine ? Math.round(c.priceLine.y0) : null, px0: c.priceLine ? Math.round(c.priceLine.x0) : null, pincl: c.priceLine ? c.priceLine.incl : null})),
     jans: jans.map(j => ({t: j.text, x: Math.round(j.x0), x1: Math.round(j.x1), y: Math.round(j.y0), conf: Math.round(j.conf)})),
     lines: lines.map(l => ({y: Math.round(l.y0), x: Math.round(l.x0), text: l.text.slice(0, 90)}))});
 
@@ -1292,6 +1359,10 @@ async function checkPage(pageData, label){
       pl.items.push(masterItem.price);
       const lowConf = pl.conf != null && pl.conf < 75;
       const psev = lowConf ? 'warn' : 'error';
+      // 片方の金額しか読めず、その値がもう一方（税抜↔税込）としてマスタと一致する場合は
+      // OCRのラベル読み違いなので不一致として扱わない
+      if(pl.excl == null && pl.incl != null && pl.incl === masterItem.price){ pl.incl = null; pl.excl = masterItem.price; }
+      if(pl.incl == null && pl.excl != null && pl.excl === Math.round(masterItem.price * (1 + taxRate))){ pl.excl = null; pl.incl = Math.round(masterItem.price * (1 + taxRate)); }
       const psuf = lowConf ? '（価格表記が小さく読取精度が低いため要目視確認）' : '';
       const prefixNoise = (v, m) => v != null && m != null && String(v).length === String(m).length + 1 && String(v).endsWith(String(m));
       if(pl.excl != null && pl.excl !== masterItem.price && !prefixNoise(pl.excl, masterItem.price)){
@@ -1673,6 +1744,61 @@ function imageFeature(pageData, x0, y0, x1, y1){
   }
   if(!n || colored / n < 0.05 || !colored) return null;
   return {hue: (Math.atan2(sy, sx) * 180 / Math.PI + 360) % 360, ratio: colored / n};
+}
+
+/* 各品番の「列ウィンドウ」（自分のセルの横範囲）を決める。
+   同じ行帯の右隣の品番までを自分の列幅とし、最終列は左隣とのピッチを使う */
+function computeWindows(codes, pageW){
+  for(const c of codes){
+    const rowAll = codes.filter(o => Math.abs(o.y0 - c.y0) < (c.y1 - c.y0) * 1.5).sort((a, b) => a.x0 - b.x0);
+    const idx = rowAll.indexOf(c);
+    const next = rowAll[idx + 1], prev = rowAll[idx - 1];
+    let rightX;
+    if(next) rightX = next.x0 - pageW * 0.008;
+    else if(prev) rightX = c.x0 + (c.x0 - prev.x0) - pageW * 0.008;
+    else rightX = c.x0 + pageW * 0.24;
+    c.winX0 = c.x0 - pageW * 0.015;
+    c.winX1 = rightX;
+  }
+}
+
+/* 文字列から税込・税抜の金額を読み取る（「税込/税抜」の漢字がOCRで崩れても
+   「¥2,420(¥2,200)」の金額2つから推定する） */
+function parsePriceText(t){
+  const tc = t.replace(/\s+/g, '');
+  // 金額パターン：「2,145」「1.950」「990」。前後に数字が続くもの（JANの一部など）は金額とみなさない
+  const AMT = '(?<!\\d)(\\d{1,3}(?:[,\\.]\\d{3})|\\d{3,5})(?!\\d)';
+  const amtOk = v => (v != null && v >= 100 && v <= 99999) ? v : null;
+  let incl = null, excl = null, m;
+  // 「税込」の直後に別の「税」が来る場合（税込の金額が読み落とされた）は誤って税抜の金額を取らない
+  m = tc.match(new RegExp('税込[^\\d税]{0,4}' + AMT));
+  if(m) incl = amtOk(parseNum(m[1]));
+  m = tc.match(new RegExp('税抜[^\\d税]{0,4}' + AMT));
+  if(m) excl = amtOk(parseNum(m[1]));
+  if(incl == null && excl == null){
+    m = tc.match(new RegExp(AMT + '円?[+＋]税'));
+    if(m) excl = amtOk(parseNum(m[1]));
+  }
+  const amounts = [...tc.matchAll(new RegExp('¥' + AMT, 'g'))].map(x => amtOk(parseNum(x[1]))).filter(x => x != null);
+  if(incl == null && excl == null){
+    if(amounts.length >= 2 && amounts[0] !== amounts[1]){
+      incl = Math.max(amounts[0], amounts[1]);
+      excl = Math.min(amounts[0], amounts[1]);
+    }
+  }
+  // 整合チェック：¥金額の中に「税込＝税抜×税率」の組があれば、キーワードの読み違い
+  // （「税抜」が「税込」と読まれた等）より優先してその組を採用する
+  if(amounts.length >= 2 && !(incl != null && excl != null && incl === Math.round(excl * (1 + currentTaxRate())))){
+    const rate = 1 + currentTaxRate();
+    outer: for(const a of amounts) for(const b of amounts){
+      if(a !== b && b === Math.round(a * rate)){ excl = a; incl = b; break outer; }
+    }
+  }
+  return {incl, excl};
+}
+function currentTaxRate(){ return parseFloat(document.getElementById('taxRate').value) || 0.1; }
+function priceConsistent(pr){
+  return pr && pr.incl != null && pr.excl != null && pr.incl === Math.round(pr.excl * (1 + currentTaxRate()));
 }
 
 /* 品番などの並びを2件ずつ改行して見やすく整形する */
