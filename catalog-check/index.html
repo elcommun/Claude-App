@@ -307,7 +307,7 @@
 <script src="lib/zxing.min.js"></script>
 <script src="../design-preview/lib/jszip.min.js"></script>
 <script>
-const APP_VERSION = 15;
+const APP_VERSION = 16;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -1715,7 +1715,7 @@ function darkRatio(pageData, x0, y0, x1, y1){
 }
 
 /* 指定領域（OCR座標）に「横に長く連続した濃色の帯」（SOLD OUTリボン等）があるかを判定する。
-   cellPx角のセルに分割し、濃色セルが横に7セル以上連続したら帯とみなす */
+   cellPx角のセルに分割し、濃色セルが横に10セル以上・縦に3セル以上続く塊で、下端がくっきり途切れるものを帯とみなす */
 function hasDarkBandRegion(pageData, x0, y0, x1, y1, cellPx){
   const canvas = pageData.dispCanvas;
   if(!canvas) return false;
@@ -1745,20 +1745,30 @@ function hasDarkBandRegion(pageData, x0, y0, x1, y1, cellPx){
       dark[r].push(n && dk / n > 0.65);
     }
   }
-  // 横に10セル以上続く濃色の帯を探す。帯の約1.6行分下もまだ黒ければ（または確認できなければ）商品写真などの大きな黒い面とみなして除外
-  const tallCheck = Math.round(1.6 * 3);
+  // 横に10セル以上続く濃色の「塊」を探し、その高さと下端の形で帯（リボン）かどうかを判定する。
+  //  - 高さ3〜8セル（品番行の約1〜2.7倍）：薄い線（丸いバッジの下端など）は除外
+  //  - 塊の直下の行が明るい（＝下端がくっきり途切れる）：下に続く黒い面（商品写真）や、
+  //    行ごとに幅が縮んでいく丸い写真・アイコンの縁は除外
+  const spanDark = (r, c0, c1) => { let n = 0; for(let x = c0; x <= c1; x++) if(dark[r][x]) n++; return n; };
   for(let r = 0; r < rows; r++){
-    let run = 0;
-    for(let cc = 0; cc < cols; cc++){
-      if(dark[r][cc]){ run++; } else { run = 0; }
-      if(run >= 10){
-        const c0 = cc - run + 1, c1 = cc;
-        const rr = r + tallCheck;
-        let below = 0;
-        if(rr < rows){ for(let x = c0; x <= c1; x++) if(dark[rr][x]) below++; }
-        if(rr >= rows || below >= (c1 - c0 + 1) * 0.7){ run = 0; continue; }  // 背の高い黒い面（写真）または判定不能
-        return true;
-      }
+    let cc = 0;
+    while(cc < cols){
+      if(!dark[r][cc]){ cc++; continue; }
+      const c0 = cc;
+      while(cc < cols && dark[r][cc]) cc++;
+      const c1 = cc - 1, span = c1 - c0 + 1;
+      if(span < 10) continue;
+      // この列範囲が上下に何行続くか（斜めのリボンは行ごとに少しずれるので8割一致で追う）
+      let top = r, bottom = r;
+      while(top > 0 && spanDark(top - 1, c0, c1) >= span * 0.8) top--;
+      while(bottom + 1 < rows && spanDark(bottom + 1, c0, c1) >= span * 0.8) bottom++;
+      const h = bottom - top + 1;
+      // 高さ3〜8セル。丸い縁は幅が行ごとに縮むため8割一致が3行続くことはほぼ無く、
+      // 薄い線（バッジの下端）は1〜2行で除外される
+      if(h < 3 || h > 8) continue;
+      if(bottom + 1 >= rows) continue;                         // 領域の下端まで黒い → 商品写真など判定不能
+      if(spanDark(bottom + 1, c0, c1) > span * 0.6) continue;  // 直下がまだ濃い → 大きな黒い面の一部（斜めリボンの下辺は5割程度）
+      return true;
     }
   }
   return false;
