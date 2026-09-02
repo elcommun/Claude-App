@@ -305,7 +305,7 @@
 <script src="lib/tesseract.min.js"></script>
 <script src="lib/zxing.min.js"></script>
 <script>
-const APP_VERSION = 11;
+const APP_VERSION = 12;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // 使い方ガイド：初めての人には開いた状態で表示し、閉じたらそれを記憶する
@@ -987,6 +987,7 @@ async function checkPage(pageData, label){
       const t = w.text.replace(/\s/g, '');
       if(/^[\d,\.]+$/.test(t)) return false;              // JAN等の数字
       if(w.conf < 55) return false;                        // バーコードの縞などをOCRが文字化けさせたノイズ
+      if((t.match(/\d/g) || []).length >= t.length * 0.6) return false;  // 記号混じりのJAN数字（4%582529"547960 等）
       const nc = normCode(t);
       if(nc === c.code || MASTER.byCode.has(nc) || looksLikeCode(nc)) return false; // 品番トークン
       return true;
@@ -1023,6 +1024,7 @@ async function checkPage(pageData, label){
       const above = p.y1 <= c.y0 + 4;
       if(!below && !above) continue;
       if(!headerLayout && !below) continue;   // 下型レイアウトでは上の価格行は見ない
+      if(headerLayout && !above) continue;    // 見出し型では下の行は次セクションの見出しなので見ない
       const dy = below ? p.y0 - c.y1 : c.y0 - p.y1;
       if(dy > pageH * 0.38) continue;
       // 横方向に重ならない価格行は横並びの別ブロックのもの（ページ幅の半分以上ある行は全列に適用）
@@ -1035,7 +1037,7 @@ async function checkPage(pageData, label){
         : codes.some(o => o.y1 < c.y0 - rowH && o.y0 > p.y1 + 4);
       if(rowBetween) continue;
       // 見出し型では上の行を優先（同点なら重なりが大きい方）
-      const score = dy + (headerLayout && below ? pageH * 0.2 : 0) - Math.min(Math.max(ovl, 0), rowH * 4) * 0.25;
+      const score = dy - Math.min(Math.max(ovl, 0), rowH * 4) * 0.25;
       if(score < bestScore){ bestScore = score; best = p; }
     }
     c.priceLine = best;
@@ -1271,14 +1273,15 @@ async function checkPage(pageData, label){
       const lowConf = pl.conf != null && pl.conf < 75;
       const psev = lowConf ? 'warn' : 'error';
       const psuf = lowConf ? '（価格表記が小さく読取精度が低いため要目視確認）' : '';
-      if(pl.excl != null && pl.excl !== masterItem.price){
+      const prefixNoise = (v, m) => v != null && m != null && String(v).length === String(m).length + 1 && String(v).endsWith(String(m));
+      if(pl.excl != null && pl.excl !== masterItem.price && !prefixNoise(pl.excl, masterItem.price)){
         addFinding(psev, label, '税抜価格不一致', `¥${pl.excl.toLocaleString()}`, `¥${masterItem.price.toLocaleString()}`, `${c.code} の税抜価格がマスタ上代と一致しません${psuf}`);
         raise(psev);
         pl.bad = true;
       }
       if(pl.excl == null && pl.incl != null){
         const expect = Math.round(masterItem.price * (1 + taxRate));
-        if(pl.incl !== expect){
+        if(pl.incl !== expect && !prefixNoise(pl.incl, expect)){
           addFinding(psev, label, '税込価格不一致', `¥${pl.incl.toLocaleString()}`, `¥${expect.toLocaleString()}`, `${c.code} の税込価格がマスタ上代×${1 + taxRate}と一致しません${psuf}`);
           raise(psev);
           pl.bad = true;
@@ -1529,9 +1532,12 @@ async function checkPage(pageData, label){
     }
   }
 
-  // 未ペアのJAN（品番に紐付かなかったもの）
+  // 未ペアのJAN（品番に紐付かなかったもの）。商品のないページ（使用例・イメージ）の数字列は対象外、同じ値は1回だけ
+  const reportedJan = new Set();
   for(const j of jans){
-    if(usedJan.has(j) || j.text.length !== 13) continue;
+    if(!codes.length) break;
+    if(usedJan.has(j) || j.text.length !== 13 || reportedJan.has(j.text)) continue;
+    reportedJan.add(j.text);
     if(!MASTER.byJan.has(j.text)){
       if(ean13Valid(j.text)){
         addFinding('warn', label, 'JAN未登録', j.text, '', 'マスタに存在しないJANコードです');
