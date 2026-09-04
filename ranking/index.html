@@ -124,7 +124,8 @@ input[type=file]{display:none}
 .cat-hd{display:flex;align-items:baseline;gap:11px;margin-bottom:14px;flex-wrap:wrap}
 .cat-name{font-size:21px;font-weight:700}
 .cat-stats{display:flex;gap:13px;flex-wrap:wrap}
-.cs{font-size:12px;color:var(--ink3)}
+.cs{font-size:12px;color:var(--ink3);white-space:nowrap}
+.cs-sep{color:var(--ink4);margin:0 3px;font-weight:400}
 .cs b{color:var(--ink2);font-weight:700}
 .sort-lbl{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--gold);text-transform:uppercase}
 /* Table */
@@ -399,7 +400,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v245</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v246</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2020,9 +2021,16 @@ function showCategory(cat, updateSidebar=true) {
   document.getElementById('th-prev2').textContent=prev2Label;
   document.getElementById('th-prev2').title=prev2Edition?`${prev2Edition}版`:prev2PeriodFull;
 
-  let cmpSt='';
-  if(prevCatTot){const d=prevCatTot.qty?Math.round((t.qty-prevCatTot.qty)/prevCatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prevLabel}${prevSfx} <b>${prevCatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
-  if(prev2CatTot){const d=prev2CatTot.qty?Math.round((t.qty-prev2CatTot.qty)/prev2CatTot.qty*100):null;const cl=d>=0?'prev-up':'prev-dn',ar=d>=0?'▲':'▼';cmpSt+=`<span class="cs">${prev2Label}${prev2Sfx} <b>${prev2CatTot.qty.toLocaleString()}個</b>${d!=null?` <span class="${cl}">${ar}${Math.abs(d)}%</span>`:''}</span>`;}
+  // 各期の比較表示: 個数と金額の両方を「前期(…) 1,234個 ▲12% ｜ ¥1,433,000 ▲8%」形式で表示
+  const csFor=(lbl,sfx,tot)=>{
+    if(!tot) return '';
+    const seg=(cur,base,fmt)=>{
+      const d=base?Math.round((cur-base)/base*100):null;
+      return `<b>${fmt(base)}</b>${d!=null?` <span class="${d>=0?'prev-up':'prev-dn'}">${d>=0?'▲':'▼'}${Math.abs(d)}%</span>`:''}`;
+    };
+    return `<span class="cs">${lbl}${sfx} ${seg(t.qty,tot.qty,v=>v.toLocaleString()+'個')}<span class="cs-sep">｜</span>${seg(t.amount,tot.amount,v=>'¥'+v.toLocaleString())}</span>`;
+  };
+  const cmpSt=csFor(prevLabel,prevSfx,prevCatTot)+csFor(prev2Label,prev2Sfx,prev2CatTot);
 
   document.getElementById('cat-name').textContent=(CAT_ICONS[cat]||'📦')+' '+cat;
   document.getElementById('cat-stats').innerHTML=cmpSt;
