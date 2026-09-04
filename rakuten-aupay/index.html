@@ -330,7 +330,7 @@
 <script id="core">
 'use strict';
 /* ================= 埋め込み定数 ================= */
-const APP_VERSION = 32;
+const APP_VERSION = 33;
 const WOWMA_STORE = '69585078';
 const IMG_BASE = 'https://image.wowma.jp/' + WOWMA_STORE + '/elcommun/cabinet';
 const RAKUTEN_IMG = /https?:\/\/image\.rakuten\.co\.jp\/elcommun\/cabinet/g;
@@ -675,7 +675,9 @@ function convertAll(input, opt) {
 
     o.ctrlCol = isNew ? 'n' : 'u';
     o.itemName = stripBrTags(fixMojibake(stripDecoration(P('商品名'))));
-    o.itemCode = id;
+    /* カレンダー商品（商品管理番号がcal-始まり）はitemCodeを「商品管理番号＋商品番号」にする（例: cal-01- + CAL-188 → cal-01-CAL-188） */
+    const outItemCode = id.startsWith('cal-') ? id + P('商品番号') : id;
+    o.itemCode = outItemCode;
     if (isNew) o.itemManagementId = id;
     o.itemPrice = price;
     o.sellMethodSegment = '1';
@@ -803,7 +805,7 @@ function convertAll(input, opt) {
         const count = '0'; /* 在庫は0固定（auPAY側で設定する運用） */
         const sr = {};
         STOCK_HEADER.forEach(h => sr[h] = '');
-        sr.ctrlCol = sCtrl; sr.lotNumber = lot; sr.itemCode = id; sr.stockSegment = '2';
+        sr.ctrlCol = sCtrl; sr.lotNumber = lot; sr.itemCode = outItemCode; sr.stockSegment = '2';
         if (axis === 'V') {
           sr.choicesStockVerticalName = name; sr.choicesStockVerticalCode = code; sr.choicesStockVerticalSeq = String(k+1);
         } else {
