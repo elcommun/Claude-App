@@ -399,7 +399,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v244</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v245</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1391,13 +1391,10 @@ function catalogBlocks(sections){
     }
     blocks.push({type:'calcol',html:`<div class="cal-col">${inner}</div>`});
   }
-  // カレンダーにも手帳と同様に、右の空きカラムへ売上TOP5表を入れる
-  {
-    const calSecs=sections.filter(s=>s.catType==='カレンダー');
-    if(calSecs.length){
-      const rt=buildCalRankTable(calSecs);
-      if(rt) blocks.push({type:'ranktable',html:rt});
-    }
+  // カレンダーにも手帳と同様に、右の空きカラムへランキング表（全順位）を年ごとに入れる
+  for(const sec of sections.filter(s=>s.catType==='カレンダー')){
+    const rt=buildCalRankTable(sec);
+    if(rt) blocks.push({type:'ranktable',html:rt});
   }
   // 手帳など（従来どおり：全幅タイトル＋フォーマット）
   sections.filter(s=>s.catType!=='カレンダー').forEach((sec,si)=>{
@@ -1434,18 +1431,14 @@ function buildRankTable(sec){
   }
   return `<div class="cat-ranktbl-wrap"><div class="rt-title">種類別 売上ランキング（各TOP5）</div><div class="rt-grid">${blocks}</div></div>`;
 }
-// カレンダー用: 各年のカテゴリ内TOP5を1ブロックにまとめ、年カラムの右の空きに配置
-function buildCalRankTable(secs){
-  let blocks='';
-  for(const sec of secs){
-    const top=sec.groups.flatMap(g=>g.items).filter(it=>it.rank<=5).sort((a,b)=>a.rank-b.rank);
-    if(!top.length) continue;
-    let rows='';
-    for(const it of top) rows+=rtRowHtml(it);
-    blocks+=`<div class="rt-block"><div class="rt-fmt">${x(sec.cat)}</div>${rows}</div>`;
-  }
-  if(!blocks) return '';
-  return `<div class="cat-ranktbl-wrap"><div class="rt-title">売上ランキング（各年TOP5）</div><div class="rt-grid">${blocks}</div></div>`;
+// カレンダー用: 1年分のカテゴリ内 全順位ランキングを1表にして、年カラムの右の空きに配置
+// （行を rt-block で包まず rt-grid 直下に並べ、2カラムに自然に流し込む）
+function buildCalRankTable(sec){
+  const items=sec.groups.flatMap(g=>g.items).sort((a,b)=>a.rank-b.rank);
+  if(!items.length) return '';
+  let rows='';
+  for(const it of items) rows+=rtRowHtml(it);
+  return `<div class="cat-ranktbl-wrap"><div class="rt-title">${x(sec.cat)} 売上ランキング（全${items.length}種）</div><div class="rt-grid">${rows}</div></div>`;
 }
 // ブロックを横向きA4ページ（2カラム）へ分配。左カラムを下端まで埋めてから右カラム、
 // 埋まったら次ページへ。1カラム＝1フォーマット（カテゴリ）になるよう、各フォーマット
