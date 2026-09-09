@@ -1,6 +1,8 @@
 {
   "name": "EC 販売ランキング | EL COMMUN",
   "short_name": "EC販売ランキング",
+  "id": "/Claude-App/ranking/",
+  "scope": "/Claude-App/",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#2c2c3a",
