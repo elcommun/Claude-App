@@ -341,13 +341,29 @@ td.cat-col{text-align:left}
 @media screen and (max-width:768px){.main::before{height:16px}}
 @media screen and (max-width:600px){#sel-sum{bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 @media screen and (max-width:480px){.hdr{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}}
+/* ── 下メニュー時（body.hd-bottom）のスマホ: サイドバーを右から出し、行の中身も左右反転（チェック=右端、▶=左端）。
+   ドロワー表示になる幅（≤768px）のみ。タブレットで左に常設表示のときは反転しない ── */
+@media (max-width:768px){
+  body.hd-bottom .sb{left:auto;right:env(safe-area-inset-right,0px);border-right:0;border-left:1px solid var(--border);transform:translateX(100%);box-shadow:-4px 0 24px rgba(0,0,0,.18)}
+  body.hd-bottom .sb.open{transform:translateX(0)}
+  body.hd-bottom .sbi{flex-direction:row-reverse;border-left:0;border-right:3px solid transparent}
+  body.hd-bottom .sbi.active{border-right-color:var(--accent)}
+  body.hd-bottom .sbi-name{text-align:right}
+  body.hd-bottom .sbi-badge{text-align:left}
+  body.hd-bottom .sbi-bar{left:14px;right:17px}
+  body.hd-bottom .sbi-chk{margin:0 0 0 4px}
+  /* row-reverse では order 最大が左端。▶→◀ に反転（▼はそのまま） */
+  body.hd-bottom .sbi-chev{order:9;transform:scaleX(-1)}
+  body.hd-bottom .sbi-sub{padding-left:14px;padding-right:26px}
+  body.hd-bottom .sbi-sub .sbi-bar{left:14px;right:31px}
+}
 </style>
 </head>
 <body>
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v113</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v114</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2143,21 +2159,25 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
   document.querySelector('.sb').classList.remove('open');
   document.getElementById('sb-overlay').classList.remove('open');
 });
-// 画面左端から右へスワイプでサイドメニューを開く（スマホ・タブレット表示時のみ）
+// 画面端からのスワイプでサイドメニューを開く（スマホ・タブレット表示時のみ）。
+// 上メニュー時は左端から右へ、下メニュー時（body.hd-bottom＝サイドバーが右出し）は右端から左へ
 (function(){
   const sbEl=document.querySelector('.sb'), ovEl=document.getElementById('sb-overlay');
   function isDrawerMode(){ return window.innerWidth<=768; }
   function openSb(){ sbEl.classList.add('open'); ovEl.classList.add('open'); }
+  const rightSide=()=>document.body.classList.contains('hd-bottom');
   let sx=0, sy=0, tracking=false;
   document.addEventListener('touchstart', e=>{
     if(!isDrawerMode()||sbEl.classList.contains('open')) return;
     const t=e.touches[0];
-    if(t.clientX<=24){ sx=t.clientX; sy=t.clientY; tracking=true; }
+    const edge = rightSide() ? t.clientX>=window.innerWidth-24 : t.clientX<=24;
+    if(edge){ sx=t.clientX; sy=t.clientY; tracking=true; }
   }, {passive:true});
   document.addEventListener('touchmove', e=>{
     if(!tracking) return;
     const t=e.touches[0], dx=t.clientX-sx, dy=t.clientY-sy;
-    if(dx>50 && Math.abs(dx)>Math.abs(dy)){ openSb(); tracking=false; }
+    const ok = rightSide() ? dx<-50 : dx>50;
+    if(ok && Math.abs(dx)>Math.abs(dy)){ openSb(); tracking=false; }
   }, {passive:true});
   document.addEventListener('touchend', ()=>{ tracking=false; }, {passive:true});
 })();
