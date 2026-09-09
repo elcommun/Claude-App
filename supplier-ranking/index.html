@@ -245,6 +245,11 @@ td.cat-col{text-align:left}
   .sb-update-mobile{display:block}
 }
 @media(max-width:480px){
+  /* ヘッダーの余白・仕切りを詰めて ☰・検索・ボタン類・↓↑ を1行に収める */
+  .hdr{padding:0 10px;gap:8px}
+  .hd-sep,.hd-spacer{display:none}
+  .search-wrap{flex:0 1 auto;min-width:0}
+  .search-wrap #hd-search{max-width:100%}
   #hd-search{width:100px;font-size:16px}
   .search-wrap:focus-within{flex:1 1 auto;min-width:0}
   .search-wrap:focus-within #hd-search{width:100%}
@@ -297,13 +302,25 @@ td.cat-col{text-align:left}
   .tbl tr:has(td[colspan]){display:block}
   .tbl td[colspan]{display:block}
 }
+/* ── メニューバー（ヘッダー）の上下切替: スマホ・タブレット（≤1024px またはタッチ端末）でのみ ↓/↑ ボタンを表示し、
+   body.hd-bottom のとき検索・☰ などのメニューバーを画面下に固定して片手で操作しやすくする ── */
+.hd-pos{display:none}
+@media(max-width:1024px),(hover:none) and (pointer:coarse){
+  .hd-pos{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.85);font-size:15px;font-weight:700;line-height:1;padding:4px 8px;cursor:pointer;flex-shrink:0;font-family:inherit;margin-left:2px}
+  .hd-pos:hover{background:rgba(255,255,255,.2);color:#fff}
+  body.hd-bottom .hdr{top:auto;bottom:0;height:calc(var(--hh) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -2px 8px rgba(0,0,0,.18)}
+  body.hd-bottom .layout{padding-top:0;padding-bottom:calc(var(--hh) + env(safe-area-inset-bottom,0px))}
+  body.hd-bottom .sb,body.hd-bottom .sb-resize{top:0;bottom:calc(var(--hh) + env(safe-area-inset-bottom,0px))}
+  body.hd-bottom .tbl thead{top:0}
+  body.hd-bottom #sel-sum{bottom:calc(var(--hh) + 20px + env(safe-area-inset-bottom,0px))}
+}
 </style>
 </head>
 <body>
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v111</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v112</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -315,8 +332,24 @@ td.cat-col{text-align:left}
   <a class="hd-btn hd-link" href="https://elcommun.github.io/Claude-App/ranking/" title="EC事業部 販売データ：自社商品">自社商品</a>
   <a class="hd-btn hd-manual hd-btn-ic" href="manual.html" target="_blank" title="使い方マニュアル" aria-label="使い方">📖<span class="lbl"> 使い方</span></a>
   <button class="hd-btn" id="hd-update-btn" onclick="openModal()">⬆ データ更新</button>
+  <button type="button" class="hd-pos" id="hd-pos" aria-label="メニューバーを下に移動" title="メニューバーを下に移動">↓</button>
 </header>
 <div id="boot" aria-live="polite"><div class="boot-logo">EC事業部 販売データ：仕入れ商品</div><div><span class="spinner"></span>データを読み込んでいます…</div></div>
+<script>
+// ── メニューバーの上下切替（スマホ・タブレット）。選択は端末に記憶 ──
+(function(){
+  const KEY='ec_hd_pos', btn=document.getElementById('hd-pos'); if(!btn) return;
+  function apply(bottom){
+    document.body.classList.toggle('hd-bottom', bottom);
+    btn.textContent = bottom ? '↑' : '↓';
+    const t = bottom ? 'メニューバーを上に戻す' : 'メニューバーを下に移動';
+    btn.setAttribute('aria-label', t); btn.title = t;
+  }
+  let bottom=false; try{ bottom = localStorage.getItem(KEY)==='bottom'; }catch(e){}
+  apply(bottom);
+  btn.addEventListener('click', ()=>{ bottom=!bottom; apply(bottom); try{ localStorage.setItem(KEY, bottom?'bottom':'top'); }catch(e){} });
+})();
+</script>
 
 <div class="modal-bg" id="modal">
   <div class="modal" role="dialog" aria-modal="true" aria-label="販売データを追加">

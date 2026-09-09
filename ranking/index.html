@@ -254,6 +254,11 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 }
 /* スマホ縦（≤480px）: 上代・合計金額を隠して商品画像・個数・欠品日を収める */
 @media(max-width:480px){
+  /* ヘッダーの余白・仕切りを詰めて ☰・検索・ボタン類・↓↑ を1行に収める */
+  .hdr{padding:0 10px;gap:8px}
+  .hd-sep,.hd-spacer{display:none}
+  .search-wrap{flex:0 1 auto;min-width:0}
+  .search-wrap #hd-search{max-width:100%}
   .show-img .price-col{display:none}
   .amount-col{display:none}
   /* 手帳・カレンダー以外は合計金額を表示 */
@@ -433,13 +438,25 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   .cat-col{height:auto!important;overflow:visible!important}
   .cat-card,.cat-fmt,.cat-sec-hdr{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+/* ── メニューバー（ヘッダー）の上下切替: スマホ・タブレット（≤1024px またはタッチ端末）でのみ ↓/↑ ボタンを表示し、
+   body.hd-bottom のとき検索・☰ などのメニューバーを画面下に固定して片手で操作しやすくする ── */
+.hd-pos{display:none}
+@media(max-width:1024px),(hover:none) and (pointer:coarse){
+  .hd-pos{display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:6px;color:rgba(255,255,255,.85);font-size:15px;font-weight:700;line-height:1;padding:4px 8px;cursor:pointer;flex-shrink:0;font-family:inherit;margin-left:2px}
+  .hd-pos:hover{background:rgba(255,255,255,.2);color:#fff}
+  body.hd-bottom .hdr{top:auto;bottom:0;height:calc(var(--hh) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -2px 8px rgba(0,0,0,.18)}
+  body.hd-bottom .layout{padding-top:0;padding-bottom:calc(var(--hh) + env(safe-area-inset-bottom,0px))}
+  body.hd-bottom .sb,body.hd-bottom .sb-resize{top:0;bottom:calc(var(--hh) + env(safe-area-inset-bottom,0px))}
+  body.hd-bottom .tbl thead{top:0}
+  body.hd-bottom #sel-sum{bottom:calc(var(--hh) + 20px + env(safe-area-inset-bottom,0px))}
+}
 </style>
 </head>
 <body>
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v250</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v251</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -451,6 +468,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   <a href="https://elcommun.github.io/Claude-App/supplier-ranking/" class="hd-btn hd-btn-blue" style="text-decoration:none">仕入れ商品</a>
   <a href="manual.html" target="_blank" class="hd-btn hd-btn-ic" style="text-decoration:none" aria-label="使い方">📖<span class="lbl"> 使い方</span></a>
   <button class="hd-btn hd-btn-opt hd-btn-ic" id="hd-update-btn" aria-label="設定">⚙<span class="lbl"> 設定</span></button>
+  <button type="button" class="hd-pos" id="hd-pos" aria-label="メニューバーを下に移動" title="メニューバーを下に移動">↓</button>
 </header>
 
 <!-- Modal -->
@@ -602,6 +620,21 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   </main>
 </div>
 <div id="boot" aria-live="polite"><div class="boot-logo">EC事業部 販売データ</div><div><span class="spinner"></span>データを読み込んでいます…</div></div>
+<script>
+// ── メニューバーの上下切替（スマホ・タブレット）。選択は端末に記憶 ──
+(function(){
+  const KEY='ec_hd_pos', btn=document.getElementById('hd-pos'); if(!btn) return;
+  function apply(bottom){
+    document.body.classList.toggle('hd-bottom', bottom);
+    btn.textContent = bottom ? '↑' : '↓';
+    const t = bottom ? 'メニューバーを上に戻す' : 'メニューバーを下に移動';
+    btn.setAttribute('aria-label', t); btn.title = t;
+  }
+  let bottom=false; try{ bottom = localStorage.getItem(KEY)==='bottom'; }catch(e){}
+  apply(bottom);
+  btn.addEventListener('click', ()=>{ bottom=!bottom; apply(bottom); try{ localStorage.setItem(KEY, bottom?'bottom':'top'); }catch(e){} });
+})();
+</script>
 <script src="data.js"></script>
 
 <script>
