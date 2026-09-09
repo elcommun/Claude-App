@@ -114,6 +114,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><a href="#excel">Excelでダウンロードする</a></li>
       <li><a href="#upload">販売データを追加する（データ更新）</a></li>
       <li><a href="#sister">自社商品アプリに切り替える</a></li>
+      <li><a href="#mobile">スマホでの表示と便利機能</a></li>
     </ol>
   </div>
 
@@ -257,7 +258,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><span class="tag">金額順</span> 売上金額が高い順にランキング</li>
     </ul>
     <h3>列ヘッダーで並べ替える</h3>
-    <p>表の「商品番号」「商品名」「税抜単価」「数量」「小計金額」などの列見出しをクリックすると、その列で昇順/降順に並べ替えられます。</p>
+    <p>表の「商品番号」「商品名」「税抜単価」「数量」「小計金額」などの列見出しをクリックすると、その列で昇順/降順に並べ替えられます。キーボード操作の場合は、Tabキーで列見出しに移動して Enter または Space でも並べ替えできます。</p>
     <div class="note">
       <strong>ℹ️ 「順位」は商品に固定された値です</strong><br>
       順位はその商品の個数順（または金額順）の成績を表す固定の値で、列の並べ替えを変えても商品についたまま動きます。並べ替えても「この商品は何位か」がいつでも分かります。
@@ -292,11 +293,14 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <h2>商品名・商品番号をクリックする</h2>
     </div>
     <h3>商品名をクリック：折り返し表示＋販売期間</h3>
-    <p>商品名が長くて省略表示（…）になっている場合、商品名をクリックすると全文が折り返して表示されます。同時に、その商品の<strong>初回販売日〜最新販売日（販売期間）</strong>が商品名の下に表示されます。もう一度クリックすると元の1行表示に戻ります。</p>
+    <p>商品名の右端に小さな <strong>▾</strong> が付いています。商品名が長くて省略表示（…）になっている場合、商品名をクリックすると全文が折り返して表示されます。同時に、その商品の<strong>初回販売日〜最新販売日（販売期間）</strong>と、<strong>直近24ヶ月の月別販売数のミニグラフ</strong>が商品名の下に表示されます。もう一度クリックすると元の1行表示に戻ります。</p>
     <div class="ui-mock">
-      <div style="font-size:13px">松尾ミユキ レクタングルトートバッグA　<span style="color:#999">Milo（110021）</span></div>
+      <div style="font-size:13px">松尾ミユキ レクタングルトートバッグA ▴　<span style="color:#999">Milo（110021）</span></div>
       <div style="font-size:11px;color:#888;margin-top:2px">販売期間: 2023-09-25 〜 2026-06-26</div>
+      <svg viewBox="0 0 180 30" width="180" height="30" style="display:block;margin-top:4px" aria-hidden="true"><path d="M2,28 L2,24 L17,20 L32,22 L47,14 L62,18 L77,8 L92,12 L107,4 L122,10 L137,16 L152,12 L167,20 L178,22 L178,28 Z" fill="#2B6CB0" fill-opacity=".12"/><polyline points="2,24 17,20 32,22 47,14 62,18 77,8 92,12 107,4 122,10 137,16 152,12 167,20 178,22" fill="none" stroke="#2B6CB0" stroke-width="1.5" stroke-linejoin="round"/><circle cx="107" cy="4" r="2.2" fill="#2B6CB0"/></svg>
+      <div style="font-size:10px;color:#999;margin-top:1px">直近24ヶ月 445個 ｜ 最多 2025/11 45個</div>
     </div>
+    <p style="font-size:13px;color:#888">グラフの山の一番高いところに点が付き、最多月がひと目で分かります。PCではグラフの上にマウスを乗せると、その月の販売数がツールチップで表示されます。</p>
     <h3>商品番号をクリック：楽天ページを開く</h3>
     <p>商品番号（品番）はリンクになっており、クリックすると対応する楽天市場の商品ページが開きます。同じタブが使い回されるため、続けて別の商品番号をクリックしてもタブが増え続けることはありません。</p>
   </div>
@@ -383,6 +387,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><span class="txt">ファイルを<strong>ドラッグ＆ドロップ</strong>するか、クリックして選択します</span></li>
       <li><span class="txt">取り込みが完了すると件数が表示され、ランキングに反映されます</span></li>
     </ul>
+    <p style="font-size:12px;color:#888">※ アップロード画面は <strong>Esc</strong> キーでも閉じられます。Excel読み込み用のライブラリは初めてアップロード画面を開いたときに取得するため、通信環境によっては最初の1回だけ取り込み開始まで数秒かかることがあります。</p>
     <h3>必要な列（1行目に見出し）</h3>
     <p>店舗／出荷日／商品名／項目・選択肢／商品番号／税抜単価／数量／小計（税抜）／メーカー／掛け率</p>
     <div class="tip">
@@ -410,6 +415,35 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <span class="btn-o">自社商品</span>
       <div style="font-size:11px;color:#888;margin-top:6px">※ スマートフォンでもヘッダーに優先表示されます（かわりに「⬆ データ更新」がサイドバー（☰）の下部に移動します）</div>
     </div>
+  </div>
+
+  <!-- 14. スマホ・便利機能 -->
+  <div class="section" id="mobile">
+    <div class="section-hdr">
+      <div class="step-badge">13</div>
+      <h2>スマホでの表示と便利機能</h2>
+    </div>
+    <h3>スマホではカード表示になります</h3>
+    <p>画面幅が狭いスマホ（縦持ち）では、商品一覧が1商品＝1枚の<strong>カード表示</strong>に切り替わります。商品名を太字で大きく、項目（色・デザイン名）は小さく灰色で表示し、メーカー（またはカテゴリ）チップ・商品番号・数量・小計金額・売上比バーをまとめて確認できます。</p>
+    <ul class="step-list">
+      <li><span class="txt">前年比較をONにすると、各カードの右下に <strong>前年 187 ＋38%</strong>（前年に販売がなければ <strong>NEW</strong>）と前年同期の個数と増減率が表示されます</span></li>
+      <li><span class="txt">表の見出しが無いため、一覧の上に <strong>並び替えチップ</strong>（個数／金額／単価／品番／メーカー）が表示されます。タップで並び替え、もう一度タップで昇順・降順が切り替わります。検索結果では「メーカー」のかわりに「商品名」のチップになります</span></li>
+      <li><span class="txt">ヘッダーの <strong>📖（使い方）</strong> はアイコンだけの表示になります。検索ボックスはタップすると横幅いっぱいに広がります</span></li>
+      <li><span class="txt">左端から右へスワイプ、または ☰ でメーカー／カテゴリ一覧（サイドバー）を開けます。Esc キーでも閉じられます</span></li>
+    </ul>
+    <h3>選択した行の合計を確認する</h3>
+    <ul class="step-list">
+      <li><span class="txt">PCで表の行を上から下へ<strong>ドラッグして選択</strong>すると、画面下に「選択中 N種 ／ 個数 ／ 金額」の合計が表示されます</span></li>
+      <li><span class="txt">カテゴリの<strong>区切り行（例「クッションカバー (39種)」）をクリック</strong>すると、そのカテゴリ全体の合計が同じように表示されます。もう一度クリックで消えます</span></li>
+    </ul>
+    <h3>表示状態は自動で記憶されます</h3>
+    <p>販売期間・店舗・個数順／金額順・メーカー別／カテゴリ別・並び順・前年比較／ヒートマップのON/OFF・表示中のメーカー（カテゴリ）は端末に記憶され、ページを再読込しても（アプリの自動更新後も）同じ画面に戻ります。</p>
+    <div class="note">
+      <strong>ℹ️ 期間の記憶について</strong><br>
+      「1年」「2年」「3年」「全期間」のクイックボタンで選んだ期間は、販売データが追加されると<strong>最新日付を基準に自動で伸びます</strong>。日付を手入力した場合はその期間のまま復元されます。
+    </div>
+    <h3>読み込み中の表示</h3>
+    <p>データ量が大きいため、開いた直後は「データを読み込んでいます…」が表示されます。数秒で一覧に切り替わります。</p>
   </div>
 
 </div>
