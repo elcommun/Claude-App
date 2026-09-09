@@ -1,6 +1,8 @@
 {
   "name": "仕入れメーカー別 販売ランキング | EL COMMUN",
   "short_name": "メーカー別ランキング",
+  "id": "/Claude-App/supplier-ranking/",
+  "scope": "/Claude-App/",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#2d2926",
