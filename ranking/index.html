@@ -200,6 +200,13 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 .empty-icon{font-size:32px;margin-bottom:8px}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(146,117,74,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* 読み込み中オーバーレイ（data.js のパース完了まで表示） */
+#boot{position:fixed;inset:0;z-index:700;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--ink3);font-size:13px}
+#boot .boot-logo{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:.02em}
+#boot .spinner{width:22px;height:22px;border-width:3px;margin:0 8px 0 0}
+/* 商品名クリック時の販売推移ミニグラフ */
+.sale-period .spark{display:block;margin-top:4px;max-width:100%;height:auto}
+.spark-cap{font-size:10px;color:var(--ink4);margin-top:1px}
 .alias-panel{margin-bottom:12px;border:1px solid var(--border);border-radius:7px;padding:0 12px;font-family:inherit}
 .alias-panel summary{padding:9px 0;cursor:pointer;font-size:11px;font-weight:600;color:var(--ink3);user-select:none;list-style:none;outline:none}
 .alias-panel summary::-webkit-details-marker{display:none}
@@ -432,7 +439,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v249</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v250</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -594,6 +601,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
     </div>
   </main>
 </div>
+<div id="boot" aria-live="polite"><div class="boot-logo">EC事業部 販売データ</div><div><span class="spinner"></span>データを読み込んでいます…</div></div>
 <script src="data.js"></script>
 
 <script>
@@ -1053,6 +1061,7 @@ function applyFilter() {
   } else if(first){
     showCategory(first);
   }
+  saveUiState();
 }
 
 // ── Sort / Comparison / Heatmap ───────────────────────────────────────────────
@@ -1077,11 +1086,13 @@ function setSort(m, forceDir=null) {
   updateMSort('m-sort', m, ind);
   renderSidebar();
   if (selectedCategory) showCategory(selectedCategory, false);
+  saveUiState();
 }
 function toggleComparison() {
   comparisonMode = !comparisonMode;
   document.getElementById('tog-cmp').classList.toggle('on', comparisonMode);
   applyFilter();
+  saveUiState();
   // 検索結果表示中なら検索も再描画して比較列を反映
   if (document.getElementById('search-view').style.display !== 'none') {
     document.getElementById('hd-search').dispatchEvent(new Event('input'));
@@ -1092,6 +1103,7 @@ function toggleHeatmap() {
   document.getElementById('tog-heat').classList.toggle('on', heatmapMode);
   if (document.getElementById('cat-view').style.display !== 'none') showCategory(selectedCategory, false);
   else document.getElementById('hd-search').dispatchEvent(new Event('input'));
+  saveUiState();
 }
 function heatBg(val, maxVal) {
   if (!heatmapMode || !maxVal || !val) return '';
@@ -1979,6 +1991,7 @@ async function downloadCheckedCategories(){
 // ── Category view ─────────────────────────────────────────────────────────────
 function showCategory(cat, updateSidebar=true) {
   selectedCategory = cat;
+  if(updateSidebar) saveUiState();
   document.getElementById('hd-search').value = '';
   document.querySelector('.search-wrap').classList.remove('has-text');
   document.getElementById('search-view').style.display = 'none';
@@ -3372,19 +3385,52 @@ document.querySelectorAll('.tbl thead').forEach(th=>th.addEventListener('keydown
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function x(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function esc(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
-// 商品名クリックで、その商品の初回販売日〜最新販売日をPRELOADED.by_storeから算出して表示
-function getSalePeriodText(code){
-  let minD=null,maxD=null;
+// 商品ごとの販売履歴（初回/最終販売日・月別販売数）を全期間データから集計し、品番ごとにキャッシュ
+const PROD_HISTORY=new Map();
+function productHistory(code){
+  if(PROD_HISTORY.has(code))return PROD_HISTORY.get(code);
+  let minD=null,maxD=null;const months={};
   for(const [date,stores] of Object.entries(PRELOADED.by_store)){
-    let found=false;
+    let found=false,q=0;
     for(const cats of Object.values(stores)){
-      for(const codes of Object.values(cats)){ if(codes[code]){found=true;break;} }
-      if(found)break;
+      for(const codes of Object.values(cats)){ const qa=codes[code]; if(qa){found=true;q+=qa[0];} }
     }
-    if(found){ if(!minD||date<minD)minD=date; if(!maxD||date>maxD)maxD=date; }
+    if(!found)continue;
+    if(!minD||date<minD)minD=date; if(!maxD||date>maxD)maxD=date;
+    const ym=date.slice(0,7); months[ym]=(months[ym]||0)+q;
   }
+  const h={minD,maxD,months};
+  PROD_HISTORY.set(code,h);
+  return h;
+}
+// 商品名クリックで、その商品の初回販売日〜最新販売日を表示
+function getSalePeriodText(code){
+  const {minD,maxD}=productHistory(code);
   if(!minD)return '販売実績なし';
   return minD===maxD?`販売期間: ${minD}`:`販売期間: ${minD} 〜 ${maxD}`;
+}
+// 直近24ヶ月の月別販売数をミニグラフ（面付き折れ線）にする。最大月に点、各月に<title>でツールチップ
+function sparklineHtml(code){
+  const {months}=productHistory(code);
+  if(!Object.keys(months).length)return '';
+  const latest=window._periodLatest||Object.keys(PRELOADED.by_store).sort().pop()||'';
+  const end=latest?new Date(parseInt(latest.slice(0,4)),parseInt(latest.slice(5,7))-1,1):new Date();
+  const keys=[];for(let i=23;i>=0;i--){const d=new Date(end.getFullYear(),end.getMonth()-i,1);keys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);}
+  const vals=keys.map(k=>months[k]||0);
+  const max=Math.max(...vals,1);
+  const W=180,H=30,P=2,step=(W-2*P)/(keys.length-1);
+  const pts=vals.map((v,i)=>[P+i*step, H-P-(v/max)*(H-2*P)]);
+  const f=n=>n.toFixed(1);
+  const line=pts.map(p=>f(p[0])+','+f(p[1])).join(' ');
+  const area=`M${f(pts[0][0])},${H-P} L${line} L${f(pts[pts.length-1][0])},${H-P} Z`;
+  const iMax=vals.indexOf(max), pm=pts[iMax];
+  const hits=keys.map((k,i)=>`<rect x="${f(P+i*step-step/2)}" y="0" width="${f(step)}" height="${H}" fill="transparent"><title>${k.replace('-','/')}: ${vals[i].toLocaleString()}個</title></rect>`).join('');
+  const total=vals.reduce((a,b)=>a+b,0);
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="直近24ヶ月の月別販売数">`+
+    `<path d="${area}" fill="var(--gold)" fill-opacity=".12"/>`+
+    `<polyline points="${line}" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`+
+    `<circle cx="${f(pm[0])}" cy="${f(pm[1])}" r="2.2" fill="var(--gold)"/>${hits}</svg>`+
+    `<div class="spark-cap">直近24ヶ月 ${total.toLocaleString()}個 ｜ 最多 ${keys[iMax].replace('-','/')} ${max.toLocaleString()}個</div>`;
 }
 function toggleNameExpand(el,code){
   const cell=el.closest('.nc');
@@ -3393,7 +3439,7 @@ function toggleNameExpand(el,code){
   cell.classList.add('open');
   const newEl=document.createElement('div');
   newEl.className='sale-period';
-  newEl.textContent=getSalePeriodText(code);
+  newEl.innerHTML=x(getSalePeriodText(code))+sparklineHtml(code);
   cell.appendChild(newEl);
 }
 function hl(text,words,trans=[]){
@@ -3631,8 +3677,26 @@ buildData();
   }
   document.getElementById('f-date-from').value=fromDate;
   document.getElementById('f-date-to').value=latest;
-  document.addEventListener('DOMContentLoaded',()=>{const b=document.getElementById('qbtn-1');if(b)b.classList.add('on');});
+  document.addEventListener('DOMContentLoaded',()=>{if(window._qbtnRestored)return;const b=document.getElementById('qbtn-1');if(b)b.classList.add('on');});
 })();
+// ── 表示状態の記憶（期間・店舗・並び順・前年比較/ヒートマップ・表示中カテゴリ）。再読込・自動更新後も同じ画面に戻る ──
+const UI_STATE_KEY='ec_rank_state_v1';
+function saveUiState(){
+  try{
+    const qbtn=['qbtn-1','qbtn-2','qbtn-3','qbtn-all'].find(id=>document.getElementById(id)?.classList.contains('on'))||'';
+    const {dateFrom,dateTo}=getFilterPeriod();
+    localStorage.setItem(UI_STATE_KEY,JSON.stringify({sortMode,sortDir,comparisonMode,heatmapMode,dateFrom,dateTo,qbtn,store:document.getElementById('f-store').value,cat:selectedCategory}));
+  }catch(e){}
+}
+function loadUiState(){try{return JSON.parse(localStorage.getItem(UI_STATE_KEY)||'null');}catch(e){return null;}}
+// 最新販売日から n 年遡った開始日（クイックボタン共通）
+function yearsFromDate(n){
+  const latest=window._periodLatest||''; if(!latest)return '';
+  const d=new Date(latest); d.setFullYear(d.getFullYear()-n); d.setDate(d.getDate()+1);
+  let fromDate=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  if(window._periodEarliest&&fromDate<window._periodEarliest)fromDate=window._periodEarliest;
+  return fromDate;
+}
 function setQBtnActive(id){['qbtn-1','qbtn-2','qbtn-3','qbtn-all'].forEach(b=>{const el=document.getElementById(b);if(el)el.classList.toggle('on',b===id)});}
 function setFullPeriod(){
   document.getElementById('f-date-from').value=window._periodEarliest||'';
@@ -3643,18 +3707,33 @@ function setFullPeriod(){
 function setYearsPeriod(n){
   const latest=window._periodLatest||'';
   if(!latest)return;
-  const d=new Date(latest);
-  d.setFullYear(d.getFullYear()-n);
-  d.setDate(d.getDate()+1);
-  const yf=d.getFullYear(),mf=String(d.getMonth()+1).padStart(2,'0'),df=String(d.getDate()).padStart(2,'0');
-  let fromDate=`${yf}-${mf}-${df}`;
-  if(window._periodEarliest&&fromDate<window._periodEarliest)fromDate=window._periodEarliest;
-  document.getElementById('f-date-from').value=fromDate;
+  document.getElementById('f-date-from').value=yearsFromDate(n);
   document.getElementById('f-date-to').value=latest;
   setQBtnActive('qbtn-'+n);
   applyFilter();
 }
+// 前回の表示状態を復元してから初回描画。プリセット期間（1年/2年/3年/全期間）は最新販売日を基準に再計算し、
+// 手入力の期間はそのまま（データ範囲内に丸めて）復元する
+const _uiSt=loadUiState();
+(function restoreUiState(){
+  if(!_uiSt)return;
+  try{
+    const fi=document.getElementById('f-date-from'),ti=document.getElementById('f-date-to');
+    const ea=window._periodEarliest||'',la=window._periodLatest||'';
+    if(/^qbtn-[123]$/.test(_uiSt.qbtn)){fi.value=yearsFromDate(parseInt(_uiSt.qbtn.slice(5)));ti.value=la;setQBtnActive(_uiSt.qbtn);window._qbtnRestored=true;}
+    else if(_uiSt.qbtn==='qbtn-all'){fi.value=ea;ti.value=la;setQBtnActive('qbtn-all');window._qbtnRestored=true;}
+    else if(_uiSt.dateFrom&&_uiSt.dateTo){fi.value=ea&&_uiSt.dateFrom<ea?ea:_uiSt.dateFrom;ti.value=la&&_uiSt.dateTo>la?la:_uiSt.dateTo;setQBtnActive('');window._qbtnRestored=true;}
+    const st=document.getElementById('f-store');
+    if(_uiSt.store&&[...st.options].some(o=>o.value===_uiSt.store))st.value=_uiSt.store;
+    if(typeof _uiSt.comparisonMode==='boolean'){comparisonMode=_uiSt.comparisonMode;document.getElementById('tog-cmp').classList.toggle('on',comparisonMode);}
+    if(typeof _uiSt.heatmapMode==='boolean'){heatmapMode=_uiSt.heatmapMode;document.getElementById('tog-heat').classList.toggle('on',heatmapMode);}
+    if(_uiSt.sortMode){sortMode=_uiSt.sortMode;sortDir=_uiSt.sortDir||'desc';}
+    if(_uiSt.cat)selectedCategory=_uiSt.cat; // 存在確認は applyFilter 側で行う
+  }catch(e){}
+})();
 applyFilter();
+if(_uiSt&&_uiSt.sortMode&&(sortMode!=='qty'||sortDir!=='desc'))setSort(sortMode,sortDir); // 見出し矢印・ラベル・チップを同期
+document.getElementById('boot')?.remove();
 // Mobile sidebar drawer
 (function(){
   const sbEl=document.querySelector('.sb'),ovEl=document.getElementById('sb-overlay'),mnEl=document.getElementById('hd-menu');

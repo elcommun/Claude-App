@@ -131,6 +131,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><a href="#excel">Excelでダウンロードする</a></li>
       <li><a href="#catalog">手帳・カレンダーをカタログPDF出力する</a></li>
       <li><a href="#alias">検索エイリアスを設定する</a></li>
+      <li><a href="#mobile">スマホでの表示と便利機能</a></li>
     </ol>
   </div>
 
@@ -520,7 +521,8 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     </table>
 
     <ul class="step-list">
-      <li><span class="txt">商品名を <strong>タップ/クリック</strong> すると、その下に販売期間が表示されます</span></li>
+      <li><span class="txt">商品名（末尾の ▾ が目印）を <strong>タップ/クリック</strong> すると、その下に販売期間が表示されます</span></li>
+      <li><span class="txt">あわせて <strong>直近24ヶ月の月別販売数のミニグラフ</strong>（合計・最多月）も表示されます。PCではグラフ上にマウスを乗せると各月の販売数が確認できます</span></li>
       <li><span class="txt">もう一度タップ/クリックすると非表示に戻ります</span></li>
     </ul>
     <div class="note">
@@ -643,7 +645,36 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   </div>
 
   <!-- 14. 検索エイリアス -->
-  <div class="section" id="alias">
+    <!-- 15. スマホ表示・便利機能 -->
+  <div class="section" id="mobile">
+    <div class="section-hdr">
+      <div class="step-badge">15</div>
+      <h2>スマホでの表示と便利機能</h2>
+    </div>
+    <h3>スマホではカード表示になります</h3>
+    <p>画面幅が狭いスマホ（縦持ち）では、商品一覧が1商品＝1枚の<strong>カード表示</strong>に切り替わります。デザイン名を大きく、フォーマット名（「ﾀﾞｲｱﾘｰ 2026年版 1月始まり…」）は小さく灰色で表示し、品番・個数・合計金額・売上比バー・欠品バッジをまとめて確認できます。</p>
+    <ul class="step-list">
+      <li><span class="txt">前年比較をONにすると、各カードの右下に <strong>前期 15 ▲73%</strong> のように前期の個数と増減率が表示されます（前々期はPCのみ）</span></li>
+      <li><span class="txt">表の見出しが無いため、一覧の上に <strong>並び替えチップ</strong>（個数／金額／上代／品番）が表示されます。タップで並び替え、もう一度タップで昇順・降順が切り替わります</span></li>
+      <li><span class="txt">ヘッダーの <strong>📖（使い方）・⚙（設定）</strong> はアイコンだけの表示になります。検索ボックスはタップすると横幅いっぱいに広がります</span></li>
+      <li><span class="txt">左端から右へスワイプ、または ☰ でカテゴリ一覧（サイドバー）を開けます</span></li>
+    </ul>
+    <h3>選択した行の合計を確認する</h3>
+    <ul class="step-list">
+      <li><span class="txt">PCで表の行を上から下へ<strong>ドラッグして選択</strong>すると、画面下に「選択中 N種 ／ 個数 ／ 金額」の合計が表示されます</span></li>
+      <li><span class="txt">手帳・カレンダーの <strong>フォーマット見出し（例「B6マンスリー｜スタンダード (20種)」）をクリック</strong>すると、そのフォーマット全体の合計が同じように表示されます。もう一度クリックで消えます</span></li>
+    </ul>
+    <h3>表示状態は自動で記憶されます</h3>
+    <p>販売期間・店舗・並び順・前年比較／ヒートマップのON/OFF・表示中のカテゴリは端末に記憶され、ページを再読込しても（アプリの自動更新後も）同じ画面に戻ります。</p>
+    <div class="note">
+      <strong>ℹ️ 期間の記憶について</strong><br>
+      「1年」「2年」「3年」「全期間」のクイックボタンで選んだ期間は、販売データが追加されると<strong>最新日付を基準に自動で伸びます</strong>。日付を手入力した場合はその期間のまま復元されます。
+    </div>
+    <h3>読み込み中の表示</h3>
+    <p>データ量が大きいため、開いた直後は「データを読み込んでいます…」が表示されます。数秒で一覧に切り替わります。</p>
+  </div>
+
+<div class="section" id="alias">
     <div class="section-hdr">
       <div class="step-badge">14</div>
       <h2>検索エイリアスを設定する</h2>
