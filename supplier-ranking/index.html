@@ -8,7 +8,6 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2B6CB0">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -18,10 +17,13 @@
   --accent:#2B6CB0;--accent-lt:#eaf2fb;
   --green:#3a6b52;--green-lt:#edf5f0;
   --red:#b85c3c;--red-lt:#fdf2ee;
+  --line:#e0dbd5;
   --sb:220px;--hh:56px;
 }
 html{scroll-behavior:smooth}
 body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(--paper);color:var(--ink);font-size:13px;line-height:1.6;min-height:100vh}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hdr :focus-visible{outline-color:#fff}
 /* Header */
 .hdr{position:fixed;top:0;left:0;right:0;height:var(--hh);background:#2d2926;display:flex;align-items:center;padding:0 18px;gap:12px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.18)}
 .hd-logo{font-size:15px;font-weight:700;color:#fff;letter-spacing:.04em;white-space:nowrap;cursor:pointer;overflow:hidden;text-overflow:ellipsis}
@@ -60,7 +62,6 @@ a.hd-manual{text-decoration:none;display:inline-flex;align-items:center;flex-shr
 input[type=file]{display:none}
 .mn{font-size:12px;padding:9px 12px;border-radius:6px;margin-bottom:12px;display:none}
 .mn.show{display:block}
-.mn.info{background:var(--accent-lt);color:#2c5170;border:1px solid #bcd6ec}
 .mn.ok{background:var(--green-lt);color:#2d5540;border:1px solid #b4d4c4}
 .mn.err{background:var(--red-lt);color:#8a3820;border:1px solid #e0beb0}
 .modal-btns{display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
@@ -75,7 +76,6 @@ input[type=file]{display:none}
 .sb{width:var(--sb);flex-shrink:0;position:fixed;top:var(--hh);bottom:0;left:0;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior:contain;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column}
 .sb-resize{width:5px;cursor:col-resize;position:fixed;top:var(--hh);bottom:0;left:var(--sb);z-index:170;transition:background .15s}
 .sb-resize:hover,.sb-resize.dragging{background:var(--accent);opacity:.45}
-@media(max-width:768px){.sb-resize{display:none}}
 @media(max-width:900px) and (orientation:portrait){.sb-resize{display:none}}
 .sb::-webkit-scrollbar{width:4px}
 .sb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
@@ -112,8 +112,6 @@ input[type=file]{display:none}
 .sbi-sub .sbi-bar{left:31px}
 .sbi-chk{margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:var(--accent)}
 .sb-export{padding:8px;border-top:1px solid var(--border2)}
-.sb-sister{display:none;padding:8px;border-top:1px solid var(--border2)}
-.sb-sister a{display:block;text-align:center;padding:7px 8px;border:none;border-radius:6px;font-size:12px;font-weight:700;color:#fff;text-decoration:none;background:#E85D26}
 .sb-update-mobile{display:none;padding:8px;border-top:1px solid var(--border2)}
 .sb-update-mobile button{display:block;width:100%;text-align:center;padding:7px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;color:var(--ink2);background:var(--white);cursor:pointer;font-family:inherit}
 #export-btn{width:100%;padding:7px 8px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:700;opacity:.4;transition:opacity .2s}
@@ -135,10 +133,12 @@ input[type=file]{display:none}
 .col-tog{display:flex;gap:4px}
 .col-tbtn{padding:4px 10px;border:1px solid var(--border);border-radius:999px;font-size:10px;font-weight:700;cursor:pointer;background:var(--white);color:var(--ink3);transition:all .15s}
 .col-tbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-.tw{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow-x:auto;box-shadow:0 2px 12px rgba(28,25,23,.04)}
+.tw{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:clip;box-shadow:0 2px 12px rgba(28,25,23,.04)}
+/* 表が枠より本当に広い場合（比較ON時の中間幅など）だけ横スクロールにする（fillRemainingWidth が付与） */
+.tw.tw-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .tbl{width:auto;border-collapse:collapse;table-layout:fixed}
 .tbl td{overflow:hidden}
-.tbl thead{position:sticky;top:0;z-index:10}
+.tbl thead{position:sticky;top:var(--hh);z-index:10;box-shadow:0 1px 0 var(--line)}
 .tbl th{position:relative;background:#f0ece8;color:#5a4540;padding:10px 13px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;text-align:center;border-right:1px solid #e0dbd5;border-bottom:1px solid #e0dbd5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .th-sort{cursor:pointer;user-select:none}.th-sort:hover{color:#2d2926}.sort-ind{margin-left:3px;font-size:9px;opacity:.7}
 .tbl th:last-child{border-right:none}
@@ -204,13 +204,13 @@ td.cat-col{text-align:left}
 }
 @media(max-width:768px){
   :root{--hh:52px}
+  .sb-resize{display:none}
   .hd-menu{display:block}
   .hd-title-box{display:none}
   .sb{transform:translateX(-100%);transition:transform .25s ease;z-index:160;box-shadow:4px 0 24px rgba(0,0,0,.18)}
   .sb.open{transform:translateX(0)}
   .main{margin-left:0;padding:16px 14px 60px}
   .kpi-row{grid-template-columns:repeat(2,1fr)}
-  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .nc{max-width:160px}
   .bb{width:56px}
   #hd-search{width:130px}
@@ -221,6 +221,8 @@ td.cat-col{text-align:left}
 }
 @media(max-width:480px){
   #hd-search{width:100px;font-size:16px}
+  .hd-btn-ic{padding:5px 7px;font-size:13px}
+  .hd-btn-ic .lbl{display:none}
   .kpi-row{grid-template-columns:repeat(2,1fr);gap:7px}
   .cat-name{font-size:17px}
 }
@@ -230,7 +232,7 @@ td.cat-col{text-align:left}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v107</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v108</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -240,12 +242,12 @@ td.cat-col{text-align:left}
     <button type="button" id="hd-search-clear" aria-label="検索をクリア" title="検索をクリア">×</button>
   </div>
   <a class="hd-btn hd-link" href="https://elcommun.github.io/Claude-App/ranking/" title="EC事業部 販売データ：自社商品">自社商品</a>
-  <a class="hd-btn hd-manual" href="manual.html" target="_blank" title="使い方マニュアル">📖 使い方</a>
+  <a class="hd-btn hd-manual hd-btn-ic" href="manual.html" target="_blank" title="使い方マニュアル" aria-label="使い方">📖<span class="lbl"> 使い方</span></a>
   <button class="hd-btn" id="hd-update-btn" onclick="openModal()">⬆ データ更新</button>
 </header>
 
 <div class="modal-bg" id="modal">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="販売データを追加">
     <div class="modal-title">販売データを追加</div>
     <div class="modal-desc">
       「ec-maker-only」アプリで変換した<b>メーカー変換CSV</b>（店舗/出荷日/商品名/項目・選択肢/商品番号/税抜単価/数量/小計（税抜）/メーカー/掛け率の10列）をアップロードすると、既存データに追加でマージされます。
@@ -315,7 +317,6 @@ td.cat-col{text-align:left}
       <button class="sb-tbtn" id="tog-heat" onclick="toggleHeatmap()">ヒートマップ</button>
     </div>
     <div class="sb-list" id="sb-list"></div>
-    <div class="sb-sister"><a href="https://elcommun.github.io/Claude-App/ranking/">EC事業部 販売データ：自社商品</a></div>
     <div class="sb-update-mobile"><button onclick="openModal()">⬆ データ更新</button></div>
     <div class="sb-export">
       <button id="export-btn" onclick="downloadCheckedGroups()" disabled>📥 選択してExcelダウンロード</button>
@@ -337,17 +338,17 @@ td.cat-col{text-align:left}
       </div>
       <div class="tw"><table class="tbl" id="rank-tbl">
         <thead><tr>
-          <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
-          <th class="th-sort cat-col" onclick="setSort('category')" style="width:165px">カテゴリ<span class="sort-ind" data-sind="category"></span></th>
-          <th class="th-sort tag-col" onclick="setSort('maker')" style="width:88px">メーカー<span class="sort-ind" data-sind="maker"></span></th>
-          <th class="th-sort code-col" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
-          <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
-          <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
-          <th class="th-sort" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" data-sind="qty"></span></th>
+          <th class="th-sort rank-col" tabindex="0" role="button" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
+          <th class="th-sort cat-col" tabindex="0" role="button" onclick="setSort('category')" style="width:165px">カテゴリ<span class="sort-ind" data-sind="category"></span></th>
+          <th class="th-sort tag-col" tabindex="0" role="button" onclick="setSort('maker')" style="width:88px">メーカー<span class="sort-ind" data-sind="maker"></span></th>
+          <th class="th-sort code-col" tabindex="0" role="button" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
+          <th class="th-sort name-col" tabindex="0" role="button" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
+          <th class="th-sort" tabindex="0" role="button" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
+          <th class="th-sort" tabindex="0" role="button" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" data-sind="qty"></span></th>
           <th class="cmp-col" style="width:70px" title="前年同期">前年数</th>
           <th class="cmp-col" style="width:70px">前年比</th>
           <th class="rate-col" style="width:90px">売上比</th>
-          <th class="th-sort amt-col" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
+          <th class="th-sort amt-col" tabindex="0" role="button" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
         </tr></thead>
         <tbody id="rank-tbody"></tbody>
       </table></div>
@@ -364,13 +365,13 @@ td.cat-col{text-align:left}
       </div>
       <div class="tw"><table class="tbl" id="search-tbl">
         <thead><tr>
-          <th class="th-sort rank-col" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
-          <th class="th-sort tag-col" onclick="setSort('maker')" style="width:80px">メーカー<span class="sort-ind" data-sind="maker"></span></th>
-          <th class="th-sort code-col" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
-          <th class="th-sort name-col" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
-          <th class="th-sort" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
-          <th class="th-sort" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" data-sind="qty"></span></th>
-          <th class="th-sort amt-col" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
+          <th class="th-sort rank-col" tabindex="0" role="button" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
+          <th class="th-sort tag-col" tabindex="0" role="button" onclick="setSort('maker')" style="width:80px">メーカー<span class="sort-ind" data-sind="maker"></span></th>
+          <th class="th-sort code-col" tabindex="0" role="button" onclick="setSort('code')" style="width:156px">商品番号<span class="sort-ind" data-sind="code"></span></th>
+          <th class="th-sort name-col" tabindex="0" role="button" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
+          <th class="th-sort" tabindex="0" role="button" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
+          <th class="th-sort" tabindex="0" role="button" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" data-sind="qty"></span></th>
+          <th class="th-sort amt-col" tabindex="0" role="button" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
         </tr></thead>
         <tbody id="search-tbody"></tbody>
       </table></div>
@@ -1738,11 +1739,28 @@ document.getElementById('hd-search-clear').addEventListener('click', ()=>{
 
 // ── アップロード（追加データ取込） ────────────────────────
 function openModal(){
+  window._modalOpener=document.activeElement;
+  loadXlsx().catch(()=>{});
   document.getElementById('modal').classList.add('show');
+  document.querySelector('#modal .btn-cancel')?.focus();
   document.getElementById('modal-summary').textContent =
     `メーカー${Object.keys(ALL_MAKERS).length}件・SKU${Object.keys(ALL_PRODUCTS).length}件・${ALL_RECORDS.length}明細（${PRELOADED.date_from}〜${PRELOADED.date_to}が初期サンプル）`;
 }
-function closeModal(){ document.getElementById('modal').classList.remove('show'); }
+function closeModal(){
+  document.getElementById('modal').classList.remove('show');
+  const o=window._modalOpener; if(o&&typeof o.focus==='function'&&document.contains(o)) o.focus();
+}
+// Esc: データ更新モーダル → サイドバードロワー の順で開いているものを閉じる
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  if(document.getElementById('modal').classList.contains('show'))return closeModal();
+  if(document.querySelector('.sb.open'))document.getElementById('sb-overlay').click();
+});
+// 並び替え見出しをキーボード（Enter/Space）でも操作可能に
+document.querySelectorAll('.tbl thead').forEach(th=>th.addEventListener('keydown',e=>{
+  const t=e.target.closest('th.th-sort'); if(!t)return;
+  if(e.key==='Enter'||e.key===' '){e.preventDefault();t.click();}
+}));
 function resetUploads(){
   if(!confirm('アップロードで追加したデータをすべて削除します。よろしいですか？')) return;
   localStorage.removeItem(UPLOAD_KEY);
@@ -1774,9 +1792,20 @@ function num(v){
   if(v==null||v==='') return 0;
   return parseFloat(String(v).replace(/[,¥\s]/g,''))||0;
 }
+// SheetJS（xlsx.full.min.js 約900KB）はアップロード解析でのみ必要なため、データ更新時に遅延読込する
+function loadXlsx(){
+  if(window.XLSX) return Promise.resolve();
+  return window._xlsxP||(window._xlsxP=new Promise((res,rej)=>{
+    const sc=document.createElement('script');
+    sc.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    sc.onload=res; sc.onerror=()=>{window._xlsxP=null;rej(new Error('xlsx load failed'));};
+    document.head.appendChild(sc);
+  }));
+}
 function processFile(file){
   const reader=new FileReader();
   reader.onload=function(e){
+    loadXlsx().then(()=>{
     try{
       const data=new Uint8Array(e.target.result);
       const isUtf8Bom = data[0]===0xEF && data[1]===0xBB && data[2]===0xBF;
@@ -1874,6 +1903,7 @@ function processFile(file){
       console.error(err);
       setMN('err', `${file.name}: 読み込みに失敗しました（${err.message||err}）`);
     }
+    }).catch(()=>setMN('err','読込ライブラリの取得に失敗しました。通信環境を確認して再度お試しください'));
   };
   reader.readAsArrayBuffer(file);
 }
@@ -2043,6 +2073,8 @@ function fillRemainingWidth(table){
   }
   nameTh.style.width=nameW+'px';
   syncTableWidth(table);
+  const wrap=table.closest('.tw');
+  if(wrap) wrap.classList.toggle('tw-scroll', table.offsetWidth>wrap.clientWidth+1);
 }
 // ビューの表示切り替え直後に、表示中のテーブルの列幅を実際の画面幅に合わせ直す
 function refreshVisibleTableWidth(){
