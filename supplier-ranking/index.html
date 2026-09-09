@@ -161,6 +161,13 @@ td.cat-col{text-align:left}
 .nc .nm.nm-expand{white-space:normal;overflow:visible;text-overflow:clip;flex-basis:100%}
 .nc .var{color:var(--ink3);white-space:nowrap}
 .nc .sale-period{flex-basis:100%;color:var(--ink4);font-size:11px}
+.nc .nm::after{content:' ▾';font-size:9px;color:var(--ink4)}
+.nc .nm.nm-expand::after{content:' ▴'}
+/* スマホ用並び替えチップ（≤600pxのカード表示でのみ表示） */
+.m-sort{display:none;gap:6px;margin:0 0 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+.m-chip{flex:0 0 auto;padding:5px 11px;border:1px solid var(--border);border-radius:999px;background:var(--white);font-size:11px;font-weight:600;color:var(--ink3);font-family:inherit;cursor:pointer;white-space:nowrap}
+.m-chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.m-ind{margin-left:2px;font-size:9px}
 .cmp-col{display:none}
 .show-cmp .cmp-col{display:table-cell}
 @media(max-width:1180px){.rate-col{display:none}}
@@ -221,10 +228,56 @@ td.cat-col{text-align:left}
 }
 @media(max-width:480px){
   #hd-search{width:100px;font-size:16px}
+  .search-wrap:focus-within{flex:1 1 auto;min-width:0}
+  .search-wrap:focus-within #hd-search{width:100%}
   .hd-btn-ic{padding:5px 7px;font-size:13px}
   .hd-btn-ic .lbl{display:none}
   .kpi-row{grid-template-columns:repeat(2,1fr);gap:7px}
   .cat-name{font-size:17px}
+}
+/* ── スマホ（≤600px）: 表の行をカード型に変形（<table>構造・data属性・並び替え・ピル選択はそのまま）
+   列の対応: #rank-tbl 1順位(.rank-col) 2カテゴリ(.cat-col) 3メーカー(.tag-col) 4品番(.cc) 5商品名(.nc) 6単価(.price-col) 7数量(.qty-col)
+             8前年数(.cmp-prev) 9前年比(.cmp-pct) 10売上比(.rate-col) 11小計(.amt-col)
+             #search-tbl 1順位 2メーカー(.mk-col) 3品番 4商品名 5単価 6数量 7小計 */
+@media(max-width:600px){
+  .m-sort{display:flex}
+  .sort-lbl{display:none}
+  .tbl{width:auto!important;table-layout:auto}
+  .tbl,.tbl tbody{display:block;font-size:12px}
+  .tbl thead{display:none}
+  .tbl tr{display:grid;grid-template-columns:26px auto minmax(0,1fr) auto auto;grid-template-areas:"rk name name qty qty" "rk tag code amt amt" "rk bar bar prev pct";column-gap:8px;row-gap:3px;align-items:center;padding:9px 10px;border-bottom:1px solid var(--border2)}
+  .tbl tr:last-child{border-bottom:none}
+  .tbl tr:hover td{background:transparent}
+  .tbl td{display:block;padding:0!important;border:0;width:auto!important;min-width:auto!important;max-width:none!important;overflow:visible;text-align:left}
+  .tbl td.rank-col{grid-area:rk}
+  .rn{width:24px;height:24px;font-size:11px}
+  .tbl td.nc{grid-area:name;min-width:0!important}
+  .nc .nc-row{flex-direction:column;align-items:stretch;gap:0}
+  .nc .nm{white-space:normal;overflow:visible;text-overflow:clip;font-weight:600;line-height:1.35;color:var(--ink);overflow-wrap:anywhere;max-width:none}
+  .nc .var{font-size:10px;color:var(--ink4);white-space:normal;line-height:1.3}
+  .nc .sale-period{margin-top:2px}
+  #rank-tbl td.tag-col,#rank-tbl td.cat-col,#search-tbl td.mk-col{grid-area:tag;display:block}
+  #rank-tbl.hide-tag td.tag-col{display:none}
+  #rank-tbl td.cat-col{display:none}
+  #rank-tbl.show-catcol td.cat-col{display:block}
+  .ct{margin-right:0}
+  .tbl td.cc{grid-area:code;font-size:10px;color:var(--ink4);white-space:normal;overflow-wrap:anywhere}
+  .tbl td.qty-col{grid-area:qty;justify-self:end;font-size:15px;font-weight:700;color:var(--ink);padding:0 4px!important;border-radius:4px;text-align:right}
+  .tbl td.qty-col::after{content:'個';font-size:10px;font-weight:400;color:var(--ink3);margin-left:1px}
+  .tbl td.price-col{display:none}
+  #rank-tbl td.amt-col,#search-tbl td.amt-col{grid-area:amt;display:block;justify-self:end;font-size:11px;color:var(--ink3);text-align:right}
+  #rank-tbl td.rate-col{grid-area:bar;display:flex;align-items:center;gap:6px}
+  .rate-col .bb{flex:1 1 auto;width:auto}
+  .rate-col>div:last-child{margin-top:0!important;font-size:10px;color:var(--ink4);white-space:nowrap}
+  /* 比較モード: 「前年 187」「+38%」/「NEW」を右下に */
+  .tbl td.cmp-col{display:none}
+  .show-cmp td.cmp-prev{display:block;grid-area:prev;justify-self:end;font-size:10px;color:var(--ink3);white-space:nowrap}
+  .show-cmp td.cmp-prev::before{content:'前年 ';color:var(--ink4)}
+  .show-cmp td.cmp-pct{display:block;grid-area:pct;justify-self:end;font-size:10px;font-weight:600;white-space:nowrap}
+  .tbl tr.fmt-hdr{display:block;padding:6px 10px}
+  .tbl tr.fmt-hdr td{display:block}
+  .tbl tr:has(td[colspan]){display:block}
+  .tbl td[colspan]{display:block}
 }
 </style>
 </head>
@@ -232,7 +285,7 @@ td.cat-col{text-align:left}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v108</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v109</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -336,6 +389,13 @@ td.cat-col{text-align:left}
         </div>
         <div class="sort-lbl" id="sort-lbl">個数ランキング</div>
       </div>
+      <div class="m-sort" id="m-sort" aria-label="並び替え">
+        <button class="m-chip on" data-k="qty" onclick="setSort('qty')">数量<span class="m-ind">▼</span></button>
+        <button class="m-chip" data-k="amount" onclick="setSort('amount')">金額<span class="m-ind"></span></button>
+        <button class="m-chip" data-k="price" onclick="setSort('price')">単価<span class="m-ind"></span></button>
+        <button class="m-chip" data-k="code" onclick="setSort('code')">品番<span class="m-ind"></span></button>
+        <button class="m-chip" data-k="maker" onclick="setSort('maker')">メーカー<span class="m-ind"></span></button>
+      </div>
       <div class="tw"><table class="tbl" id="rank-tbl">
         <thead><tr>
           <th class="th-sort rank-col" tabindex="0" role="button" onclick="sortByRank()" style="width:64px">順位<span class="sort-ind" data-sind="rank"></span></th>
@@ -362,6 +422,13 @@ td.cat-col{text-align:left}
           <button class="col-tbtn" id="search-col-tog-maker" onclick="setSearchListCol('maker')">メーカー</button>
           <button class="col-tbtn" id="search-col-tog-category" onclick="setSearchListCol('category')">カテゴリ</button>
         </div>
+      </div>
+      <div class="m-sort" id="m-sort-s" aria-label="並び替え">
+        <button class="m-chip on" data-k="qty" onclick="setSort('qty')">数量<span class="m-ind">▼</span></button>
+        <button class="m-chip" data-k="amount" onclick="setSort('amount')">金額<span class="m-ind"></span></button>
+        <button class="m-chip" data-k="price" onclick="setSort('price')">単価<span class="m-ind"></span></button>
+        <button class="m-chip" data-k="code" onclick="setSort('code')">品番<span class="m-ind"></span></button>
+        <button class="m-chip" data-k="name" onclick="setSort('name')">商品名<span class="m-ind"></span></button>
       </div>
       <div class="tw"><table class="tbl" id="search-tbl">
         <thead><tr>
@@ -1065,7 +1132,14 @@ function toggleHeatmap(){
 // 「順位」は個数順/金額順（rankMetric）で決まる商品固有の値で、商品番号・商品名・税抜単価などの
 // 列見出しで表示順（sortMode）を変えても値は変わらない（商品に連動し続ける）
 const TEXT_SORT_MODES=['code','name','category','maker'];
+// スマホ用並び替えチップ（≤600pxで表示）の状態更新
+function updateMSort(id, mode, ind){
+  const box=document.getElementById(id); if(!box)return;
+  box.querySelectorAll('.m-chip').forEach(b=>{const on=b.dataset.k===mode;b.classList.toggle('on',on);const i=b.querySelector('.m-ind');if(i)i.textContent=on?ind:'';});
+}
 function updateSortIndicators(){
+  const mInd=sortDir==='desc'?'▼':'▲';
+  updateMSort('m-sort',sortMode,mInd); updateMSort('m-sort-s',sortMode,mInd);
   ['price','qty','amount',...TEXT_SORT_MODES].forEach(m=>{
     document.querySelectorAll('[data-sind="'+m+'"]').forEach(el=>{
       el.textContent = (sortMode===m) ? (sortDir==='desc'?'▼':'▲') : '';
@@ -1582,12 +1656,12 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
   const prevQty=prev?prev.qty:0;
   let cmpHtml;
   if(!prevQty){
-    cmpHtml=`<td class="num cmp-col">—</td><td class="num cmp-col"><span class="cmp-new">NEW</span></td>`;
+    cmpHtml=`<td class="num cmp-col cmp-prev">—</td><td class="num cmp-col cmp-pct"><span class="cmp-new">NEW</span></td>`;
   } else {
     const diffPct=((r.qty-prevQty)/prevQty*100);
     const cls=diffPct>0?'cmp-up':diffPct<0?'cmp-down':'';
     const sign=diffPct>0?'+':'';
-    cmpHtml=`<td class="num cmp-col">${prevQty.toLocaleString()}</td><td class="num cmp-col ${cls}">${sign}${diffPct.toFixed(0)}%</td>`;
+    cmpHtml=`<td class="num cmp-col cmp-prev">${prevQty.toLocaleString()}</td><td class="num cmp-col cmp-pct ${cls}">${sign}${diffPct.toFixed(0)}%</td>`;
   }
   return `<tr data-qty="${r.qty}" data-amt="${r.amount}">
     <td class="rank-col">${rankHtml}</td>
@@ -1595,8 +1669,8 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
     <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
     <td class="cc">${codeHtml(r.code)}</td>
     <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
-    <td class="num">¥${r.price.toLocaleString()}</td>
-    <td class="num"${qtyStyle}>${r.qty.toLocaleString()}</td>
+    <td class="num price-col">¥${r.price.toLocaleString()}</td>
+    <td class="num qty-col"${qtyStyle}>${r.qty.toLocaleString()}</td>
     ${cmpHtml}
     <td class="rate-col"><div class="bb"><div class="bf" style="width:${barPct}%"></div></div><div style="font-size:10px;color:var(--ink4);margin-top:2px">${pct.toFixed(1)}%</div></td>
     <td class="num amt-col">¥${Math.round(r.amount).toLocaleString()}</td>
@@ -1690,11 +1764,11 @@ function renderSearch(){
     const rankHtml = rank<=3 ? `<span class="rn r${rank}">${rank}</span>` : `<span class="ro">${rank}</span>`;
     return `<tr data-qty="${r.qty}" data-amt="${r.amount}">
       <td class="rank-col">${rankHtml}</td>
-      <td><span class="ct">${makerHtml(r.maker)}</span></td>
+      <td class="mk-col"><span class="ct">${makerHtml(r.maker)}</span></td>
       <td class="cc">${codeHtml(r.code)}</td>
       <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
-      <td class="num">¥${r.price.toLocaleString()}</td>
-      <td class="num">${r.qty.toLocaleString()}</td>
+      <td class="num price-col">¥${r.price.toLocaleString()}</td>
+      <td class="num qty-col">${r.qty.toLocaleString()}</td>
       <td class="num amt-col">¥${Math.round(r.amount).toLocaleString()}</td>
     </tr>`;
   };
@@ -2044,6 +2118,7 @@ function fillRemainingWidth(table){
   if(!wrapper||!nameTh) return;
   const avail=wrapper.clientWidth;
   if(avail<=0) return; // 非表示のビュー（clientWidth=0）で計算すると商品名列が最小幅に潰れるためスキップ
+  if(table.tHead&&getComputedStyle(table.tHead).display==='none') return; // スマホのカード表示中は列幅計算しない
   const visible=th=>getComputedStyle(th).display!=='none';
   const flex=[];
   for(const [cls,weight,max] of FLEX_COLS){
