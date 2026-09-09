@@ -81,6 +81,8 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 #tog-cmp.on::before,#tog-heat.on::before{content:'✓ '}
 .sb-list{flex:1;padding:5px 0}
 .sbi{display:flex;align-items:center;gap:6px;padding:6px 14px;cursor:pointer;transition:background .1s;border-left:3px solid transparent;position:relative}
+.sbi-l1{padding-left:22px;font-size:12px}
+.sbi-l2{padding-left:36px;font-size:11px}
 .sbi:hover{background:var(--gold-lt)}
 .sbi.active{background:var(--gold-lt);border-left-color:var(--gold)}
 .sbi-name{flex:1;font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -477,13 +479,30 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 @media screen and (max-width:768px){.main::before{height:16px}}
 @media screen and (max-width:600px){#sel-sum{bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 @media screen and (max-width:480px){.hdr{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}}
+/* ── 下メニュー時（body.hd-bottom）のスマホ: サイドバーを右から出し、行の中身も左右反転（チェック=右端、▶=左端）。
+   ドロワー表示になる幅（≤768px、769〜900px縦）のみ。タブレット横で左に常設表示のときは反転しない ── */
+@media (max-width:768px), (min-width:769px) and (max-width:900px) and (orientation:portrait){
+  body.hd-bottom .sb{left:auto;right:env(safe-area-inset-right,0px);border-right:0;border-left:1px solid var(--border);transform:translateX(100%);box-shadow:-4px 0 24px rgba(0,0,0,.18)}
+  body.hd-bottom .sb.open{transform:translateX(0)}
+  body.hd-bottom .sbi{flex-direction:row-reverse;border-left:0;border-right:3px solid transparent}
+  body.hd-bottom .sbi.active{border-right-color:var(--gold)}
+  body.hd-bottom .sbi-name{text-align:right}
+  body.hd-bottom .sbi-badge{text-align:left}
+  body.hd-bottom .sbi-bar{left:14px;right:17px}
+  body.hd-bottom .sbi input[type=checkbox]{margin:0 0 0 4px!important}
+  /* row-reverse では order 最大が左端。▶→◀ に反転（▼はそのまま）。拡大タップ領域の負マージンも左右入替 */
+  body.hd-bottom .sbi-chev{order:9;transform:scaleX(-1);margin:-9px -8px -9px -12px}
+  body.hd-bottom .sbi-schev{transform:scaleX(-1)}
+  body.hd-bottom .sbi-l1{padding-left:14px;padding-right:22px}
+  body.hd-bottom .sbi-l2{padding-left:14px;padding-right:36px}
+}
 </style>
 </head>
 <body>
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v252</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v253</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1280,20 +1299,20 @@ function renderSidebar() {
     const pct=maxVal?(val/maxVal*100).toFixed(1):0;
     const badge=sortMode==='qty'?t.qty.toLocaleString()+'個':'¥'+Math.round(t.amount/10000)+'万';
     const act=displayCat===selectedCategory?' active':'';
-    let indentStyle='',labelText=displayCat,icon=CAT_ICONS[displayCat]||(/カレンダー/.test(displayCat)?'📅':'📦'),iconSize='13';
+    let indentCls='',labelText=displayCat,icon=CAT_ICONS[displayCat]||(/カレンダー/.test(displayCat)?'📅':'📦'),iconSize='13';
     if(level===1){
-      indentStyle='padding-left:22px;font-size:12px';
+      indentCls=' sbi-l1';
       labelText=displayCat.includes(':')?displayCat.split(':')[1]:displayCat;
       iconSize='11';
     } else if(level===2){
-      indentStyle='padding-left:36px;font-size:11px';
+      indentCls=' sbi-l2';
       const ym=displayCat.match(/^(\d{4}年)/);
       labelText=ym?ym[0]:displayCat;
       icon='📅';
       iconSize='10';
     }
     const chkd=exportChecks.has(displayCat)?'checked':'';
-    return`<div class="sbi${act}" style="${indentStyle}" onclick="showCategory('${esc(displayCat)}')" data-cat="${esc(displayCat)}">
+    return`<div class="sbi${act}${indentCls}" onclick="showCategory('${esc(displayCat)}')" data-cat="${esc(displayCat)}">
       <input type="checkbox" ${chkd} onclick="event.stopPropagation();toggleCheck('${esc(displayCat)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:#4a7c59">
       <span style="font-size:${iconSize}px">${icon}</span>
       <span class="sbi-name">${x(labelText)}</span>
@@ -1342,12 +1361,12 @@ function renderSidebar() {
           const skHasLeaf=hasCheckedLeaf(subKey);
           const skChkd=(exportChecks.has(subKey)||skHasLeaf)?'checked':'';
           const skAcc=skHasLeaf?'#e07000':'var(--export)';
-          html+=`<div class="sbi${subAct}" style="padding-left:22px;font-size:12px" onclick="showCategory('${esc(subKey)}')" data-cat="${esc(subKey)}">
+          html+=`<div class="sbi sbi-l1${subAct}" onclick="showCategory('${esc(subKey)}')" data-cat="${esc(subKey)}">
             <input type="checkbox" ${skChkd} onclick="event.stopPropagation();toggleCheck('${esc(subKey)}')" style="margin:0 4px 0 0;cursor:pointer;flex-shrink:0;accent-color:${skAcc}">
             <span style="font-size:11px">${s.icon}</span>
             <span class="sbi-name">${x(s.name)}</span>
             <span class="sbi-badge">${subBadge}</span>
-            <span onclick="event.stopPropagation();toggleSub('${esc(subKey)}')" style="font-size:9px;color:var(--ink4);padding:0 3px;cursor:pointer">${subChev}</span>
+            <span class="sbi-schev" onclick="event.stopPropagation();toggleSub('${esc(subKey)}')" style="font-size:9px;color:var(--ink4);padding:0 3px;cursor:pointer">${subChev}</span>
             <div class="sbi-bar"><div class="sbi-bar-fill" style="width:${subPct}%"></div></div>
           </div>`;
           if(subExp){
@@ -3815,18 +3834,22 @@ document.getElementById('boot')?.remove();
   mnEl?.addEventListener('click',openSb);
   ovEl?.addEventListener('click',closeSb);
   document.getElementById('sb-list')?.addEventListener('click',()=>{if(isDrawerMode())closeSb();});
-  // 画面左端から右へスワイプでサイドメニューを開く（ドロワーモード時）
+  // 画面端からのスワイプでサイドメニューを開く（ドロワーモード時）。
+  // 上メニュー時は左端から右へ、下メニュー時（body.hd-bottom＝サイドバーが右出し）は右端から左へ
   (function(){
     let sx=0,sy=0,tracking=false;
+    const rightSide=()=>document.body.classList.contains('hd-bottom');
     document.addEventListener('touchstart',e=>{
       if(!isDrawerMode()||sbEl.classList.contains('open'))return;
       const t=e.touches[0];
-      if(t.clientX<=24){sx=t.clientX;sy=t.clientY;tracking=true;}
+      const edge=rightSide()?t.clientX>=window.innerWidth-24:t.clientX<=24;
+      if(edge){sx=t.clientX;sy=t.clientY;tracking=true;}
     },{passive:true});
     document.addEventListener('touchmove',e=>{
       if(!tracking)return;
       const t=e.touches[0],dx=t.clientX-sx,dy=t.clientY-sy;
-      if(dx>50&&Math.abs(dx)>Math.abs(dy)){openSb();tracking=false;}
+      const ok=rightSide()?dx<-50:dx>50;
+      if(ok&&Math.abs(dx)>Math.abs(dy)){openSb();tracking=false;}
     },{passive:true});
     document.addEventListener('touchend',()=>{tracking=false;},{passive:true});
   })();
