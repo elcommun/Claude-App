@@ -173,6 +173,8 @@ td.cat-col{text-align:left}
 .nc .nm.nm-expand{white-space:normal;overflow:visible;text-overflow:clip;flex-basis:100%}
 .nc .var{color:var(--ink3);white-space:nowrap}
 .nc .sale-period{flex-basis:100%;color:var(--ink4);font-size:11px}
+.sale-period .spark{display:block;margin-top:4px;max-width:100%;height:auto}
+.spark-cap{font-size:10px;color:var(--ink4);margin-top:1px}
 .nc .nm::after{content:' ▾';font-size:9px;color:var(--ink4)}
 .nc .nm.nm-expand::after{content:' ▴'}
 /* スマホ用並び替えチップ（≤600pxのカード表示でのみ表示） */
@@ -204,6 +206,10 @@ td.cat-col{text-align:left}
 .fmt-hdr.fh-active td{background:var(--accent-lt);color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(43,108,176,.2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:5px}
 @keyframes spin{to{transform:rotate(360deg)}}
+/* 起動時の読み込み中オーバーレイ（初回描画後に削除） */
+#boot{position:fixed;inset:0;z-index:700;background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--ink3);font-size:13px}
+#boot .boot-logo{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:.02em}
+#boot .spinner{width:22px;height:22px;border-width:3px;margin:0 8px 0 0}
 /* Responsive */
 .hd-menu{display:none;background:none;border:none;color:rgba(255,255,255,.8);font-size:22px;cursor:pointer;padding:2px 8px;line-height:1;flex-shrink:0;margin-right:2px}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:155}
@@ -297,7 +303,7 @@ td.cat-col{text-align:left}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v110</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v111</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -310,6 +316,7 @@ td.cat-col{text-align:left}
   <a class="hd-btn hd-manual hd-btn-ic" href="manual.html" target="_blank" title="使い方マニュアル" aria-label="使い方">📖<span class="lbl"> 使い方</span></a>
   <button class="hd-btn" id="hd-update-btn" onclick="openModal()">⬆ データ更新</button>
 </header>
+<div id="boot" aria-live="polite"><div class="boot-logo">EC事業部 販売データ：仕入れ商品</div><div><span class="spinner"></span>データを読み込んでいます…</div></div>
 
 <div class="modal-bg" id="modal">
   <div class="modal" role="dialog" aria-modal="true" aria-label="販売データを追加">
@@ -814,7 +821,11 @@ function dedupeProductsByCode(){
     ALL_RECORDS.forEach(r=>{ if(pidRemap[r[2]]) r[2]=pidRemap[r[2]]; });
   }
 }
+// 商品ごとの販売履歴キャッシュ（初回/最終販売日・月別販売数）。buildData() のたびにクリア
+const PROD_HISTORY=new Map();
+let DATA_LATEST=''; // 全データ（アップロード分含む）の最新販売日
 function buildData(){
+  PROD_HISTORY.clear();
   ALL_MAKERS=Object.assign({}, PRELOADED.makers);
   ALL_PRODUCTS=Object.assign({}, PRELOADED.products);
   ALL_RECORDS=PRELOADED.records.slice();
@@ -824,6 +835,8 @@ function buildData(){
     Object.assign(ALL_PRODUCTS, b.products||{});
     ALL_RECORDS=ALL_RECORDS.concat(b.records||[]);
   });
+  DATA_LATEST=PRELOADED.date_to||'';
+  for(const rec of ALL_RECORDS){ if(rec[0]>DATA_LATEST) DATA_LATEST=rec[0]; }
   normalizeProducts();
   dedupeProductsByCode();
   PRODUCT_INDEX={};
@@ -932,14 +945,17 @@ function normalizeApjCode(code){
   if(/^apj-/i.test(c)){ const norm=c.replace(/(\d)x(\d)/gi,'$1_$2'); return APJ_CODE_FIXUPS[norm]||norm; }
   return c;
 }
+function applyGroupModeUi(){
+  document.getElementById('tog-mode-maker').classList.toggle('on', groupMode==='maker');
+  document.getElementById('tog-mode-category').classList.toggle('on', groupMode==='category');
+}
 function setGroupMode(mode){
   groupMode=mode;
   currentGroup=null;
   listCol=mode;
   searchListCol=mode;
   exportChecks.clear();
-  document.getElementById('tog-mode-maker').classList.toggle('on', mode==='maker');
-  document.getElementById('tog-mode-category').classList.toggle('on', mode==='category');
+  applyGroupModeUi();
   clearSearch();
   applyFilter();
 }
@@ -947,6 +963,7 @@ function setListCol(col){
   listCol=col;
   syncColTogButtons();
   showAllGroups();
+  saveUiState();
 }
 function syncColTogButtons(){
   document.getElementById('col-tog-maker').classList.toggle('on', listCol==='maker');
@@ -1040,13 +1057,16 @@ function setFullPeriod(){
   setQBtnActive('qbtn-all');
   applyFilter();
 }
-function setYearsPeriod(years){
-  const to=PRELOADED.date_to;
-  const d=new Date(to+'T00:00:00');
+// 最新販売日（date_to）から n 年遡った開始日（クイックボタン共通。データ開始日で丸める）
+function yearsFrom(years){
+  const d=new Date(PRELOADED.date_to+'T00:00:00');
   d.setFullYear(d.getFullYear()-years);
-  const from=d.toISOString().slice(0,10);
-  document.getElementById('f-date-from').value= from<PRELOADED.date_from?PRELOADED.date_from:from;
-  document.getElementById('f-date-to').value=to;
+  const from=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return from<PRELOADED.date_from?PRELOADED.date_from:from;
+}
+function setYearsPeriod(years){
+  document.getElementById('f-date-from').value=yearsFrom(years);
+  document.getElementById('f-date-to').value=PRELOADED.date_to;
   setQBtnActive('qbtn-'+years);
   applyFilter();
 }
@@ -1084,6 +1104,7 @@ function applyFilter(){
   else if(currentGroup && groupHasData(currentGroup)){ showGroup(currentGroup); }
   else { showAllGroups(); }
   scheduleExportPrebuild();
+  saveUiState();
 }
 // サイドバー最上部に、選択期間全体の合計（個数・金額・SKU数・メーカー/カテゴリ数）を表示する
 function updateSidebarTotal(dF,dT){
@@ -1138,6 +1159,7 @@ function toggleHeatmap(){
   heatmapMode=!heatmapMode;
   document.getElementById('tog-heat').classList.toggle('on', heatmapMode);
   if(currentGroup) showGroup(currentGroup); else showAllGroups();
+  saveUiState();
 }
 
 // ── ソート ────────────────────────────────────────────────
@@ -1168,20 +1190,25 @@ function setSort(mode){
   if(searchQuery){ renderSearch(); }
   else if(currentGroup){ showGroup(currentGroup); }
   else { showAllGroups(); }
+  saveUiState();
 }
 function sortByRank(){ setSort(rankMetric); }
+function applyRankMetricUi(){
+  document.getElementById('tog-qty').classList.toggle('on', rankMetric==='qty');
+  document.getElementById('tog-amt').classList.toggle('on', rankMetric==='amount');
+  document.getElementById('sort-lbl').textContent = rankMetric==='amount' ? '金額ランキング' : '個数ランキング';
+}
 function setRankMetric(metric){
   rankMetric=metric;
   sortMode=metric;
   sortDir='desc';
-  document.getElementById('tog-qty').classList.toggle('on', metric==='qty');
-  document.getElementById('tog-amt').classList.toggle('on', metric==='amount');
-  document.getElementById('sort-lbl').textContent = metric==='amount' ? '金額ランキング' : '個数ランキング';
+  applyRankMetricUi();
   updateSortIndicators();
   renderSidebar();
   if(searchQuery){ renderSearch(); }
   else if(currentGroup){ showGroup(currentGroup); }
   else { showAllGroups(); }
+  saveUiState();
 }
 
 // ── サイドバー ────────────────────────────────────────────
@@ -1326,6 +1353,7 @@ function selectGroup(g){
   clearSearch();
   if(g===null) showAllGroups(); else showGroup(g);
   renderSidebar();
+  saveUiState();
   document.querySelector('.sb').classList.remove('open');
   document.getElementById('sb-overlay').classList.remove('open');
 }
@@ -1627,17 +1655,49 @@ function showGroup(g){
   refreshVisibleTableWidth();
 }
 const ROW_LIMIT=300;
-// 商品名クリックで折り返し表示を切り替えつつ、その商品の初回販売日〜最新販売日を表示する
-function getSalePeriodText(pid){
-  let minD=null, maxD=null;
+// 商品ごとの販売履歴（初回/最終販売日・月別販売数）を全期間データから集計し、商品IDごとにキャッシュ
+function productHistory(pid){
+  if(PROD_HISTORY.has(pid)) return PROD_HISTORY.get(pid);
+  let minD=null, maxD=null; const months={};
   for(const rec of ALL_RECORDS){
     if(rec[2]!==pid) continue;
     const d=rec[0];
     if(!minD||d<minD) minD=d;
     if(!maxD||d>maxD) maxD=d;
+    const ym=d.slice(0,7); months[ym]=(months[ym]||0)+rec[3];
   }
+  const h={minD,maxD,months};
+  PROD_HISTORY.set(pid,h);
+  return h;
+}
+// 商品名クリックで折り返し表示を切り替えつつ、その商品の初回販売日〜最新販売日を表示する
+function getSalePeriodText(pid){
+  const {minD,maxD}=productHistory(pid);
   if(!minD) return '販売実績なし';
   return minD===maxD ? `販売期間: ${minD}` : `販売期間: ${minD} 〜 ${maxD}`;
+}
+// 直近24ヶ月の月別販売数をミニグラフ（面付き折れ線）にする。最大月に点、各月に<title>でツールチップ
+function sparklineHtml(pid){
+  const {months}=productHistory(pid);
+  if(!Object.keys(months).length) return '';
+  const latest=DATA_LATEST||PRELOADED.date_to||'';
+  const end=latest?new Date(parseInt(latest.slice(0,4)),parseInt(latest.slice(5,7))-1,1):new Date();
+  const keys=[]; for(let i=23;i>=0;i--){const d=new Date(end.getFullYear(),end.getMonth()-i,1);keys.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);}
+  const vals=keys.map(k=>months[k]||0);
+  const max=Math.max(...vals,1);
+  const W=180,H=30,P=2,step=(W-2*P)/(keys.length-1);
+  const pts=vals.map((v,i)=>[P+i*step, H-P-(v/max)*(H-2*P)]);
+  const f=n=>n.toFixed(1);
+  const line=pts.map(p=>f(p[0])+','+f(p[1])).join(' ');
+  const area=`M${f(pts[0][0])},${H-P} L${line} L${f(pts[pts.length-1][0])},${H-P} Z`;
+  const iMax=vals.indexOf(max), pm=pts[iMax];
+  const hits=keys.map((k,i)=>`<rect x="${f(P+i*step-step/2)}" y="0" width="${f(step)}" height="${H}" fill="transparent"><title>${k.replace('-','/')}: ${vals[i].toLocaleString()}個</title></rect>`).join('');
+  const total=vals.reduce((a,b)=>a+b,0);
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="直近24ヶ月の月別販売数">`+
+    `<path d="${area}" fill="var(--accent)" fill-opacity=".12"/>`+
+    `<polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`+
+    `<circle cx="${f(pm[0])}" cy="${f(pm[1])}" r="2.2" fill="var(--accent)"/>${hits}</svg>`+
+    `<div class="spark-cap">直近24ヶ月 ${total.toLocaleString()}個 ｜ 最多 ${keys[iMax].replace('-','/')} ${max.toLocaleString()}個</div>`;
 }
 function toggleNameExpand(el, pid){
   const expanded=el.classList.toggle('nm-expand');
@@ -1649,7 +1709,7 @@ function toggleNameExpand(el, pid){
       periodEl.className='sale-period';
       row.appendChild(periodEl);
     }
-    periodEl.textContent=getSalePeriodText(pid);
+    periodEl.innerHTML=x(getSalePeriodText(pid))+sparklineHtml(pid);
   } else if(periodEl){
     periodEl.remove();
   }
@@ -2228,9 +2288,53 @@ window.addEventListener('resize',()=>{
   });
 })();
 
+// ── 表示状態の記憶（期間・店舗・個数順/金額順・メーカー別/カテゴリ別・並び順・前年比較/ヒートマップ・表示中グループ）。
+//    再読込・自動更新後も同じ画面に戻る ──
+const UI_STATE_KEY='ec_supplier_state_v1';
+function saveUiState(){
+  try{
+    const qbtn=['qbtn-1','qbtn-2','qbtn-3','qbtn-all'].find(id=>document.getElementById(id)?.classList.contains('on'))||'';
+    localStorage.setItem(UI_STATE_KEY,JSON.stringify({
+      rankMetric, groupMode, listCol, sortMode, sortDir, comparisonMode, heatmapMode,
+      dateFrom:document.getElementById('f-date-from').value, dateTo:document.getElementById('f-date-to').value,
+      qbtn, store:document.getElementById('f-store').value, group:currentGroup
+    }));
+  }catch(e){}
+}
+function loadUiState(){ try{ return JSON.parse(localStorage.getItem(UI_STATE_KEY)||'null'); }catch(e){ return null; } }
+// 前回の表示状態を復元（描画はしない）。プリセット期間（1年/2年/3年/全期間）は最新販売日を基準に再計算し、
+// 手入力の期間はデータ範囲内に丸めて復元する。復元できたら true
+function restoreUiState(){
+  const s=loadUiState(); if(!s) return false;
+  try{
+    const fi=document.getElementById('f-date-from'), ti=document.getElementById('f-date-to');
+    const ea=PRELOADED.date_from, la=PRELOADED.date_to;
+    if(/^qbtn-[123]$/.test(s.qbtn)){ fi.value=yearsFrom(parseInt(s.qbtn.slice(5))); ti.value=la; setQBtnActive(s.qbtn); }
+    else if(s.qbtn==='qbtn-all'){ fi.value=ea; ti.value=la; setQBtnActive('qbtn-all'); }
+    else if(s.dateFrom&&s.dateTo){ fi.value=s.dateFrom<ea?ea:s.dateFrom; ti.value=s.dateTo>la?la:s.dateTo; setQBtnActive(''); }
+    else { fi.value=yearsFrom(1); ti.value=la; setQBtnActive('qbtn-1'); }
+    const st=document.getElementById('f-store');
+    if(s.store&&[...st.options].some(o=>o.value===s.store)) st.value=s.store;
+    if(typeof s.comparisonMode==='boolean'){
+      comparisonMode=s.comparisonMode;
+      document.getElementById('tog-cmp').classList.toggle('on', comparisonMode);
+      document.getElementById('rank-tbl').classList.toggle('show-cmp', comparisonMode);
+    }
+    if(typeof s.heatmapMode==='boolean'){ heatmapMode=s.heatmapMode; document.getElementById('tog-heat').classList.toggle('on', heatmapMode); }
+    if(s.rankMetric==='qty'||s.rankMetric==='amount'){ rankMetric=s.rankMetric; applyRankMetricUi(); }
+    if(s.groupMode==='maker'||s.groupMode==='category'){ groupMode=s.groupMode; listCol=groupMode; searchListCol=groupMode; applyGroupModeUi(); }
+    if(s.listCol==='maker'||s.listCol==='category'){ listCol=s.listCol; syncColTogButtons(); }
+    if(s.sortMode){ sortMode=s.sortMode; sortDir=s.sortDir==='asc'?'asc':'desc'; }
+    if(typeof s.group==='string'&&s.group) currentGroup=s.group; // 存在確認は applyFilter 側（groupHasData）で行う
+  }catch(e){ return false; }
+  return true;
+}
+
 // ── 初期化 ────────────────────────────────────────────────
 buildSelects();
-setYearsPeriod(1);
+if(!restoreUiState()) setYearsPeriod(1); else applyFilter();
+updateSortIndicators();
+document.getElementById('boot')?.remove();
 
 // ── PWAバージョンチェック（自動リロード） ────────────────
 (function(){
