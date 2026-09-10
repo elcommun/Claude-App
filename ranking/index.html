@@ -502,7 +502,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v253</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v254</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -3831,7 +3831,7 @@ document.getElementById('boot')?.remove();
   }
   function openSb(){sbEl.classList.add('open');ovEl.classList.add('open');}
   function closeSb(){sbEl.classList.remove('open');ovEl.classList.remove('open');}
-  mnEl?.addEventListener('click',openSb);
+  mnEl?.addEventListener('click',()=>{ sbEl.classList.contains('open') ? closeSb() : openSb(); }); // ☰ は開閉トグル（仕入れ商品アプリと同じ）
   ovEl?.addEventListener('click',closeSb);
   document.getElementById('sb-list')?.addEventListener('click',()=>{if(isDrawerMode())closeSb();});
   // 画面端からのスワイプでサイドメニューを開く（ドロワーモード時）。
