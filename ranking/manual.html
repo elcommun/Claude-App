@@ -124,6 +124,8 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><a href="#sort">並び順を変える</a></li>
       <li><a href="#compare">前期比較を見る</a></li>
       <li><a href="#heatmap">ヒートマップ表示</a></li>
+      <li><a href="#trend">販売推移グラフを見る</a></li>
+      <li><a href="#storesplit">店舗別の内訳を見る</a></li>
       <li><a href="#search">商品を検索する</a></li>
       <li><a href="#image">商品画像を見る</a></li>
       <li><a href="#saleperiod">商品の販売期間を確認する</a></li>
@@ -438,12 +440,58 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <tr><td>Minuit Navy</td><td class="heat-vl">221</td><td style="text-align:right">¥216,580</td></tr>
     </table>
     <p style="font-size:13px;color:#888">色が濃い（オレンジ）ほど売上が多く、薄い色ほど少ないことを表します。</p>
+    <div class="tip">
+      <strong>💡 前期比のバッジ</strong><br>
+      前期比較をオンにすると、KPIカードの<strong>個数</strong>と<strong>税抜金額</strong>の横に <span style="color:#2a8a3e;font-weight:700">▲12%</span> / <span style="color:#c0392b;font-weight:700">▼8%</span> のように前期同期比が表示されます。
+    </div>
   </div>
 
-  <!-- 8. 検索 -->
-  <div class="section" id="search">
+  <!-- 販売推移グラフ -->
+  <div class="section" id="trend">
     <div class="section-hdr">
       <div class="step-badge">8</div>
+      <h2>販売推移グラフを見る</h2>
+    </div>
+    <p>KPI（数字のカード）のすぐ下に <strong>「📈 販売推移」</strong> のパネルがあります。いま表示しているカテゴリの<strong>月ごとの動き</strong>が折れ線グラフで表示されます。見出しをクリックすると開閉できます。</p>
+    <ul>
+      <li><strong>個数 ／ 金額</strong> のボタンで、グラフに表示する値を切り替えられます</li>
+      <li>灰色の<strong>破線は前期</strong>です。実線（今期）と見比べると、伸びているか落ちているかがひと目で分かります</li>
+      <li>グラフの上にマウスを乗せる（スマホは指で触れる）と、その月の数字と前期比が吹き出しで出ます</li>
+      <li><strong>グラフの月をタップすると、その月だけに期間が絞り込まれます。</strong>「12月だけ詳しく見たい」というときに便利です</li>
+    </ul>
+    <div class="note">
+      <strong>ℹ️ 期間が長いときは前期の線が出ません</strong><br>
+      販売期間を「2年」「3年」「全期間」にすると、グラフ自体が何年分も並ぶので前期の重ね表示は省略され、代わりに<strong>1月の位置に薄い縦線</strong>が入って年の区切りが分かるようになります。
+    </div>
+    <div class="tip">
+      <strong>💡 グラフの合計は上のKPIと必ず一致します</strong><br>
+      グラフはKPIとまったく同じ集計から作っているので、「グラフの合計と上の数字が違う」ということは起きません。
+    </div>
+  </div>
+
+  <!-- 店舗別の内訳 -->
+  <div class="section" id="storesplit">
+    <div class="section-hdr">
+      <div class="step-badge">9</div>
+      <h2>店舗別の内訳を見る</h2>
+    </div>
+    <p><strong>「🏬 店舗別の内訳」</strong> のパネルを開くと、いま表示しているカテゴリが<strong>どの店舗でどれだけ売れているか</strong>を、横棒と一覧で確認できます。</p>
+    <ul>
+      <li>横棒は店舗ごとの<strong>構成比</strong>です。色と一覧の色は対応しています</li>
+      <li>一覧には<strong>個数・税抜金額・構成比</strong>が並びます</li>
+      <li><strong>行や棒をタップすると、その店舗だけに絞り込めます。</strong>もう一度タップで全店舗に戻ります</li>
+      <li>店舗で絞り込んでいるときも、内訳は<strong>全店舗の割合のまま</strong>表示され、選択中の店舗が色付きで示されます（全体の中での位置が分かるようにするため）</li>
+    </ul>
+    <div class="tip">
+      <strong>💡 店舗の色は2つのアプリで共通です</strong><br>
+      「自社商品」と「仕入れ商品」で同じ店舗は同じ色になります。並び順も固定なので、売れ行きが変わっても色が入れ替わりません。
+    </div>
+  </div>
+
+  <!-- 検索 -->
+  <div class="section" id="search">
+    <div class="section-hdr">
+      <div class="step-badge">10</div>
       <h2>商品を検索する</h2>
     </div>
     <p>画面上部の検索ボックスに商品名・品番・キーワードを入力すると、全カテゴリから一括検索できます。</p>
@@ -472,7 +520,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <!-- 9. 商品画像 -->
   <div class="section" id="image">
     <div class="section-hdr">
-      <div class="step-badge">9</div>
+      <div class="step-badge">11</div>
       <h2>商品画像を見る</h2>
     </div>
     <p>手帳・カレンダーのランキング表には <strong>「商品画像」</strong> 列が表示され、サムネイル画像が確認できます。</p>
@@ -503,7 +551,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <!-- 10. 販売期間 -->
   <div class="section" id="saleperiod">
     <div class="section-hdr">
-      <div class="step-badge">10</div>
+      <div class="step-badge">12</div>
       <h2>商品の販売期間を確認する</h2>
     </div>
     <p>ランキング表・検索結果表の <strong>商品名をクリック</strong> すると、その商品が最初に売れた日〜最後に売れた日（販売期間）が表示されます。</p>
@@ -534,7 +582,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <!-- 11. 欠品情報 -->
   <div class="section" id="stockout">
     <div class="section-hdr">
-      <div class="step-badge">11</div>
+      <div class="step-badge">13</div>
       <h2>欠品情報を確認する</h2>
     </div>
     <p>手帳・カレンダーのランキング表には <strong>「欠品日」</strong> 列が表示されます。欠品がある商品は赤いバッジで表示されます。</p>
@@ -580,7 +628,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <!-- 12. Excelダウンロード -->
   <div class="section" id="excel">
     <div class="section-hdr">
-      <div class="step-badge">12</div>
+      <div class="step-badge">14</div>
       <h2>Excelでダウンロードする</h2>
     </div>
     <p>カテゴリを選んでExcelファイルとして書き出すことができます。</p>
@@ -609,7 +657,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <!-- 13. カタログPDF -->
   <div class="section" id="catalog">
     <div class="section-hdr">
-      <div class="step-badge">13</div>
+      <div class="step-badge">15</div>
       <h2>手帳・カレンダーをカタログPDF出力する</h2>
     </div>
     <p><strong>手帳・カレンダー</strong>のカテゴリを、画像付きのカタログ風PDFとして出力できます。商品画像・品名・品番・上代・順位・欠品をカード形式で、品番順に並べて表示します。</p>
@@ -648,7 +696,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <!-- 15. スマホ表示・便利機能 -->
   <div class="section" id="mobile">
     <div class="section-hdr">
-      <div class="step-badge">15</div>
+      <div class="step-badge">17</div>
       <h2>スマホでの表示と便利機能</h2>
     </div>
     <h3>スマホではカード表示になります</h3>
@@ -690,7 +738,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
 
 <div class="section" id="alias">
     <div class="section-hdr">
-      <div class="step-badge">14</div>
+      <div class="step-badge">16</div>
       <h2>検索エイリアスを設定する</h2>
     </div>
     <p>「この言葉で検索したときに、この言葉もヒットしてほしい」というカスタムルールを登録できます。</p>

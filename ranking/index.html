@@ -24,6 +24,8 @@
   --th-bg:#f0ece8;--th-ink:#5a4540;--hover:#fdf9f4;--r1:var(--gold);--r2:#888;--r3:#a07040;
   --radius:10px;--radius-sm:6px;--shadow-sm:0 2px 12px rgba(28,25,23,.04);--shadow-md:0 6px 24px rgba(0,0,0,.18);
   --sb:220px;--hh:56px;
+  /* 店舗別内訳の配色（色覚多様性を考慮した検証済みパレット。2アプリで同じ店舗＝同じ色） */
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--s7:#4a3aa7;
 }
 html{scroll-behavior:smooth}
 body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(--paper);color:var(--ink);font-size:13px;line-height:1.6;min-height:100vh}
@@ -479,6 +481,61 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 @media screen and (max-width:768px){.main::before{height:16px}}
 @media screen and (max-width:600px){#sel-sum{bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 @media screen and (max-width:480px){.hdr{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}}
+/* ── 販売推移グラフ／店舗別内訳パネル（仕入れ商品アプリと共通のクラス名） ── */
+#ov-block{margin-bottom:14px}
+.tc-panel,.sp-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-top:10px;overflow:hidden}
+.tc-head{list-style:none;cursor:pointer;padding:9px 14px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--ink2);-webkit-user-select:none;user-select:none}
+.tc-head::-webkit-details-marker{display:none}
+.tc-head::before{content:'\25B6';font-size:9px;color:var(--ink4);transition:transform .15s}
+details[open]>.tc-head::before{transform:rotate(90deg)}
+.tc-head:hover{background:var(--hover)}
+.tc-title{flex-shrink:0}
+.tc-sub{font-size:11px;font-weight:400;color:var(--ink4);margin-left:auto;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc-ctl{display:flex;gap:8px;flex-wrap:wrap;padding:0 14px 8px}
+.tc-seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.tc-sbtn{background:var(--white);border:0;border-right:1px solid var(--border);color:var(--ink3);font-family:inherit;font-size:11px;padding:4px 10px;cursor:pointer;line-height:1.5}
+.tc-sbtn:last-child{border-right:0}
+.tc-sbtn.on{background:var(--gold);color:#fff;font-weight:700}
+.tc-body,.sp-body{position:relative;padding:0 14px 12px;overflow:hidden}
+.tc-svg{display:block;-webkit-user-select:none;user-select:none;touch-action:pan-x pan-y}
+.tc-gl{stroke:var(--border2);stroke-width:1}
+.tc-yb{stroke:var(--border);stroke-width:1;stroke-dasharray:2 4}
+.tc-ylab,.tc-xlab{fill:var(--ink4);font-size:10px;font-family:inherit}
+.tc-cursor{stroke:var(--ink4);stroke-width:1}
+.tc-hit{cursor:pointer}
+.tc-tip{position:absolute;top:2px;background:#2d2926;color:#fff;border-radius:6px;padding:5px 9px;font-size:11px;line-height:1.5;pointer-events:none;z-index:20;white-space:nowrap;box-shadow:var(--shadow-md)}
+.tc-tip-d{font-weight:700;opacity:.7;font-size:10px}
+.tc-tip-r b{font-weight:600;opacity:.8;margin-right:3px}
+.tc-legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:10px;color:var(--ink4);margin-top:4px}
+.tc-lg{display:inline-flex;align-items:center;gap:4px}
+.tc-lg-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.tc-lg-dash{width:14px;height:0;border-top:1.5px dashed var(--ink4);display:inline-block}
+.tc-note{margin-left:auto}
+.tc-empty{font-size:11px;color:var(--ink4);padding:8px 0}
+.sp-bar{display:block;margin-bottom:8px}
+.sp-seg{cursor:pointer}
+.sp-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.sp-tbl td{padding:4px;border-bottom:1px solid var(--border2);white-space:nowrap}
+.sp-tbl tr{cursor:pointer}
+.sp-tbl tr:hover td{background:var(--hover)}
+.sp-tbl tr.sp-you td{background:var(--gold-lt);font-weight:700}
+.sp-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.sp-name{width:auto;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.sp-num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.sp-pct{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink3);width:50px}
+.kpi-d{font-size:11px;font-weight:700;margin-left:5px;vertical-align:2px}
+.kpi-d-up{color:var(--up)}
+.kpi-d-dn{color:var(--down)}
+@media(max-width:600px){
+  .tc-head{padding:8px 12px}
+  .tc-ctl{padding:0 12px 8px;gap:6px}
+  .tc-sbtn{padding:4px 8px;font-size:10px}
+  .tc-body,.sp-body{padding:0 12px 10px}
+  .tc-note{display:none}
+  .kpi-d{font-size:10px;margin-left:3px}
+  .sp-name{max-width:110px}
+}
+@media print{.tc-hit,.tc-cursor,.tc-tip,.tc-ctl,.tc-note{display:none!important}}
 /* ── 下メニュー時（body.hd-bottom）のスマホ: サイドバーを右から出し、行の中身も左右反転（チェック=右端、▶=左端）。
    ドロワー表示になる幅（≤768px、769〜900px縦）のみ。タブレット横で左に常設表示のときは反転しない ── */
 @media (max-width:768px), (min-width:769px) and (max-width:900px) and (orientation:portrait){
@@ -502,7 +559,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v254</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v255</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -607,7 +664,27 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   </aside>
 
   <main class="main">
+    <div id="ov-block">
     <div class="kpi-row" id="kpi-row"></div>
+    <details class="tc-panel" id="trend-panel" open>
+      <summary class="tc-head"><span class="tc-title">📈 販売推移</span><span class="tc-sub" id="trend-sub"></span></summary>
+      <div class="tc-ctl">
+        <div class="tc-seg" role="group" aria-label="表示する値">
+          <button type="button" class="tc-sbtn on" data-m="qty" onclick="setTrendMetric('qty')">個数</button>
+          <button type="button" class="tc-sbtn" data-m="amount" onclick="setTrendMetric('amount')">金額</button>
+        </div>
+        <div class="tc-seg" data-role="scope" role="group" aria-label="集計の対象">
+          <button type="button" class="tc-sbtn on" data-s="cat" onclick="setTrendScope('cat')">このカテゴリ</button>
+          <button type="button" class="tc-sbtn" data-s="all" onclick="setTrendScope('all')">全体</button>
+        </div>
+      </div>
+      <div class="tc-body" id="trend-body"></div>
+    </details>
+    <details class="sp-panel" id="split-panel">
+      <summary class="tc-head"><span class="tc-title">🏬 店舗別の内訳</span><span class="tc-sub" id="split-sub"></span></summary>
+      <div class="sp-body" id="split-body"></div>
+    </details>
+    </div>
     <div id="cat-view">
       <div class="cat-hd">
         <div class="cat-name" id="cat-name"></div>
@@ -985,6 +1062,10 @@ const STOCKOUT_REASON={"DR-MG-363":"箔の不具合が複数確認されたた�
 // ── State ─────────────────────────────────────────────────────────────────────
 let DATA    = {};   // built from PRELOADED
 let aggregated = {}, totalQty = 0, totalAmount = 0;
+// 月別推移・店舗別内訳用のバケット。applyFilter の既存の走査に相乗りして集計するので、
+// グラフの数字は必ず上のKPI・カテゴリ見出しと一致する
+let mCur = {}, mPrev = {}, sSplit = {};   // ym→cat→[qty,amount] / 前期窓の同じもの / store→cat→[qty,amount]
+let trendMetric = 'qty', trendScope = 'cat';
 let selectedCategory = null, sortMode = 'qty', sortDir = 'desc';
 let comparisonMode = false, heatmapMode = false;
 let aggPrev = {}, aggPrev2 = {}, prevByCode = {}, prev2ByCode = {};
@@ -1060,31 +1141,54 @@ function buildSelects() {
 }
 
 // ── Filter & aggregate ────────────────────────────────────────────────────────
+// 品番→カテゴリの解決。applyFilter・月別集計・前期集計で共通に使い、結果をメモ化する
+// （生カテゴリ名と品番の組み合わせだけで決まるので、同じ組は必ず同じカテゴリになる）
+const CAT_RESOLVE_MEMO = new Map();
+function resolveCatOf(rawCat, rawCode) {
+  const k = rawCat + '\u0001' + rawCode;
+  let v = CAT_RESOLVE_MEMO.get(k);
+  if (v !== undefined) return v;
+  const code = CODE_REMAP[rawCode] || rawCode;
+  if (CODE_SKIP_PREFIXES.some(p => code.startsWith(p))) { CAT_RESOLVE_MEMO.set(k, null); return null; }
+  const p = DATA.products[code] || DATA.products[rawCode] || ['', 0];
+  let cat = getCodeCat(code) || mapCategory(rawCat);
+  // 「ファッション＞ポーチ・ケース」内で商品名に「ペンケース」を含む商品は「ステーショナリー＞ペンケース」へ
+  if (cat === 'ポーチ・ケース' && p[0] && p[0].includes('ペンケース')) cat = 'ペンケース';
+  // 「食器」内で商品名に「STAINLESS FOOD POT」を含む商品は「ランチボックス」へ
+  if (cat === '食器' && p[0] && p[0].includes('STAINLESS FOOD POT')) cat = 'ランチボックス';
+  v = { code, cat, name: p[0], price: p[1] };
+  CAT_RESOLVE_MEMO.set(k, v);
+  return v;
+}
+
 function applyFilter() {
   const {dateFrom, dateTo} = getFilterPeriod();
   const str = document.getElementById('f-store').value;
   aggregated = {}; totalQty = 0; totalAmount = 0;
+  mCur = {}; mPrev = {}; sSplit = {};
 
-  function mergeByStore(byStore) {
-    const stores = str === 'all' ? Object.keys(byStore) : [str];
-    for (const store of stores) {
+  function mergeByStore(byStore, ym) {
+    for (const store of Object.keys(byStore)) {
       const byCat = byStore[store]; if (!byCat) continue;
+      const sel = (str === 'all' || store === str);
       for (const [rawCat, codes] of Object.entries(byCat)) {
         for (const [rawCode, qa] of Object.entries(codes)) {
-          const code = CODE_REMAP[rawCode] || rawCode;
-          if (CODE_SKIP_PREFIXES.some(p => code.startsWith(p))) continue;
-          const p = DATA.products[code] || DATA.products[rawCode] || ['', 0];
-          let cat = getCodeCat(code) || mapCategory(rawCat);
-          // 「ファッション＞ポーチ・ケース」内で商品名に「ペンケース」を含む商品は「ステーショナリー＞ペンケース」へ
-          if (cat === 'ポーチ・ケース' && p[0] && p[0].includes('ペンケース')) cat = 'ペンケース';
-          // 「食器」内で商品名に「STAINLESS FOOD POT」を含む商品は「ランチボックス」へ
-          if (cat === '食器' && p[0] && p[0].includes('STAINLESS FOOD POT')) cat = 'ランチボックス';
+          const r = resolveCatOf(rawCat, rawCode); if (!r) continue;
+          // 店舗別内訳は店舗フィルタに関わらず全店を集計する（「全店の中でのこの店」を見せるため）
+          const ss = sSplit[store] || (sSplit[store] = {});
+          const se = ss[r.cat] || (ss[r.cat] = [0, 0]);
+          se[0] += qa[0]; se[1] += qa[1];
+          if (!sel) continue;
+          const cat = r.cat, code = r.code;
           if (!aggregated[cat]) aggregated[cat] = {};
           if (!aggregated[cat][code]) {
-            aggregated[cat][code] = {code, name:p[0], price:p[1], qty:0, amount:0};
+            aggregated[cat][code] = {code, name:r.name, price:r.price, qty:0, amount:0};
           }
           aggregated[cat][code].qty    += qa[0];
           aggregated[cat][code].amount += qa[1];
+          const mm = mCur[ym] || (mCur[ym] = {});
+          const me = mm[cat] || (mm[cat] = [0, 0]);
+          me[0] += qa[0]; me[1] += qa[1];
         }
       }
     }
@@ -1102,19 +1206,19 @@ function applyFilter() {
   // PRELOADED dates in range
   for (const [dk, bs] of Object.entries(PRELOADED.by_store)) {
     if (!inRange(dk, dateFrom, dateTo)) continue;
-    mergeByStore(bs);
+    mergeByStore(bs, dk.slice(0, 7));
   }
 
   for (const codes of Object.values(aggregated))
     for (const item of Object.values(codes)) { totalQty += item.qty; totalAmount += item.amount; }
 
   // Build comparison data for previous years (same date range shifted by N years)
-  function buildAggForPeriod(fD, tD) {
+  function buildAggForPeriod(fD, tD, mOut) {
     const a={};
-    function mg(bs){const sts=str==='all'?Object.keys(bs):[str];for(const s of sts){const bc=bs[s];if(!bc)continue;for(const[rc,cd] of Object.entries(bc)){for(const[rawCode,qa] of Object.entries(cd)){const code=CODE_REMAP[rawCode]||rawCode;if(CODE_SKIP_PREFIXES.some(p=>code.startsWith(p)))continue;const cat=getCodeCat(code)||mapCategory(rc);if(!a[cat])a[cat]={};if(!a[cat][code])a[cat][code]=[0,0];a[cat][code][0]+=qa[0];a[cat][code][1]+=qa[1];}}}}
+    function mg(bs,ym){const sts=str==='all'?Object.keys(bs):[str];for(const s of sts){const bc=bs[s];if(!bc)continue;for(const[rc,cd] of Object.entries(bc)){for(const[rawCode,qa] of Object.entries(cd)){const r=resolveCatOf(rc,rawCode);if(!r)continue;const cat=r.cat,code=r.code;if(!a[cat])a[cat]={};if(!a[cat][code])a[cat][code]=[0,0];a[cat][code][0]+=qa[0];a[cat][code][1]+=qa[1];if(mOut){const mm=mOut[ym]||(mOut[ym]={});const me=mm[cat]||(mm[cat]=[0,0]);me[0]+=qa[0];me[1]+=qa[1];}}}}}
     for(const[dk,bs] of Object.entries(PRELOADED.by_store)){
       if(!inRange(dk,fD,tD)) continue;
-      mg(bs);
+      mg(bs,dk.slice(0,7));
     }
     return a;
   }
@@ -1122,7 +1226,7 @@ function applyFilter() {
   function shiftDate(d,n){const p=d.split('-');return String(parseInt(p[0])-n)+d.slice(4);}
   const mkFrom=(n)=>shiftDate(dateFrom,n);
   const mkTo  =(n)=>shiftDate(dateTo,n);
-  aggPrev =buildAggForPeriod(mkFrom(1),mkTo(1));
+  aggPrev =buildAggForPeriod(mkFrom(1),mkTo(1),mPrev);
   aggPrev2=buildAggForPeriod(mkFrom(2),mkTo(2));
   prevByCode=codeIdx(aggPrev); prev2ByCode=codeIdx(aggPrev2);
   function scIdx(ci){const idx={};for(const[c,qa] of Object.entries(ci)){const sc=(DATA.products[c]||[])[2];if(!sc)continue;if(!idx[sc])idx[sc]=[0,0];idx[sc][0]+=qa[0];idx[sc][1]+=qa[1];}return idx;}
@@ -2084,7 +2188,7 @@ function showCategory(cat, updateSidebar=true) {
   document.querySelector('.search-wrap').classList.remove('has-text');
   document.getElementById('search-view').style.display = 'none';
   document.getElementById('cat-view').style.display   = 'block';
-  document.getElementById('kpi-row').style.display    = 'grid';
+  setOverviewVisible(true);
   if (updateSidebar)
     document.querySelectorAll('.sbi').forEach(el=>el.classList.toggle('active',el.dataset.cat===cat));
 
@@ -2210,12 +2314,19 @@ function showCategory(cat, updateSidebar=true) {
   document.getElementById('cat-name').textContent=(CAT_ICONS[cat]||'📦')+' '+cat;
   document.getElementById('cat-stats').innerHTML=cmpSt;
 
+  // 前年比較ONのときは個数・税抜金額に前期比バッジを付ける（見出しの比較表示と同じ計算）
+  const kpiD=(cur,base)=>{
+    if(!base)return '';
+    const d=Math.round((cur-base)/base*100);
+    return `<span class="kpi-d ${d>=0?'kpi-d-up':'kpi-d-dn'}">${d>=0?'▲':'▼'}${Math.abs(d)}%</span>`;
+  };
+  const kdOn=comparisonMode&&prevCatTot;
   document.getElementById('kpi-row').innerHTML = [
-    ['個数',         t.qty.toLocaleString()+' 個'],
-    ['税抜金額',      '¥'+t.amount.toLocaleString()],
-    ['全体の割合',    catPct+'%'],
-    ['SKU 数',       items.length+' 種'],
-  ].map(([l,v])=>`<div class="kpi"><div class="kpi-v">${v}</div><div class="kpi-l">${l}</div></div>`).join('');
+    ['個数',         t.qty.toLocaleString()+' 個',      kdOn?kpiD(t.qty,prevCatTot.qty):''],
+    ['税抜金額',      '¥'+t.amount.toLocaleString(),    kdOn?kpiD(t.amount,prevCatTot.amount):''],
+    ['全体の割合',    catPct+'%',                       ''],
+    ['SKU 数',       items.length+' 種',                ''],
+  ].map(([l,v,d])=>`<div class="kpi"><div class="kpi-v">${v}${d}</div><div class="kpi-l">${l}</div></div>`).join('');
 
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
@@ -2272,6 +2383,13 @@ function showCategory(cat, updateSidebar=true) {
     items.forEach(item=>{ html+=renderRow(item,rankMap[item.code],topVal); });
   }
   document.getElementById('rank-tbody').innerHTML=html;
+
+  // 推移グラフ・店舗別内訳の対象を決めて描画（手帳・カレンダーは前期＝前年度版のカテゴリを見る）
+  window._ovCat=cat;
+  window._ovCats=realCats;
+  window._ovPrevCats=catType?realCats.map(c=>getEquivYearCat(c,-1)||c):realCats;
+  renderTrendPanel();
+  renderSplitPanel();
 }
 
 // ── Search normalization ───────────────────────────────────────────────────────
@@ -3242,10 +3360,10 @@ document.getElementById('hd-search-clear').addEventListener('click',()=>{const s
 document.getElementById('hd-search').addEventListener('input',e=>{
   const q=e.target.value.trim();
   document.querySelector('.search-wrap').classList.toggle('has-text',e.target.value!=='');
-  if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';document.getElementById('kpi-row').style.display='grid';return;}
+  if(!q){document.getElementById('search-view').style.display='none';document.getElementById('cat-view').style.display='block';setOverviewVisible(true);return;}
   document.getElementById('cat-view').style.display='none';
   document.getElementById('search-view').style.display='block';
-  document.getElementById('kpi-row').style.display='none';
+  setOverviewVisible(false);
   // スペース区切りで複数キーワードのAND検索に対応
   const words=q.split(/[\s　]+/).filter(Boolean);
   const wordData=words.map(w=>{
@@ -3474,22 +3592,34 @@ document.querySelectorAll('.tbl thead').forEach(th=>th.addEventListener('keydown
 function x(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function esc(s){return String(s??'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
 // 商品ごとの販売履歴（初回/最終販売日・月別販売数）を全期間データから集計し、品番ごとにキャッシュ
-const PROD_HISTORY=new Map();
-function productHistory(code){
-  if(PROD_HISTORY.has(code))return PROD_HISTORY.get(code);
-  let minD=null,maxD=null;const months={};
+// 全品番の「初回販売日・最終販売日・月別販売数」を1回の走査でまとめて作る。
+// 以前は商品名クリックのたびに全データを走査していたため、クリックのたびに数十msかかっていた
+let ALLTIME_MONTHLY=null;
+function allTimeMonthly(){
+  if(ALLTIME_MONTHLY)return ALLTIME_MONTHLY;
+  const t={};
   for(const [date,stores] of Object.entries(PRELOADED.by_store)){
-    let found=false,q=0;
+    const ym=date.slice(0,7);
     for(const cats of Object.values(stores)){
-      for(const codes of Object.values(cats)){ const qa=codes[code]; if(qa){found=true;q+=qa[0];} }
+      for(const codes of Object.values(cats)){
+        for(const [code,qa] of Object.entries(codes)){
+          let e=t[code];
+          if(!e){e=t[code]={min:date,max:date,m:{}};}
+          else{if(date<e.min)e.min=date;if(date>e.max)e.max=date;}
+          const mm=e.m[ym];
+          if(mm){mm[0]+=qa[0];mm[1]+=qa[1];}else e.m[ym]=[qa[0],qa[1]];
+        }
+      }
     }
-    if(!found)continue;
-    if(!minD||date<minD)minD=date; if(!maxD||date>maxD)maxD=date;
-    const ym=date.slice(0,7); months[ym]=(months[ym]||0)+q;
   }
-  const h={minD,maxD,months};
-  PROD_HISTORY.set(code,h);
-  return h;
+  ALLTIME_MONTHLY=t;
+  return t;
+}
+function productHistory(code){
+  const e=allTimeMonthly()[code];
+  if(!e)return {minD:null,maxD:null,months:{}};
+  if(!e.mq){const mq={};for(const[k,v] of Object.entries(e.m))mq[k]=v[0];e.mq=mq;}
+  return {minD:e.min,maxD:e.max,months:e.mq};
 }
 // 商品名クリックで、その商品の初回販売日〜最新販売日を表示
 function getSalePeriodText(code){
@@ -3767,13 +3897,252 @@ buildData();
   document.getElementById('f-date-to').value=latest;
   document.addEventListener('DOMContentLoaded',()=>{if(window._qbtnRestored)return;const b=document.getElementById('qbtn-1');if(b)b.classList.add('on');});
 })();
+// ── 販売推移グラフ／店舗別内訳（共通コンポーネント。アクセント色トークン以外は2アプリ共通） ────────
+// チャートライブラリは使わず、既存スパークラインと同じ手書きインラインSVGで描く
+// （CSS変数でテーマに追従・印刷でベクタのまま出る・CDN依存を増やさない）
+const TC_ACCENT='var(--gold)';
+function tcFmtY(v,metric){
+  if(metric==='amount'){
+    if(v>=100000000)return '¥'+(Math.round(v/10000000)/10)+'億';
+    if(v>=10000)return '¥'+Math.round(v/10000).toLocaleString()+'万';
+    return '¥'+Math.round(v).toLocaleString();
+  }
+  if(v>=10000)return (Math.round(v/1000)/10)+'万';
+  return Math.round(v).toLocaleString();
+}
+function tcFmtV(v,metric){return metric==='amount'?'¥'+Math.round(v).toLocaleString():Math.round(v).toLocaleString()+'個';}
+// 幅は実測して 1 user unit = 1px で描く（viewBoxで伸縮させると文字と線が潰れるため）
+function tcMeasure(el){const w=el?el.clientWidth:0;if(!w)return null;return Math.max(280,Math.min(1100,w));}
+function tcNice(v){const e=Math.pow(10,Math.floor(Math.log10(v)));const f=v/e;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e;}
+function monthKeysInRange(){
+  // 期間入力を直接読む（アプリ間で共通に使えるように）
+  const dateFrom=document.getElementById('f-date-from').value||trendEarliest();
+  const dateTo=document.getElementById('f-date-to').value||trendLatest();
+  if(!dateFrom||!dateTo||dateFrom>dateTo)return [];
+  const keys=[];let y=+dateFrom.slice(0,4),m=+dateFrom.slice(5,7);
+  const ey=+dateTo.slice(0,4),em=+dateTo.slice(5,7);
+  for(let i=0;i<240;i++){keys.push(y+'-'+String(m).padStart(2,'0'));if(y===ey&&m===em)break;m++;if(m>12){m=1;y++;}}
+  return keys;
+}
+function shiftYm(ym,n){return String(+ym.slice(0,4)+n)+ym.slice(4);}
+// series: [{key:'cur'|'prev', label, color, dash, area, points:[数値|null,…]}]、xKeys: ['YYYY-MM',…]
+function trendSvg(series,xKeys,opts){
+  const W=opts.w,H=opts.h,metric=opts.metric||'qty';
+  const PL=48,PR=10,PT=12,PB=20;
+  const pw=Math.max(10,W-PL-PR),ph=Math.max(10,H-PT-PB),n=xKeys.length;
+  let max=0;for(const s of series)for(const v of s.points)if(v!=null&&v>max)max=v;
+  const stepV=tcNice((max||1)/3),top=Math.max(stepV,Math.ceil((max||1)/stepV)*stepV);
+  const X=i=>n<=1?PL+pw/2:PL+i*(pw/(n-1));
+  const Y=v=>PT+ph-(v/top)*ph;
+  const f=v=>Math.round(v*10)/10;
+  let grid='';
+  for(let k=0;k<=3;k++){const v=top*k/3,y=Y(v);
+    grid+=`<line class="tc-gl" x1="${PL}" y1="${f(y)}" x2="${W-PR}" y2="${f(y)}"/>`
+        + `<text class="tc-ylab" x="${PL-6}" y="${f(y)+3}" text-anchor="end">${x(tcFmtY(v,metric))}</text>`;}
+  if(n>13)for(let i=0;i<n;i++)if(xKeys[i].endsWith('-01'))grid+=`<line class="tc-yb" x1="${f(X(i))}" y1="${PT}" x2="${f(X(i))}" y2="${PT+ph}"/>`;
+  let lines='';
+  for(const s of series){
+    const pts=[];for(let i=0;i<n;i++){const v=s.points[i];if(v!=null)pts.push([X(i),Y(v)]);}
+    if(!pts.length)continue;
+    const d=pts.map(p=>f(p[0])+','+f(p[1])).join(' ');
+    if(s.area)lines+=`<path class="tc-area" d="M${f(pts[0][0])},${PT+ph} L${d} L${f(pts[pts.length-1][0])},${PT+ph} Z" fill="${s.color}" fill-opacity=".10"/>`;
+    lines+=`<polyline class="tc-line ${s.key==='prev'?'tc-prev':'tc-cur'}" points="${d}" fill="none" stroke="${s.color}" stroke-width="${s.dash?1.5:2}"${s.dash?' stroke-dasharray="4 3"':''} stroke-linejoin="round" stroke-linecap="round"/>`;
+  }
+  const cur=series.find(s=>s.key==='cur');
+  if(cur){
+    const idx=[];
+    if(n<=18){for(let i=0;i<n;i++)if(cur.points[i]!=null)idx.push(i);}
+    else{let bi=-1,bv=-1;for(let i=0;i<n;i++){const v=cur.points[i];if(v!=null&&v>bv){bv=v;bi=i;}}if(bi>=0)idx.push(bi);const li=n-1;if(cur.points[li]!=null&&li!==bi)idx.push(li);}
+    for(const i of idx)lines+=`<circle class="tc-dot" cx="${f(X(i))}" cy="${f(Y(cur.points[i]))}" r="3.4" fill="${cur.color}" stroke="var(--white)" stroke-width="2"/>`;
+  }
+  const st=Math.max(1,Math.ceil(n*34/pw));
+  let xl='';
+  // 間引いたときは月だけ表示。ただし1月と、いちばん左のラベルは年も付けて読み違いを防ぐ
+  for(let i=n-1;i>=0;i-=st){const ym=xKeys[i],mo=parseInt(ym.slice(5),10),leftmost=(i-st<0);
+    xl+=`<text class="tc-xlab" x="${f(X(i))}" y="${H-6}" text-anchor="middle">${st>1&&mo!==1&&!leftmost?mo:ym.slice(2,4)+'/'+mo}</text>`;}
+  let hits='';
+  const hw=n<=1?pw:pw/(n-1);
+  for(let i=0;i<n;i++){
+    const tt=xKeys[i].replace('-','/')+' '+series.filter(s=>s.points[i]!=null).map(s=>s.label+' '+tcFmtV(s.points[i],metric)).join(' / ');
+    hits+=`<rect class="tc-hit" data-i="${i}" data-cx="${f(X(i))}" x="${f(X(i)-hw/2)}" y="${PT}" width="${f(hw)}" height="${ph}" fill="transparent"><title>${x(tt)}</title></rect>`;
+  }
+  return `<svg class="tc-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="月別の販売推移">`
+    + `<g class="tc-grid">${grid}</g>${lines}${xl}`
+    + `<line class="tc-cursor" x1="0" y1="${PT}" x2="0" y2="${PT+ph}" opacity="0"/>`
+    + `<g class="tc-hits">${hits}</g></svg>`;
+}
+// 店舗別の横積み棒
+function stackSvg(segs,total,W,H){
+  if(!total)return '';
+  const G=2,avail=Math.max(10,W-G*Math.max(0,segs.length-1));
+  let x0=0,out='';
+  segs.forEach(s=>{
+    const w=Math.max(2,avail*(s.value/total));
+    out+=`<rect class="sp-seg" data-store="${x(s.label)}" x="${Math.round(x0)}" y="0" width="${Math.round(w)}" height="${H}" rx="2" fill="${s.color}"><title>${x(s.label+' '+(s.value/total*100).toFixed(1)+'%')}</title></rect>`;
+    x0+=w+G;
+  });
+  return `<svg class="sp-bar" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="店舗別の構成比">${out}</svg>`;
+}
+function storeOrder(){return [...document.getElementById('f-store').options].map(o=>o.value).filter(v=>v!=='all');}
+function storeColor(name){const i=storeOrder().indexOf(name);return 'var(--s'+((i<0?0:i)%7+1)+')';}
+// ── パネルの描画 ─────────────────────────────────────────────────
+function setOverviewVisible(v){const b=document.getElementById('ov-block');if(b)b.style.display=v?'':'none';}
+function setTrendMetric(m){
+  trendMetric=m;
+  document.querySelectorAll('.tc-sbtn[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===m));
+  renderTrendPanel();renderSplitPanel();saveUiState();
+}
+function focusMonth(ym){
+  const y=+ym.slice(0,4),m=+ym.slice(5);
+  const last=new Date(y,m,0).getDate();
+  let fD=ym+'-01',tD=ym+'-'+String(last).padStart(2,'0');
+  const ea=trendEarliest(),la=trendLatest();
+  if(ea&&fD<ea)fD=ea; if(la&&tD>la)tD=la;
+  if(fD>tD)return;
+  document.getElementById('f-date-from').value=fD;
+  document.getElementById('f-date-to').value=tD;
+  setQBtnActive('');
+  applyFilter();
+}
+function bindTrendEvents(body){
+  const svg=body.querySelector('.tc-svg');if(!svg)return;
+  const tip=body.querySelector('.tc-tip'),cursor=svg.querySelector('.tc-cursor'),d=body._tc;
+  const hits=[...svg.querySelectorAll('.tc-hit')];
+  const cxs=hits.map(h=>parseFloat(h.dataset.cx));
+  const vbW=svg.viewBox.baseVal.width||1;
+  const idxAt=e=>{
+    const r=svg.getBoundingClientRect();if(!r.width)return -1;
+    const ux=(e.clientX-r.left)*(vbW/r.width);
+    let best=-1,bd=1e9;
+    for(let i=0;i<cxs.length;i++){const dd=Math.abs(cxs[i]-ux);if(dd<bd){bd=dd;best=i;}}
+    return best;
+  };
+  const show=i=>{
+    if(i<0||i>=d.xKeys.length)return;
+    cursor.setAttribute('x1',cxs[i]);cursor.setAttribute('x2',cxs[i]);cursor.setAttribute('opacity','1');
+    const rows=d.series.map(s=>`<div class="tc-tip-r"><b>${x(s.label)}</b> ${x(tcFmtV(s.points[i]||0,d.metric))}</div>`).join('');
+    const c=d.series.find(s=>s.key==='cur'),p=d.series.find(s=>s.key==='prev');
+    let diff='';
+    if(c&&p&&p.points[i]){const dd=Math.round((c.points[i]-p.points[i])/p.points[i]*100);diff=`<div class="tc-tip-r ${dd>=0?'prev-up':'prev-dn'}">${dd>=0?'▲':'▼'}${Math.abs(dd)}%</div>`;}
+    tip.innerHTML=`<div class="tc-tip-d">${d.xKeys[i].replace('-','/')}</div>${rows}${diff}`;
+    tip.hidden=false;
+    const r=svg.getBoundingClientRect();
+    const px=cxs[i]*(r.width/vbW);
+    tip.style.left=Math.max(4,Math.min(body.clientWidth-tip.offsetWidth-4,px-tip.offsetWidth/2))+'px';
+  };
+  const hide=()=>{tip.hidden=true;cursor.setAttribute('opacity','0');};
+  let downX=null,downI=-1;
+  // preventDefault は絶対にしない（.main のインナースクロールが効かなくなるため）
+  svg.addEventListener('pointermove',e=>show(idxAt(e)));
+  svg.addEventListener('pointerdown',e=>{downX=e.clientX;downI=idxAt(e);show(downI);});
+  svg.addEventListener('pointerup',e=>{
+    if(downX!=null&&Math.abs(e.clientX-downX)<8&&downI>=0)focusMonth(d.xKeys[downI]);
+    downX=null;
+  });
+  svg.addEventListener('pointerleave',hide);
+  svg.addEventListener('pointercancel',hide);
+}
+
+// ── 自社商品アプリ固有: パネルのデータ源 ─────────────────────────────
+function trendEarliest(){return window._periodEarliest||'';}
+function trendLatest(){return window._periodLatest||'';}
+function setTrendScope(s){
+  trendScope=s;
+  document.querySelectorAll('.tc-sbtn[data-s]').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+  renderTrendPanel();saveUiState();
+}
+function renderTrendPanel(){
+  const body=document.getElementById('trend-body');if(!body)return;
+  const panel=document.getElementById('trend-panel');
+  const scopeSeg=document.querySelector('.tc-seg[data-role="scope"]');
+  if(scopeSeg)scopeSeg.style.display='';
+  if(!panel||!panel.open)return;
+  const W=tcMeasure(body);if(!W)return;
+  const all=trendScope==='all';
+  const cats=all?Object.keys(aggregated):(window._ovCats||[]);
+  const prevCats=all?Object.keys(aggPrev):(window._ovPrevCats||[]);
+  const xKeys=monthKeysInRange();
+  const sub=document.getElementById('trend-sub');
+  if(!xKeys.length||!cats.length){body.innerHTML='<div class="tc-empty">表示できる推移がありません</div>';if(sub)sub.textContent='';return;}
+  const mi=trendMetric==='amount'?1:0;
+  const pick=(bucket,ym,cs)=>{const mm=bucket[ym];if(!mm)return 0;let t=0;for(const c of cs){const e=mm[c];if(e)t+=e[mi];}return t;};
+  const cur=xKeys.map(ym=>pick(mCur,ym,cats));
+  const prev=xKeys.map(ym=>pick(mPrev,shiftYm(ym,-1),prevCats));
+  const prevTot=prev.reduce((a,b)=>a+b,0);
+  // 期間が長いときは履歴そのものが比較になるので前期の重ね表示はしない
+  const showPrev=xKeys.length<=14&&prevTot>0;
+  const series=[{key:'cur',label:'今期',color:TC_ACCENT,area:true,dash:false,points:cur}];
+  if(showPrev)series.unshift({key:'prev',label:'前期',color:'var(--ink4)',area:false,dash:true,points:prev});
+  const H=window.innerWidth<=600?150:196;
+  body.innerHTML=trendSvg(series,xKeys,{w:W,h:H,metric:trendMetric})
+    +'<div class="tc-tip" hidden></div>'
+    +'<div class="tc-legend"><span class="tc-lg"><i class="tc-lg-dot" style="background:'+TC_ACCENT+'"></i>今期</span>'
+    +(showPrev?'<span class="tc-lg"><i class="tc-lg-dash"></i>前期 '+x(prevPeriodStr)+'</span>':'')
+    +'<span class="tc-lg tc-note">'+(xKeys.length>14?'期間が長いため前期の重ね表示は省略しています':'グラフの月をタップするとその月だけに絞り込めます')+'</span></div>';
+  body._tc={xKeys,series,metric:trendMetric};
+  bindTrendEvents(body);
+  if(sub)sub.textContent=(all?'全カテゴリ':(window._ovCat||''))+' 合計 '+tcFmtV(cur.reduce((a,b)=>a+b,0),trendMetric);
+}
+function renderSplitPanel(){
+  const body=document.getElementById('split-body');if(!body)return;
+  const panel=document.getElementById('split-panel');
+  const sub=document.getElementById('split-sub');
+  if(!panel||!panel.open)return;
+  const W=tcMeasure(body);if(!W)return;
+  const cats=(trendScope==='all')?Object.keys(aggregated):(window._ovCats||[]);
+  const mi=trendMetric==='amount'?1:0;
+  const rows=[];
+  for(const st of storeOrder()){
+    const sm=sSplit[st];if(!sm)continue;
+    let q=0,a=0;for(const c of cats){const e=sm[c];if(e){q+=e[0];a+=e[1];}}
+    if(q||a)rows.push({store:st,qty:q,amount:a,color:storeColor(st)});
+  }
+  const total=rows.reduce((s,r)=>s+(mi?r.amount:r.qty),0);
+  if(!rows.length||!total){body.innerHTML='<div class="tc-empty">店舗別の内訳がありません</div>';if(sub)sub.textContent='';return;}
+  const selected=document.getElementById('f-store').value;
+  const segs=rows.map(r=>({label:r.store,value:mi?r.amount:r.qty,color:r.color}));
+  const tbl=rows.map(r=>{
+    const v=mi?r.amount:r.qty,pct=(v/total*100).toFixed(1);
+    return '<tr class="'+(selected===r.store?'sp-you':'')+'" onclick="pickStore(\''+esc(r.store)+'\')">'
+      +'<td class="sp-name"><i class="sp-dot" style="background:'+r.color+'"></i>'+x(r.store)+'</td>'
+      +'<td class="sp-num">'+r.qty.toLocaleString()+'個</td>'
+      +'<td class="sp-num">¥'+Math.round(r.amount).toLocaleString()+'</td>'
+      +'<td class="sp-pct">'+pct+'%</td></tr>';
+  }).join('');
+  body.innerHTML=stackSvg(segs,total,W,16)+'<table class="sp-tbl"><tbody>'+tbl+'</tbody></table>';
+  body.querySelectorAll('.sp-seg').forEach(s=>s.addEventListener('click',()=>pickStore(s.dataset.store)));
+  if(sub)sub.textContent=rows.length+'店舗'+(selected!=='all'?'（'+x(selected)+'を表示中）':'');
+}
+function pickStore(name){
+  const sel=document.getElementById('f-store');
+  sel.value=(sel.value===name)?'all':name;
+  applyFilter();
+}
+// パネル幅の変化（サイドバー幅変更・回転・折りたたみ）で再描画。ループ防止に8px未満の変化は無視
+(function(){
+  const last={};
+  if(typeof ResizeObserver==='undefined')return;
+  const ro=new ResizeObserver(es=>{
+    for(const e of es){
+      const id=e.target.id,w=Math.round(e.contentRect.width);
+      if(Math.abs((last[id]||0)-w)<8)continue;
+      last[id]=w;
+      clearTimeout(e.target._tcT);
+      e.target._tcT=setTimeout(()=>{id==='trend-body'?renderTrendPanel():renderSplitPanel();},120);
+    }
+  });
+  ['trend-body','split-body'].forEach(id=>{const el=document.getElementById(id);if(el)ro.observe(el);});
+  document.getElementById('trend-panel')?.addEventListener('toggle',()=>{renderTrendPanel();saveUiState();});
+  document.getElementById('split-panel')?.addEventListener('toggle',()=>{renderSplitPanel();saveUiState();});
+})();
+
 // ── 表示状態の記憶（期間・店舗・並び順・前年比較/ヒートマップ・表示中カテゴリ）。再読込・自動更新後も同じ画面に戻る ──
 const UI_STATE_KEY='ec_rank_state_v1';
 function saveUiState(){
   try{
     const qbtn=['qbtn-1','qbtn-2','qbtn-3','qbtn-all'].find(id=>document.getElementById(id)?.classList.contains('on'))||'';
     const {dateFrom,dateTo}=getFilterPeriod();
-    localStorage.setItem(UI_STATE_KEY,JSON.stringify({sortMode,sortDir,comparisonMode,heatmapMode,dateFrom,dateTo,qbtn,store:document.getElementById('f-store').value,cat:selectedCategory}));
+    localStorage.setItem(UI_STATE_KEY,JSON.stringify({sortMode,sortDir,comparisonMode,heatmapMode,dateFrom,dateTo,qbtn,store:document.getElementById('f-store').value,cat:selectedCategory,trendMetric,trendScope,trendOpen:!!document.getElementById('trend-panel')?.open,splitOpen:!!document.getElementById('split-panel')?.open}));
   }catch(e){}
 }
 function loadUiState(){try{return JSON.parse(localStorage.getItem(UI_STATE_KEY)||'null');}catch(e){return null;}}
@@ -3817,11 +4186,19 @@ const _uiSt=loadUiState();
     if(typeof _uiSt.heatmapMode==='boolean'){heatmapMode=_uiSt.heatmapMode;document.getElementById('tog-heat').classList.toggle('on',heatmapMode);}
     if(_uiSt.sortMode){sortMode=_uiSt.sortMode;sortDir=_uiSt.sortDir||'desc';}
     if(_uiSt.cat)selectedCategory=_uiSt.cat; // 存在確認は applyFilter 側で行う
+    if(_uiSt.trendMetric==='amount'||_uiSt.trendMetric==='qty')trendMetric=_uiSt.trendMetric;
+    if(_uiSt.trendScope==='all'||_uiSt.trendScope==='cat')trendScope=_uiSt.trendScope;
+    if(typeof _uiSt.trendOpen==='boolean')document.getElementById('trend-panel').open=_uiSt.trendOpen;
+    if(typeof _uiSt.splitOpen==='boolean')document.getElementById('split-panel').open=_uiSt.splitOpen;
+    document.querySelectorAll('.tc-sbtn[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===trendMetric));
+    document.querySelectorAll('.tc-sbtn[data-s]').forEach(b=>b.classList.toggle('on',b.dataset.s===trendScope));
   }catch(e){}
 })();
 applyFilter();
 if(_uiSt&&_uiSt.sortMode&&(sortMode!=='qty'||sortDir!=='desc'))setSort(sortMode,sortDir); // 見出し矢印・ラベル・チップを同期
 document.getElementById('boot')?.remove();
+// 商品ごとの全期間インデックスは初回描画の後、アイドル時に作っておく（商品名クリックのグラフ表示を即時にする）
+(window.requestIdleCallback||(f=>setTimeout(f,600)))(()=>{try{allTimeMonthly();}catch(e){}});
 // Mobile sidebar drawer
 (function(){
   const sbEl=document.querySelector('.sb'),ovEl=document.getElementById('sb-overlay'),mnEl=document.getElementById('hd-menu');
