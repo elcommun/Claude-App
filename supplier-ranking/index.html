@@ -420,7 +420,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v115</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v116</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2577,7 +2577,23 @@ function stackSvg(segs,total,W,H){
   return `<svg class="sp-bar" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="店舗別の構成比">${out}</svg>`;
 }
 function storeOrder(){return [...document.getElementById('f-store').options].map(o=>o.value).filter(v=>v!=='all');}
-function storeColor(name){const i=storeOrder().indexOf(name);return 'var(--s'+((i<0?0:i)%7+1)+')';}
+// 店舗の色は「店舗名」で固定する。2アプリで扱う店舗数が違っても（仕入れ側に Shopify が無い等）
+// 同じ店舗が必ず同じ色になるようにするため、プルダウンの並び順からは決めない
+const STORE_COLORS={
+  'EL COMMUN 楽天市場店':'var(--s1)',
+  'LAIKLE 楽天市場店':'var(--s2)',
+  'EL COMMUN Yahoo店':'var(--s3)',
+  'EL COMMUN Amazon店':'var(--s4)',
+  'EL COMMUN auPAYマーケット店':'var(--s5)',
+  'EL COMMUN Qoo10':'var(--s6)',
+  'EL COMMUN Shopify':'var(--s7)'
+};
+function storeColor(name){
+  if(STORE_COLORS[name])return STORE_COLORS[name];
+  // 未登録の店舗名は名前から安定した色を割り当てる（読み込むたびに変わらないように）
+  let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;
+  return 'var(--s'+(h%7+1)+')';
+}
 // ── パネルの描画 ─────────────────────────────────────────────────
 function setOverviewVisible(v){const b=document.getElementById('ov-block');if(b)b.style.display=v?'':'none';}
 function setTrendMetric(m){
@@ -2681,6 +2697,8 @@ function renderSplitPanel(){
     let q=0,a=0;for(const c of cats){const e=sm[c];if(e){q+=e[0];a+=e[1];}}
     if(q||a)rows.push({store:st,qty:q,amount:a,color:storeColor(st)});
   }
+  // 売れている店舗から順に上へ（横棒も同じ順なので左から太い順に並ぶ）。色は店舗ごとに固定なので入れ替わらない
+  rows.sort((a,b)=> mi ? b.amount-a.amount : b.qty-a.qty);
   const total=rows.reduce((s,r)=>s+(mi?r.amount:r.qty),0);
   if(!rows.length||!total){body.innerHTML='<div class="tc-empty">店舗別の内訳がありません</div>';if(sub)sub.textContent='';return;}
   const selected=document.getElementById('f-store').value;
