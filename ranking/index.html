@@ -559,7 +559,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v256</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v257</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -4065,7 +4065,8 @@ function trendLatest(){return window._periodLatest||'';}
 function setTrendScope(s){
   trendScope=s;
   document.querySelectorAll('.tc-sbtn[data-s]').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
-  renderTrendPanel();saveUiState();
+  // 店舗別の内訳も同じ対象（このカテゴリ／全体）に合わせて描き直す
+  renderTrendPanel();renderSplitPanel();saveUiState();
 }
 function renderTrendPanel(){
   const body=document.getElementById('trend-body');if(!body)return;
@@ -4129,7 +4130,9 @@ function renderSplitPanel(){
   }).join('');
   body.innerHTML=stackSvg(segs,total,W,16)+'<table class="sp-tbl"><tbody>'+tbl+'</tbody></table>';
   body.querySelectorAll('.sp-seg').forEach(s=>s.addEventListener('click',()=>pickStore(s.dataset.store)));
-  if(sub)sub.textContent=rows.length+'店舗'+(selected!=='all'?'（'+x(selected)+'を表示中）':'');
+  // 何の内訳なのかが分かるよう対象名を併記する
+  const scopeName=(trendScope==='all')?'全カテゴリ':(window._ovCat||'');
+  if(sub)sub.textContent=(scopeName?scopeName+' ／ ':'')+rows.length+'店舗'+(selected!=='all'?'（'+x(selected)+'を表示中）':'');
 }
 function pickStore(name){
   const sel=document.getElementById('f-store');
