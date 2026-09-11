@@ -420,7 +420,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v118</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v119</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1012,6 +1012,7 @@ let PREV_AGG={}; // pid -> {qty,amount}（前年同期。KPIの前年比・推�
 // グラフの数字は必ず上のKPI・見出しと一致する
 let mCur={}, mPrev={}, sSplit={};   // ym→グループ→[qty,amount] / 前年窓の同じもの / store→グループ→[qty,amount]
 let trendMetric='qty';
+let bucketGran='month';   // 集計バケットの粒度（'day' | 'month'）。applyFilter で期間から決める
 let ALL_TOTAL={qty:0,amount:0};
 let groupMode='maker'; // 'maker' | 'category'
 let currentGroup=null; // null = 全体
@@ -1247,6 +1248,8 @@ function applyFilter(){
   AGG={};
   ALL_TOTAL={qty:0,amount:0};
   mCur={}; mPrev={}; sSplit={};
+  // 期間が短いときは日ごと、長いときは月ごとに集計する（グラフの横軸の粒度と揃える）
+  bucketGran = trendGran(dF,dT);
   for(const rec of ALL_RECORDS){
     const [date,rStore,pid,qty,amount]=rec;
     if(date<dF||date>dT) continue;
@@ -1263,8 +1266,8 @@ function applyFilter(){
     const it=m.items[pid]||(m.items[pid]={qty:0,amount:0});
     it.qty+=qty; it.amount+=amount;
     ALL_TOTAL.qty+=qty; ALL_TOTAL.amount+=amount;
-    const ym=date.slice(0,7);
-    const mm=mCur[ym]||(mCur[ym]={});
+    const bk=bucketGran==='day'?date:date.slice(0,7);
+    const mm=mCur[bk]||(mCur[bk]={});
     const me=mm[g]||(mm[g]=[0,0]);
     me[0]+=qty; me[1]+=amount;
   }
@@ -1321,8 +1324,8 @@ function buildPrevAgg(dF,dT,store,mOut){
     it.qty+=qty; it.amount+=amount;
     if(mOut){
       const p=ALL_PRODUCTS[pid];
-      if(p){const g=groupKeyOf(p),ym=date.slice(0,7);
-        const mm=mOut[ym]||(mOut[ym]={});
+      if(p){const g=groupKeyOf(p),bk=bucketGran==='day'?date:date.slice(0,7);
+        const mm=mOut[bk]||(mOut[bk]={});
         const me=mm[g]||(mm[g]=[0,0]);
         me[0]+=qty; me[1]+=amount;}
     }
@@ -2507,20 +2510,36 @@ function tcFmtV(v,metric){return metric==='amount'?'¥'+Math.round(v).toLocaleSt
 // 幅は実測して 1 user unit = 1px で描く（viewBoxで伸縮させると文字と線が潰れるため）
 function tcMeasure(el){const w=el?el.clientWidth:0;if(!w)return null;return Math.max(280,w);} // 上限は設けずパネルの幅いっぱいに描く（下限280pxは狭い画面で軸が潰れないように）
 function tcNice(v){const e=Math.pow(10,Math.floor(Math.log10(v)));const f=v/e;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e;}
-function monthKeysInRange(){
-  // 期間入力を直接読む（アプリ間で共通に使えるように）
+// 選択期間が短いとき（約2か月以内）は日ごと、長いときは月ごとに集計する。
+// 月をタップして1か月に絞ったとき、点が1つだけにならず日別の動きが見えるようにするため
+function trendGran(dateFrom,dateTo){
+  if(!dateFrom||!dateTo||dateFrom>dateTo)return 'month';
+  const days=Math.round((new Date(dateTo+'T00:00:00')-new Date(dateFrom+'T00:00:00'))/86400000)+1;
+  return days<=62?'day':'month';
+}
+function ymdStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+// 表示に使う横軸のキー一覧を粒度つきで返す
+function trendPeriod(){
   const dateFrom=document.getElementById('f-date-from').value||trendEarliest();
   const dateTo=document.getElementById('f-date-to').value||trendLatest();
-  if(!dateFrom||!dateTo||dateFrom>dateTo)return [];
-  const keys=[];let y=+dateFrom.slice(0,4),m=+dateFrom.slice(5,7);
-  const ey=+dateTo.slice(0,4),em=+dateTo.slice(5,7);
-  for(let i=0;i<240;i++){keys.push(y+'-'+String(m).padStart(2,'0'));if(y===ey&&m===em)break;m++;if(m>12){m=1;y++;}}
-  return keys;
+  if(!dateFrom||!dateTo||dateFrom>dateTo)return {gran:'month',keys:[]};
+  const gran=trendGran(dateFrom,dateTo),keys=[];
+  if(gran==='day'){
+    const d=new Date(dateFrom+'T00:00:00'),end=new Date(dateTo+'T00:00:00');
+    for(let i=0;i<400&&d<=end;i++){keys.push(ymdStr(d));d.setDate(d.getDate()+1);}
+  }else{
+    let y=+dateFrom.slice(0,4),m=+dateFrom.slice(5,7);
+    const ey=+dateTo.slice(0,4),em=+dateTo.slice(5,7);
+    for(let i=0;i<240;i++){keys.push(y+'-'+String(m).padStart(2,'0'));if(y===ey&&m===em)break;m++;if(m>12){m=1;y++;}}
+  }
+  return {gran,keys};
 }
+// 年だけ1つ戻す（'2025-12' も '2025-12-05' もそのまま扱える）
 function shiftYm(ym,n){return String(+ym.slice(0,4)+n)+ym.slice(4);}
+function tcFmtKey(k,gran){return gran==='day'?k.replace(/-/g,'/'):k.replace('-','/');}
 // series: [{key:'cur'|'prev', label, color, dash, area, points:[数値|null,…]}]、xKeys: ['YYYY-MM',…]
 function trendSvg(series,xKeys,opts){
-  const W=opts.w,H=opts.h,metric=opts.metric||'qty';
+  const W=opts.w,H=opts.h,metric=opts.metric||'qty',gran=opts.gran||'month';
   const PL=48,PR=10,PT=12,PB=20;
   const pw=Math.max(10,W-PL-PR),ph=Math.max(10,H-PT-PB),n=xKeys.length;
   let max=0;for(const s of series)for(const v of s.points)if(v!=null&&v>max)max=v;
@@ -2532,7 +2551,7 @@ function trendSvg(series,xKeys,opts){
   for(let k=0;k<=3;k++){const v=top*k/3,y=Y(v);
     grid+=`<line class="tc-gl" x1="${PL}" y1="${f(y)}" x2="${W-PR}" y2="${f(y)}"/>`
         + `<text class="tc-ylab" x="${PL-6}" y="${f(y)+3}" text-anchor="end">${x(tcFmtY(v,metric))}</text>`;}
-  if(n>13)for(let i=0;i<n;i++)if(xKeys[i].endsWith('-01'))grid+=`<line class="tc-yb" x1="${f(X(i))}" y1="${PT}" x2="${f(X(i))}" y2="${PT+ph}"/>`;
+  if(gran==='month'&&n>13)for(let i=0;i<n;i++)if(xKeys[i].endsWith('-01'))grid+=`<line class="tc-yb" x1="${f(X(i))}" y1="${PT}" x2="${f(X(i))}" y2="${PT+ph}"/>`;
   let lines='';
   for(const s of series){
     const pts=[];for(let i=0;i<n;i++){const v=s.points[i];if(v!=null)pts.push([X(i),Y(v)]);}
@@ -2550,13 +2569,16 @@ function trendSvg(series,xKeys,opts){
   }
   const st=Math.max(1,Math.ceil(n*34/pw));
   let xl='';
-  // 間引いたときは月だけ表示。ただし1月と、いちばん左のラベルは年も付けて読み違いを防ぐ
-  for(let i=n-1;i>=0;i-=st){const ym=xKeys[i],mo=parseInt(ym.slice(5),10),leftmost=(i-st<0);
-    xl+=`<text class="tc-xlab" x="${f(X(i))}" y="${H-6}" text-anchor="middle">${st>1&&mo!==1&&!leftmost?mo:ym.slice(2,4)+'/'+mo}</text>`;}
+  // 間引いたときは日（月）だけ表示。月初・年初といちばん左のラベルには上位の単位も付けて読み違いを防ぐ
+  for(let i=n-1;i>=0;i-=st){const k=xKeys[i],mo=parseInt(k.slice(5,7),10),leftmost=(i-st<0);
+    let lab;
+    if(gran==='day'){const dd=parseInt(k.slice(8,10),10);lab=(dd===1||leftmost)?mo+'/'+dd:String(dd);}
+    else lab=(st>1&&mo!==1&&!leftmost)?String(mo):k.slice(2,4)+'/'+mo;
+    xl+=`<text class="tc-xlab" x="${f(X(i))}" y="${H-6}" text-anchor="middle">${lab}</text>`;}
   let hits='';
   const hw=n<=1?pw:pw/(n-1);
   for(let i=0;i<n;i++){
-    const tt=xKeys[i].replace('-','/')+' '+series.filter(s=>s.points[i]!=null).map(s=>s.label+' '+tcFmtV(s.points[i],metric)).join(' / ');
+    const tt=tcFmtKey(xKeys[i],gran)+' '+series.filter(s=>s.points[i]!=null).map(s=>s.label+' '+tcFmtV(s.points[i],metric)).join(' / ');
     hits+=`<rect class="tc-hit" data-i="${i}" data-cx="${f(X(i))}" x="${f(X(i)-hw/2)}" y="${PT}" width="${f(hw)}" height="${ph}" fill="transparent"><title>${x(tt)}</title></rect>`;
   }
   return `<svg class="tc-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="月別の販売推移">`
@@ -2633,7 +2655,7 @@ function bindTrendEvents(body){
     const c=d.series.find(s=>s.key==='cur'),p=d.series.find(s=>s.key==='prev');
     let diff='';
     if(c&&p&&p.points[i]){const dd=Math.round((c.points[i]-p.points[i])/p.points[i]*100);diff=`<div class="tc-tip-r ${dd>=0?'prev-up':'prev-dn'}">${dd>=0?'▲':'▼'}${Math.abs(dd)}%</div>`;}
-    tip.innerHTML=`<div class="tc-tip-d">${d.xKeys[i].replace('-','/')}</div>${rows}${diff}`;
+    tip.innerHTML=`<div class="tc-tip-d">${tcFmtKey(d.xKeys[i],d.gran)}</div>${rows}${diff}`;
     tip.hidden=false;
     const r=svg.getBoundingClientRect();
     const px=cxs[i]*(r.width/vbW);
@@ -2645,7 +2667,8 @@ function bindTrendEvents(body){
   svg.addEventListener('pointermove',e=>show(idxAt(e)));
   svg.addEventListener('pointerdown',e=>{downX=e.clientX;downI=idxAt(e);show(downI);});
   svg.addEventListener('pointerup',e=>{
-    if(downX!=null&&Math.abs(e.clientX-downX)<8&&downI>=0)focusMonth(d.xKeys[downI]);
+    // 日別表示のときは、これ以上絞り込んでも意味がないのでタップでの絞り込みはしない
+    if(downX!=null&&Math.abs(e.clientX-downX)<8&&downI>=0&&d.gran==='month')focusMonth(d.xKeys[downI]);
     downX=null;
   });
   svg.addEventListener('pointerleave',hide);
@@ -2662,26 +2685,28 @@ function renderTrendPanel(){
   if(!panel||!panel.open)return;
   const W=tcMeasure(body);if(!W)return;
   const cats=window._ovCats||[];
-  const xKeys=monthKeysInRange();
+  const tp=trendPeriod();
+  const xKeys=tp.keys;
   if(!xKeys.length||!cats.length){body.innerHTML='<div class="tc-empty">表示できる推移がありません</div>';if(sub)sub.textContent='';return;}
   const mi=trendMetric==='amount'?1:0;
   const pick=(bucket,ym,cs)=>{const mm=bucket[ym];if(!mm)return 0;let t=0;for(const c of cs){const e=mm[c];if(e)t+=e[mi];}return t;};
   const cur=xKeys.map(ym=>pick(mCur,ym,cats));
   const prev=xKeys.map(ym=>pick(mPrev,shiftYm(ym,-1),cats));
   const prevTot=prev.reduce((a,b)=>a+b,0);
-  // 期間が長いときは履歴そのものが比較になるので前年の重ね表示はしない
-  const showPrev=xKeys.length<=14&&prevTot>0;
+  // 期間が長いときは履歴そのものが比較になるので前年の重ね表示はしない。
+  // 日別表示のときは前年同日との比較はブレが大きいので出さない
+  const showPrev=tp.gran==='month'&&xKeys.length<=14&&prevTot>0;
   const series=[{key:'cur',label:'今期',color:TC_ACCENT,area:true,dash:false,points:cur}];
   if(showPrev)series.unshift({key:'prev',label:'前年',color:'var(--ink4)',area:false,dash:true,points:prev});
   const H=window.innerWidth<=600?150:196;
-  body.innerHTML=trendSvg(series,xKeys,{w:W,h:H,metric:trendMetric})
+  body.innerHTML=trendSvg(series,xKeys,{w:W,h:H,metric:trendMetric,gran:tp.gran})
     +'<div class="tc-tip" hidden></div>'
     +'<div class="tc-legend"><span class="tc-lg"><i class="tc-lg-dot" style="background:'+TC_ACCENT+'"></i>今期</span>'
     +(showPrev?'<span class="tc-lg"><i class="tc-lg-dash"></i>前年同期</span>':'')
-    +'<span class="tc-lg tc-note">'+(xKeys.length>14?'期間が長いため前年の重ね表示は省略しています':'グラフの月をタップするとその月だけに絞り込めます')+'</span></div>';
-  body._tc={xKeys,series,metric:trendMetric};
+    +'<span class="tc-lg tc-note">'+(tp.gran==='day'?'日ごとの推移を表示しています':(xKeys.length>14?'期間が長いため前年の重ね表示は省略しています':'グラフの月をタップするとその月だけに絞り込めます'))+'</span></div>';
+  body._tc={xKeys,series,metric:trendMetric,gran:tp.gran};
   bindTrendEvents(body);
-  if(sub)sub.textContent=(window._ovCat||'')+' 合計 '+tcFmtV(cur.reduce((a,b)=>a+b,0),trendMetric);
+  if(sub)sub.textContent=(window._ovCat||'')+(tp.gran==='day'?'（日別）':'（月別）')+' 合計 '+tcFmtV(cur.reduce((a,b)=>a+b,0),trendMetric);
 }
 function renderSplitPanel(){
   const body=document.getElementById('split-body');if(!body)return;
