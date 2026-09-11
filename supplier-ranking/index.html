@@ -420,7 +420,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v116</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v117</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2713,7 +2713,9 @@ function renderSplitPanel(){
   }).join('');
   body.innerHTML=stackSvg(segs,total,W,16)+'<table class="sp-tbl"><tbody>'+tbl+'</tbody></table>';
   body.querySelectorAll('.sp-seg').forEach(s=>s.addEventListener('click',()=>pickStore(s.dataset.store)));
-  if(sub)sub.textContent=rows.length+'店舗'+(selected!=='all'?'（'+x(selected)+'を表示中）':'');
+  // 何の内訳なのかが分かるよう対象名を併記する
+  const scopeName=window._ovCat||'';
+  if(sub)sub.textContent=(scopeName?scopeName+' ／ ':'')+rows.length+'店舗'+(selected!=='all'?'（'+x(selected)+'を表示中）':'');
 }
 function pickStore(name){
   const sel=document.getElementById('f-store');
