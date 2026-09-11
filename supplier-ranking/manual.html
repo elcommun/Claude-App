@@ -110,6 +110,8 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><a href="#rowclick">商品名・商品番号をクリックする</a></li>
       <li><a href="#compare">前年比較を見る</a></li>
       <li><a href="#heatmap">ヒートマップ表示</a></li>
+      <li><a href="#trend">販売推移グラフを見る</a></li>
+      <li><a href="#storesplit">店舗別の内訳を見る</a></li>
       <li><a href="#search">商品を検索する</a></li>
       <li><a href="#excel">Excelでダウンロードする</a></li>
       <li><a href="#upload">販売データを追加する（データ更新）</a></li>
@@ -329,12 +331,58 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <h2>ヒートマップ表示</h2>
     </div>
     <p>サイドバーの <strong>「ヒートマップ」</strong> をオンにすると、販売数に応じて「数量」セルの背景が青の濃淡で塗られ、売れ筋がひと目で分かります。</p>
+    <div class="tip">
+      <strong>💡 前年比のバッジ</strong><br>
+      前年比較をオンにすると、KPIカードの<strong>販売数量</strong>と<strong>税抜売上金額</strong>の横に <span style="color:#2a8a3e;font-weight:700">▲12%</span> / <span style="color:#c0392b;font-weight:700">▼8%</span> のように前年同期比が表示されます。
+    </div>
   </div>
 
-  <!-- 10. 検索 -->
-  <div class="section" id="search">
+  <!-- 販売推移グラフ -->
+  <div class="section" id="trend">
     <div class="section-hdr">
       <div class="step-badge">9</div>
+      <h2>販売推移グラフを見る</h2>
+    </div>
+    <p>KPI（数字のカード）のすぐ下に <strong>「📈 販売推移」</strong> のパネルがあります。いま表示しているメーカー／カテゴリの<strong>月ごとの動き</strong>が折れ線グラフで表示されます。見出しをクリックすると開閉できます。</p>
+    <ul>
+      <li><strong>個数 ／ 金額</strong> のボタンで、グラフに表示する値を切り替えられます</li>
+      <li>灰色の<strong>破線は前年同期</strong>です。実線（今期）と見比べると、伸びているか落ちているかがひと目で分かります</li>
+      <li>グラフの上にマウスを乗せる（スマホは指で触れる）と、その月の数字と前年同期比が吹き出しで出ます</li>
+      <li><strong>グラフの月をタップすると、その月だけに期間が絞り込まれます。</strong>「12月だけ詳しく見たい」というときに便利です</li>
+    </ul>
+    <div class="note">
+      <strong>ℹ️ 期間が長いときは前年同期の線が出ません</strong><br>
+      販売期間を「2年」「3年」「全期間」にすると、グラフ自体が何年分も並ぶので前年同期の重ね表示は省略され、代わりに<strong>1月の位置に薄い縦線</strong>が入って年の区切りが分かるようになります。
+    </div>
+    <div class="tip">
+      <strong>💡 グラフの合計は上のKPIと必ず一致します</strong><br>
+      グラフはKPIとまったく同じ集計から作っているので、「グラフの合計と上の数字が違う」ということは起きません。
+    </div>
+  </div>
+
+  <!-- 店舗別の内訳 -->
+  <div class="section" id="storesplit">
+    <div class="section-hdr">
+      <div class="step-badge">10</div>
+      <h2>店舗別の内訳を見る</h2>
+    </div>
+    <p><strong>「🏬 店舗別の内訳」</strong> のパネルを開くと、いま表示しているメーカー／カテゴリが<strong>どの店舗でどれだけ売れているか</strong>を、横棒と一覧で確認できます。</p>
+    <ul>
+      <li>横棒は店舗ごとの<strong>構成比</strong>です。色と一覧の色は対応しています</li>
+      <li>一覧には<strong>個数・税抜金額・構成比</strong>が並びます</li>
+      <li><strong>行や棒をタップすると、その店舗だけに絞り込めます。</strong>もう一度タップで全店舗に戻ります</li>
+      <li>店舗で絞り込んでいるときも、内訳は<strong>全店舗の割合のまま</strong>表示され、選択中の店舗が色付きで示されます（全体の中での位置が分かるようにするため）</li>
+    </ul>
+    <div class="tip">
+      <strong>💡 店舗の色は2つのアプリで共通です</strong><br>
+      「自社商品」と「仕入れ商品」で同じ店舗は同じ色になります。並び順も固定なので、売れ行きが変わっても色が入れ替わりません。
+    </div>
+  </div>
+
+  <!-- 検索 -->
+  <div class="section" id="search">
+    <div class="section-hdr">
+      <div class="step-badge">11</div>
       <h2>商品を検索する</h2>
     </div>
     <p>ヘッダーの検索ボックスに文字を入力すると、リアルタイムで結果が絞り込まれます。</p>
@@ -356,7 +404,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <!-- 11. Excel -->
   <div class="section" id="excel">
     <div class="section-hdr">
-      <div class="step-badge">10</div>
+      <div class="step-badge">12</div>
       <h2>Excelでダウンロードする</h2>
     </div>
     <p>サイドバーのメーカー（またはカテゴリ）名の左にある<strong>チェックボックス</strong>にチェックを入れ、サイドバー最下部のボタンを押すとExcelファイルがダウンロードされます。</p>
@@ -377,7 +425,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <!-- 12. データ更新 -->
   <div class="section" id="upload">
     <div class="section-hdr">
-      <div class="step-badge">11</div>
+      <div class="step-badge">13</div>
       <h2>販売データを追加する（データ更新）</h2>
     </div>
     <p>ヘッダー右上の <strong>「⬆ データ更新」</strong> から、新しい販売データのExcelファイル（.xlsx / .csv）を取り込めます。</p>
@@ -407,7 +455,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <!-- 13. 自社商品 -->
   <div class="section" id="sister">
     <div class="section-hdr">
-      <div class="step-badge">12</div>
+      <div class="step-badge">14</div>
       <h2>自社商品アプリに切り替える</h2>
     </div>
     <p>ヘッダーのオレンジ色の <strong>「自社商品」</strong> ボタンを押すと、自社商品（手帳・カレンダー・ステーショナリー等）の販売データアプリ <strong>「EC事業部 販売データ：自社商品」</strong> に移動します。</p>
@@ -420,7 +468,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <!-- 14. スマホ・便利機能 -->
   <div class="section" id="mobile">
     <div class="section-hdr">
-      <div class="step-badge">13</div>
+      <div class="step-badge">15</div>
       <h2>スマホでの表示と便利機能</h2>
     </div>
     <h3>スマホではカード表示になります</h3>
