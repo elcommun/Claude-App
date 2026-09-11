@@ -420,7 +420,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v117</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v118</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2505,7 +2505,7 @@ function tcFmtY(v,metric){
 }
 function tcFmtV(v,metric){return metric==='amount'?'¥'+Math.round(v).toLocaleString():Math.round(v).toLocaleString()+'個';}
 // 幅は実測して 1 user unit = 1px で描く（viewBoxで伸縮させると文字と線が潰れるため）
-function tcMeasure(el){const w=el?el.clientWidth:0;if(!w)return null;return Math.max(280,Math.min(1100,w));}
+function tcMeasure(el){const w=el?el.clientWidth:0;if(!w)return null;return Math.max(280,w);} // 上限は設けずパネルの幅いっぱいに描く（下限280pxは狭い画面で軸が潰れないように）
 function tcNice(v){const e=Math.pow(10,Math.floor(Math.log10(v)));const f=v/e;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*e;}
 function monthKeysInRange(){
   // 期間入力を直接読む（アプリ間で共通に使えるように）
