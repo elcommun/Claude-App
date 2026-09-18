@@ -358,6 +358,8 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 .tc-sbtn{background:var(--white);border:0;border-right:1px solid var(--border);color:var(--ink3);font-family:inherit;font-size:11px;padding:4px 10px;cursor:pointer;line-height:1.5}
 .tc-sbtn:last-child{border-right:0}
 .tc-sbtn.on{background:var(--accent);color:#fff;font-weight:700}
+.tc-back{background:var(--white);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--ink2);font-family:inherit;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;line-height:1.5}
+.tc-back:hover{background:var(--hover);border-color:var(--accent);color:var(--accent)}
 .tc-body,.sp-body{position:relative;padding:0 14px 12px;overflow:hidden}
 .tc-svg{display:block;-webkit-user-select:none;user-select:none;touch-action:pan-x pan-y}
 .tc-gl{stroke:var(--border2);stroke-width:1}
@@ -420,7 +422,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v119</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v120</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -547,6 +549,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
           <button type="button" class="tc-sbtn on" data-m="qty" onclick="setTrendMetric('qty')">個数</button>
           <button type="button" class="tc-sbtn" data-m="amount" onclick="setTrendMetric('amount')">金額</button>
         </div>
+        <button type="button" class="tc-back" id="trend-back" hidden onclick="trendBackToPeriod()">← 期間を戻す</button>
       </div>
       <div class="tc-body" id="trend-body"></div>
     </details>
@@ -1013,6 +1016,7 @@ let PREV_AGG={}; // pid -> {qty,amount}（前年同期。KPIの前年比・推�
 let mCur={}, mPrev={}, sSplit={};   // ym→グループ→[qty,amount] / 前年窓の同じもの / store→グループ→[qty,amount]
 let trendMetric='qty';
 let bucketGran='month';   // 集計バケットの粒度（'day' | 'month'）。applyFilter で期間から決める
+let trendBack=null;       // グラフの月タップで絞り込む前の期間。「← 期間を戻す」で復元する
 let ALL_TOTAL={qty:0,amount:0};
 let groupMode='maker'; // 'maker' | 'category'
 let currentGroup=null; // null = 全体
@@ -2630,10 +2634,30 @@ function focusMonth(ym){
   const ea=trendEarliest(),la=trendLatest();
   if(ea&&fD<ea)fD=ea; if(la&&tD>la)tD=la;
   if(fD>tD)return;
-  document.getElementById('f-date-from').value=fD;
-  document.getElementById('f-date-to').value=tD;
+  const fi=document.getElementById('f-date-from'),ti=document.getElementById('f-date-to');
+  // 絞り込む前の期間を控えておき、「← 期間を戻す」で元に戻せるようにする
+  trendBack={from:fi.value,to:ti.value,
+    qbtn:['qbtn-1','qbtn-2','qbtn-3','qbtn-all'].find(id=>document.getElementById(id)?.classList.contains('on'))||'',
+    focusedFrom:fD,focusedTo:tD};
+  fi.value=fD; ti.value=tD;
   setQBtnActive('');
   applyFilter();
+}
+// 月タップで絞り込む前の期間に戻す
+function trendBackToPeriod(){
+  if(!trendBack)return;
+  const b=trendBack; trendBack=null;
+  document.getElementById('f-date-from').value=b.from;
+  document.getElementById('f-date-to').value=b.to;
+  setQBtnActive(b.qbtn||'');
+  applyFilter();
+}
+// 戻り先が今の期間と食い違っていたら（ユーザーが別の方法で期間を変えたら）捨てる
+function syncTrendBackBtn(){
+  const btn=document.getElementById('trend-back'); if(!btn)return;
+  const f=document.getElementById('f-date-from').value,t=document.getElementById('f-date-to').value;
+  if(trendBack&&(trendBack.focusedFrom!==f||trendBack.focusedTo!==t))trendBack=null;
+  btn.hidden=!trendBack;
 }
 function bindTrendEvents(body){
   const svg=body.querySelector('.tc-svg');if(!svg)return;
@@ -2687,6 +2711,7 @@ function renderTrendPanel(){
   const cats=window._ovCats||[];
   const tp=trendPeriod();
   const xKeys=tp.keys;
+  syncTrendBackBtn();
   if(!xKeys.length||!cats.length){body.innerHTML='<div class="tc-empty">表示できる推移がありません</div>';if(sub)sub.textContent='';return;}
   const mi=trendMetric==='amount'?1:0;
   const pick=(bucket,ym,cs)=>{const mm=bucket[ym];if(!mm)return 0;let t=0;for(const c of cs){const e=mm[c];if(e)t+=e[mi];}return t;};
@@ -2703,7 +2728,7 @@ function renderTrendPanel(){
     +'<div class="tc-tip" hidden></div>'
     +'<div class="tc-legend"><span class="tc-lg"><i class="tc-lg-dot" style="background:'+TC_ACCENT+'"></i>今期</span>'
     +(showPrev?'<span class="tc-lg"><i class="tc-lg-dash"></i>前年同期</span>':'')
-    +'<span class="tc-lg tc-note">'+(tp.gran==='day'?'日ごとの推移を表示しています':(xKeys.length>14?'期間が長いため前年の重ね表示は省略しています':'グラフの月をタップするとその月だけに絞り込めます'))+'</span></div>';
+    +'<span class="tc-lg tc-note">'+(tp.gran==='day'?'日ごとの推移です。月ごとに戻すには「← 期間を戻す」か、左の 1年／2年／3年 を押してください':(xKeys.length>14?'期間が長いため前年の重ね表示は省略しています':'グラフの月をタップするとその月だけに絞り込めます'))+'</span></div>';
   body._tc={xKeys,series,metric:trendMetric,gran:tp.gran};
   bindTrendEvents(body);
   if(sub)sub.textContent=(window._ovCat||'')+(tp.gran==='day'?'（日別）':'（月別）')+' 合計 '+tcFmtV(cur.reduce((a,b)=>a+b,0),trendMetric);
@@ -2780,7 +2805,7 @@ function saveUiState(){
       rankMetric, groupMode, listCol, sortMode, sortDir, comparisonMode, heatmapMode,
       dateFrom:document.getElementById('f-date-from').value, dateTo:document.getElementById('f-date-to').value,
       qbtn, store:document.getElementById('f-store').value, group:currentGroup,
-      trendMetric, trendOpen:!!document.getElementById('trend-panel')?.open, splitOpen:!!document.getElementById('split-panel')?.open
+      trendMetric, trendOpen:!!document.getElementById('trend-panel')?.open, splitOpen:!!document.getElementById('split-panel')?.open, trendBack
     }));
   }catch(e){}
 }
@@ -2808,6 +2833,7 @@ function restoreUiState(){
     if(s.groupMode==='maker'||s.groupMode==='category'){ groupMode=s.groupMode; listCol=groupMode; searchListCol=groupMode; applyGroupModeUi(); }
     if(s.listCol==='maker'||s.listCol==='category'){ listCol=s.listCol; syncColTogButtons(); }
     if(s.sortMode){ sortMode=s.sortMode; sortDir=s.sortDir==='asc'?'asc':'desc'; }
+    if(s.trendBack&&s.trendBack.from&&s.trendBack.to) trendBack=s.trendBack;
     if(s.trendMetric==='amount'||s.trendMetric==='qty') trendMetric=s.trendMetric;
     if(typeof s.trendOpen==='boolean') document.getElementById('trend-panel').open=s.trendOpen;
     if(typeof s.splitOpen==='boolean') document.getElementById('split-panel').open=s.splitOpen;
