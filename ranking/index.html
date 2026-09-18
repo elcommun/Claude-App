@@ -561,7 +561,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v261</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v262</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2361,7 +2361,7 @@ function showCategory(cat, updateSidebar=true) {
     return`<tr data-qty="${item.qty}" data-amt="${item.amount}">
       <td>${ri}</td>
       <td class="cc">${x(item.code)}</td>
-      <td class="nc"><div class="nm" onclick="toggleNameExpand(this,'${esc(item.code)}')">${nameCellHtml(item.name,fmtName,!!catType)}</div></td>
+      <td class="nc"><div class="nm" data-code="${esc(item.code)}" onclick="toggleNameExpand(this,'${esc(item.code)}')">${nameCellHtml(item.name,fmtName,!!catType)}</div></td>
       <td class="img-col">${thumb}</td>
       <td class="num price-col">¥${item.price.toLocaleString()}</td>
       <td class="num qty-col" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
@@ -3554,7 +3554,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
           <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
           <td><span class="ct">${x(r.cat)}</span></td>
           <td class="cc">${x(r.code)}</td>
-          <td class="nc"><div class="nm" onclick="toggleNameExpand(this,'${esc(r.code)}')">${(()=>{const ct=getCatType(r.cat);const fm=ct==='手帳'?getDiaryFormat(r.code):ct==='カレンダー'?getCalendarFormat(r.code,r.name):'';return nameCellHtml(r.name,fm,!!ct,t=>hl(t,words,trans));})()}</div></td>
+          <td class="nc"><div class="nm" data-code="${esc(r.code)}" onclick="toggleNameExpand(this,'${esc(r.code)}')">${(()=>{const ct=getCatType(r.cat);const fm=ct==='手帳'?getDiaryFormat(r.code):ct==='カレンダー'?getCalendarFormat(r.code,r.name):'';return nameCellHtml(r.name,fm,!!ct,t=>hl(t,words,trans));})()}</div></td>
           <td class="img-col">${thumb}</td>
           <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
           <td class="num qty-col" style="font-weight:600${heatBg(r.qty,maxQtyS)}">${r.qty.toLocaleString()}</td>
@@ -3593,7 +3593,19 @@ document.getElementById('hd-search').addEventListener('input',e=>{
       if(k<1)pill.style.setProperty('--ss-scale',k);
     }
   }
-  function clearHdr(){if(hdrRow){hdrRow.classList.remove('fh-active');hdrRow=null;}}
+  // 見出し行の配下（次の見出しまで）の全SKUについて、販売推移グラフを一括で開閉する。
+  // 描画は既存の toggleNameExpand に任せる。現在の状態と違う行だけ叩くので、
+  // 個別に開いていた行を巻き込んで閉じてしまうことはない。
+  function setGroupSparks(hdr,on){
+    if(!hdr||!hdr.isConnected)return;
+    for(let el=hdr.nextElementSibling;el&&!el.classList.contains('fmt-hdr');el=el.nextElementSibling){
+      const nm=el.querySelector('.nm'); if(!nm||!nm.dataset.code)continue;
+      const open=!!el.querySelector('.sale-period');
+      if(on!==open)toggleNameExpand(nm,nm.dataset.code);
+    }
+  }
+  // 解除はドラッグ選択など別経路からも呼ばれるため、閉じる処理は clearHdr 側に置く
+  function clearHdr(){if(hdrRow){setGroupSparks(hdrRow,false);hdrRow.classList.remove('fh-active');hdrRow=null;}}
   function showHdrSum(){
     if(!hdrRow||!hdrRow.isConnected){clearHdr();hide();return;}
     let n=0,qty=0,amt=0;
@@ -3632,7 +3644,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
     const hdr=e.target.closest('#rank-tbl tr.fmt-hdr, #search-tbl tr.fmt-hdr');
     if(hdr){
       if(hdrRow===hdr){clearHdr();hide();}
-      else{clearHdr();hdrRow=hdr;hdr.classList.add('fh-active');showHdrSum();}
+      else{clearHdr();hdrRow=hdr;hdr.classList.add('fh-active');setGroupSparks(hdr,true);showHdrSum();}
     }else if(hdrRow){
       clearHdr();
       if(!raf)raf=requestAnimationFrame(update);
@@ -3717,14 +3729,16 @@ function sparklineHtml(code){
   const f=n=>n.toFixed(1);
   const line=pts.map(p=>f(p[0])+','+f(p[1])).join(' ');
   const area=`M${f(pts[0][0])},${H-P} L${line} L${f(pts[pts.length-1][0])},${H-P} Z`;
-  const iMax=vals.indexOf(max), pm=pts[iMax];
   const hits=keys.map((k,i)=>`<rect x="${f(P+i*step-step/2)}" y="0" width="${f(step)}" height="${H}" fill="transparent"><title>${k.replace('-','/')}: ${vals[i].toLocaleString()}個</title></rect>`).join('');
   const total=vals.reduce((a,b)=>a+b,0);
+  // 直近24ヶ月が全て0だと max は下限の1になり vals.indexOf(max) が -1 を返すため、
+  // 最大値の点と説明文は販売があるときだけ出す（0本線はそのまま描く）
+  const iMax=total?vals.indexOf(max):-1, pm=iMax>=0?pts[iMax]:null;
   return `<svg class="spark" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="直近24ヶ月の月別販売数">`+
     `<path d="${area}" fill="var(--gold)" fill-opacity=".12"/>`+
     `<polyline points="${line}" fill="none" stroke="var(--gold)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`+
-    `<circle cx="${f(pm[0])}" cy="${f(pm[1])}" r="2.2" fill="var(--gold)"/>${hits}</svg>`+
-    `<div class="spark-cap">直近24ヶ月 ${total.toLocaleString()}個 ｜ 最多 ${keys[iMax].replace('-','/')} ${max.toLocaleString()}個</div>`;
+    (pm?`<circle cx="${f(pm[0])}" cy="${f(pm[1])}" r="2.2" fill="var(--gold)"/>`:'')+`${hits}</svg>`+
+    `<div class="spark-cap">`+(total?`直近24ヶ月 ${total.toLocaleString()}個 ｜ 最多 ${keys[iMax].replace('-','/')} ${max.toLocaleString()}個`:'直近24ヶ月の販売なし')+`</div>`;
 }
 function toggleNameExpand(el,code){
   const cell=el.closest('.nc');
