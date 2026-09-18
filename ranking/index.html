@@ -561,7 +561,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v263</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v264</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2707,7 +2707,7 @@ const TRANS_GROUPS=[
   ['Poetry','ポエトリー','柿本芳枝'],
   ['Life','ライフ','ムラタトモコ'],
   ['Chevalet','シュヴァレ','シュバレ'],
-  ['Swan','スワン','トビマツショウイチロウ'],
+  ['Swan','スワン'],  // 一般語のモチーフ。作家名は紐づけない（Swanは複数作家の商品名に出るため）
   ['Djur','ユール','小池ふみ'],
   ['Memoire','メモワール','大槻優美'],
   ['Duck and Bear','アヒルとクマ'],
@@ -3413,8 +3413,12 @@ const TRANS_GROUPS=[
 ['Silver','シルバー','銀','ぎん'],
 ['Smoke','スモーク','煙'],
 ['deity','神','かみ','神様'],
-// カレンダー Season（CAL-177 卓上 / CAL-203 壁掛け）は作家トビマツ氏の作品。作家名からも引けるようにする
-['Season','とびまつ','トビマツ'],
+// 作家トビマツショウイチロウ氏 → 同氏のカレンダーのみ。
+// 「Swan」は複数作家の商品名に出る一般語のため紐づけず、同氏のSwanカレンダーは品番で直接指定する。
+// （検索は商品名だけでなく品番も対象にするため品番での指定が効く）
+// 新しいSwanカレンダーが出たら、この行に品番を追加すること。
+['Season','とびまつ','トビマツ','トビマツショウイチロウ'],
+['とびまつ','トビマツ','トビマツショウイチロウ','CAL-109','CAL-141','CAL-167'],
 ];
 for(const g of TRANS_GROUPS){
   const ng=g.map(normalize);
