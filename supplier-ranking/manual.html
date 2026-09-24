@@ -55,6 +55,9 @@ a:hover{text-decoration:underline}
 
 /* Table demo */
 .tbl-demo{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
+/* デモ表は列が多く狭い画面で本文からはみ出すため、表だけを横スクロールさせる */
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:12px 0}
+.tbl-scroll>.tbl-demo{margin:0}
 .tbl-demo th{background:#f0ece8;padding:7px 10px;text-align:center;font-weight:700;color:#5a4540;border:1px solid #e0dbd5}
 .tbl-demo th.left{text-align:left}
 .tbl-demo td{padding:7px 10px;border:1px solid #e0dbd5;color:#4a4542;vertical-align:middle}
@@ -265,7 +268,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <strong>ℹ️ 「順位」は商品に固定された値です</strong><br>
       順位はその商品の個数順（または金額順）の成績を表す固定の値で、列の並べ替えを変えても商品についたまま動きます。並べ替えても「この商品は何位か」がいつでも分かります。
     </div>
-    <table class="tbl-demo">
+    <div class="tbl-scroll"><table class="tbl-demo">
       <tr><th>順位</th><th class="left">メーカー</th><th class="left">商品番号</th><th class="left">商品名</th><th>数量</th><th>小計金額</th></tr>
       <tr class="grp"><td colspan="6">▌ クッションカバー <span style="font-weight:400;font-size:11px;color:#888">(39種)</span></td></tr>
       <tr>
@@ -284,7 +287,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
         <td style="text-align:center;font-weight:700">102</td>
         <td style="text-align:right">¥255,000</td>
       </tr>
-    </table>
+    </table></div>
     <p style="font-size:13px;color:#888">メーカーを選択したときや検索時は、上のようにカテゴリごとの区切り行が入り、順位はカテゴリ内での順位になります。</p>
   </div>
 
@@ -303,6 +306,16 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <div style="font-size:10px;color:#999;margin-top:1px">直近24ヶ月 445個 ｜ 最多 2025/11 45個</div>
     </div>
     <p style="font-size:13px;color:#888">グラフの山の一番高いところに点が付き、最多月がひと目で分かります。PCではグラフの上にマウスを乗せると、その月の販売数がツールチップで表示されます。</p>
+    <p style="font-size:13px;color:#888">過去に売れていても<strong>直近24ヶ月に動きがない</strong>商品は、横ばいの線と「直近24ヶ月の販売なし」が表示されます。</p>
+    <h3>カテゴリ単位でまとめて開く</h3>
+    <p>1件ずつ開かなくても、<strong>カテゴリの区切り行をクリックすると、そのカテゴリの全商品のグラフが一度に開きます</strong>。カテゴリ内の売れ方をまとめて見比べたいときに便利です。検索結果でも一覧でも同じように使えます。</p>
+    <ul class="step-list">
+      <li><span class="txt">区切り行（例「▌ クッションカバー (32種 / 1,490個)」）をクリックします</span></li>
+      <li><span class="txt">そのカテゴリの全商品に販売期間とミニグラフが表示され、あわせて画面下に<strong>カテゴリ全体の合計</strong>（種数・個数・金額）が出ます</span></li>
+      <li><span class="txt">もう一度クリックすると、そのカテゴリのグラフは全部閉じます</span></li>
+      <li><span class="txt">別の区切り行をクリックすると、<strong>前のカテゴリは自動的に閉じて</strong>新しいカテゴリだけが開きます</span></li>
+      <li><span class="txt">先に1件だけ個別に開いていた行は、カテゴリ操作に巻き込まれません</span></li>
+    </ul>
     <h3>商品番号をクリック：楽天ページを開く</h3>
     <p>商品番号（品番）はリンクになっており、クリックすると対応する楽天市場の商品ページが開きます。同じタブが使い回されるため、続けて別の商品番号をクリックしてもタブが増え続けることはありません。</p>
   </div>
@@ -489,6 +502,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <ul class="step-list">
       <li><span class="txt">PCで表の行を上から下へ<strong>ドラッグして選択</strong>すると、画面下に「選択中 N種 ／ 個数 ／ 金額」の合計が表示されます</span></li>
       <li><span class="txt">カテゴリの<strong>区切り行（例「クッションカバー (39種)」）をクリック</strong>すると、そのカテゴリ全体の合計が同じように表示されます。もう一度クリックで消えます</span></li>
+      <li><span class="txt">このとき<strong>そのカテゴリ全商品の販売推移グラフも同時に開きます</strong>。くわしくは <a href="#rowclick">商品名・商品番号をクリックする</a> を参照してください</span></li>
     </ul>
     <h3>表示状態は自動で記憶されます</h3>
     <p>販売期間・店舗・個数順／金額順・メーカー別／カテゴリ別・並び順・前年比較／ヒートマップのON/OFF・表示中のメーカー（カテゴリ）に加え、<strong>「販売推移」「店舗別の内訳」パネルの開閉と個数／金額の選択</strong>も端末に記憶され、ページを再読込しても（アプリの自動更新後も）同じ画面に戻ります。</p>

@@ -53,6 +53,9 @@ a:hover{text-decoration:underline}
 
 /* Table demo */
 .tbl-demo{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
+/* デモ表は列が多く狭い画面で本文からはみ出すため、表だけを横スクロールさせる */
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:12px 0}
+.tbl-scroll>.tbl-demo{margin:0}
 .tbl-demo th{background:#f0ece8;padding:7px 10px;text-align:center;font-weight:700;color:#5a4540;border:1px solid #e0dbd5}
 .tbl-demo th.left{text-align:left}
 .tbl-demo td{padding:7px 10px;border:1px solid #e0dbd5;color:#4a4542;vertical-align:middle}
@@ -393,7 +396,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <div style="font-size:11px;color:#888;margin-top:6px">※ ボタンがオレンジ色のときON、ホワイトのときOFF</div>
     </div>
 
-    <table class="tbl-demo">
+    <div class="tbl-scroll"><table class="tbl-demo">
       <tr>
         <th>順位</th><th class="left">品番</th><th class="left">商品名</th><th>個数</th><th>前期</th><th>前々期</th><th>合計金額</th>
       </tr>
@@ -415,7 +418,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
         <td style="text-align:center">-</td>
         <td style="text-align:right">¥221,400</td>
       </tr>
-    </table>
+    </table></div>
     <p style="font-size:13px;color:#888">「前期」「前々期」列に販売数と前期比（▲増加 ／ ▼減少）が表示されます。</p>
   </div>
 
@@ -432,13 +435,13 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <div style="font-size:11px;color:#888;margin-top:6px">※ ボタンがオレンジ色のときON、ホワイトのときOFF</div>
     </div>
 
-    <table class="tbl-demo">
+    <div class="tbl-scroll"><table class="tbl-demo">
       <tr><th class="left">商品名</th><th>個数</th><th>合計金額</th></tr>
       <tr><td>Break Time Pony</td><td class="heat-hi">281</td><td style="text-align:right">¥275,380</td></tr>
       <tr><td>Minimini Pony</td><td class="heat-md">270</td><td style="text-align:right">¥264,600</td></tr>
       <tr><td>Jardin Fleurir</td><td class="heat-lo">246</td><td style="text-align:right">¥221,400</td></tr>
       <tr><td>Minuit Navy</td><td class="heat-vl">221</td><td style="text-align:right">¥216,580</td></tr>
-    </table>
+    </table></div>
     <p style="font-size:13px;color:#888">色が濃い（オレンジ）ほど売上が多く、薄い色ほど少ないことを表します。</p>
     <div class="tip">
       <strong>💡 前期比のバッジ</strong><br>
@@ -510,11 +513,13 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><strong>品番</strong>：「DR-MC-418」「CAL-034」など</li>
       <li><strong>日英両方</strong>：「白」と入力すると「White」「ホワイト」も一緒にヒットします</li>
       <li><strong>カタカナ・ひらがな・漢字</strong>：「ねこ」「猫」「ネコ」はすべて同じ結果になります</li>
+      <li><strong>作家名・ブランド名</strong>：作家名を入力すると、その作家の商品が出るよう辞書に登録しています（例：「とびまつ」「トビマツショウイチロウ」でその作家のカレンダー）</li>
     </ul>
 
     <div class="tip">
       <strong>💡 検索結果の見かた</strong><br>
-      検索すると全カテゴリの商品がまとめて表示されます。「カテゴリ」列も表示されるので、どのカテゴリの商品かがわかります。
+      検索すると全カテゴリの商品がまとめて表示されます。「カテゴリ」列も表示されるので、どのカテゴリの商品かがわかります。<br>
+      結果は<strong>カテゴリごとに見出し行でグループ化</strong>されます。見出し行をクリックすると、そのカテゴリの合計と<strong>全商品の販売推移グラフ</strong>がまとめて出ます（<a href="#saleperiod">商品の販売期間を確認する</a>）。
     </div>
 
     <h3>検索をクリアする</h3>
@@ -530,7 +535,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <p>手帳・カレンダーのランキング表には <strong>「商品画像」</strong> 列が表示され、サムネイル画像が確認できます。</p>
 
     <h3>サムネイル（一覧内の小さな画像）</h3>
-    <table class="tbl-demo" style="max-width:400px">
+    <div class="tbl-scroll"><table class="tbl-demo" style="max-width:400px">
       <tr><th>品番</th><th class="left">商品名</th><th>商品画像</th><th>個数</th></tr>
       <tr>
         <td>DR-MC-418</td>
@@ -538,7 +543,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
         <td style="text-align:center"><span style="display:inline-block;width:28px;height:36px;background:#d4e8c4;border-radius:3px;border:1px solid #ccc"></span></td>
         <td style="text-align:center;font-weight:700">246</td>
       </tr>
-    </table>
+    </table></div>
 
     <h3>拡大表示（ライトボックス）</h3>
     <ul class="step-list">
@@ -560,7 +565,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     </div>
     <p>ランキング表・検索結果表の <strong>商品名をクリック</strong> すると、その商品が最初に売れた日〜最後に売れた日（販売期間）が表示されます。</p>
 
-    <table class="tbl-demo" style="max-width:400px">
+    <div class="tbl-scroll"><table class="tbl-demo" style="max-width:400px">
       <tr><th>品番</th><th class="left">商品名</th><th>個数</th></tr>
       <tr>
         <td>DR-MC-418</td>
@@ -570,16 +575,26 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
         </td>
         <td style="text-align:center;font-weight:700">246</td>
       </tr>
-    </table>
+    </table></div>
 
     <ul class="step-list">
       <li><span class="txt">商品名（末尾の ▾ が目印）を <strong>タップ/クリック</strong> すると、その下に販売期間が表示されます</span></li>
       <li><span class="txt">あわせて <strong>直近24ヶ月の月別販売数のミニグラフ</strong>（合計・最多月）も表示されます。PCではグラフ上にマウスを乗せると各月の販売数が確認できます</span></li>
       <li><span class="txt">もう一度タップ/クリックすると非表示に戻ります</span></li>
     </ul>
+    <h3>カテゴリ単位でまとめて開く</h3>
+    <p>1件ずつ開かなくても、<strong>見出し行をクリックすると、そのグループの全商品のグラフが一度に開きます</strong>。グループ内の売れ方をまとめて見比べたいときに便利です。</p>
+    <ul class="step-list">
+      <li><span class="txt">検索結果の <strong>カテゴリ見出し（例「▌ 2027年　カレンダー (33種 / 270個)」）</strong>、または一覧の <strong>フォーマット見出し（例「▌ B6マンスリー｜スタンダード (20種)」）</strong> をクリックします</span></li>
+      <li><span class="txt">そのグループの全商品に販売期間とミニグラフが表示され、あわせて画面下に<strong>グループ全体の合計</strong>（種数・個数・金額）が出ます</span></li>
+      <li><span class="txt">もう一度クリックすると、そのグループのグラフは全部閉じます</span></li>
+      <li><span class="txt">別の見出しをクリックすると、<strong>前のグループは自動的に閉じて</strong>新しいグループだけが開きます</span></li>
+      <li><span class="txt">先に1件だけ個別に開いていた行は、グループ操作に巻き込まれません</span></li>
+    </ul>
     <div class="note">
       <strong>ℹ️ 販売実績がない商品の場合</strong><br>
-      販売データが1件もない商品は「販売実績なし」と表示されます。
+      販売データが1件もない商品は「販売実績なし」と表示されます。<br>
+      過去に売れていても<strong>直近24ヶ月に動きがない</strong>商品は、横ばいの線と「直近24ヶ月の販売なし」が表示されます。
     </div>
   </div>
 
@@ -591,7 +606,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     </div>
     <p>手帳・カレンダーのランキング表には <strong>「欠品日」</strong> 列が表示されます。欠品がある商品は赤いバッジで表示されます。</p>
 
-    <table class="tbl-demo">
+    <div class="tbl-scroll"><table class="tbl-demo">
       <tr><th>順位</th><th class="left">品番</th><th class="left">商品名</th><th>個数</th><th>欠品日</th></tr>
       <tr>
         <td style="text-align:center"><span class="rn r1">1</span></td>
@@ -617,7 +632,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
         <td style="text-align:center;font-weight:700">157</td>
         <td style="text-align:center"><span class="so-badge">11/下</span></td>
       </tr>
-    </table>
+    </table></div>
 
     <h3>表示の読み方</h3>
     <ul>
@@ -716,7 +731,8 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <h3>選択した行の合計を確認する</h3>
     <ul class="step-list">
       <li><span class="txt">PCで表の行を上から下へ<strong>ドラッグして選択</strong>すると、画面下に「選択中 N種 ／ 個数 ／ 金額」の合計が表示されます</span></li>
-      <li><span class="txt">手帳・カレンダーの <strong>フォーマット見出し（例「B6マンスリー｜スタンダード (20種)」）をクリック</strong>すると、そのフォーマット全体の合計が同じように表示されます。もう一度クリックで消えます</span></li>
+      <li><span class="txt"><strong>見出し行をクリック</strong>しても同じ合計が出ます。検索結果の<strong>カテゴリ見出し</strong>、一覧の<strong>フォーマット見出し</strong>（例「B6マンスリー｜スタンダード (20種)」）のどちらでも使えます。もう一度クリックで消えます</span></li>
+      <li><span class="txt">このとき<strong>そのグループ全商品の販売推移グラフも同時に開きます</strong>。くわしくは <a href="#saleperiod">商品の販売期間を確認する</a> を参照してください</span></li>
     </ul>
     <h3>表示状態は自動で記憶されます</h3>
     <p>販売期間・店舗・並び順・前年比較／ヒートマップのON/OFF・表示中のカテゴリに加え、<strong>「販売推移」「店舗別の内訳」パネルの開閉と、個数／金額・このカテゴリ／全体の選択</strong>も端末に記憶され、ページを再読込しても（アプリの自動更新後も）同じ画面に戻ります。</p>
