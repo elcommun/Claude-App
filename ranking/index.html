@@ -561,7 +561,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v265</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v266</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -3448,6 +3448,19 @@ const TRANS_GROUPS=[
 // 仕様
 ['PVC','塩ビ','ピーブイシー'],
 ['SLIM','スリム'],
+// ── 2026年6月1日 販売データ（取り込み漏れの補完）で追加 ──
+['Fluide','フルイド'],
+['Hirahira','ひらひら','ヒラヒラ'],
+['Lucent','ルーセント'],
+['Neigh','いななき'],  // 「ネイ」は ネイビー(Navy) と衝突するため登録しない
+['Pixel','ピクセル'],
+['Plume','プリュム','プルーム','羽根'],
+['Qadesh','カデシュ'],
+['Suna','すな','砂'],
+['Sunny','サニー'],
+['Yard','ヤード'],
+['amble','アンブル'],
+['GENE','ジーン'],
 ];
 for(const g of TRANS_GROUPS){
   const ng=g.map(normalize);
