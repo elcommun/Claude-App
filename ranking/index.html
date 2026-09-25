@@ -561,7 +561,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v264</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v265</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -952,6 +952,7 @@ const CODE_REMAP={'WCL-017WCL-018':'WCL-018','B6-1J7F-DA1E':'CPC-004',
   // 破損・表記ゆれ品番の修正
   // CAL-201cal-52- : 商品番号と楽天商品管理番号が連結した破損値
   'CAL-201cal-52-':'CAL-201',
+  'CAL-196cal-09-':'CAL-196',
   // nxt5239zw : NXT-<4桁><2文字> 形式のハイフン無し小文字表記（Table Amsterdam 置き時計）
   'nxt5239zw':'NXT-5239ZW',
   // カレンダー: 楽天商品管理番号(cal-XX-) → 現行の商品番号（2027年版カレンダー対応表）
@@ -1207,12 +1208,10 @@ function applyFilter() {
     }
   }
 
-  // 旧月次データ(YYYY-MM-01)はその月全体をカバーする扱い
+  // 販売データはすべて日単位（YYYY-MM-DD）で格納している（CLAUDE.md の規則）。
+  // 以前は YYYY-MM-01 を「旧月次データ＝その月全体」とみなしていたが、旧月次データはもう存在せず、
+  // その扱いだと実際の1日の売上が月の途中から始まる期間にまで混入していたため、日付でそのまま比較する。
   function inRange(dk, from, to) {
-    if (dk.endsWith('-01')) {
-      const ym = dk.slice(0, 7);
-      return ym + '-31' >= from && ym + '-01' <= to;
-    }
     return dk >= from && dk <= to;
   }
 
@@ -3419,6 +3418,36 @@ const TRANS_GROUPS=[
 // 新しいSwanカレンダーが出たら、この行に品番を追加すること。
 ['Season','とびまつ','トビマツ','トビマツショウイチロウ'],
 ['とびまつ','トビマツ','トビマツショウイチロウ','CAL-109','CAL-141','CAL-167'],
+// ── 2026年9月18日〜24日 販売データ取り込みで追加 ──
+// シリーズ・ブランド
+['mois et fleurs','モワエフルール','モワ エ フルール'],
+['OBAKE HOUSE','おばけハウス','オバケハウス'],
+['placid','プラシッド'],
+['Verre','ヴェール','ベール'],
+['Da Vinci','DaVinci','ダ・ヴィンチ','ダヴィンチ','ダビンチ'],
+['Eric Carle','エリック・カール'],
+['STICKY NOTES','付箋','ふせん','スティッキーノート'],
+['Have You Seen My Cat','ぼくのねこみなかった'],
+// モチーフ・デザイン名
+['Inuhariko','いぬはりこ','犬張子','犬はりこ'],
+['checkerberry','チェッカーベリー'],
+['Repos','ルポ'],
+['creep','クリープ'],
+['nightfall','ナイトフォール','夕暮れ','ゆうぐれ'],
+['Divine','ディヴァイン','ディバイン'],
+['Lecture','レクチュール'],
+['Probe','プローブ'],
+['Hot dog','ホットドッグ'],
+['Beer','ビール'],
+['Roller','ローラー'],
+['Frame','フレーム','額'],
+['Foods','food','フード','食べ物'],
+['boats','boat','ボート','舟'],
+['silent','サイレント'],
+['skirt','スカート'],
+// 仕様
+['PVC','塩ビ','ピーブイシー'],
+['SLIM','スリム'],
 ];
 for(const g of TRANS_GROUPS){
   const ng=g.map(normalize);
