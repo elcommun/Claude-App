@@ -561,7 +561,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v268</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v269</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -999,6 +999,24 @@ function getGroupCats(displayName){
   if(mg) return mg.cats.filter(c=>aggregated[c]);
   return null;
 }
+// getGroupCats と同じ区分で、指定した集計（前期・前々期・今期1年など）に含まれる実カテゴリを返す
+function catsIn(displayName,agg){
+  for(const g of CAT_GROUPS){
+    if(displayName===g.name) return Object.keys(agg).filter(c=>g.match(c));
+    for(const s of g.subs){
+      if(displayName===g.name+':'+s.name) return Object.keys(agg).filter(c=>g.match(c)&&s.match(c));
+    }
+  }
+  const mg=MACRO_GROUPS.find(m=>m.name===displayName);
+  if(mg) return mg.cats.filter(c=>agg[c]);
+  return agg[displayName]?[displayName]:[];
+}
+// 集計 agg のうち displayName に属するカテゴリの合計
+function catSumIn(displayName,agg){
+  let qty=0,amount=0;
+  for(const c of catsIn(displayName,agg))for(const qa of Object.values(agg[c]))if(qa){qty+=qa[0];amount+=qa[1];}
+  return {qty,amount};
+}
 // Returns true if cat is a real (non-virtual) category that belongs to a CAT_GROUP and has a year prefix
 function isYearGroupCat(cat){
   if(!/^\d{4}年/.test(cat)) return false;
@@ -1083,6 +1101,9 @@ let aggPrev = {}, aggPrev2 = {}, prevByCode = {}, prev2ByCode = {};
 let prevBySearchCode = {}, prev2BySearchCode = {};
 let prevYearLabel = '前年', prev2YearLabel = '前々年';
 let prevPeriodStr = '', prev2PeriodStr = '', prevPeriodFull = '', prev2PeriodFull = '';
+// 選択期間が1年を超えるとき（2年・3年・全期間など）は、期間の最終日から1年ごとに 今期／前期／前々期 を区切る。
+// そのとき増減率は「今期（最終日までの直近1年）」と前期・前々期の比較にする（curByCode1 = 今期の品番別集計）
+let isLongPeriod = false, aggCur1 = null, curByCode1 = null, curPeriodStr = '';
 let searchSortCol = 'rank', searchSortDir = 'desc';
 
 function openLightbox(src){document.getElementById('img-lb-img').src=src;document.getElementById('img-lb').classList.add('open');}
@@ -1236,11 +1257,17 @@ function applyFilter() {
   }
   function codeIdx(agg){const idx={};for(const cd of Object.values(agg))for(const[c,qa] of Object.entries(cd)){if(!idx[c])idx[c]=[0,0];idx[c][0]+=qa[0];idx[c][1]+=qa[1];}return idx;}
   function shiftDate(d,n){const p=d.split('-');return String(parseInt(p[0])-n)+d.slice(4);}
-  const mkFrom=(n)=>shiftDate(dateFrom,n);
+  const nextDay=(d)=>{const x=new Date(d+'T00:00:00Z');x.setUTCDate(x.getUTCDate()+1);return x.toISOString().slice(0,10);};
+  // 1年以内: 選択期間を1年・2年ずらした同じ期間と比べる（1年ボタンなら 最終日の1年前の翌日〜最終日 の前の1年）
+  // 1年超 : 選択期間の最終日から1年ごとに区切る（今期=直近1年 / 前期=その前の1年 / 前々期=さらに前の1年）
+  isLongPeriod = !!(dateFrom&&dateTo) && dateFrom < nextDay(shiftDate(dateTo,1));
+  const mkFrom=(n)=>isLongPeriod?nextDay(shiftDate(dateTo,n+1)):shiftDate(dateFrom,n);
   const mkTo  =(n)=>shiftDate(dateTo,n);
+  aggCur1 = isLongPeriod ? buildAggForPeriod(mkFrom(0),mkTo(0)) : null;
   aggPrev =buildAggForPeriod(mkFrom(1),mkTo(1),mPrev);
   aggPrev2=buildAggForPeriod(mkFrom(2),mkTo(2));
   prevByCode=codeIdx(aggPrev); prev2ByCode=codeIdx(aggPrev2);
+  curByCode1=aggCur1?codeIdx(aggCur1):null;
   function scIdx(ci){const idx={};for(const[c,qa] of Object.entries(ci)){const sc=(DATA.products[c]||[])[2];if(!sc)continue;if(!idx[sc])idx[sc]=[0,0];idx[sc][0]+=qa[0];idx[sc][1]+=qa[1];}return idx;}
   prevBySearchCode =scIdx(prevByCode);
   prev2BySearchCode=scIdx(prev2ByCode);
@@ -1248,6 +1275,7 @@ function applyFilter() {
   const fmtDFull=(d)=>{const p=d.split('-');return p[0]+'年'+parseInt(p[1])+'月';};
   prevYearLabel ='前期';
   prev2YearLabel='前々期';
+  curPeriodStr  =isLongPeriod?fmtD(mkFrom(0))+'〜'+fmtD(mkTo(0)):'';
   prevPeriodStr =fmtD(mkFrom(1))+'〜'+fmtD(mkTo(1));
   prev2PeriodStr=fmtD(mkFrom(2))+'〜'+fmtD(mkTo(2));
   prevPeriodFull =fmtDFull(mkFrom(1))+'〜'+fmtDFull(mkTo(1));
@@ -1894,8 +1922,10 @@ async function downloadCheckedCategories(){
     }
     const totalQtyCat=allItems.reduce((s,i)=>s+i.qty,0);
     const totalAmtCat=allItems.reduce((s,i)=>s+i.amount,0);
+    // 増減率の今期側（1年を超える期間では直近1年の値）
+    let cmpQtyCat=totalQtyCat, cmpAmtCat=totalAmtCat;
+    if(isLongPeriod){const c1=catSumIn(catName,aggCur1);cmpQtyCat=c1.qty;cmpAmtCat=c1.amount;}
 
-    const catCodes=new Set(allItems.map(i=>i.code));
     let catPrevT, catPrev2T, catPrevYrLbl=prevYearLabel, catPrev2YrLbl=prev2YearLabel;
     if(isYearGroupCat(catName)){
       const pYC=getEquivYearCat(catName,-1), p2YC=getEquivYearCat(catName,-2);
@@ -1904,10 +1934,11 @@ async function downloadCheckedCategories(){
       catPrevYrLbl=pYC?.match(/^\d{4}年/)?.[0]||prevYearLabel;
       catPrev2YrLbl=p2YC?.match(/^\d{4}年/)?.[0]||prev2YearLabel;
     } else {
-      const sf=bc=>{let q=0,a=0;for(const[c,qa] of Object.entries(bc)){if(catCodes.has(c)){q+=qa[0];a+=qa[1];}}return{qty:q,amount:a};};
-      catPrevT=sf(prevByCode); catPrev2T=sf(prev2ByCode);
+      catPrevT=catSumIn(catName,aggPrev); catPrev2T=catSumIn(catName,aggPrev2);
     }
     const hasPrev=catPrevT.qty>0; const hasPrev2=catPrev2T.qty>0;
+    // 1年を超える期間では、どの1年と比べているかを見出しに入れる（増減率は今期＝直近1年との比較）
+    if(isLongPeriod&&!isYearGroupCat(catName)){catPrevYrLbl+=`(${prevPeriodStr})`;catPrev2YrLbl+=`(${prev2PeriodStr})`;}
 
     const sheetName=catName.substring(0,31).replace(/[[\]*?:/\\]/g,'_');
     const ws=wb.addWorksheet(sheetName);
@@ -1940,7 +1971,7 @@ async function downloadCheckedCategories(){
     ws.getRow(3).height=19;
     ws.mergeCells(3,1,3,isDC?7:6);
     const lhc=ws.getCell(3,1);
-    lhc.value=`品番順 / 今期  ×  ${catPrevYrLbl}  比較`;
+    lhc.value=`品番順 / 今期${isLongPeriod?`(${curPeriodStr})`:''}  ×  ${catPrevYrLbl}  比較`;
     lhc.font={bold:true,size:10,color:{argb:C.WHT},name:'Yu Gothic'};
     lhc.fill=fill(C.NAV); lhc.alignment={vertical:'middle',horizontal:'center'}; lhc.border=thinAll;
     // Right-side header label
@@ -2013,7 +2044,7 @@ async function downloadCheckedCategories(){
           pv.font={size:11,name:'Yu Gothic'};
           pv.fill=fill(pValBg); pv.alignment={horizontal:'right',vertical:'middle'}; pv.border=thinAll;
           const rv=ws.getCell(ri,6);
-          if(hasPrev){const r=ratioOf(totalQtyCat,catPrevT.qty);rv.value=ratioStr(r);rv.font={bold:true,size:10,color:{argb:ratioArgb(r)},name:'Yu Gothic'};}
+          if(hasPrev){const r=ratioOf(cmpQtyCat,catPrevT.qty);rv.value=ratioStr(r);rv.font={bold:true,size:10,color:{argb:ratioArgb(r)},name:'Yu Gothic'};}
           else rv.font={size:10,name:'Yu Gothic'};
           rv.fill=fill(pValBg); rv.alignment={horizontal:'center',vertical:'middle'}; rv.border=thinAll;
           if(isDC){ws.getCell(ri,7).fill=fill(pValBg);ws.getCell(ri,7).border=thinAll;}
@@ -2032,7 +2063,7 @@ async function downloadCheckedCategories(){
           pv.font={size:11,name:'Yu Gothic'};
           pv.fill=fill(pValBg); pv.alignment={horizontal:'right',vertical:'middle'}; pv.border=thinAll;
           const rv=ws.getCell(ri,6);
-          if(hasPrev){const r=ratioOf(totalAmtCat,catPrevT.amount);rv.value=ratioStr(r);rv.font={bold:true,size:10,color:{argb:ratioArgb(r)},name:'Yu Gothic'};}
+          if(hasPrev){const r=ratioOf(cmpAmtCat,catPrevT.amount);rv.value=ratioStr(r);rv.font={bold:true,size:10,color:{argb:ratioArgb(r)},name:'Yu Gothic'};}
           else rv.font={size:10,name:'Yu Gothic'};
           rv.fill=fill(pValBg); rv.alignment={horizontal:'center',vertical:'middle'}; rv.border=thinAll;
           if(isDC){ws.getCell(ri,7).fill=fill(pValBg);ws.getCell(ri,7).border=thinAll;}
@@ -2104,7 +2135,7 @@ async function downloadCheckedCategories(){
           p2q.font={size:11,name:'Yu Gothic'};
           p2q.fill=fill(p2ValBg); p2q.alignment={horizontal:'right',vertical:'middle'}; p2q.border=thinAll;
           const p2r=ws.getCell(ri,14);
-          if(hasPrev2){const r2=ratioOf(totalQtyCat,catPrev2T.qty);p2r.value=ratioStr(r2);p2r.font={bold:true,size:10,color:{argb:ratioArgb(r2)},name:'Yu Gothic'};}
+          if(hasPrev2){const r2=ratioOf(cmpQtyCat,catPrev2T.qty);p2r.value=ratioStr(r2);p2r.font={bold:true,size:10,color:{argb:ratioArgb(r2)},name:'Yu Gothic'};}
           else p2r.font={size:10,name:'Yu Gothic'};
           p2r.fill=fill(p2ValBg); p2r.alignment={horizontal:'center',vertical:'middle'}; p2r.border=thinAll;
           if(isDC){ws.getCell(ri,15).fill=fill(p2ValBg);ws.getCell(ri,15).border=thinAll;}
@@ -2126,7 +2157,7 @@ async function downloadCheckedCategories(){
           p2a.font={size:11,name:'Yu Gothic'};
           p2a.fill=fill(p2ValBg); p2a.alignment={horizontal:'right',vertical:'middle'}; p2a.border=thinAll;
           const p2ar=ws.getCell(ri,14);
-          if(hasPrev2){const r2=ratioOf(totalAmtCat,catPrev2T.amount);p2ar.value=ratioStr(r2);p2ar.font={bold:true,size:10,color:{argb:ratioArgb(r2)},name:'Yu Gothic'};}
+          if(hasPrev2){const r2=ratioOf(cmpAmtCat,catPrev2T.amount);p2ar.value=ratioStr(r2);p2ar.font={bold:true,size:10,color:{argb:ratioArgb(r2)},name:'Yu Gothic'};}
           else p2ar.font={size:10,name:'Yu Gothic'};
           p2ar.fill=fill(p2ValBg); p2ar.alignment={horizontal:'center',vertical:'middle'}; p2ar.border=thinAll;
           if(isDC){ws.getCell(ri,15).fill=fill(p2ValBg);ws.getCell(ri,15).border=thinAll;}
@@ -2290,20 +2321,12 @@ function showCategory(cat, updateSidebar=true) {
     for(const item of items){const sc=(DATA.products[item.code]||[])[2];if(sc&&!(item.code in itemPrevQA)){itemPrevQA[item.code]=null;itemPrev2QA[item.code]=null;}}
   }
   // Compute category-level comparison totals for the header
+  // 前期・前々期の合計は「その期間にこのカテゴリで売れた全商品」の合計（今期に売れていない商品も含める）。
+  // 以前は今期に売れた商品の分だけを合計していたため、前期にだけ売れた商品が抜けて増減率が過大になっていた
   if(comparisonMode && !isYearGroupCat(cat)){
-    if(catType){
-      let ptq=0,pta=0,p2q=0,p2a=0;
-      for(const qa of Object.values(itemPrevQA)){if(qa){ptq+=qa[0];pta+=qa[1];}}
-      for(const qa of Object.values(itemPrev2QA)){if(qa){p2q+=qa[0];p2a+=qa[1];}}
-      if(ptq)prevCatTot={qty:ptq,amount:pta};
-      if(p2q)prev2CatTot={qty:p2q,amount:p2a};
-    } else {
-      const catCodes=new Set(items.map(i=>i.code));
-      const sp=bc=>{let q=0,a=0;for(const[c,qa] of Object.entries(bc)){if(catCodes.has(c)){q+=qa[0];a+=qa[1];}}return{qty:q,amount:a};};
-      const pt=sp(localPrevByCode), p2t=sp(localPrev2ByCode);
-      if(pt.qty) prevCatTot=pt;
-      if(p2t.qty) prev2CatTot=p2t;
-    }
+    const pt=catSumIn(cat,aggPrev), p2t=catSumIn(cat,aggPrev2);
+    if(pt.qty) prevCatTot=pt;
+    if(p2t.qty) prev2CatTot=p2t;
   }
   const prevSfx =prevEdition ?`(${prevEdition}版)` :`(${prevPeriodStr})`;
   const prev2Sfx=prev2Edition?`(${prev2Edition}版)`:`(${prev2PeriodStr})`;
@@ -2312,6 +2335,8 @@ function showCategory(cat, updateSidebar=true) {
   document.getElementById('th-prev2').textContent=prev2Label;
   document.getElementById('th-prev2').title=prev2Edition?`${prev2Edition}版`:prev2PeriodFull;
 
+  // 増減率の今期側: 1年を超える期間では、選択期間の合計ではなく直近1年（今期）の値と比べる
+  const tCmp=isLongPeriod?catSumIn(cat,aggCur1):t;
   // 各期の比較表示: 個数と金額の両方を「前期(…) 1,234個 ▲12% ｜ ¥1,433,000 ▲8%」形式で表示
   const csFor=(lbl,sfx,tot)=>{
     if(!tot) return '';
@@ -2319,9 +2344,10 @@ function showCategory(cat, updateSidebar=true) {
       const d=base?Math.round((cur-base)/base*100):null;
       return `<b>${fmt(base)}</b>${d!=null?` <span class="${d>=0?'prev-up':'prev-dn'}">${d>=0?'▲':'▼'}${Math.abs(d)}%</span>`:''}`;
     };
-    return `<span class="cs">${lbl}${sfx} ${seg(t.qty,tot.qty,v=>v.toLocaleString()+'個')}<span class="cs-sep">｜</span>${seg(t.amount,tot.amount,v=>'¥'+v.toLocaleString())}</span>`;
+    return `<span class="cs">${lbl}${sfx} ${seg(tCmp.qty,tot.qty,v=>v.toLocaleString()+'個')}<span class="cs-sep">｜</span>${seg(tCmp.amount,tot.amount,v=>'¥'+v.toLocaleString())}</span>`;
   };
-  const cmpSt=csFor(prevLabel,prevSfx,prevCatTot)+csFor(prev2Label,prev2Sfx,prev2CatTot);
+  const curSt=isLongPeriod&&(prevCatTot||prev2CatTot)?`<span class="cs">今期(${curPeriodStr}) <b>${tCmp.qty.toLocaleString()}個</b><span class="cs-sep">｜</span><b>¥${tCmp.amount.toLocaleString()}</b></span>`:'';
+  const cmpSt=curSt+csFor(prevLabel,prevSfx,prevCatTot)+csFor(prev2Label,prev2Sfx,prev2CatTot);
 
   document.getElementById('cat-name').textContent=(CAT_ICONS[cat]||'📦')+' '+cat;
   document.getElementById('cat-stats').innerHTML=cmpSt;
@@ -2334,8 +2360,8 @@ function showCategory(cat, updateSidebar=true) {
   };
   const kdOn=comparisonMode&&prevCatTot;
   document.getElementById('kpi-row').innerHTML = [
-    ['個数',         t.qty.toLocaleString()+' 個',      kdOn?kpiD(t.qty,prevCatTot.qty):''],
-    ['税抜金額',      '¥'+t.amount.toLocaleString(),    kdOn?kpiD(t.amount,prevCatTot.amount):''],
+    ['個数',         t.qty.toLocaleString()+' 個',      kdOn?kpiD(tCmp.qty,prevCatTot.qty):''],
+    ['税抜金額',      '¥'+t.amount.toLocaleString(),    kdOn?kpiD(tCmp.amount,prevCatTot.amount):''],
     ['全体の割合',    catPct+'%',                       ''],
     ['SKU 数',       items.length+' 種',                ''],
   ].map(([l,v,d])=>`<div class="kpi"><div class="kpi-v">${v}${d}</div><div class="kpi-l">${l}</div></div>`).join('');
@@ -2354,7 +2380,7 @@ function showCategory(cat, updateSidebar=true) {
     const val=sortMode==='amount'?item.amount:item.qty;
     const pct=topV?(val/topV*100).toFixed(1):0;
     const ri=rank<=3?`<div class="rn r${rank}">${rank}</div>`:`<div class="rn ro">${rank}</div>`;
-    function cmpCell(pqa){const pq=pqa?.[0]||0;if(!pq)return`<td class="num cmp-col" style="color:var(--ink4);text-align:center">-</td>`;const diff=item.qty-pq;const pct2=Math.round(diff/pq*100);const cls=diff>=0?'prev-up':'prev-dn',arrow=diff>=0?'▲':'▼';return`<td class="num cmp-col" style="text-align:center">${pq.toLocaleString()}<br><span class="${cls}">${arrow}${Math.abs(pct2)}%</span></td>`;}
+    function cmpCell(pqa){const pq=pqa?.[0]||0;if(!pq)return`<td class="num cmp-col" style="color:var(--ink4);text-align:center">-</td>`;const cq=isLongPeriod?(curByCode1[item.code]?.[0]||0):item.qty;const diff=cq-pq;const pct2=Math.round(diff/pq*100);const cls=diff>=0?'prev-up':'prev-dn',arrow=diff>=0?'▲':'▼';return`<td class="num cmp-col" style="text-align:center">${pq.toLocaleString()}<br><span class="${cls}">${arrow}${Math.abs(pct2)}%</span></td>`;}
     const fn=item.code.replace(/-/g,'_');
     const thumb=`<img class="prod-thumb" src="images/${fn}.jpg" onerror="this.src='images/${fn}.png';this.onerror=function(){this.style.display='none'}" onclick="if(this.naturalWidth>0)openLightbox(this.src)" loading="lazy">`;
     return`<tr data-qty="${item.qty}" data-amt="${item.amount}">
@@ -3574,6 +3600,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   document.getElementById('search-tbl').classList.toggle('show-img', true);
   document.getElementById('search-tbl').classList.toggle('show-so', anyDC);
   function cmpCellS(code,curQty){
+    if(isLongPeriod)curQty=curByCode1[code]?.[0]||0;  // 1年超の期間は直近1年（今期）と比べる
     const qa=prevByCode[code], p2=prev2ByCode[code];
     function cell(pqa){
       const pq=pqa?.[0]||0;
