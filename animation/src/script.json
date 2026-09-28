@@ -1,0 +1,53 @@
+{
+  "title": "ほしのおとしもの",
+  "duration": 60.0,
+  "fps": 30,
+  "characters": {
+    "poko": {"name": "ポコ", "desc": "丸い小さなロボットの男の子。元気で前向き。", "voice_pref": "VOICEVOX ずんだもん ノーマル (style id 3)"},
+    "kira": {"name": "キラ", "desc": "空から落ちてきた星の女の子。やさしく、少し泣き虫。", "voice_pref": "VOICEVOX 春日部つむぎ ノーマル (style id 8)"}
+  },
+  "scenes": [
+    {"id": "S1", "start": 0.0,  "end": 9.0,  "desc": "夜の丘。満天の星。ポコが望遠鏡で空を見ている。4.5秒で流れ星、8.5秒で衝突の閃光"},
+    {"id": "S2", "start": 9.0,  "end": 22.0, "desc": "草むらのクレーター。光る星の女の子キラが泣いている。出会い"},
+    {"id": "S3", "start": 22.0, "end": 33.0, "desc": "ポコがロケットジャンプで空へ送ろうとするが失敗（23-25秒ジェット噴射、26秒墜落ボコッ）"},
+    {"id": "S4", "start": 33.0, "end": 47.0, "desc": "ポコが呼びかけると町中の窓の灯りが浮かび上がり、空へ続く光のらせん階段に。二人で駆け上がる（カメラ上昇）"},
+    {"id": "S5", "start": 47.0, "end": 55.0, "desc": "夜空の上。欠けた星座の穴にキラがはまり、星座（鳥の形）が完成して輝く（48秒チャイム）"},
+    {"id": "S6", "start": 55.0, "end": 60.0, "desc": "夜明けの丘。ポコが空を見上げると一つの星がウインク。タイトル表示"}
+  ],
+  "lines": [
+    {"id": "L01", "who": "poko", "t": 1.0,  "slot_end": 4.3,  "text": "今夜は、星がいっぱいだなあ。", "emotion": "normal"},
+    {"id": "L02", "who": "poko", "t": 5.2,  "slot_end": 8.4,  "text": "あっ、流れ星！　……え、こっちに来る！？", "emotion": "surprised"},
+    {"id": "L03", "who": "kira", "t": 10.0, "slot_end": 13.3, "text": "いたたた……。どうしよう、空に帰れない……。", "emotion": "sad"},
+    {"id": "L04", "who": "poko", "t": 13.6, "slot_end": 16.3, "text": "だいじょうぶ？　ぼく、ポコ。きみは？", "emotion": "normal"},
+    {"id": "L05", "who": "kira", "t": 16.6, "slot_end": 21.8, "text": "キラ。夜明けまでに戻らないと、わたし、消えちゃうの。", "emotion": "sad"},
+    {"id": "L06", "who": "poko", "t": 22.2, "slot_end": 25.0, "text": "まかせて！　ロケットジャンプ！", "emotion": "excited"},
+    {"id": "L07", "who": "kira", "t": 27.3, "slot_end": 29.8, "text": "……やっぱり、無理だよ。", "emotion": "sad"},
+    {"id": "L08", "who": "poko", "t": 30.0, "slot_end": 32.8, "text": "ううん、ぜったい、あきらめない！", "emotion": "determined"},
+    {"id": "L09", "who": "poko", "t": 33.4, "slot_end": 37.5, "text": "町のみんな！　ちからを貸して！", "emotion": "shout"},
+    {"id": "L10", "who": "kira", "t": 38.3, "slot_end": 42.3, "text": "わあ……町の光が、道になっていく……！", "emotion": "wonder"},
+    {"id": "L11", "who": "poko", "t": 43.0, "slot_end": 46.5, "text": "いくよ、キラ！　いっけええ！", "emotion": "shout"},
+    {"id": "L12", "who": "kira", "t": 48.3, "slot_end": 52.2, "text": "ありがとう、ポコ。ずっと、空から見てるね。", "emotion": "gentle"},
+    {"id": "L13", "who": "poko", "t": 52.5, "slot_end": 54.9, "text": "うん！　またね、キラ！", "emotion": "happy"}
+  ],
+  "sfx": [
+    {"t": 0.0,  "end": 9.0,  "kind": "night ambience: soft crickets + gentle wind"},
+    {"t": 4.5,  "end": 8.5,  "kind": "shooting star: rising sparkly whoosh, getting louder"},
+    {"t": 8.5,  "kind": "impact: soft magical boom + glass chime scatter"},
+    {"t": 9.5,  "end": 22.0, "kind": "star glow hum: faint shimmering pad"},
+    {"t": 23.0, "end": 25.2, "kind": "rocket jet: cute sputtering thruster, then fizzles out"},
+    {"t": 26.0, "kind": "bonk: cartoon fall + boing"},
+    {"t": 33.4, "end": 46.5, "kind": "magic rising: many small bell-like pings (lights detaching) + ascending shimmer"},
+    {"t": 48.0, "kind": "constellation lock: big warm chime chord + sparkle tail"},
+    {"t": 55.0, "end": 60.0, "kind": "dawn: birds chirp softly"},
+    {"t": 57.0, "kind": "wink: tiny twinkle ping"}
+  ],
+  "music": [
+    {"start": 0.0,  "end": 9.0,  "mood": "quiet wonder, music box arpeggio, key F major, ~76bpm"},
+    {"start": 9.0,  "end": 22.0, "mood": "tender, a little sad, soft piano/celesta, D minor-ish"},
+    {"start": 22.0, "end": 26.0, "mood": "playful bouncy staccato"},
+    {"start": 26.0, "end": 33.0, "mood": "deflated, sparse; builds hope from 30.0"},
+    {"start": 33.0, "end": 47.0, "mood": "triumphant crescendo, strings-like pad, rising arpeggios, climax at 46-48"},
+    {"start": 47.0, "end": 55.0, "mood": "warm, heartfelt resolution, bells"},
+    {"start": 55.0, "end": 60.0, "mood": "gentle ending, main motif on music box, final chord fading to silence by 60.0"}
+  ]
+}
