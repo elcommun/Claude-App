@@ -198,6 +198,7 @@ elco-brt001-BRT-002,+2</pre>
         <ul class="mn-list">
           <li>総在庫数は<strong>デフォルトでは入荷データの数量（列名「売上数」）の頭に + を付けた値</strong>（在庫の加算）。プレビューで編集すれば <code>-3</code> のような減算値も出力できます。</li>
           <li>SKUには、商品コードが一致した itemdata の<strong>「システム連携用SKU番号」がそのまま</strong>入ります（例: 商品コード <code>BND-004</code> → SKU <code>elco-bnd001-BND-004</code>）。突合は「システム連携用SKU番号から商品管理番号を除いた部分」と商品コードの<strong>完全一致</strong>で行うため、<code>GB-014</code> が <code>SGB-014</code> に誤って一致することはありません</li>
+          <li>完全一致で見つからない場合のみ、<strong>大文字小文字とハイフン有無の違いを無視した末尾一致</strong>で補完します（例: 商品コード <code>WCL-026</code> → SKU <code>elco-wcl026</code>）。この場合も直前の文字が英数字なら除外するため <code>SGB-014</code> への誤一致は起きません</li>
           <li>同じ商品コードが複数行あった場合は入荷数量を<strong>合算</strong>します（プレビューに<span class="badge badge-orange">合算</span>バッジ）</li>
         </ul>
       </div>
@@ -304,7 +305,7 @@ elco-brt001-BRT-002,+2</pre>
 <footer>在庫データ変換 <span id="verBadge"></span> | EL COMMUN EC事業部</footer>
 
 <script>
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 document.getElementById('verBadge').textContent = 'v' + APP_VERSION;
 
 // ===== 使い方マニュアル詳細の開閉（通常は「できること」のみ表示） =====
@@ -469,6 +470,21 @@ function doConvert() {
     if (skus.size === 0) {
       for (const it of ITEMS) {
         if (it.sys.endsWith(r.code)) skus.add(it.sys);
+      }
+    }
+    // それでも見つからない場合のみ、大文字小文字とハイフン有無を無視した
+    // 末尾一致で補完する（例: 商品コード WCL-026 → SKU elco-wcl026）。
+    // 一致開始位置の直前が英数字の場合は除外し、GB-014 が SGB-014 の
+    // 末尾に誤一致するのを防ぐ。
+    if (skus.size === 0) {
+      const pat = r.code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/-/g, '-?');
+      const re = new RegExp('(' + pat + ')$', 'i');
+      for (const it of ITEMS) {
+        const m = it.sys.match(re);
+        if (m) {
+          const start = it.sys.length - m[1].length;
+          if (start === 0 || !/[0-9A-Za-z]/.test(it.sys[start - 1])) skus.add(it.sys);
+        }
       }
     }
     if (skus.size === 1) {
