@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ほしのおとしもの</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#05060f;--fg:#f5f1ff;--dim:#9a98b8;--accent:#ffd66b}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:"Zen Maru Gothic","Hiragino Maru Gothic ProN",sans-serif}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:16px}
+  .stage{position:relative;width:min(100%,calc((100vh - 120px) * 16 / 9));aspect-ratio:16/9;border-radius:14px;overflow:hidden;
+    box-shadow:0 0 0 1px rgba(255,255,255,.06),0 30px 80px rgba(80,90,255,.18)}
+  canvas{display:block;width:100%;height:100%;background:#000}
+  .play{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:radial-gradient(ellipse at center,rgba(5,6,20,.25),rgba(5,6,20,.7));border:0;color:var(--fg);cursor:pointer;font:inherit}
+  .play .btn{width:88px;height:88px;border-radius:50%;background:rgba(255,214,107,.95);display:grid;place-items:center;
+    box-shadow:0 0 40px rgba(255,214,107,.6);transition:transform .2s}
+  .play:hover .btn{transform:scale(1.06)}
+  .play .btn::before{content:"";margin-left:8px;border-left:30px solid #1a1530;border-top:18px solid transparent;border-bottom:18px solid transparent}
+  .play .t1{font-size:clamp(22px,4vw,40px);font-weight:700;letter-spacing:.08em;text-shadow:0 0 18px rgba(255,210,140,.8)}
+  .play .t2{font-size:13px;color:#dcd8f0}
+  .play[hidden]{display:none}
+  .bar{width:min(100%,calc((100vh - 120px) * 16 / 9));display:flex;align-items:center;gap:12px;margin-top:12px;font-size:13px;color:var(--dim)}
+  .bar button{background:none;border:1px solid rgba(255,255,255,.18);color:var(--fg);border-radius:999px;padding:6px 14px;font:inherit;cursor:pointer}
+  .bar input{flex:1;accent-color:var(--accent)}
+  .bar a{color:var(--accent);text-decoration:none;white-space:nowrap}
+  .time{font-variant-numeric:tabular-nums;min-width:86px;text-align:center}
+  @media (max-width:600px){.bar{flex-wrap:wrap}.bar input{order:5;flex-basis:100%}}
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <canvas id="cv"></canvas>
+  <button class="play" id="play" aria-label="再生">
+    <span class="btn"></span>
+    <span class="t1">ほしのおとしもの</span>
+    <span class="t2">60秒 / 音声あり ・ すべてコードで描画</span>
+  </button>
+</div>
+<div class="bar">
+  <button id="pp">▶ 再生</button>
+  <span class="time" id="time">0:00 / 1:00</span>
+  <input id="seek" type="range" min="0" max="60" step="0.01" value="0" aria-label="シーク">
+  <button id="fs">全画面</button>
+  <a href="hoshi-no-otoshimono.mp4" download>MP4</a>
+</div>
+<audio id="au" src="soundtrack.m4a" preload="auto"></audio>
+<script src="lipsync.js"></script>
+<script src="scene.js"></script>
+<script>
+(() => {
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const au = document.getElementById('au'), seek = document.getElementById('seek');
+  const pp = document.getElementById('pp'), play = document.getElementById('play'), time = document.getElementById('time');
+  let t = 44.0, playing = false;
+  function size() {
+    const r = cv.getBoundingClientRect(), dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  }
+  const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  function frame() {
+    if (playing) { t = au.currentTime; if (au.ended) { playing = false; pp.textContent = '▶ 再生'; } }
+    ANIM.render(ctx, t, cv.width / ANIM.W);
+    seek.value = t; time.textContent = `${fmt(t)} / 1:00`;
+    requestAnimationFrame(frame);
+  }
+  function start() {
+    if (!play.hidden || au.ended || t >= 59.9) t = 0;
+    au.currentTime = t;
+    play.hidden = true; au.play(); playing = true; pp.textContent = '❚❚ 一時停止';
+  }
+  function pause() { au.pause(); playing = false; pp.textContent = '▶ 再生'; }
+  play.onclick = start;
+  pp.onclick = () => playing ? pause() : start();
+  seek.oninput = () => { t = +seek.value; au.currentTime = t; play.hidden = true; };
+  document.getElementById('fs').onclick = () => document.getElementById('stage').requestFullscreen?.();
+  window.addEventListener('resize', size);
+  document.fonts.ready.then(() => { size(); requestAnimationFrame(frame); });
+  size();
+})();
+</script>
+</body>
+</html>
