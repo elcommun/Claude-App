@@ -1,0 +1,53 @@
+{
+  "title": "いつも、となりに。 〜ちまきと、きなこ〜",
+  "duration": 60.0,
+  "fps": 30,
+  "characters": {
+    "chimaki": {"name": "ちまき", "desc": "黒×白のポメチワ。年上で、ぶっきらぼうだけど本当はやさしい。いつもソファのいちばん上の特等席にいる。口数は少なく、落ち着いた声。", "voice_pref": "VOICEVOX 玄野武宏 ノーマル（落ち着いたやさしい男性声）。無ければ 白上虎太郎 ふつう"},
+    "kinako": {"name": "きなこ", "desc": "クリーム色のロングヘアード・ダックス。年下で、甘えん坊でおっとり。やさしい女の子の声。", "voice_pref": "VOICEVOX 雨晴はう ノーマル"},
+    "kinako_puppy": {"name": "きなこ（子犬）", "desc": "回想シーンの子犬時代のきなこ。心細くて泣いている。", "voice_pref": "きなこと同じ話者で pitchScale を上げ、少し幼く・弱々しく"}
+  },
+  "scenes": [
+    {"id": "S1", "start": 0.0,  "end": 9.0,  "desc": "現在・晴れた午後のリビング。マスタード色のソファ。ちまきは背もたれの上、きなこは下でへそ天。"},
+    {"id": "S2", "start": 9.0,  "end": 25.0, "desc": "回想（セピア調）。雨の夜、家に来たばかりの子犬きなこがカゴの中で震えて泣いている。若いちまきがブランケットを鼻で押して落とし、きなこにかけてあげ、隣に寄り添って一緒に眠る。"},
+    {"id": "S3", "start": 25.0, "end": 37.0, "desc": "現在・嵐の夜。27.0秒と34.0秒に雷の閃光。年をとったちまきが震えている。"},
+    {"id": "S4", "start": 37.0, "end": 48.0, "desc": "きなこがあの日のブランケットをくわえてソファの上へ登り、ちまきにかけて寄り添う（38.0〜40.2）。恩返し。"},
+    {"id": "S5", "start": 48.0, "end": 60.0, "desc": "嵐のあとの朝。写真と同じ構図の二匹。55.0秒カメラのシャッター → 本物の写真がポラロイドで登場、タイトル『いつも、となりに。』。60秒で静かに終わる。"}
+  ],
+  "lines": [
+    {"id": "L01", "who": "kinako",       "t": 1.2,  "slot_end": 4.7,  "text": "ねえ、ちまき。どうしていつも、そこにいるの？", "kana_hint": "ねえ、ちまき。どうしていつも、そこにいるの？", "emotion": "curious, sweet"},
+    {"id": "L02", "who": "chimaki",      "t": 5.1,  "slot_end": 8.7,  "text": "……ここからなら、きなこが、よく見えるから。", "emotion": "calm, gentle, a bit shy"},
+    {"id": "L03", "who": "kinako_puppy", "t": 11.0, "slot_end": 14.4, "text": "くぅん……こわいよ……ひとりぼっち……。", "emotion": "crying, small, trembling"},
+    {"id": "L04", "who": "chimaki",      "t": 17.8, "slot_end": 21.2, "text": "泣かないで。ぼくが、ずっと見ててあげる。", "kana_hint": "なかないで。ぼくが、ずっとみててあげる。", "emotion": "warm, reassuring, soft"},
+    {"id": "L05", "who": "kinako",       "t": 28.2, "slot_end": 30.8, "text": "ちまき……ふるえてるの？", "emotion": "worried, soft"},
+    {"id": "L06", "who": "chimaki",      "t": 31.0, "slot_end": 33.8, "text": "ふ、ふるえてなんか……ないよ。", "emotion": "pretending to be brave, shaky"},
+    {"id": "L07", "who": "chimaki",      "t": 34.25,"slot_end": 35.3, "text": "きゃんっ！", "emotion": "startled yelp (short, high)"},
+    {"id": "L08", "who": "kinako",       "t": 40.6, "slot_end": 44.2, "text": "だいじょうぶ。今度は、わたしが守る番だよ。", "kana_hint": "だいじょうぶ。こんどは、わたしがまもるばんだよ。", "emotion": "gentle but determined, warm"},
+    {"id": "L09", "who": "chimaki",      "t": 44.6, "slot_end": 47.8, "text": "……きなこ。大きくなったね。", "kana_hint": "……きなこ。おおきくなったね。", "emotion": "moved, teary, very soft"},
+    {"id": "L10", "who": "kinako",       "t": 49.6, "slot_end": 52.4, "text": "これからも、ずっといっしょだよ。", "emotion": "happy, warm"},
+    {"id": "L11", "who": "chimaki",      "t": 52.7, "slot_end": 54.8, "text": "うん。ずっと、ね。", "emotion": "content, smiling"}
+  ],
+  "sfx": [
+    {"t": 0.0,  "end": 9.0,  "kind": "calm afternoon room tone: distant birds outside, soft clock tick"},
+    {"t": 9.0,  "end": 10.5, "kind": "dreamy flashback transition: soft harp gliss / reverse shimmer"},
+    {"t": 10.0, "end": 24.0, "kind": "gentle rain on the window (flashback, muffled)"},
+    {"t": 14.8, "end": 16.2, "kind": "blanket sliding off the sofa: soft fabric swish, then soft flump at 16.2"},
+    {"t": 16.6, "kind": "small paw landing thump (dog hops down)"},
+    {"t": 23.5, "end": 25.5, "kind": "flashback ends: reverse shimmer back to present"},
+    {"t": 25.0, "end": 48.0, "kind": "heavy rain and wind storm (present), slowly calming after 44"},
+    {"t": 27.0, "kind": "lightning crack + rolling thunder (medium)"},
+    {"t": 34.0, "kind": "very close lightning crack + big thunder boom"},
+    {"t": 38.0, "end": 40.2, "kind": "blanket dragged + little paws hopping up (hops at 38.6 and 39.6), blanket flump at 40.2"},
+    {"t": 48.0, "end": 60.0, "kind": "morning: birds chirping, dripping water, peaceful"},
+    {"t": 55.0, "kind": "camera shutter click (カシャッ) + soft flash"},
+    {"t": 55.4, "end": 56.6, "kind": "polaroid photo ejecting / paper sound"}
+  ],
+  "music": [
+    {"start": 0.0,  "end": 9.0,  "mood": "warm, cozy, gentle acoustic piano + soft glockenspiel, G major, ~84bpm. Main 'friendship' theme."},
+    {"start": 9.0,  "end": 25.0, "mood": "flashback: nostalgic, lonely then comforting. Music-box-like/celesta version of the theme, E minor → resolves to G major at 17.8 when chimaki comforts her; lullaby feel 21-25"},
+    {"start": 25.0, "end": 37.0, "mood": "tense but restrained: low strings, sparse piano, storm. Near silence right after the 34.0 thunder"},
+    {"start": 37.0, "end": 48.0, "mood": "emotional build: theme returns on strings + piano as kinako protects chimaki, swelling at 40.6 and peaking tenderly around 44.6-47.8 (tearful)"},
+    {"start": 48.0, "end": 55.0, "mood": "morning resolution: bright, warm full theme, gentle"},
+    {"start": 55.0, "end": 60.0, "mood": "after the shutter at 55.0: solo piano plays the last phrase of the theme softly, final chord rings out and fades to silence by 60.0"}
+  ]
+}
