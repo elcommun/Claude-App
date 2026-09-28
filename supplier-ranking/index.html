@@ -139,6 +139,7 @@ input[type=file]{display:none}
 .kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--accent);opacity:.28}
 .kpi-v{font-size:19px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:4px;letter-spacing:-.02em}
 .kpi-l{font-size:10px;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase}
+.kpi-cmp-note{font-weight:500;letter-spacing:0;margin-left:3px}
 .cat-hd{display:flex;align-items:baseline;gap:11px;margin-bottom:14px;flex-wrap:wrap}
 .cat-name{font-size:21px;font-weight:700}
 .cat-rate{font-size:11px;color:var(--ink3);background:var(--paper2);border-radius:5px;padding:2px 8px}
@@ -422,7 +423,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v124</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v125</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -585,7 +586,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
           <th class="th-sort name-col" tabindex="0" role="button" onclick="setSort('name')">商品名<span class="sort-ind" data-sind="name"></span></th>
           <th class="th-sort" tabindex="0" role="button" onclick="setSort('price')" style="width:80px">税抜単価<span class="sort-ind" data-sind="price"></span></th>
           <th class="th-sort" tabindex="0" role="button" onclick="setSort('qty')" style="width:70px">数量<span class="sort-ind" data-sind="qty"></span></th>
-          <th class="cmp-col" style="width:70px" title="前年同期">前年数</th>
+          <th class="cmp-col" id="th-prev" style="width:70px" title="前年同期">前年数</th>
           <th class="cmp-col" style="width:70px">前年比</th>
           <th class="rate-col" style="width:90px">売上比</th>
           <th class="th-sort amt-col" tabindex="0" role="button" onclick="setSort('amount')" style="width:100px">小計金額<span class="sort-ind" data-sind="amount"></span></th>
@@ -1014,6 +1015,9 @@ buildData();
 // ── 状態 ──────────────────────────────────────────────────
 let AGG={}; // group(メーカー名 or カテゴリ名) -> {qty,amount,items:{pid:{qty,amount}}}
 let PREV_AGG={}; // pid -> {qty,amount}（前年同期。KPIの前年比・推移グラフでも使うので常に計算する）
+// 選択期間が1年を超えるとき（2年・3年・全期間など）は、期間の最終日から1年ごとに区切り、
+// 今期＝最終日までの直近1年（CUR1_AGG）と 前年＝その前の1年（PREV_AGG）を比べる。1年以内は CUR1_AGG=null（選択期間そのものと比べる）
+let CUR1_AGG=null, CMP_CUR_STR='', CMP_PREV_STR='';
 // 月別推移・店舗別内訳用のバケット。applyFilter の既存の走査に相乗りして集計するので、
 // グラフの数字は必ず上のKPI・見出しと一致する
 let mCur={}, mPrev={}, sSplit={};   // ym→グループ→[qty,amount] / 前年窓の同じもの / store→グループ→[qty,amount]
@@ -1280,6 +1284,7 @@ function applyFilter(){
   }
   // 前年同期は KPI の前年比・推移グラフでも使うので常に計算する（全件走査でも十数ミリ秒）
   PREV_AGG = buildPrevAgg(dF,dT,store,mPrev);
+  const thPrev=document.getElementById('th-prev'); if(thPrev) thPrev.title=cmpTitle();
   updateHeaderDate(dF,dT);
   updateSidebarTotal(dF,dT);
   renderSidebar();
@@ -1310,23 +1315,30 @@ function updateSidebarTotal(dF,dT){
 function updateHeaderDate(dF,dT){
   document.getElementById('hd-date').innerHTML='<b>'+dF+'</b> 〜 <b>'+dT+'</b>';
 }
-function shiftYear(dateStr,offset){
-  const d=new Date(dateStr+'T00:00:00');
-  d.setFullYear(d.getFullYear()+offset);
+// 日付文字列の年・日をずらす（UTCで計算。ローカル時刻で toISOString すると日本時間では1日ずれるため）
+function shiftYear(dateStr,offset,days=0){
+  const d=new Date(dateStr+'T00:00:00Z');
+  d.setUTCFullYear(d.getUTCFullYear()+offset);
+  if(days) d.setUTCDate(d.getUTCDate()+days);
   return d.toISOString().slice(0,10);
 }
 function buildPrevAgg(dF,dT,store,mOut){
-  const pF=shiftYear(dF,-1);
-  let pT=shiftYear(dT,-1);
-  // 選択期間が1年を超える場合、前年期間が現在の期間と重ならないようにクランプする
-  const dayBeforeDF=new Date(new Date(dF+'T00:00:00').getTime()-86400000).toISOString().slice(0,10);
-  if(pT>dayBeforeDF) pT=dayBeforeDF;
+  // 1年以内: 1年前の同じ期間（例: 2026/1/1〜9/28 → 2025/1/1〜9/28）
+  // 1年超 : 最終日から1年ごとに区切る（今期=最終日の1年前の翌日〜最終日 / 前年=その前の1年）
+  const long=dF<shiftYear(dT,-1,1);
+  const pF=long?shiftYear(dT,-2,1):shiftYear(dF,-1);
+  const pT=shiftYear(dT,-1);
+  const cF=long?shiftYear(dT,-1,1):null;
+  CUR1_AGG=long?{}:null;
+  const sl=d=>d.slice(2).replace(/-0?/g,'/');
+  CMP_CUR_STR=long?`${sl(cF)}〜${sl(dT)}`:'';
+  CMP_PREV_STR=`${sl(pF)}〜${sl(pT)}`;
   const agg={};
-  if(pF>pT) return agg;
   for(const rec of ALL_RECORDS){
     const [date,rStore,pid,qty,amount]=rec;
-    if(date<pF||date>pT) continue;
     if(store!=='all'&&rStore!==store) continue;
+    if(long&&date>=cF&&date<=dT){const c=CUR1_AGG[pid]||(CUR1_AGG[pid]={qty:0,amount:0});c.qty+=qty;c.amount+=amount;}
+    if(date<pF||date>pT) continue;
     const it=agg[pid]||(agg[pid]={qty:0,amount:0});
     it.qty+=qty; it.amount+=amount;
     if(mOut){
@@ -1648,9 +1660,11 @@ async function buildExportBlob(){
   for(const task of sheetTasks){
     const rows=task.rows;
     const totalQty=rows.reduce((s,r)=>s+r.qty,0), totalAmt=rows.reduce((s,r)=>s+r.amount,0);
-    const prevQty=comparisonMode ? rows.reduce((s,r)=>s+(PREV_AGG[r.pid]?.qty||0),0) : 0;
-    const prevAmt=comparisonMode ? rows.reduce((s,r)=>s+(PREV_AGG[r.pid]?.amount||0),0) : 0;
+    const ct=comparisonMode ? cmpTotals(rows, groupPidFilter(task.title, task.subtitle)) : null;
+    const prevQty=ct?ct.qty:0, prevAmt=ct?ct.amount:0;
     const hasPrev=comparisonMode && (prevQty>0 || prevAmt>0);
+    // 増減率の今期側（1年を超える期間では直近1年の値）
+    const cmpQty=ct?ct.curQty:totalQty, cmpAmt=ct?ct.curAmount:totalAmt;
 
     const byRank=[...rows].sort((a,b)=>{
       const av=rankMetric==='amount'?a.amount:a.qty;
@@ -1691,10 +1705,11 @@ async function buildExportBlob(){
     const sumCell=ws.getCell(3,1);
     let sumText=`販売数 ${totalQty.toLocaleString()}個　|　合計金額 ¥${Math.round(totalAmt).toLocaleString()}`;
     if(hasPrev){
-      const qRatio = prevQty>0 ? Math.round(totalQty/prevQty*100) : null;
-      const aRatio = prevAmt>0 ? Math.round(totalAmt/prevAmt*100) : null;
+      const qRatio = prevQty>0 ? Math.round(cmpQty/prevQty*100) : null;
+      const aRatio = prevAmt>0 ? Math.round(cmpAmt/prevAmt*100) : null;
       const arrow=r=>r==null?'-':(r>=100?'▲':'▼')+Math.abs(r-100)+'%';
-      sumText += `　|　前年同期 ${prevQty.toLocaleString()}個（${arrow(qRatio)}）　|　前年金額 ¥${Math.round(prevAmt).toLocaleString()}（${arrow(aRatio)}）`;
+      if(CUR1_AGG) sumText += `　|　今期(${CMP_CUR_STR}) ${cmpQty.toLocaleString()}個`;
+      sumText += `　|　${CUR1_AGG?`前年(${CMP_PREV_STR})`:'前年同期'} ${prevQty.toLocaleString()}個（${arrow(qRatio)}）　|　前年金額 ¥${Math.round(prevAmt).toLocaleString()}（${arrow(aRatio)}）`;
     }
     sumCell.value=sumText;
     sumCell.font={bold:true,size:10,name:'Yu Gothic'};
@@ -1750,16 +1765,30 @@ function kpiDelta(cur,base){
   const d=Math.round((cur-base)/base*100);
   return `<span class="kpi-d ${d>=0?'kpi-d-up':'kpi-d-dn'}">${d>=0?'▲':'▼'}${Math.abs(d)}%</span>`;
 }
-function prevTotalOf(rows){
-  let qty=0,amount=0;
-  for(const r of rows){const pv=PREV_AGG[r.pid];if(pv){qty+=pv.qty;amount+=pv.amount;}}
-  return {qty,amount};
+// 前年比の合計: 前年は「その期間にそのグループで売れた全商品」の合計（今期に売れていない商品も含める）。
+// 今期側は 1年以内なら表示中の rows の合計、1年超なら直近1年（CUR1_AGG）の合計。inG(pid) でグループを絞る（null=全体）
+function cmpTotals(rows,inG){
+  let qty=0,amount=0,curQty=0,curAmount=0;
+  for(const pid in PREV_AGG){if(inG&&!inG(pid))continue;const pv=PREV_AGG[pid];qty+=pv.qty;amount+=pv.amount;}
+  if(CUR1_AGG){for(const pid in CUR1_AGG){if(inG&&!inG(pid))continue;const cv=CUR1_AGG[pid];curQty+=cv.qty;curAmount+=cv.amount;}}
+  else for(const r of rows){curQty+=r.qty;curAmount+=r.amount;}
+  return {qty,amount,curQty,curAmount};
 }
+// グループ名（メーカー／カテゴリ／大分類）に属する商品かどうか
+function groupPidFilter(g,sub){
+  const keys=MACRO_GROUPS.find(m=>m.name===g)?.cats||[g];
+  return pid=>{const p=ALL_PRODUCTS[pid];return !!p&&keys.includes(groupKeyOf(p))&&(!sub||p[5]===sub);};
+}
+function prevTotalOf(rows,g){
+  return cmpTotals(rows, g==null?null:groupPidFilter(g));
+}
+// 前年比の比較対象の説明（1年超の期間は 今期=直近1年 と 前年=その前の1年）
+function cmpTitle(){return CUR1_AGG?`前年比: 今期 ${CMP_CUR_STR} と 前年 ${CMP_PREV_STR} の比較`:`前年比: 前年同期 ${CMP_PREV_STR} との比較`;}
 function renderKPI(qty,amount,cost,skuCount,prev){
   const on=comparisonMode&&prev;
   document.getElementById('kpi-row').innerHTML = `
-    <div class="kpi"><div class="kpi-v">${qty.toLocaleString()}${on?kpiDelta(qty,prev.qty):''}</div><div class="kpi-l">販売数量</div></div>
-    <div class="kpi"><div class="kpi-v">¥${Math.round(amount).toLocaleString()}${on?kpiDelta(amount,prev.amount):''}</div><div class="kpi-l">税抜売上金額</div></div>
+    <div class="kpi"${on?` title="${cmpTitle()}"`:''}><div class="kpi-v">${qty.toLocaleString()}${on?kpiDelta(prev.curQty,prev.qty):''}</div><div class="kpi-l">販売数量${on&&CUR1_AGG?'<span class="kpi-cmp-note">（前年比は直近1年）</span>':''}</div></div>
+    <div class="kpi"${on?` title="${cmpTitle()}"`:''}><div class="kpi-v">¥${Math.round(amount).toLocaleString()}${on?kpiDelta(prev.curAmount,prev.amount):''}</div><div class="kpi-l">税抜売上金額${on&&CUR1_AGG?'<span class="kpi-cmp-note">（前年比は直近1年）</span>':''}</div></div>
     <div class="kpi"><div class="kpi-v">${cost!=null?'¥'+Math.round(cost).toLocaleString():'—'}</div><div class="kpi-l">仕入金額（概算）</div></div>
     <div class="kpi"><div class="kpi-v">${skuCount.toLocaleString()}</div><div class="kpi-l">SKU数</div></div>
   `;
@@ -1847,7 +1876,7 @@ function showGroup(g){
     return;
   }
   const rows=itemRows(agg.items);
-  renderKPI(agg.qty, agg.amount, costOf(rows), rows.length, prevTotalOf(rows));
+  renderKPI(agg.qty, agg.amount, costOf(rows), rows.length, prevTotalOf(rows,g));
   document.getElementById('cat-name').textContent = g;
   document.getElementById('cat-rate').textContent = (groupMode==='maker'&&ALL_MAKERS[g]!=null) ? '掛け率 '+ALL_MAKERS[g] : '';
   document.getElementById('cat-stats').innerHTML=`<span class="cs">全体の <b>${(agg.amount/(ALL_TOTAL.amount||1)*100).toFixed(1)}%</b></span>`;
@@ -1935,11 +1964,13 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
   const qtyStyle=heatmapMode?` style="${heatBg(r.qty,maxQty)}"`:'';
   const prev=PREV_AGG[r.pid];
   const prevQty=prev?prev.qty:0;
+  // 1年を超える期間では、今期＝直近1年の数量と前年を比べる（直近1年に販売が無ければ NEW にしない）
+  const curQty=CUR1_AGG?(CUR1_AGG[r.pid]?.qty||0):r.qty;
   let cmpHtml;
   if(!prevQty){
-    cmpHtml=`<td class="num cmp-col cmp-prev">—</td><td class="num cmp-col cmp-pct"><span class="cmp-new">NEW</span></td>`;
+    cmpHtml=`<td class="num cmp-col cmp-prev">—</td><td class="num cmp-col cmp-pct">${curQty?'<span class="cmp-new">NEW</span>':'—'}</td>`;
   } else {
-    const diffPct=((r.qty-prevQty)/prevQty*100);
+    const diffPct=((curQty-prevQty)/prevQty*100);
     const cls=diffPct>0?'cmp-up':diffPct<0?'cmp-down':'';
     const sign=diffPct>0?'+':'';
     cmpHtml=`<td class="num cmp-col cmp-prev">${prevQty.toLocaleString()}</td><td class="num cmp-col cmp-pct ${cls}">${sign}${diffPct.toFixed(0)}%</td>`;
