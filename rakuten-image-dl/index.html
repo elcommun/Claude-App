@@ -64,6 +64,10 @@
   .src-title{font-size:13px;font-weight:700;color:#1E40AF;margin-bottom:4px;}
   .src-box .opt-row{margin-top:8px;color:#1E40AF;}
   .src-cnt{color:var(--primary);font-size:15px;}
+  .rank-info{display:none;margin:8px 0 0 26px;padding:10px 12px;border-radius:8px;background:white;border:1px solid #BFDBFE;font-size:12px;line-height:1.9;color:#1E40AF;}
+  .rank-info.show{display:block;}
+  .rank-info b{color:var(--primary);}
+  .rank-info .warn{color:#B45309;}
   .slug-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed #BFDBFE;font-size:12px;color:#1E40AF;}
   .slug-row input{width:160px;padding:7px 10px;border:1px solid #BFDBFE;border-radius:8px;font-size:13px;font-family:'Courier New',monospace;}
   .slug-row input:focus{outline:2px solid var(--primary);border-color:transparent;}
@@ -125,7 +129,9 @@
     <strong>このアプリでできること：</strong>
     楽天の商品画像をまとめて抽出し、パソコンに一括ダウンロードします。<br>
     RMSの商品CSV（dl-normal-item）なら<strong>「商品画像パス」列から自動で画像を抽出</strong>。
-    URLリストやページのソースなど、画像URLが含まれるテキストの貼り付けにも対応しています。
+    URLリストやページのソースなど、画像URLが含まれるテキストの貼り付けにも対応しています。<br>
+    <strong>販売ランキング用モード：</strong>商品CSVの「SKU画像パス」から、品番のファイル名で保存・縮小してZIPにまとめます
+    （すでに画像がある品番は除きます）。商品CSVを読み込むと、下に選択肢が出ます。
   </div>
 
   <!-- STEP 1: 入力 -->
@@ -167,6 +173,12 @@
           <input type="checkbox" id="srcBody">
           <span>📝 <b>説明文など本文中の画像URL</b> … <b class="src-cnt" id="cntBody">0</b> 件</span>
         </label>
+        <label class="opt-row" id="rankRow" style="display:none;">
+          <input type="checkbox" id="optRank">
+          <span>🏷 <b>販売ランキング用</b>（「SKU画像パス」の画像を<b>品番のファイル名</b>で保存し、縮小してZIPにまとめる）… <b class="src-cnt" id="cntRank">0</b> 枚
+            <br><small>※ オンにすると上の2つの選択は使わず、SKU画像だけを対象にします</small></span>
+        </label>
+        <div class="rank-info" id="rankInfo"></div>
         <div class="slug-row" id="slugRow">
           <span>店舗名（URLの一部）:</span>
           <input type="text" id="slugInput" placeholder="例: elcommun">
@@ -216,7 +228,7 @@
 
       <div class="script-steps" id="scriptSteps">
         <ol>
-          <li><code>download_rakuten_images.txt</code> を「ダウンロード」フォルダに保存しました✅（実行コマンドもコピー済み）</li>
+          <li id="stepSaved"><code>download_rakuten_images.txt</code> を「ダウンロード」フォルダに保存しました✅（実行コマンドもコピー済み）</li>
           <li><b>⌘＋スペース</b> →「ターミナル」と入力 → Enter でターミナルを開く</li>
           <li><b>⌘V</b> で貼り付けて <b>Enter</b> — ダウンロードが始まります</li>
         </ol>
@@ -224,7 +236,7 @@
           <input class="cmd-text" id="cmdText" readonly value="bash ~/Downloads/download_rakuten_images.txt">
           <button class="copy-btn" id="copyBtn" onclick="copyCmd()">📋 コピー</button>
         </div>
-        <div class="hint">
+        <div class="hint" id="stepHint">
           完了すると「ダウンロード」フォルダ内の <code>rakuten_images</code> フォルダに
           <b>R-Cabinetと同じフォルダ構成</b>で画像が保存され、自動で開きます（Cyberduck等でそのまま再アップロードできます）。<br>
           ・保存先を選ぶ画面が出た場合は「ダウンロード」フォルダを選んでください<br>
@@ -236,6 +248,9 @@
 
 </div>
 
+<!-- 販売ランキング用モードで使う一覧（同じ公開フォルダ内。読み込めなくても他の機能は動く） -->
+<script src="../ranking/image-index.js"></script>
+<script src="../ec-category/product-names.js"></script>
 <script>
 // ========== 状態 ==========
 // IMAGES: { url, name, sel } の配列。name はZIP/保存時のファイル名（重複は連番付与済み）
@@ -337,15 +352,86 @@ function analyzeNewText(text) {
   rebuild();
 }
 
+// ========== 販売ランキング用（SKU画像パス → 品番つき） ==========
+// 商品CSVの各SKU行から「品番 ↔ SKU画像パス」の対応を作る。
+//  ・品番 = 「システム連携用SKU番号」から「商品管理番号（商品URL）」を除いた部分（在庫データ変換アプリと同じ）。
+//    取り出せない／マスタに無いときは「SKU管理番号」を品番として試す
+//  ・マスタ = ../ec-category/product-names.js（PRODUCT_NAMES）、既存画像 = ../ranking/image-index.js（IMG_INDEX）
+let HAS_SKU = false;
+let RANK = { items: [], existing: 0, notInMaster: [], noImage: 0, dup: 0, rows: 0, noMaster: false, noIndex: false };
+function computeRank(rows, slug) {
+  RANK = { items: [], existing: 0, notInMaster: [], noImage: 0, dup: 0, rows: 0,
+           noMaster: !window.PRODUCT_NAMES, noIndex: !window.IMG_INDEX };
+  if (!rows || rows.length < 2) return false;
+  const h = rows[0].map(v => (v || '').trim());
+  const iSys = h.indexOf('システム連携用SKU番号');
+  const iMng = h.indexOf('商品管理番号（商品URL）');
+  const iSku = h.indexOf('SKU管理番号');
+  const iImgs = h.map((v, i) => /^SKU画像パス\d*$/.test(v) ? i : -1).filter(i => i >= 0);
+  if (!iImgs.length || (iSys < 0 && iSku < 0)) return false;
+  const master = window.PRODUCT_NAMES || null;
+  const have = window.IMG_INDEX || null;
+  const norm = c => String(c || '').replace(/[\s\u3000]/g, '').toUpperCase();
+  const seen = new Set();
+  let mng = '';
+  for (const row of rows.slice(1)) {
+    const m = iMng >= 0 ? (row[iMng] || '').trim() : '';
+    if (m) mng = m;
+    const sys = iSys >= 0 ? (row[iSys] || '').trim() : '';
+    const sku = iSku >= 0 ? (row[iSku] || '').trim() : '';
+    if (!sys && !sku) continue;                        // SKU行ではない
+    RANK.rows++;
+    let img = '';
+    for (const i of iImgs) { const v = (row[i] || '').trim(); if (v) { img = v; break; } }   // SKU画像パス1を優先
+    if (!img) { RANK.noImage++; continue; }
+    const cands = [];
+    if (sys && mng && sys.startsWith(mng) && sys.length > mng.length) cands.push(sys.slice(mng.length));
+    if (sku) cands.push(sku);
+    let code = '';
+    for (const c of cands) { const n = norm(c); if (n && (!master || master[n])) { code = n; break; } }
+    if (!code) { RANK.notInMaster.push(norm(cands[0] || sys || sku)); continue; }
+    if (seen.has(code)) { RANK.dup++; continue; }
+    seen.add(code);
+    const key = code.replace(/-/g, '_');
+    if (have && have[key]) { RANK.existing++; continue; }
+    // 画像の場所: 「/フォルダ/ファイル.jpg」= R-Cabinet内、http(s)で始まるものはそのまま
+    let url = null, srcPath = null;
+    if (/^https?:\/\//i.test(img)) url = normalizeUrl(img);
+    else if (/^\/[^\s,]+$/.test(img) && slug) { srcPath = img.replace(/^\/+/, ''); url = 'https://image.rakuten.co.jp/' + slug + '/cabinet/' + srcPath; }
+    if (!url || !/\.(jpe?g|png|gif|webp)(\?|$)/i.test(url)) { RANK.noImage++; continue; }
+    RANK.items.push({ code, url, srcPath, path: key + '.jpg' });
+  }
+  return true;
+}
+
+function renderRankInfo(on) {
+  const box = document.getElementById('rankInfo');
+  if (!HAS_SKU) { box.className = 'rank-info'; box.innerHTML = ''; return; }
+  const r = RANK;
+  const ex = r.notInMaster.slice(0, 6).map(escapeHtml).join('、');
+  let html = `SKU行 <b>${r.rows}</b> 件 → 取り込み対象 <b>${r.items.length}</b> 枚` +
+    ` ／ すでに画像あり ${r.existing} 件（除外）` +
+    ` ／ SKU画像パスなし ${r.noImage} 件` +
+    ` ／ 同じ品番の重複 ${r.dup} 件` +
+    ` ／ <span class="${r.notInMaster.length ? 'warn' : ''}">マスタに無い品番 ${r.notInMaster.length} 件（除外）${ex ? '：例 ' + ex : ''}</span>`;
+  if (r.noMaster) html += `<br><span class="warn">⚠️ 商品マスタ（ec-category/product-names.js）を読み込めなかったため、マスタとの照合はしていません</span>`;
+  if (r.noIndex) html += `<br><span class="warn">⚠️ 既存画像の一覧（ranking/image-index.js）を読み込めなかったため、すでにある画像も対象に含まれます</span>`;
+  box.className = 'rank-info show';
+  box.innerHTML = html;
+}
+
 // RAW_TEXT・店舗名・チェック状態から IMAGES を組み立てる
 function rebuild() {
   BODY_URLS = extractUrls(RAW_TEXT);
   CABINET = [];
   let hasImageCols = false;
+  let csvRows = null, csvSlug = '';
 
   if (RAW_TEXT.includes(',')) {
     const rows = parseCSV(RAW_TEXT);
     if (rows.length > 1) {
+      csvRows = rows;
+      csvSlug = document.getElementById('slugInput').value.trim().toLowerCase();
       const cols = rows[0].map((h, i) => isImageCol(h) ? i : -1).filter(i => i >= 0);
       if (cols.length) {
         hasImageCols = true;
@@ -371,6 +457,14 @@ function rebuild() {
     }
   }
 
+  // 販売ランキング用（SKU画像パスがある商品CSVのときだけ選択肢を出す）
+  HAS_SKU = computeRank(csvRows, csvSlug);
+  document.getElementById('rankRow').style.display = HAS_SKU ? '' : 'none';
+  if (!HAS_SKU) document.getElementById('optRank').checked = false;
+  const useRank = HAS_SKU && document.getElementById('optRank').checked;
+  document.getElementById('cntRank').textContent = RANK.items.length;
+  renderRankInfo(useRank);
+
   // 抽出元の選択ボックス（商品CSVのときだけ表示）
   document.getElementById('srcBox').style.display = hasImageCols ? '' : 'none';
   document.getElementById('cntCabinet').textContent = CABINET.length;
@@ -395,8 +489,12 @@ function rebuild() {
     usedPaths.add(p);
     IMAGES.push({ url, path: p, name: p.split('/').pop(), sel: true });
   };
-  if (useCab) CABINET.forEach(c => addItem(c.url, c.path));
-  if (useBody) BODY_URLS.forEach(url => {
+  if (useRank) {
+    // 販売ランキング用: 保存名は「品番のハイフン→アンダースコア.jpg」
+    RANK.items.forEach(r => { seenUrls.add(r.url); IMAGES.push({ url: r.url, path: r.path, name: r.path, sel: true }); });
+  }
+  if (useCab && !useRank) CABINET.forEach(c => addItem(c.url, c.path));
+  if (useBody && !useRank) BODY_URLS.forEach(url => {
     let base = decodeURIComponent(url.split('?')[0].split('/').pop() || 'image.jpg');
     addItem(url, base.replace(/[\\/:*?"<>|]/g, '_'));
   });
@@ -429,7 +527,12 @@ function testImage(slug, path) {
 async function validateSlug() {
   const warn = document.getElementById('slugWarn');
   const slug = document.getElementById('slugInput').value.trim().toLowerCase();
-  if (!CABINET.length || !slug || !document.getElementById('srcCabinet').checked) {
+  // 確認に使う画像: 販売ランキング用ならSKU画像、それ以外は商品画像列
+  const rankOn = HAS_SKU && document.getElementById('optRank').checked;
+  const list = rankOn
+    ? RANK.items.filter(i => i.srcPath).map(i => ({ path: i.srcPath }))
+    : (document.getElementById('srcCabinet').checked ? CABINET : []);
+  if (!list.length || !slug) {
     warn.className = 'slug-warn';
     return;
   }
@@ -438,7 +541,7 @@ async function validateSlug() {
   warn.textContent = `🔎 店舗「${slug}」に画像があるか確認しています...`;
 
   // 先頭・中央・末尾の3枚で確認（1枚でも見えればOK）
-  const samples = [...new Set([CABINET[0], CABINET[Math.floor(CABINET.length / 2)], CABINET[CABINET.length - 1]])]
+  const samples = [...new Set([list[0], list[Math.floor(list.length / 2)], list[list.length - 1]])]
     .map(c => c.path);
   const results = await Promise.all(samples.map(p => testImage(slug, p)));
   if (seq !== SLUG_CHECK_SEQ) return;
@@ -481,6 +584,7 @@ document.getElementById('pasteArea').addEventListener('input', e => {
 document.getElementById('optOriginal').addEventListener('change', rebuild);
 document.getElementById('srcCabinet').addEventListener('change', rebuild);
 document.getElementById('srcBody').addEventListener('change', rebuild);
+document.getElementById('optRank').addEventListener('change', rebuild);
 document.getElementById('slugInput').addEventListener('input', rebuild);
 
 // ========== ファイル読み込み（Shift-JIS対応） ==========
@@ -559,7 +663,65 @@ function updateCount() {
 
 // ========== ターミナル実行スクリプト ==========
 // ブラウザのCORS制限を受けないため、楽天サーバーの設定に関わらず確実に取得できる
+function isRankMode() { return HAS_SKU && document.getElementById('optRank').checked; }
+
+// 販売ランキング用: 取得 → 長辺800pxに縮小（小さい画像は拡大しない）→ JPEG(品質82) → 品番のファイル名で保存 → 400枚ごとにZIP
+// macOS標準の sips / zip だけで動く。途中で止まっても、もう一度実行すれば取得済みの分は飛ばして続きから進む
+function buildRankScript() {
+  const targets = IMAGES.filter(im => im.sel);
+  const shq = t => String(t).replace(/'/g, "'\\''");
+  const lines = [
+    '#!/bin/bash',
+    `# 販売ランキング用 商品画像 取得・縮小 - ${targets.length}枚`,
+    'OUT="$HOME/Downloads/ranking_images"',
+    'IMG="$OUT/images"; TMP="$OUT/_tmp"',
+    'mkdir -p "$IMG" "$TMP"',
+    ': > "$OUT/failed.txt"',
+    'dl() {',
+    '  local key="$1" url="$2" src="$TMP/$1.src" w h m',
+    '  [ -s "$IMG/$key.jpg" ] && return 0',
+    "  if ! curl -sfL --retry 2 -H 'Referer: https://www.rakuten.co.jp/' -H 'User-Agent: Mozilla/5.0' -o \"$src\" \"$url\"; then",
+    '    echo "$key $url" >> "$OUT/failed.txt"; rm -f "$src"; return 1',
+    '  fi',
+    "  w=$(sips -g pixelWidth \"$src\" 2>/dev/null | awk '/pixelWidth/{print $2}')",
+    "  h=$(sips -g pixelHeight \"$src\" 2>/dev/null | awk '/pixelHeight/{print $2}')",
+    '  m=$(( ${w:-0} > ${h:-0} ? ${w:-0} : ${h:-0} ))',
+    '  if [ "$m" -le 0 ]; then echo "$key $url (画像として読めません)" >> "$OUT/failed.txt"; rm -f "$src"; return 1; fi',
+    '  if [ "$m" -gt 800 ]; then',
+    '    sips -s format jpeg -s formatOptions 82 -Z 800 "$src" --out "$IMG/$key.jpg" >/dev/null 2>&1',
+    '  else',
+    '    sips -s format jpeg -s formatOptions 82 "$src" --out "$IMG/$key.jpg" >/dev/null 2>&1',
+    '  fi',
+    '  rm -f "$src"',
+    '  [ -s "$IMG/$key.jpg" ] || { echo "$key $url (変換に失敗)" >> "$OUT/failed.txt"; return 1; }',
+    '}',
+    'N=0',
+    'run() { dl "$1" "$2" & N=$((N+1)); if [ $((N % 6)) -eq 0 ]; then wait; echo "  ... $N / ' + targets.length + '"; fi; }',
+    `echo "🖼️ ${targets.length}枚を取得して縮小します（6枚ずつ同時に処理）..."`,
+    ''
+  ];
+  targets.forEach(im => lines.push(`run '${shq(im.path.replace(/\.jpg$/, ''))}' '${shq(im.url)}'`));
+  lines.push(
+    'wait',
+    'rm -rf "$TMP"',
+    'TOTAL=$(ls "$IMG" | wc -l | tr -d " ")',
+    'FAIL=$(wc -l < "$OUT/failed.txt" | tr -d " ")',
+    'cd "$IMG" || exit 1',
+    'rm -f "$OUT"/ranking_images_*.zip "$OUT"/_part_*',
+    'ls *.jpg | split -l 400 - "$OUT/_part_"',
+    'P=0',
+    'for f in "$OUT"/_part_*; do P=$((P+1)); zip -q "$OUT/ranking_images_$P.zip" -@ < "$f"; done',
+    'rm -f "$OUT"/_part_*',
+    'echo "════════════════════"',
+    'echo "✅ 画像 $TOTAL 枚 → ZIP $P 個（ranking_images_1.zip 〜）を作りました"',
+    'if [ "$FAIL" -gt 0 ]; then echo "⚠️ 取得できなかった画像が $FAIL 件あります（failed.txt に一覧）。店舗名が正しいか確認して、もう一度実行すると続きから取得します"; fi',
+    'open "$OUT"'
+  );
+  return lines.join('\n');
+}
+
 function buildScript() {
+  if (isRankMode()) return buildRankScript();
   const targets = IMAGES.filter(im => im.sel);
   const shq = t => String(t).replace(/'/g, "'\\''");
   // R-Cabinetと同じフォルダ構成のまま保存する（Cyberduck等でそのまま再アップ可能）
@@ -598,7 +760,19 @@ function saveScript() {
   const targets = IMAGES.filter(im => im.sel);
   if (!targets.length) return;
   // 拡張子は .txt（.sh はブラウザが危険ファイルとして保存をブロックすることがある。bashは拡張子不問）
-  saveBlob(new Blob([buildScript()], { type: 'text/plain' }), 'download_rakuten_images.txt');
+  const rank = isRankMode();
+  const fname = rank ? 'download_ranking_images.txt' : 'download_rakuten_images.txt';
+  document.getElementById('cmdText').value = 'bash ~/Downloads/' + fname;
+  document.getElementById('stepSaved').innerHTML = `<code>${fname}</code> を「ダウンロード」フォルダに保存しました✅（実行コマンドもコピー済み）`;
+  document.getElementById('stepHint').innerHTML = rank
+    ? '完了すると「ダウンロード」フォルダ内の <code>ranking_images</code> フォルダに <b>ranking_images_1.zip、ranking_images_2.zip …</b>（400枚ごと）ができ、自動で開きます。<br>' +
+      '・<b>できたZIPを全部、Claudeとのチャットに添付してください</b>（画像を追加してアプリに反映します）<br>' +
+      '・時間がかかります（数百〜数千枚で10〜30分ほど）。止まったり失敗が出たときは、もう一度同じコマンドを実行すると続きから取得します<br>' +
+      '・保存名は「品番（ハイフンはアンダースコア）.jpg」、大きさは長辺800pxまでに縮小されます'
+    : '完了すると「ダウンロード」フォルダ内の <code>rakuten_images</code> フォルダに <b>R-Cabinetと同じフォルダ構成</b>で画像が保存され、自動で開きます（Cyberduck等でそのまま再アップロードできます）。<br>' +
+      '・保存先を選ぶ画面が出た場合は「ダウンロード」フォルダを選んでください<br>' +
+      '・何度か保存すると <code>download_rakuten_images (1).txt</code> のような名前になります。その場合は古いファイルをゴミ箱に入れてから、もう一度保存してください';
+  saveBlob(new Blob([buildScript()], { type: 'text/plain' }), fname);
   navigator.clipboard.writeText(document.getElementById('cmdText').value).catch(() => {});
   const steps = document.getElementById('scriptSteps');
   steps.classList.add('show');
