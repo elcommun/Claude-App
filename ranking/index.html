@@ -561,7 +561,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v269</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v270</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -771,6 +771,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 })();
 </script>
 <script src="data.js"></script>
+<script src="image-index.js"></script>
 
 <script>
 
@@ -1106,6 +1107,26 @@ let prevPeriodStr = '', prev2PeriodStr = '', prevPeriodFull = '', prev2PeriodFul
 let isLongPeriod = false, aggCur1 = null, curByCode1 = null, curPeriodStr = '';
 let searchSortCol = 'rank', searchSortDir = 'desc';
 
+// ── 商品画像 ─────────────────────────────────────────────────────────────────
+// 一覧・カタログには軽いサムネ(thumbs/)を出し、拡大プレビューとクリックの拡大表示では原寸(images/)を読む。
+// image-index.js（IMG_INDEX: 品番→[原寸の幅,高さ]。tools/build-images.py が生成）に無い品番は画像が無いので読みに行かない。
+// IMG_INDEX が読み込めなかったときは従来どおり読みに行って、無ければ隠す。
+function imgKey(code){return String(code).replace(/-/g,'_');}
+function imgDim(code){return window.IMG_INDEX?window.IMG_INDEX[imgKey(code)]:undefined;}
+function imgHas(code){return !window.IMG_INDEX||!!window.IMG_INDEX[imgKey(code)];}
+function imgFallback(el){
+  const n=(+el.dataset.f||0)+1; el.dataset.f=n;
+  const k=el.dataset.k;
+  if(n===1)el.src='images/'+k+'.jpg';        // サムネが無い → 原寸
+  else if(n===2)el.src='images/'+k+'.png';   // 旧形式の png
+  else{el.onerror=null; if(el.classList.contains('prod-thumb'))el.style.display='none'; else el.style.visibility='hidden';}
+}
+// full=true は原寸を直接出す（印刷するカタログ用。サムネでは印刷が粗くなるため）
+function prodImgHtml(code,cls,extra,full){
+  if(!imgHas(code))return cls==='prod-thumb'?'':`<i class="${cls}"></i>`;
+  const k=imgKey(code), d=imgDim(code);
+  return `<img class="${cls}" src="${full?'images':'thumbs'}/${k}.jpg" data-k="${k}" data-full="images/${k}.jpg"${full?' data-f="1"':''}${d?` data-w="${d[0]}" data-h="${d[1]}"`:''} onerror="imgFallback(this)"${extra||''} loading="lazy">`;
+}
 function openLightbox(src){document.getElementById('img-lb-img').src=src;document.getElementById('img-lb').classList.add('open');}
 function closeLightbox(){document.getElementById('img-lb').classList.remove('open');document.getElementById('img-lb-img').src='';}
 document.addEventListener('keydown',e=>{
@@ -1683,7 +1704,6 @@ function buildCatalogData(){
 }
 // 1商品カードのHTML
 function catCardHtml(it,maxQty){
-  const fn=it.code.replace(/-/g,'_');
   const heat=catalogHeat(it.qty,maxQty);
   const rankCls=it.rank<=3?('r'+it.rank):'ro';
   const so=STOCKOUT[it.code]||'';
@@ -1691,7 +1711,7 @@ function catCardHtml(it,maxQty){
   return `<div class="cat-card">
           <div class="cat-rank ${rankCls}">${it.rank}</div>
           ${so?`<div class="cat-so">欠 ${x(so)}</div>`:''}
-          <div class="cat-imgbox"><img class="cat-img" src="images/${fn}.jpg" loading="lazy" onerror="this.onerror=null;this.src='images/${fn}.png';this.dataset.f=(this.dataset.f|0)+1;if(this.dataset.f>1)this.style.visibility='hidden'"></div>
+          <div class="cat-imgbox">${prodImgHtml(it.code,'cat-img','',true)}</div>
           <div class="cat-pname">${x(it.shortName||it.name)}</div>
           <div class="cat-line"><span class="cat-code">${x(it.code)}</span><span class="cat-price">¥${(it.price||0).toLocaleString()}</span></div>
           <div class="cat-qty" style="${qtyStyle}">${it.qty.toLocaleString()}個</div>
@@ -1733,10 +1753,9 @@ function catalogBlocks(sections){
 }
 // ランキング表の1行分（順位バッジ・画像・名称・欠品・個数）
 function rtRowHtml(it){
-  const fn=it.code.replace(/-/g,'_');
   const rk=it.rank<=3?('rt'+it.rank):'rto';
   const so=STOCKOUT[it.code]||'';
-  return `<div class="rt-row"><span class="rt-rk ${rk}">${it.rank}</span><img class="rt-img" src="images/${fn}.jpg" loading="lazy" onerror="this.onerror=null;this.src='images/${fn}.png';this.dataset.f=(this.dataset.f|0)+1;if(this.dataset.f>1)this.style.visibility='hidden'"><span class="rt-nm">${x(it.shortName||it.name)}</span>${so?`<span class="rt-so">欠${x(so)}</span>`:''}<span class="rt-qty">${it.qty.toLocaleString()}</span></div>`;
+  return `<div class="rt-row"><span class="rt-rk ${rk}">${it.rank}</span>${prodImgHtml(it.code,'rt-img')}<span class="rt-nm">${x(it.shortName||it.name)}</span>${so?`<span class="rt-so">欠${x(so)}</span>`:''}<span class="rt-qty">${it.qty.toLocaleString()}</span></div>`;
 }
 // 各フォーマットの売上TOP5を、画像付き・2カラムで表示（新書判の右の空きスペースに配置）
 function buildRankTable(sec){
@@ -2381,8 +2400,7 @@ function showCategory(cat, updateSidebar=true) {
     const pct=topV?(val/topV*100).toFixed(1):0;
     const ri=rank<=3?`<div class="rn r${rank}">${rank}</div>`:`<div class="rn ro">${rank}</div>`;
     function cmpCell(pqa){const pq=pqa?.[0]||0;if(!pq)return`<td class="num cmp-col" style="color:var(--ink4);text-align:center">-</td>`;const cq=isLongPeriod?(curByCode1[item.code]?.[0]||0):item.qty;const diff=cq-pq;const pct2=Math.round(diff/pq*100);const cls=diff>=0?'prev-up':'prev-dn',arrow=diff>=0?'▲':'▼';return`<td class="num cmp-col" style="text-align:center">${pq.toLocaleString()}<br><span class="${cls}">${arrow}${Math.abs(pct2)}%</span></td>`;}
-    const fn=item.code.replace(/-/g,'_');
-    const thumb=`<img class="prod-thumb" src="images/${fn}.jpg" onerror="this.src='images/${fn}.png';this.onerror=function(){this.style.display='none'}" onclick="if(this.naturalWidth>0)openLightbox(this.src)" loading="lazy">`;
+    const thumb=prodImgHtml(item.code,'prod-thumb',` onclick="if(this.naturalWidth>0)openLightbox(this.dataset.full||this.src)"`);
     return`<tr data-qty="${item.qty}" data-amt="${item.amount}">
       <td>${ri}</td>
       <td class="cc">${x(item.code)}</td>
@@ -3657,8 +3675,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
       g.items.forEach(r=>{
         const rank=rankOf.get(r);
         const ri=rank<=3?rank:rank;
-        const fn=r.code.replace(/-/g,'_');
-        const thumb=`<img class="prod-thumb" src="images/${fn}.jpg" onerror="this.src='images/${fn}.png';this.onerror=function(){this.style.display='none'}" onclick="if(this.naturalWidth>0)openLightbox(this.src)" loading="lazy">`;
+        const thumb=prodImgHtml(r.code,'prod-thumb',` onclick="if(this.naturalWidth>0)openLightbox(this.dataset.full||this.src)"`);
         html+=`<tr data-qty="${r.qty}" data-amt="${r.amount}">
           <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
           <td><span class="ct">${x(r.cat)}</span></td>
@@ -3947,7 +3964,7 @@ function removeAlias(i){
   // サムネ自身の実寸法(naturalWidth/Height)を基準にプレビューを配置する。
   // prev.naturalWidthは画像切替直後に0になりフォールバック比で枠がずれるため使わない。
   function placeMousePreview(img){
-    const pw=img.naturalWidth||200, ph=img.naturalHeight||280;
+    const pw=+img.dataset.w||img.naturalWidth||200, ph=+img.dataset.h||img.naturalHeight||280;
     const r=img.getBoundingClientRect();
     const gap=36;
     // 幅は画面幅の固定割合で決定（テーブル構成によるサイズ差をなくす）
@@ -3970,7 +3987,7 @@ function removeAlias(i){
     const img=e.target.closest('.prod-thumb');
     if(!img||!img.naturalWidth)return;
     clearTimeout(hideTimer);
-    prev.src=img.src;
+    prev.src=img.dataset.full||img.src;
     wrap.style.display='block';
     placeMousePreview(img); // 表示と同時に正しい位置・サイズに配置
   });
@@ -3987,10 +4004,10 @@ function removeAlias(i){
   // ── タッチ操作: サムネを押したまま下にスライドすると拡大プレビューを表示 ──
   let touchActive=false, touchDragging=false, suppressClick=false, startX=0, startY=0;
   function showPreviewFor(img,touchX,touchY){
-    prev.src=img.src;
+    prev.src=img.dataset.full||img.src;
     wrap.style.display='block';
-    const pw=img.naturalWidth||200;
-    const ph=img.naturalHeight||280;
+    const pw=+img.dataset.w||img.naturalWidth||200;
+    const ph=+img.dataset.h||img.naturalHeight||280;
     const isSmall=window.innerWidth<=600;
     const widthRatio=isSmall?0.3:0.4;
     const heightRatio=isSmall?0.22:0.5;

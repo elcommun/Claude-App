@@ -76,8 +76,10 @@ ranking/
   images/             ← 商品画像（手帳・カレンダーのみ）
     DR_MC_416.jpg     ← 品番のハイフンをアンダースコアに変換したファイル名
     DR_MC_417.jpg
-    ...（DR_MC_416〜434.jpg、計19枚）
+    ...（現在 約3,500枚）
     .gitkeep
+  thumbs/             ← 一覧用の軽いサムネ（images/ と同じ名前・180x240に収まる大きさ。tools/build-images.py が自動生成）
+  image-index.js      ← 画像がある品番と原寸の寸法の一覧（自動生成。アプリはこれに無い品番の画像を読みに行かない）
   README.md
 item-data/            ← PRELOADED データ（販売元データ、JS変数として埋め込み）
 package.json
@@ -167,13 +169,17 @@ const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0);
 1. 画像を用意（JPEGまたはPNG）
 2. ファイル名は品番のハイフン→アンダースコア変換: `DR-MC-416` → `DR_MC_416.jpg`
 3. `ranking/images/` に配置
-4. 大きい画像はPillowで圧縮してからコミット:
+4. 大きい画像はPillowで圧縮する（長辺800px程度・JPEG品質82）:
    ```python
    from PIL import Image
    img = Image.open("input.jpg")
    img.thumbnail((600, 800))
    img.save("output.jpg", "JPEG", quality=82)
    ```
+5. **`python3 tools/build-images.py` を実行する**（`ranking/thumbs/` のサムネと `ranking/image-index.js` を作る。画像の追加・差し替え・削除のたびに必須）
+6. `images/`・`thumbs/`・`image-index.js` を一緒にコミットし、`ranking/index.html` のバージョン番号を1つ上げる（`image-index.js` のキャッシュ更新のため）
+- 一覧・カタログ以外の表示: 一覧の小さな画像は `thumbs/`、クリックの拡大表示とホバーの拡大プレビューは `images/`（原寸）、印刷するカタログ（手帳・カレンダー）は `images/` を使う
+- 画像は `.jpg` のみ（アプリは `image-index.js` の一覧にある品番だけを読む。`.png` は対象外）
 
 ---
 
