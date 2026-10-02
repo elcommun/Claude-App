@@ -582,6 +582,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 #ptr.busy .ptr-ic{border:2px solid #E85D26;border-top-color:transparent;border-radius:50%;animation:ptrspin .7s linear infinite}
 #ptr.busy .ptr-ic::before{content:''}
 @keyframes ptrspin{to{transform:rotate(360deg)}}
+#ptr{background:linear-gradient(90deg,#ffe3d6 var(--p,0%),#fff var(--p,0%))}
 @media print{#ptr{display:none!important}}
 </style>
 </head>
@@ -589,7 +590,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v275</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v276</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -4725,17 +4726,29 @@ document.getElementById('boot')?.remove();
   const isPhone=()=>window.innerWidth<=600;
   let sy=0,sx=0,dy=0,active=false,armed=false,busy=false;
   const place=(y)=>{bar.style.transform='translate(-50%,'+y+'px)';};
+  // 誤作動を防ぐため、引っ張り始めてから HOLD ミリ秒（2秒）たつまでは、十分に引っ張っていても離して更新しない。
+  // 待つ間は「そのまま… あと◯秒」と表示し、バーの背景が左から塗られていく（待ち時間は指を動かさなくても進む）
+  const HOLD=2000;
+  let t0=0,raf=0;
+  const holdLeft=()=>Math.max(0,HOLD-(performance.now()-t0));
+  function paint(){
+    const left=holdLeft(), far=dy>=TH, ok=far&&left<=0;
+    bar.classList.toggle('ready',ok);
+    bar.style.setProperty('--p',Math.round((1-left/HOLD)*100)+'%');
+    tx.textContent=ok?'離して更新':(far?'そのまま… あと'+(Math.ceil(left/100)/10).toFixed(1)+'秒':'引っ張って更新');
+  }
+  function tick(){ if(!armed||!active){raf=0;return;} paint(); raf=requestAnimationFrame(tick); }
   function show(dist){
     bar.style.transition='none';
     bar.style.opacity=String(Math.min(dist/50,1));
     place(-12+Math.min(dist*0.5,44));
-    bar.classList.toggle('ready',dist>=TH);
-    tx.textContent=dist>=TH?'離して更新':'引っ張って更新';
+    paint();
   }
   function hide(){
     bar.style.transition='opacity .2s,transform .2s';
     bar.style.opacity='0'; place(-12);
     bar.classList.remove('ready','busy');
+    bar.style.removeProperty('--p');
   }
   async function refresh(){
     busy=true;
@@ -4774,14 +4787,15 @@ document.getElementById('boot')?.remove();
     if(!armed){
       if(dy<0||(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>10)){active=false;return;}  // 上へのスクロール・横の動きは対象外
       if(dy<12) return;
-      armed=true;
+      armed=true; t0=performance.now();
+      if(!raf) raf=requestAnimationFrame(tick);
     }
     e.preventDefault();                                   // 引っ張りが確定してから、ゴムのような伸びを止める
     show(dy);
   },{passive:false});
   const end=()=>{
     if(!active) return;
-    const go=armed&&dy>=TH&&main.scrollTop<=0;
+    const go=armed&&dy>=TH&&holdLeft()<=0&&main.scrollTop<=0;   // 十分に引っ張り、かつ2秒たっているときだけ更新
     active=false;
     if(go) refresh(); else if(armed){armed=false;hide();}
   };
