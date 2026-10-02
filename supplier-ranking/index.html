@@ -49,6 +49,19 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 #hd-search-clear{display:none;position:absolute;right:6px;top:50%;transform:translateY(-50%);width:18px;height:18px;line-height:16px;text-align:center;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.25);color:#fff;font-size:13px;cursor:pointer;font-family:inherit}
 #hd-search-clear:hover{background:rgba(255,255,255,.45)}
 .search-wrap.has-text #hd-search-clear{display:block}
+/* 検索窓をタップしたときの候補（よく使う検索ワード・最近の検索）。自社商品アプリと同じ作り */
+.hd-suggest{display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:5;min-width:270px;max-width:min(92vw,360px);box-sizing:border-box;background:#fff;color:var(--ink);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:10px 12px 12px}
+.hd-suggest.show{display:block}
+.hd-suggest .hs-t{font-size:10px;font-weight:700;color:var(--ink4);letter-spacing:.06em;margin:0 0 6px}
+.hd-suggest .hs-t.hs-t2{margin-top:10px}
+.hd-suggest .hs-chips{display:flex;flex-wrap:wrap;gap:6px}
+.hd-suggest .hs-chip{font:inherit;font-size:13px;line-height:1.2;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.hd-suggest .hs-chip:hover,.hd-suggest .hs-chip:active{border-color:var(--accent);color:var(--accent);background:var(--accent-lt)}
+.hd-suggest .hs-recent{background:#fff}
+@media(max-width:600px){
+  .search-wrap .hd-suggest{position:fixed;left:10px;right:10px;top:calc(var(--hh) + 6px);bottom:auto;min-width:0;max-width:none}
+  body.hd-bottom .search-wrap .hd-suggest{top:auto;bottom:calc(var(--hh) + env(safe-area-inset-bottom,0px) + 6px)}
+}
 .hd-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.8);padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;white-space:nowrap}
 .hd-btn:hover{background:rgba(255,255,255,.2);color:#fff}
 a.hd-link{text-decoration:none;display:inline-flex;align-items:center;flex-shrink:0;background:#E85D26;border-color:#E85D26;color:#fff}
@@ -322,6 +335,7 @@ td.cat-col{text-align:left}
   /* 下モード: 右手の親指で操作しやすいよう ☰ を右端、検索をそのすぐ左に並べる（DOM順は変えず flex order で並べ替え） */
   body.hd-bottom .hd-spacer{order:8}
   body.hd-bottom .search-wrap{order:9;margin-left:auto}
+  body.hd-bottom .hd-suggest{top:auto;bottom:calc(100% + 8px)}
   body.hd-bottom .hd-menu{order:10;margin:0 -2px 0 0;padding:6px 10px}
 }
 /* ── スマホ・タブレット: ページ全体ではなく .main だけをスクロールさせ、ブラウザのアドレスバー／タブバーの出入りで
@@ -514,7 +528,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v133</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v134</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -522,6 +536,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
     <span class="si">🔍</span>
     <input type="text" id="hd-search" placeholder="商品名・品番・メーカーで検索…" autocomplete="off">
     <button type="button" id="hd-search-clear" aria-label="検索をクリア" title="検索をクリア">×</button>
+    <div id="hd-suggest" class="hd-suggest" role="listbox" aria-label="検索の候補"></div>
   </div>
   <a class="hd-btn hd-link" href="https://elcommun.github.io/Claude-App/ranking/" title="EC事業部 販売データ：自社商品">自社商品</a>
   <a class="hd-btn hd-manual hd-btn-ic" href="manual.html" target="_blank" title="使い方マニュアル" aria-label="使い方">📖<span class="lbl"> 使い方</span></a>
@@ -2445,6 +2460,38 @@ function renderSearch(){
   document.getElementById('search-tbody').innerHTML=shown.join('');
   searchNote.textContent = rows.length>count ? `上位${count}件を表示中（全${rows.length.toLocaleString()}件）` : '';
 }
+// ── 検索窓の候補: タップ（フォーカス）したとき、入力が空なら「よく使う検索ワード」と「最近の検索」を出す ──
+// よく使う検索ワードはここに足す（商品名・メーカー・品番に当たる語だけを載せる）。最近の検索は localStorage（ec_supplier_search_history_v1・最大5件。自社商品アプリとは別のキー）
+const SEARCH_SUGGEST=['松尾ミユキ'];
+(function(){
+  const inp=document.getElementById('hd-search'),box=document.getElementById('hd-suggest');
+  const KEY='ec_supplier_search_history_v1';
+  const load=()=>{try{const a=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(a)?a.filter(v=>typeof v==='string'&&v):[];}catch(e){return [];}};
+  const save=q=>{q=(q||'').trim();if(!q)return;const h=[q,...load().filter(v=>v!==q)].slice(0,5);try{localStorage.setItem(KEY,JSON.stringify(h));}catch(e){}};
+  const chip=(q,cls)=>`<button type="button" class="hs-chip ${cls||''}" data-q="${x(q)}">${x(q)}</button>`;
+  function render(){
+    const h=load();
+    box.innerHTML=`<div class="hs-t">よく使う検索ワード</div><div class="hs-chips">${SEARCH_SUGGEST.map(q=>chip(q)).join('')}</div>`
+      +(h.length?`<div class="hs-t hs-t2">最近の検索</div><div class="hs-chips">${h.map(q=>chip(q,'hs-recent')).join('')}</div>`:'');
+  }
+  const show=()=>{if(inp.value!=='')return;render();box.classList.add('show');};
+  const hide=()=>box.classList.remove('show');
+  let pressing=false;                                   // 候補をタップしている間は、入力欄の blur で閉じない（タップが取りこぼされるのを防ぐ）
+  inp.addEventListener('focus',show);
+  inp.addEventListener('input',()=>{if(inp.value===''){if(document.activeElement===inp)show();}else hide();});
+  inp.addEventListener('blur',()=>{save(inp.value);if(!pressing)hide();});
+  box.addEventListener('mousedown',e=>e.preventDefault());   // PC: 入力欄のフォーカスを奪わない
+  box.addEventListener('pointerdown',()=>{pressing=true;});
+  const release=()=>{if(!pressing)return;pressing=false;setTimeout(()=>{if(document.activeElement!==inp)hide();},350);};
+  document.addEventListener('pointerup',release);document.addEventListener('pointercancel',release);
+  box.addEventListener('click',e=>{
+    const b=e.target.closest('.hs-chip');if(!b)return;
+    const q=b.dataset.q;inp.value=q;save(q);
+    inp.dispatchEvent(new Event('input'));            // 既存の検索（入力イベント）をそのまま使う
+    hide();inp.blur();                                 // キーボードを閉じる
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&box.classList.contains('show'))hide();});
+})();
 document.getElementById('hd-search').addEventListener('input', e=>{
   searchQuery=e.target.value;
   document.querySelector('.search-wrap').classList.toggle('has-text', !!searchQuery);
