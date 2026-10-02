@@ -593,7 +593,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v310</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v311</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -4716,6 +4716,24 @@ document.getElementById('boot')?.remove();
       if(ok&&Math.abs(dx)>Math.abs(dy)){openSb();tracking=false;}
     },{passive:true});
     document.addEventListener('touchend',()=>{tracking=false;},{passive:true});
+  })();
+  // メニューが開いているとき、しまう向き（上メニュー時は右→左、下メニュー時＝右出しは左→右）にスワイプしたら閉じる。
+  // 判定はゆるめ: しまう向きに30px動き、かつ横の動きが縦より大きければ閉じる（メニュー上でも背景の暗い部分でも）
+  (function(){
+    let cx=0,cy=0,closing=false;
+    const rightSide=()=>document.body.classList.contains('hd-bottom');
+    document.addEventListener('touchstart',e=>{
+      if(!isDrawerMode()||!sbEl.classList.contains('open')||e.touches.length!==1){closing=false;return;}
+      cx=e.touches[0].clientX;cy=e.touches[0].clientY;closing=true;
+    },{passive:true});
+    document.addEventListener('touchmove',e=>{
+      if(!closing)return;
+      const t=e.touches[0],dx=t.clientX-cx,dy=t.clientY-cy;
+      const toward=rightSide()?dx:-dx;
+      if(toward>30&&toward>Math.abs(dy)){closeSb();closing=false;}
+    },{passive:true});
+    document.addEventListener('touchend',()=>{closing=false;},{passive:true});
+    document.addEventListener('touchcancel',()=>{closing=false;},{passive:true});
   })();
   // 横向きになったらトランジションを一時停止してドロワーを閉じる
   window.matchMedia('(orientation:portrait)').addEventListener('change',e=>{
