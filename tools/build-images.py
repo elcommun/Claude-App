@@ -3,11 +3,13 @@
 
   python3 tools/build-images.py            # 足りないサムネだけ作り、インデックスを作り直す
   python3 tools/build-images.py --force    # サムネを全部作り直す
+  python3 tools/build-images.py --app supplier-ranking   # メーカー販売データ（supplier-ranking/）の画像
 
 ranking/images/ に画像を追加・差し替え・削除したら、コミット前に必ず実行すること
 （実行後は ranking/index.html のバージョン番号も1つ上げる）。
 
 - 原寸: ranking/images/<品番のハイフンをアンダースコア>.jpg
+  （supplier-ranking は <商品番号を小文字にし、a-z 0-9 _ - 以外の文字を ~16進~ に置き換えたもの>.jpg。置き換え方は tools/import-image-zips.py の supplier_key）
 - サムネ: ranking/thumbs/<同じ名前>.jpg（180x240 の枠に収まる大きさ・JPEG。一覧やカタログ表示で使う軽い画像）
 - image-index.js: window.IMG_INDEX = { "DR_MC_416": [原寸の幅, 高さ], ... }
   アプリはこの一覧に無い品番の画像を読みに行かない（404を出さない）。プレビューの大きさも原寸の寸法から決める
@@ -16,9 +18,7 @@ import argparse, json, os, sys
 from PIL import Image, ImageOps
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-IMG_DIR = os.path.join(ROOT, 'ranking', 'images')
-THUMB_DIR = os.path.join(ROOT, 'ranking', 'thumbs')
-INDEX_JS = os.path.join(ROOT, 'ranking', 'image-index.js')
+IMG_DIR = THUMB_DIR = INDEX_JS = None   # main() で --app に合わせて決める
 THUMB_BOX = (180, 240)
 THUMB_QUALITY = 80
 
@@ -42,8 +42,14 @@ def make_thumb(src, dst):
 def main():
     ap = argparse.ArgumentParser(description='商品画像のサムネとインデックスを作る')
     ap.add_argument('--force', action='store_true', help='サムネを全部作り直す')
+    ap.add_argument('--app', default='ranking', choices=['ranking', 'supplier-ranking'], help='対象のアプリ（既定: ranking）')
     args = ap.parse_args()
+    global IMG_DIR, THUMB_DIR, INDEX_JS
+    IMG_DIR = os.path.join(ROOT, args.app, 'images')
+    THUMB_DIR = os.path.join(ROOT, args.app, 'thumbs')
+    INDEX_JS = os.path.join(ROOT, args.app, 'image-index.js')
 
+    os.makedirs(IMG_DIR, exist_ok=True)
     os.makedirs(THUMB_DIR, exist_ok=True)
     names = sorted(f for f in os.listdir(IMG_DIR) if f.lower().endswith('.jpg'))
     others = sorted(f for f in os.listdir(IMG_DIR)
@@ -73,7 +79,7 @@ def main():
 
     full = sum(os.path.getsize(os.path.join(IMG_DIR, f)) for f in names)
     thumbs = sum(os.path.getsize(os.path.join(THUMB_DIR, f)) for f in names if os.path.exists(os.path.join(THUMB_DIR, f)))
-    print(f'原寸 {len(names)}枚 {full/1e6:.1f}MB / サムネ {len(index)}枚 {thumbs/1e6:.1f}MB'
+    print(f'[{args.app}] 原寸 {len(names)}枚 {full/1e6:.1f}MB / サムネ {len(index)}枚 {thumbs/1e6:.1f}MB'
           f'（今回作成 {made}枚・削除 {removed}枚）/ image-index.js {os.path.getsize(INDEX_JS)/1e3:.0f}KB')
     if others:
         print(f'⚠️ .jpg 以外のファイル {len(others)}件は対象外です（アプリは .jpg だけ読みます）: {others[:5]}')

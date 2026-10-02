@@ -179,6 +179,12 @@
             <br><small>※ オンにすると上の2つの選択は使わず、SKU画像だけを対象にします</small></span>
         </label>
         <div class="rank-info" id="rankInfo"></div>
+        <label class="opt-row" id="supRow" style="display:none;">
+          <input type="checkbox" id="optSup">
+          <span>🏭 <b>メーカー販売データ用</b>（仕入れ商品の商品番号と照合し、「SKU画像パス」（無ければ「商品画像パス1」＝メイン画像）を<b>商品番号のファイル名</b>で保存し、縮小してZIPにまとめる）… <b class="src-cnt" id="cntSup">0</b> 枚
+            <br><small>※ 「販売ランキング用」とは別の保存先・ZIP名（supplier_images）になります。同時には選べません</small></span>
+        </label>
+        <div class="rank-info" id="supInfo"></div>
         <div class="slug-row" id="slugRow">
           <span>店舗名（URLの一部）:</span>
           <input type="text" id="slugInput" placeholder="例: elcommun">
@@ -252,6 +258,7 @@
 <script src="../ranking/image-index.js"></script>
 <script src="../ec-category/product-names.js"></script>
 <script>
+setTimeout(() => { if (typeof loadSupRefs === 'function') loadSupRefs(); }, 0);
 // ========== 状態 ==========
 // IMAGES: { url, name, sel } の配列。name はZIP/保存時のファイル名（重複は連番付与済み）
 let IMAGES = [];
@@ -404,6 +411,104 @@ function computeRank(rows, slug) {
   return true;
 }
 
+// ========== メーカー販売データ用（商品番号と照合 → SKU画像 / メイン画像） ==========
+// 照合先 = ../supplier-ranking/data.js の商品番号、既存画像 = ../supplier-ranking/image-index.js（どちらも fetch で読む。ranking 側の IMG_INDEX と名前がぶつかるため）
+//  ・画像キー = 商品番号を小文字にし、a-z 0-9 _ - 以外の文字を ~16進コードポイント~ に置き換えたもの（アプリの imgKey / tools/import-image-zips.py の supplier_key と同じ）
+//  ・各行の候補: システム連携用SKU番号 → 商品管理番号＋SKU管理番号 → SKU管理番号 → 商品管理番号（SKUなしの商品）の順に、マスタにあるものを採用
+//  ・画像: その行の「SKU画像パス」を優先。無ければ商品の「商品画像パス1」（メイン画像）。どちらも無ければ「画像パスなし」
+let HAS_SUP = false;
+let SUP = { items: [], total: 0, matched: 0, bySku: 0, byMain: 0, noImage: 0, existing: 0, unmatched: [], loaded: false };
+let SUP_MASTER = null;   // 画像キー → 商品番号（data.js の商品番号）
+let SUP_HAVE = null;     // 画像キー → [幅,高さ]（すでにある画像）
+function supKey(code) {
+  return String(code || '').trim().toLowerCase().replace(/[^a-z0-9_-]/gu, c => '~' + c.codePointAt(0).toString(16) + '~');
+}
+async function loadSupRefs() {
+  try {
+    const t = await (await fetch('../supplier-ranking/data.js', { cache: 'no-cache' })).text();
+    const i = t.indexOf('{', t.indexOf('PRELOADED'));
+    const d = JSON.parse(t.slice(i, t.lastIndexOf('}') + 1));
+    SUP_MASTER = {};
+    Object.values(d.products).forEach(p => { if (p[3]) SUP_MASTER[supKey(p[3])] = p[3]; });
+  } catch (e) { SUP_MASTER = null; }
+  try {
+    const t = await (await fetch('../supplier-ranking/image-index.js', { cache: 'no-cache' })).text();
+    SUP_HAVE = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
+  } catch (e) { SUP_HAVE = null; }
+  SUP.loaded = true;
+  if (RAW_TEXT) rebuild();
+}
+function computeSup(rows, slug) {
+  SUP = { items: [], total: SUP_MASTER ? Object.keys(SUP_MASTER).length : 0, matched: 0, bySku: 0, byMain: 0, noImage: 0, existing: 0, unmatched: [], loaded: SUP.loaded, noMaster: !SUP_MASTER, noIndex: !SUP_HAVE };
+  if (!rows || rows.length < 2) return false;
+  const h = rows[0].map(v => (v || '').trim());
+  const iSys = h.indexOf('システム連携用SKU番号');
+  const iMng = h.indexOf('商品管理番号（商品URL）');
+  const iSku = h.indexOf('SKU管理番号');
+  const iImgs = h.map((v, i) => /^SKU画像パス\d*$/.test(v) ? i : -1).filter(i => i >= 0);
+  let iMain = h.findIndex(v => /^商品画像パス1$/.test(v));
+  if (iMain < 0) iMain = h.findIndex(v => /^商品画像パス\d*$/.test(v));
+  if (iMng < 0 || (!iImgs.length && iMain < 0)) return false;
+  if (!SUP_MASTER) return true;
+  const toUrl = img => {
+    if (/^https?:\/\//i.test(img)) return { url: normalizeUrl(img), srcPath: null };
+    if (/^\/[^\s,]+$/.test(img) && slug) { const p = img.replace(/^\/+/, ''); return { url: 'https://image.rakuten.co.jp/' + slug + '/cabinet/' + p, srcPath: p }; }
+    return null;
+  };
+  const okExt = u => /\.(jpe?g|png|gif|webp)(\?|$)/i.test(u);
+  const done = new Set();          // 採用済みの画像キー
+  let mng = '', main = '';
+  for (const row of rows.slice(1)) {
+    const m = (row[iMng] || '').trim();
+    if (m) { mng = m; main = iMain >= 0 ? (row[iMain] || '').trim() : ''; }
+    if (!mng) continue;
+    const sys = iSys >= 0 ? (row[iSys] || '').trim() : '';
+    const sku = iSku >= 0 ? (row[iSku] || '').trim() : '';
+    const cands = [sys, sku ? mng + sku : '', sku, m].filter(Boolean);
+    let key = '';
+    for (const c of cands) { const k = supKey(c); if (SUP_MASTER[k]) { key = k; break; } }
+    if (!key || done.has(key)) continue;
+    done.add(key);
+    SUP.matched++;
+    let skuImg = '';
+    for (const i of iImgs) { const v = (row[i] || '').trim(); if (v) { skuImg = v; break; } }
+    let pick = null, kind = '';
+    if (skuImg) { pick = toUrl(skuImg); kind = 'sku'; }
+    if ((!pick || !okExt(pick.url)) && main) { pick = toUrl(main); kind = 'main'; }
+    if (!pick || !okExt(pick.url)) { SUP.noImage++; continue; }
+    if (SUP_HAVE && SUP_HAVE[key]) { SUP.existing++; continue; }
+    if (kind === 'sku') SUP.bySku++; else SUP.byMain++;
+    SUP.items.push({ code: SUP_MASTER[key], url: pick.url, srcPath: pick.srcPath, path: key + '.jpg', kind });
+  }
+  SUP.unmatched = Object.keys(SUP_MASTER).filter(k => !done.has(k)).map(k => SUP_MASTER[k]);
+  return true;
+}
+function renderSupInfo() {
+  const box = document.getElementById('supInfo');
+  if (!HAS_SUP) { box.className = 'rank-info'; box.innerHTML = ''; return; }
+  const r = SUP;
+  if (r.noMaster) {
+    box.className = 'rank-info show';
+    box.innerHTML = r.loaded ? '<span class="warn">⚠️ 仕入れ商品の商品一覧（supplier-ranking/data.js）を読み込めなかったため、メーカー販売データ用は使えません（ファイルを直接開いている場合は、公開ページ（GitHub Pages）から開いてください）</span>' : '商品一覧を読み込み中です…';
+    return;
+  }
+  const ex = r.unmatched.slice(0, 6).map(escapeHtml).join('、');
+  let html = `仕入れ商品 <b>${r.total.toLocaleString()}</b> 件のうち、CSVと照合できた商品 <b>${r.matched.toLocaleString()}</b> 件` +
+    ` → 取り込み対象 <b>${r.items.length.toLocaleString()}</b> 枚（SKU画像 ${r.bySku.toLocaleString()} ／ メイン画像で補った ${r.byMain.toLocaleString()}）` +
+    ` ／ すでに画像あり ${r.existing.toLocaleString()} 件（除外）` +
+    ` ／ 画像パスなし ${r.noImage.toLocaleString()} 件` +
+    ` ／ <span class="${r.unmatched.length ? 'warn' : ''}">CSVに見つからなかった商品 ${r.unmatched.length.toLocaleString()} 件${ex ? '：例 ' + ex : ''}</span>`;
+  if (r.noIndex) html += `<br><span class="warn">⚠️ 既存画像の一覧（supplier-ranking/image-index.js）を読み込めなかったため、すでにある画像も対象に含まれます</span>`;
+  box.className = 'rank-info show';
+  box.innerHTML = html;
+}
+// 選択中の「ランキング用」モード: 'ranking'（自社）/ 'supplier'（メーカー）/ ''（通常）
+function rankKind() {
+  if (HAS_SKU && document.getElementById('optRank').checked) return 'ranking';
+  if (HAS_SUP && document.getElementById('optSup').checked) return 'supplier';
+  return '';
+}
+
 function renderRankInfo(on) {
   const box = document.getElementById('rankInfo');
   if (!HAS_SKU) { box.className = 'rank-info'; box.innerHTML = ''; return; }
@@ -461,9 +566,19 @@ function rebuild() {
   HAS_SKU = computeRank(csvRows, csvSlug);
   document.getElementById('rankRow').style.display = HAS_SKU ? '' : 'none';
   if (!HAS_SKU) document.getElementById('optRank').checked = false;
-  const useRank = HAS_SKU && document.getElementById('optRank').checked;
+  // メーカー販売データ用（自社用とは同時に選べない）
+  HAS_SUP = computeSup(csvRows, csvSlug);
+  document.getElementById('supRow').style.display = HAS_SUP ? '' : 'none';
+  if (!HAS_SUP) document.getElementById('optSup').checked = false;
+  if (HAS_SKU && document.getElementById('optRank').checked && document.getElementById('optSup').checked) {
+    document.getElementById(RANK_LAST === 'sup' ? 'optRank' : 'optSup').checked = false;
+  }
+  const kind = rankKind();
+  const useRank = kind !== '';
   document.getElementById('cntRank').textContent = RANK.items.length;
-  renderRankInfo(useRank);
+  document.getElementById('cntSup').textContent = SUP.items.length;
+  renderRankInfo(kind === 'ranking');
+  renderSupInfo();
 
   // 抽出元の選択ボックス（商品CSVのときだけ表示）
   document.getElementById('srcBox').style.display = hasImageCols ? '' : 'none';
@@ -490,8 +605,8 @@ function rebuild() {
     IMAGES.push({ url, path: p, name: p.split('/').pop(), sel: true });
   };
   if (useRank) {
-    // 販売ランキング用: 保存名は「品番のハイフン→アンダースコア.jpg」
-    RANK.items.forEach(r => { seenUrls.add(r.url); IMAGES.push({ url: r.url, path: r.path, name: r.path, sel: true }); });
+    // 販売ランキング用: 保存名は「品番のハイフン→アンダースコア.jpg」、メーカー販売データ用は「商品番号の画像キー.jpg」
+    (kind === 'supplier' ? SUP : RANK).items.forEach(r => { seenUrls.add(r.url); IMAGES.push({ url: r.url, path: r.path, name: r.path, sel: true }); });
   }
   if (useCab && !useRank) CABINET.forEach(c => addItem(c.url, c.path));
   if (useBody && !useRank) BODY_URLS.forEach(url => {
@@ -528,9 +643,9 @@ async function validateSlug() {
   const warn = document.getElementById('slugWarn');
   const slug = document.getElementById('slugInput').value.trim().toLowerCase();
   // 確認に使う画像: 販売ランキング用ならSKU画像、それ以外は商品画像列
-  const rankOn = HAS_SKU && document.getElementById('optRank').checked;
+  const rankOn = rankKind() !== '';
   const list = rankOn
-    ? RANK.items.filter(i => i.srcPath).map(i => ({ path: i.srcPath }))
+    ? (rankKind() === 'supplier' ? SUP : RANK).items.filter(i => i.srcPath).map(i => ({ path: i.srcPath }))
     : (document.getElementById('srcCabinet').checked ? CABINET : []);
   if (!list.length || !slug) {
     warn.className = 'slug-warn';
@@ -584,7 +699,9 @@ document.getElementById('pasteArea').addEventListener('input', e => {
 document.getElementById('optOriginal').addEventListener('change', rebuild);
 document.getElementById('srcCabinet').addEventListener('change', rebuild);
 document.getElementById('srcBody').addEventListener('change', rebuild);
-document.getElementById('optRank').addEventListener('change', rebuild);
+let RANK_LAST = '';   // 最後に押した方（両方オンになったとき、もう一方を外す）
+document.getElementById('optRank').addEventListener('change', () => { RANK_LAST = 'rank'; rebuild(); });
+document.getElementById('optSup').addEventListener('change', () => { RANK_LAST = 'sup'; rebuild(); });
 document.getElementById('slugInput').addEventListener('input', rebuild);
 
 // ========== ファイル読み込み（Shift-JIS対応） ==========
@@ -663,17 +780,19 @@ function updateCount() {
 
 // ========== ターミナル実行スクリプト ==========
 // ブラウザのCORS制限を受けないため、楽天サーバーの設定に関わらず確実に取得できる
-function isRankMode() { return HAS_SKU && document.getElementById('optRank').checked; }
+function isRankMode() { return rankKind() !== ''; }
 
 // 販売ランキング用: 取得 → 長辺800pxに縮小（小さい画像は拡大しない）→ JPEG(品質82) → 品番のファイル名で保存 → 400枚ごとにZIP
 // macOS標準の sips / zip だけで動く。途中で止まっても、もう一度実行すれば取得済みの分は飛ばして続きから進む
 function buildRankScript() {
+  const sup = rankKind() === 'supplier';
+  const DIR = sup ? 'supplier_images' : 'ranking_images';     // 保存先とZIP名（自社用とは分ける）
   const targets = IMAGES.filter(im => im.sel);
   const shq = t => String(t).replace(/'/g, "'\\''");
   const lines = [
     '#!/bin/bash',
-    `# 販売ランキング用 商品画像 取得・縮小 - ${targets.length}枚`,
-    'OUT="$HOME/Downloads/ranking_images"',
+    `# ${sup ? 'メーカー販売データ用' : '販売ランキング用'} 商品画像 取得・縮小 - ${targets.length}枚`,
+    `OUT="$HOME/Downloads/${DIR}"`,
     'IMG="$OUT/images"; TMP="$OUT/_tmp"',
     'mkdir -p "$IMG" "$TMP"',
     ': > "$OUT/failed.txt"',
@@ -707,13 +826,13 @@ function buildRankScript() {
     'TOTAL=$(ls "$IMG" | wc -l | tr -d " ")',
     'FAIL=$(wc -l < "$OUT/failed.txt" | tr -d " ")',
     'cd "$IMG" || exit 1',
-    'rm -f "$OUT"/ranking_images_*.zip "$OUT"/_part_*',
+    `rm -f "$OUT"/${DIR}_*.zip "$OUT"/_part_*`,
     'ls *.jpg | split -l 400 - "$OUT/_part_"',
     'P=0',
-    'for f in "$OUT"/_part_*; do P=$((P+1)); zip -q "$OUT/ranking_images_$P.zip" -@ < "$f"; done',
+    `for f in "$OUT"/_part_*; do P=$((P+1)); zip -q "$OUT/${DIR}_$P.zip" -@ < "$f"; done`,
     'rm -f "$OUT"/_part_*',
     'echo "════════════════════"',
-    'echo "✅ 画像 $TOTAL 枚 → ZIP $P 個（ranking_images_1.zip 〜）を作りました"',
+    `echo "✅ 画像 $TOTAL 枚 → ZIP $P 個（${DIR}_1.zip 〜）を作りました"`,
     'if [ "$FAIL" -gt 0 ]; then echo "⚠️ 取得できなかった画像が $FAIL 件あります（failed.txt に一覧）。店舗名が正しいか確認して、もう一度実行すると続きから取得します"; fi',
     'open "$OUT"'
   );
@@ -761,14 +880,16 @@ function saveScript() {
   if (!targets.length) return;
   // 拡張子は .txt（.sh はブラウザが危険ファイルとして保存をブロックすることがある。bashは拡張子不問）
   const rank = isRankMode();
-  const fname = rank ? 'download_ranking_images.txt' : 'download_rakuten_images.txt';
+  const supMode = rankKind() === 'supplier';
+  const DIR = supMode ? 'supplier_images' : 'ranking_images';
+  const fname = rank ? 'download_' + DIR + '.txt' : 'download_rakuten_images.txt';
   document.getElementById('cmdText').value = 'bash ~/Downloads/' + fname;
   document.getElementById('stepSaved').innerHTML = `<code>${fname}</code> を「ダウンロード」フォルダに保存しました✅（実行コマンドもコピー済み）`;
   document.getElementById('stepHint').innerHTML = rank
-    ? '完了すると「ダウンロード」フォルダ内の <code>ranking_images</code> フォルダに <b>ranking_images_1.zip、ranking_images_2.zip …</b>（400枚ごと）ができ、自動で開きます。<br>' +
+    ? '完了すると「ダウンロード」フォルダ内の <code>' + DIR + '</code> フォルダに <b>' + DIR + '_1.zip、' + DIR + '_2.zip …</b>（400枚ごと）ができ、自動で開きます。<br>' +
       '・<b>できたZIPを全部、Claudeとのチャットに添付してください</b>（画像を追加してアプリに反映します）<br>' +
       '・時間がかかります（数百〜数千枚で10〜30分ほど）。止まったり失敗が出たときは、もう一度同じコマンドを実行すると続きから取得します<br>' +
-      '・保存名は「品番（ハイフンはアンダースコア）.jpg」、大きさは長辺800pxまでに縮小されます'
+      (supMode ? '・保存名は「商品番号（小文字。記号は ~16進~ に置き換え）.jpg」、大きさは長辺800pxまでに縮小されます' : '・保存名は「品番（ハイフンはアンダースコア）.jpg」、大きさは長辺800pxまでに縮小されます')
     : '完了すると「ダウンロード」フォルダ内の <code>rakuten_images</code> フォルダに <b>R-Cabinetと同じフォルダ構成</b>で画像が保存され、自動で開きます（Cyberduck等でそのまま再アップロードできます）。<br>' +
       '・保存先を選ぶ画面が出た場合は「ダウンロード」フォルダを選んでください<br>' +
       '・何度か保存すると <code>download_rakuten_images (1).txt</code> のような名前になります。その場合は古いファイルをゴミ箱に入れてから、もう一度保存してください';

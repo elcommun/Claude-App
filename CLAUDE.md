@@ -190,6 +190,15 @@ const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0);
 3. ユーザーがZIPをチャットに添付 → **`python3 tools/import-image-zips.py <zip...>`** で `ranking/images/` に取り込む（すでにある画像は飛ばす。読めない画像・不正な名前は取り込まない）
 4. `python3 tools/build-images.py` → `ranking/index.html` のバージョンを上げてコミット（一度に大量にならないよう、ZIP 1〜2個ずつ順にPRを分ける）
 
+### 仕入れ商品アプリ（supplier-ranking）の商品画像・カタログPDF
+- 画像は `supplier-ranking/images/`・`thumbs/`・`image-index.js`（自社 ranking とは別。`tools/build-images.py --app supplier-ranking` で作る）。**`supplier-ranking/index.html` を変更・画像を追加したら、`.hd-sub` のバージョン番号を必ず1つ上げる**
+- **画像キー（ファイル名）**: 商品番号を小文字にし、`a-z 0-9 _ -` 以外の文字（日本語・`.` など）を `~16進コードポイント~` に置き換える（例: `cocochi-no1-9-no.1-9` → `cocochi-no1-9-no~2e~1-9.jpg`）。`index.html` の `imgKey()`・`tools/import-image-zips.py` の `supplier_key()`・`rakuten-image-dl/index.html` の `supKey()` は同じ規則（変えるときは3か所そろえる）。大文字小文字が違うだけの商品番号は同じ画像になる
+- **楽天CSVから一括で追加する手順**（自社と同じ流れ）:
+  1. ユーザーが `rakuten-image-dl/index.html` に楽天の商品CSV（dl-normal-item・EL COMMUN楽天店）を読み込み、**「🏭 メーカー販売データ用」にチェック**（`supplier-ranking/data.js` の商品番号と照合。照合の順は システム連携用SKU番号 → 商品管理番号＋SKU管理番号 → SKU管理番号 → 商品管理番号。画像はSKU画像パス1を優先し、無ければ商品画像パス1＝メイン画像）。保存した `download_supplier_images.txt` をMacで実行 → `supplier_images_N.zip`（400枚ごと）
+  2. ユーザーがZIPを添付 → `python3 tools/import-image-zips.py --app supplier-ranking <zip...>`（自社と同じく、すでにある画像は新しい画像に置き換え。マスタに無い商品番号も取り込み、件数と一覧を報告）
+  3. `python3 tools/build-images.py --app supplier-ranking` → `supplier-ranking/index.html` のバージョンを上げてコミット（ZIP 1〜2個ずつPRを分ける）
+- カタログPDF（`cgPaginate` / `showCatalog` ほか）は ranking の仕組みを移植したもの。クラス名は表の `.cat-col` 等と区別するため `cg-` で始める。メーカー別表示ではメーカー→カテゴリ、カテゴリ別表示では親カテゴリ→小分類の順にページを分け、個数順/金額順（`rankMetric`）で順位を付ける
+
 ---
 
 ## 欠品データの更新方法
