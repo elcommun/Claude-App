@@ -862,7 +862,7 @@ function updateCount() {
 // ブラウザのCORS制限を受けないため、楽天サーバーの設定に関わらず確実に取得できる
 function isRankMode() { return rankKind() !== ''; }
 
-// 販売ランキング用: 取得 → 長辺800pxに縮小（小さい画像は拡大しない）→ JPEG(品質82) → 品番のファイル名で保存 → 400枚ごとにZIP
+// 販売ランキング用: 取得 → 長辺800pxに縮小（小さい画像は拡大しない）→ JPEG(品質82) → 品番のファイル名で保存 → 約25MBごとにZIP
 // macOS標準の sips / zip だけで動く。途中で止まっても、もう一度実行すれば取得済みの分は飛ばして続きから進む
 function buildRankScript() {
   const sup = rankKind() === 'supplier';
@@ -873,6 +873,7 @@ function buildRankScript() {
     '#!/bin/bash',
     `# ${sup ? 'メーカー販売データ用' : '販売ランキング用'} 商品画像 取得・縮小 - ${targets.length}枚`,
     `OUT="$HOME/Downloads/${DIR}"`,
+    'LIMIT_MB=25   # ZIP 1個の大きさの上限（MB）。チャットに添付できる上限（30MB）より小さくしておく',
     'IMG="$OUT/images"; TMP="$OUT/_tmp"',
     'mkdir -p "$IMG" "$TMP"',
     ': > "$OUT/failed.txt"',
@@ -906,13 +907,26 @@ function buildRankScript() {
     'TOTAL=$(ls "$IMG" | wc -l | tr -d " ")',
     'FAIL=$(wc -l < "$OUT/failed.txt" | tr -d " ")',
     'cd "$IMG" || exit 1',
+    // ZIPは枚数ではなく合計サイズで分ける（チャットに添付できる上限30MBに合わせ、1個が LIMIT_MB を超えないよう品番順に詰める）。
+    // JPEGはZIPでほぼ縮まないので、ZIPの大きさ ≒ 画像の合計。サイズ取得は macOS / Linux 両方で動く wc -c
     `rm -f "$OUT"/${DIR}_*.zip "$OUT"/_part_*`,
-    'ls *.jpg | split -l 400 - "$OUT/_part_"',
+    'LIMIT=$((LIMIT_MB*1024*1024)); N=1; SZ=0; CNT=0',
+    ': > "$OUT/_part_$N"',
+    'for f in *.jpg; do',
+    '  [ -e "$f" ] || continue',
+    '  s=$(wc -c < "$f" | tr -d " ")',
+    '  if [ "$CNT" -gt 0 ] && [ $((SZ + s)) -gt "$LIMIT" ]; then N=$((N+1)); SZ=0; CNT=0; : > "$OUT/_part_$N"; fi',
+    '  echo "$f" >> "$OUT/_part_$N"; SZ=$((SZ + s)); CNT=$((CNT+1))',
+    'done',
     'P=0',
-    `for f in "$OUT"/_part_*; do P=$((P+1)); zip -q "$OUT/${DIR}_$P.zip" -@ < "$f"; done`,
+    'for i in $(seq 1 $N); do',
+    '  [ -s "$OUT/_part_$i" ] || continue',
+    '  P=$((P+1)); zip -q "$OUT/' + DIR + '_$P.zip" -@ < "$OUT/_part_$i"',
+    'done',
     'rm -f "$OUT"/_part_*',
     'echo "════════════════════"',
-    `echo "✅ 画像 $TOTAL 枚 → ZIP $P 個（${DIR}_1.zip 〜）を作りました"`,
+    `echo "✅ 画像 $TOTAL 枚 → ZIP $P 個（${DIR}_1.zip 〜。1個 約$LIMIT_MB MB以下）を作りました"`,
+    `[ "$P" -gt 0 ] && for i in $(seq 1 $P); do z="$OUT/${DIR}_$i.zip"; echo "   ${DIR}_$i.zip  $(( $(wc -c < "$z" | tr -d " ") / 1048576 )) MB"; done`,
     'if [ "$FAIL" -gt 0 ]; then echo "⚠️ 取得できなかった画像が $FAIL 件あります（failed.txt に一覧）。店舗名が正しいか確認して、もう一度実行すると続きから取得します"; fi',
     'open "$OUT"'
   );
@@ -966,7 +980,7 @@ function saveScript() {
   document.getElementById('cmdText').value = 'bash ~/Downloads/' + fname;
   document.getElementById('stepSaved').innerHTML = `<code>${fname}</code> を「ダウンロード」フォルダに保存しました✅（実行コマンドもコピー済み）`;
   document.getElementById('stepHint').innerHTML = rank
-    ? '完了すると「ダウンロード」フォルダ内の <code>' + DIR + '</code> フォルダに <b>' + DIR + '_1.zip、' + DIR + '_2.zip …</b>（400枚ごと）ができ、自動で開きます。<br>' +
+    ? '完了すると「ダウンロード」フォルダ内の <code>' + DIR + '</code> フォルダに <b>' + DIR + '_1.zip、' + DIR + '_2.zip …</b>（1個 約25MB以下に自動で分かれます）ができ、自動で開きます。<br>' +
       '・<b>できたZIPを全部、Claudeとのチャットに添付してください</b>（画像を追加してアプリに反映します）<br>' +
       '・時間がかかります（数百〜数千枚で10〜30分ほど）。止まったり失敗が出たときは、もう一度同じコマンドを実行すると続きから取得します<br>' +
       (supMode ? '・保存名は「商品番号（小文字。記号は ~16進~ に置き換え）.jpg」、大きさは長辺800pxまでに縮小されます' : '・保存名は「品番（ハイフンはアンダースコア）.jpg」、大きさは長辺800pxまでに縮小されます')
