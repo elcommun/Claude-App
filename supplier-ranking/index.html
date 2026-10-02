@@ -499,18 +499,15 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 .cg-qty{font-size:9px;font-weight:700}
 .cg-amt{font-size:6.5px;font-weight:600}
 .cg-wait{background:#fff;padding:40px 60px;border-radius:8px;font-size:14px;color:#555;box-shadow:0 4px 24px rgba(0,0,0,.2)}
-.cg-cover{padding:8mm 10mm;font-size:12px;color:#2c2c3a;-webkit-print-color-adjust:exact;print-color-adjust:exact;display:block}
-.cv-title{font-size:22px;font-weight:700}.cv-title small{font-size:12px;font-weight:400;color:#888;margin-left:8px}
-.cv-sub{font-size:12px;color:#666;margin:4px 0 12px;padding-bottom:6px;border-bottom:2.5px solid #E85D26}
-.cv-kpis{display:flex;gap:8px;margin:0 0 12px}
-.cv-kpi{flex:1;border:1px solid #e4dfd6;border-radius:6px;padding:8px 12px;background:#fbf9f5}
-.cv-kpi b{display:block;font-size:18px}.cv-kpi span{font-size:10px;color:#888}
-.cv-h{font-size:13px;font-weight:700;margin:6px 0;border-left:4px solid #E85D26;padding-left:7px}
-.cv-tbl{width:100%;border-collapse:collapse;font-size:10.5px}
-.cv-tbl th{background:#f1ece4;text-align:left;padding:3px 8px;border-bottom:1.5px solid #cfc7ba;font-size:10px}
-.cv-tbl td{padding:2.5px 8px;border-bottom:1px solid #eee6da}
-.cv-tbl .r{text-align:right}
-.cv-bar{height:6px;background:#eee6da;border-radius:3px;overflow:hidden;min-width:90px}.cv-bar i{display:block;height:100%;background:#E85D26}
+.cg-rt-wrap{font-size:10px;margin:6px 0 2px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cg-rt-title{font-size:10px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:2px;margin:0 0 4px}
+.cg-rt-grid{column-count:2;column-gap:7px}
+.cg-rt-row{display:flex;align-items:center;gap:3px;font-size:8.5px;padding:1px 2px;border-bottom:1px solid #f0eae2;break-inside:avoid}
+.cg-rt-rk{flex:0 0 auto;width:12px;text-align:center;font-weight:700;color:#b3ada4}
+.cg-rt-rk.k1{color:#E85D26}.cg-rt-rk.k2{color:#888}.cg-rt-rk.k3{color:#a07040}
+.cg-rt-img{flex:0 0 auto;width:18px;height:25px;object-fit:contain}
+.cg-rt-nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cg-rt-v{flex:0 0 auto;text-align:right;white-space:nowrap;font-weight:600}
 @media print{
   @page{size:A4 landscape;margin:8mm}
   body.catalog-open>*:not(#catalog-modal){display:none!important}
@@ -533,7 +530,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v135</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v136</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2388,37 +2385,28 @@ function cgSubHtml(label,rows){
   const s=cgSum(rows);
   return `<div class="cg-sub">▌ ${x(label)} <span class="cg-sub-cnt">(${s.n}種 ／ ${s.qty.toLocaleString()}個)</span></div>`;
 }
-// 1つのまとまり（見出し・小見出し・カード）→ ブロック配列
+// 商品番号の自然順（数字は数として比較。ranking の品番順に相当）
+const CG_COLLATOR=new Intl.Collator('en',{numeric:true,sensitivity:'base'});
+function cgCodeCmp(a,b){return CG_COLLATOR.compare(a.code,b.code)||(a.code<b.code?-1:a.code>b.code?1:0);}
+// 小見出し内の売上ランキング表（TOP10。個数/金額は rankMetric どおり）。5種以下は全カードに順位が出ているので付けない。rows は順位付き
+function cgTopTable(label,rows){
+  if(rows.length<=5)return '';
+  const m=cgMetric(),top=rows.slice(0,10);
+  const row=r=>`<div class="cg-rt-row"><span class="cg-rt-rk ${r.rank<=3?'k'+r.rank:'ko'}">${r.rank}</span>${prodImgHtml(r.code,'cg-rt-img','')}<span class="cg-rt-nm">${x(r.name)}${r.varName?' '+x(r.varName):''}</span><span class="cg-rt-v">${m==='amount'?'¥'+Math.round(r.amount).toLocaleString():r.qty.toLocaleString()}</span></div>`;
+  return `<div class="cg-rt-wrap"><div class="cg-rt-title">${x(label)} ${m==='amount'?'金額':'個数'}ランキング（TOP${top.length}）</div><div class="cg-rt-grid">${top.map(row).join('')}</div></div>`;
+}
+// 1つのまとまり（見出し・小見出し・カード）→ ブロック配列。カードは小見出しごとに商品番号順（バッジの順位は小見出し内の個数/金額順位）、カードの後ろの空きに売上ランキング表
 function cgBlocks(sec,subs,showMaker,multiSub){
   const m=cgMetric(),blocks=[{type:'sec',html:sec}];
   for(const s of subs){
     if(!s.rows.length)continue;
     if(multiSub)blocks.push({type:'sub',html:cgSubHtml(s.label,s.rows)});
     const maxV=s.rows.reduce((a,r)=>Math.max(a,r[m]),1);
-    for(const r of s.rows)blocks.push({type:'card',html:cgCardHtml(r,maxV,showMaker)});
+    for(const r of [...s.rows].sort(cgCodeCmp))blocks.push({type:'card',html:cgCardHtml(r,maxV,showMaker)});
+    const rt=cgTopTable(s.label,s.rows);   // s.rows は個数/金額順（rank 付き）
+    if(rt)blocks.push({type:'cgrank',html:rt});
   }
   return blocks;
-}
-// 表紙（販売数のまとめ）: 期間・店舗・合計と、グループごとの種数・個数・金額・構成比。行が多いときは続きのページに分ける
-function cgCoverBlocks(groups,periodStr){
-  const tq=groups.reduce((s,g)=>s+g.qty,0),ta=groups.reduce((s,g)=>s+g.amount,0),tn=groups.reduce((s,g)=>s+g.n,0);
-  const st=document.getElementById('f-store').value;
-  const allAmt=ALL_TOTAL.amount||1,maxA=Math.max(...groups.map(g=>g.amount),1);
-  const unit=groupMode==='category'?'カテゴリ':'メーカー';
-  const row=g=>`<tr><td><b>${x(g.name)}</b></td><td class="r">${g.n.toLocaleString()}</td><td class="r">${g.qty.toLocaleString()}</td><td class="r">¥${Math.round(g.amount).toLocaleString()}</td><td><div class="cv-bar"><i style="width:${Math.round(Math.max(g.amount,0)/maxA*100)}%"></i></div><small style="color:#888">${(g.amount/allAmt*100).toFixed(1)}%</small></td></tr>`;
-  const tblHead=`<table class="cv-tbl"><thead><tr><th>${unit}</th><th class="r">種数</th><th class="r">個数</th><th class="r">税抜金額</th><th>構成比（金額）</th></tr></thead><tbody>`;
-  const head=`<div class="cv-title">EC事業部 販売データ：仕入れ商品<small>カタログ</small></div>
-    <div class="cv-sub">${x(periodStr)}　／　${st==='all'?'すべての店舗':x(st)}　／　${rankMetric==='amount'?'金額順':'個数順'}</div>
-    <div class="cv-kpis"><div class="cv-kpi"><b>${tq.toLocaleString()} 個</b><span>個数</span></div><div class="cv-kpi"><b>¥${Math.round(ta).toLocaleString()}</b><span>税抜金額</span></div><div class="cv-kpi"><b>${tn.toLocaleString()} 種</b><span>SKU数</span></div><div class="cv-kpi"><b>${(ta/allAmt*100).toFixed(1)}%</b><span>全体（金額）に占める割合</span></div></div>
-    <div class="cv-h">${unit}別 販売数</div>`;
-  const out=[],FIRST=12,NEXT=18;   // 1ページに収まる行数（行の高さ約29px）
-  let i=0,first=true;
-  while(i<groups.length||first){
-    const n=first?FIRST:NEXT,part=groups.slice(i,i+n);
-    out.push({type:'cover',html:`<div>${first?head:`<div class="cv-h">${unit}別 販売数（続き）</div>`}${tblHead}${part.map(row).join('')}</tbody></table></div>`});
-    i+=n;first=false;
-  }
-  return out;
 }
 function cgPaginate(blocks,container){
   container.innerHTML='';
@@ -2447,11 +2435,7 @@ function cgPaginate(blocks,container){
     }
   };
   for(const b of blocks){
-    if(b.type==='cover'){
-      const pg=document.createElement('div');pg.className='cg-page cg-cover';container.appendChild(pg);
-      pg.appendChild(makeNode(b.html));
-      page=null;curTitle=null;
-    }else if(b.type==='sec'){
+    if(b.type==='sec'){
       curTitle=b.html;newPage(curTitle);               // まとまりごとに新ページ＋両カラムを突き抜ける全幅の見出し
     }else{
       if(!page)newPage(curTitle);
@@ -2494,12 +2478,12 @@ function cgWaitImages(seq){
   note.textContent=`画像を読み込み中 0/${total}`;
   imgs.forEach(img=>{if(img.complete)tick();else{img.addEventListener('load',tick,{once:true});img.addEventListener('error',tick,{once:true});}});
 }
-// 選んだメーカー（カテゴリ）のカタログ。複数選んだときは先頭に販売数のまとめ（表紙）を付ける
+// 選んだメーカー（カテゴリ）のカタログ
 function openCatalog(keysArg){
   const keys=Array.isArray(keysArg)?keysArg:[...exportChecks];
   const groups=cgGroupsOf(keys);
   if(!groups.length){alert(groupMode==='category'?'カテゴリーを選択してください。':'メーカーを選択してください。');return;}
-  const blocks=groups.length>1?cgCoverBlocks(groups,cgPeriodStr()):[];
+  const blocks=[];   // 表紙は付けない（1ページ目からカード。自社商品と同じ）
   const icon=groupMode==='category'?'📦':'🏭';
   for(const g of groups)blocks.push(...cgBlocks(cgSecHtml(icon,g.name,g.n,g.qty,g.amount),g.subs,groupMode==='category',g.subs.length>1));
   showCatalog(blocks);

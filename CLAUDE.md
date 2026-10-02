@@ -197,7 +197,7 @@ const colspan = 7 + (showCmp ? 2 : 0) + (showSo ? 1 : 0) + (showImg ? 1 : 0);
   1. ユーザーが `rakuten-image-dl/index.html` に楽天の商品CSV（dl-normal-item・EL COMMUN楽天店）を読み込み、**「🏭 メーカー販売データ用」にチェック**（`supplier-ranking/data.js` の商品番号と照合。照合の順は システム連携用SKU番号 → 商品管理番号＋SKU管理番号 → SKU管理番号 → 商品管理番号（SKUなしの商品）→ それでも無い商品は `supBase()`（`supplier-ranking/index.html` の `rakutenCodeBase` と同じ規則。変えるときは両方そろえる）で商品番号から導いた商品管理番号のメイン画像。画像はSKU画像パス1を優先し、無ければ商品画像パス1＝メイン画像。メイン画像は商品管理番号ごとに最初の空でない商品画像パス1を使う。CSVの画像パスに店舗名が無いときは「店舗名（URLの一部）」に `elcommun` が自動で入る（違う店舗のCSVなら書き換える）。2026-10-02時点のEL COMMUN楽天店CSVでは 2,141商品中1,280商品に画像が付く＝販売数の約76%。ユニコン・アイトーはCSVに無く、LAIKLE楽天店のCSVが別に必要）。保存した `download_supplier_images.txt` をMacで実行 → `supplier_images_N.zip`（約25MBごと）
   2. ユーザーがZIPを添付 → `python3 tools/import-image-zips.py --app supplier-ranking <zip...>`（自社と同じく、すでにある画像は新しい画像に置き換え。マスタに無い商品番号も取り込み、件数と一覧を報告）
   3. `python3 tools/build-images.py --app supplier-ranking` → `supplier-ranking/index.html` のバージョンを上げてコミット（ZIP 1〜2個ずつPRを分ける）
-- カタログPDF（`cgPaginate` / `showCatalog` ほか）は ranking の仕組みを移植したもの。クラス名は表の `.cat-col` 等と区別するため `cg-` で始める。メーカー別表示ではメーカー→カテゴリ、カテゴリ別表示では親カテゴリ→小分類の順にページを分け、個数順/金額順（`rankMetric`）で順位を付ける
+- カタログPDF（`cgPaginate` / `showCatalog` ほか）は ranking の仕組みを移植したもの。クラス名は表の `.cat-col` 等と区別するため `cg-` で始める。メーカー別表示ではメーカー→カテゴリ、カテゴリ別表示では親カテゴリ→小分類の順にページを分ける。**ranking の手帳・カレンダーと同じ形式（2026-10-02 ユーザー指示）**: 小見出しごとに商品番号順のカード（バッジ＝個数順/金額順（`rankMetric`）の順位）＋カードの後ろの空きに売上ランキング表（TOP10。5種以下は表なし）。表紙（販売数のまとめの表）は付けない。検索結果のカタログも同じ形式。自社商品（ranking）側も同様（`catalogCatBlocks`／`buildCatTopTable`）
 
 ---
 

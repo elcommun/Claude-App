@@ -50,7 +50,7 @@
 
 - 画像は `supplier-ranking/images/`（原寸・長辺800px）と `thumbs/`（一覧・カタログ用の軽いサムネ）、一覧 `image-index.js`（`window.IMG_INDEX = {画像キー: [幅, 高さ]}`）。アプリは一覧に無い商品の画像を読みに行かない
 - 画像キー = 商品番号を小文字にし、`a-z 0-9 _ -` 以外の文字を `~16進コードポイント~` に置き換えたもの（例: `cocochi-no1-9-no.1-9` → `cocochi-no1-9-no~2e~1-9`）。`index.html` の `imgKey()` と `tools/import-image-zips.py` の `supplier_key()` が同じ規則
-- カタログPDF（A4横・画像カード形式）は ranking と同じ仕組み（`cgPaginate` / `showCatalog`。ブラウザの印刷でPDF保存）。メーカー別/カテゴリ別の表示モードに合わせて並べる
+- カタログPDF（A4横・画像カード形式）は ranking と同じ仕組み（`cgPaginate` / `showCatalog`。ブラウザの印刷でPDF保存）。メーカー別/カテゴリ別の表示モードに合わせて並べる。ranking の手帳・カレンダーと同じ形式で、小見出しごとに**商品番号順**のカード（バッジ＝個数/金額順位）＋空きスペースに**売上ランキング表（TOP10）**。表紙は付けない（検索結果のカタログも同じ）
 
 ## 未実装（`ranking` からの主な省略点）
 
