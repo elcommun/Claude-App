@@ -134,7 +134,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><a href="#saleperiod">商品の販売期間を確認する</a></li>
       <li><a href="#stockout">欠品情報を確認する</a></li>
       <li><a href="#excel">Excelでダウンロードする</a></li>
-      <li><a href="#catalog">手帳・カレンダーをカタログPDF出力する</a></li>
+      <li><a href="#catalog">カタログPDF出力する（ランキング・販売数のまとめ・検索結果）</a></li>
       <li><a href="#alias">検索エイリアスを設定する</a></li>
       <li><a href="#mobile">スマホでの表示と便利機能</a></li>
     </ol>
@@ -693,22 +693,32 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
   <div class="section" id="catalog">
     <div class="section-hdr">
       <div class="step-badge">15</div>
-      <h2>手帳・カレンダーをカタログPDF出力する</h2>
+      <h2>カタログPDF出力する（ランキング・販売数のまとめ・検索結果）</h2>
     </div>
-    <p><strong>手帳・カレンダー</strong>のカテゴリを、画像付きのカタログ風PDFとして出力できます。商品画像・品名・品番・上代・順位・欠品をカード形式で、品番順に並べて表示します。</p>
+    <p>商品画像つきのカタログ風PDFとして出力できます。商品画像・品名・品番・上代・順位・個数をカード形式で並べます。<strong>手帳・カレンダー</strong>だけでなく、<strong>ほかのカテゴリのランキング・販売数のまとめ・検索で表示した商品の一覧</strong>も同じ形式で出せます。</p>
 
+    <h3>出し方（3か所）</h3>
     <ul class="step-list">
-      <li><span class="txt">サイドバーのカテゴリ一覧で、出力したい <strong>手帳・カレンダー</strong> のカテゴリの <strong>チェックボックス</strong> にチェックを入れます</span></li>
-      <li><span class="txt">サイドバー下部の <strong>「手帳・カレンダーをカタログPDF」</strong> ボタンをクリックします（手帳・カレンダーを選んでいるときだけ押せます）</span></li>
-      <li><span class="txt">プレビュー画面が開きます。内容を確認します</span></li>
-      <li><span class="txt">右上の <strong>「PDF保存（印刷）」</strong> ボタンを押し、印刷ダイアログで <strong>「PDFとして保存」</strong> を選びます</span></li>
+      <li><span class="txt"><strong>選んだカテゴリ</strong>：サイドバーのカテゴリのチェックボックスにチェックを入れ、サイドバー下部の <strong>「🖼️ 選択してカタログPDF」</strong> を押します（手帳・カレンダーとほかのカテゴリを一緒に選んでもかまいません）</span></li>
+      <li><span class="txt"><strong>今開いているカテゴリ</strong>：カテゴリ画面の見出し横の <strong>「🖼️ このカテゴリをカタログPDF」</strong> を押します（大分類を開いているときは、その中のカテゴリすべて）</span></li>
+      <li><span class="txt"><strong>検索結果</strong>：検索結果の見出し横の <strong>「🖼️ 検索結果をカタログPDF」</strong> を押します（画面に表示されている検索結果と同じ商品が出ます）</span></li>
     </ul>
+    <p>プレビュー画面が開いたら内容を確認し、右上の <strong>「PDF保存（印刷）」</strong> ボタンを押して、印刷ダイアログで <strong>「PDFとして保存」</strong> を選びます。画像の読み込み中は「画像を読み込み中 120/300」と表示され、終わるまで印刷ボタンは押せません（画像が抜けるのを防ぐためです。最大20秒）。</p>
 
     <div class="ui-mock" style="text-align:center">
-      <span style="display:inline-block;background:#E85D26;color:#fff;border-radius:6px;padding:6px 18px;font-size:13px;font-weight:700">🖼️ 手帳・カレンダーをカタログPDF</span>
+      <span style="display:inline-block;background:#E85D26;color:#fff;border-radius:6px;padding:6px 18px;font-size:13px;font-weight:700">🖼️ 選択してカタログPDF</span>
     </div>
 
-    <h3>カードに表示される情報</h3>
+    <h3>手帳・カレンダー以外のカタログの形</h3>
+    <ul>
+      <li><strong>表紙（販売数のまとめ）</strong>　期間・店舗・個数・金額・SKU数の合計と、大分類ごとの種数・個数・金額・構成比の表（手帳・カレンダーだけのときは表紙なし）</li>
+      <li><strong>大分類ごとに新しいページ</strong>から始まり、上に「📦 ステーショナリー（1,479種 ／ 80,875個 ／ ¥61,831,218）」のような見出しが付きます</li>
+      <li>大分類の中は、カテゴリごとの小見出しで区切り、カードは<strong>個数の多い順（ランキング順）</strong>に並びます。選んだ期間に売れた商品だけが入ります</li>
+      <li>画像がまだ登録されていない商品は、枠の中に薄く「画像なし」と出ます</li>
+      <li>検索結果は、先頭に「🔍 検索結果「○○」」の見出しが付き、カテゴリごと（個数の多いカテゴリから）に区切られます</li>
+    </ul>
+
+<h3>カードに表示される情報</h3>
     <ul>
       <li><strong>商品画像</strong>（中央上）</li>
       <li><strong>順位バッジ</strong>（左上）　1〜3位は金・銀・銅、4位以下は薄いチップ</li>
@@ -718,7 +728,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><strong>販売数</strong>　数量バッジの色が販売数に応じてオレンジの濃淡に変わります（ヒートマップ）</li>
     </ul>
 
-    <h3>並び順</h3>
+    <h3>並び順（手帳・カレンダー）</h3>
     <p>カテゴリ → フォーマット名のグループ → グループ内は <strong>品番順</strong> で並びます。</p>
 
     <div class="note">

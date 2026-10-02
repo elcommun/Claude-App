@@ -416,6 +416,25 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-code{display:block;font-family:monospace;font-weight:400;font-size:8px;white-space:nowrap}
 .cat-price{display:block;font-weight:400;white-space:nowrap;font-size:6px}
 .cat-qty{margin-top:1px;font-size:9px;font-weight:700;border-radius:3px;padding:1px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+/* 手帳・カレンダー以外のカタログ: 画像が無い商品の枠、表紙（販売数のまとめ）、PDFボタン */
+.cat-noimg{display:flex;align-items:center;justify-content:center;width:100%;height:100%;border:1px dashed #ddd7cf;border-radius:2px;box-sizing:border-box;font-size:6px;color:#b9b2a8;text-align:center}
+.cat-wait{background:#fff;padding:40px 60px;border-radius:8px;font-size:14px;color:#555;box-shadow:0 4px 24px rgba(0,0,0,.2)}
+.cat-cover{padding:8mm 10mm;font-size:12px;color:#2c2c3a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cov-title{font-size:22px;font-weight:700}.cov-title small{font-size:12px;font-weight:400;color:#888;margin-left:8px}
+.cov-sub{font-size:12px;color:#666;margin:4px 0 12px;padding-bottom:6px;border-bottom:2.5px solid #E85D26}
+.cov-kpis{display:flex;gap:8px;margin:0 0 12px}
+.cov-kpi{flex:1;border:1px solid #e4dfd6;border-radius:6px;padding:8px 12px;background:#fbf9f5}
+.cov-kpi b{display:block;font-size:18px}.cov-kpi span{font-size:10px;color:#888}
+.cov-h{font-size:13px;font-weight:700;margin:6px 0;border-left:4px solid #E85D26;padding-left:7px}
+.cov-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.cov-tbl th{background:#f1ece4;text-align:left;padding:4px 8px;border-bottom:1.5px solid #cfc7ba;font-size:10px}
+.cov-tbl td{padding:4px 8px;border-bottom:1px solid #eee6da}
+.cov-tbl .r{text-align:right}
+.cov-bar{height:6px;background:#eee6da;border-radius:3px;overflow:hidden;min-width:90px}.cov-bar i{display:block;height:100%;background:#E85D26}
+.cat-tb-print:disabled{opacity:.5;cursor:default}
+.pdf-mini{font-size:11px;font-weight:600;color:#E85D26;background:#fff;border:1px solid #E85D26;border-radius:5px;padding:2px 9px;cursor:pointer;white-space:nowrap}
+.pdf-mini:hover{background:#fff3ec}
+@media(max-width:600px){.pdf-mini{display:none}}
 /* 種類別売上TOP5（画像付き・2カラム）：新書判の右の空きスペース */
 .cat-ranktbl-wrap{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .rt-title{font-size:10px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:2px;margin:0 0 4px}
@@ -570,7 +589,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v274</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v275</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -620,6 +639,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
   <div class="cat-toolbar">
     <div class="cat-tb-l"><b>📖 カタログプレビュー</b><span id="catalog-period" class="cat-tb-period"></span></div>
     <div class="cat-tb-r">
+      <span class="cat-tb-note" id="cat-load"></span>
       <span class="cat-tb-note">※背景色を出すにはプリンタ設定で「背景のグラフィック」をONにしてください</span>
       <button class="cat-tb-print" onclick="printCatalog()">🖨️ PDF保存（印刷）</button>
       <button class="cat-tb-close" onclick="closeCatalog()">✕ 閉じる</button>
@@ -670,7 +690,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
     <div class="sb-list" id="sb-list"></div>
     <div id="sb-export">
       <button id="export-btn" class="btn-block btn-export" onclick="downloadCheckedCategories()" disabled>📥 選択してExcelダウンロード</button>
-      <button id="pdf-btn" class="btn-block btn-pdf" onclick="openCatalog()" disabled>🖼️ 手帳・カレンダーをカタログPDF</button>
+      <button id="pdf-btn" class="btn-block btn-pdf" onclick="openCatalog()" disabled>🖼️ 選択してカタログPDF</button>
     </div>
   </aside>
 
@@ -702,6 +722,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
         <div class="cat-name" id="cat-name"></div>
         <div class="cat-stats" id="cat-stats"></div>
         <div class="sort-lbl" id="sort-lbl">個数ランキング</div>
+        <button class="pdf-mini" onclick="openCategoryCatalog()" title="今開いているカテゴリをカタログPDFにします">🖼️ このカテゴリをカタログPDF</button>
       </div>
       <div class="m-sort" id="m-sort" aria-label="並び替え">
         <button class="m-chip on" data-k="qty" onclick="setSort('qty')">個数<span class="m-ind">▼</span></button>
@@ -1601,7 +1622,7 @@ function updateExportBtns(){
   const eb=document.getElementById('export-btn');
   if(eb){eb.disabled=!exportChecks.size;}
   const pb=document.getElementById('pdf-btn');
-  if(pb){const n=pdfEligibleCats().length;pb.disabled=!n;}
+  if(pb){pb.disabled=!exportChecks.size;}
 }
 
 // ── 手帳・カレンダー カタログPDF ──────────────────────────────────────────────
@@ -1677,8 +1698,8 @@ function catalogAllTimeIndex(){
   return idx;
 }
 // チェック済みの手帳/カレンダーカテゴリを、フォーマット別グループ→品番順で組み立てる
-function buildCatalogData(){
-  const cats=pdfEligibleCats();
+function buildCatalogData(catsArg){
+  const cats=catsArg||pdfEligibleCats();
   const allTime=catalogAllTimeIndex();
   const sections=[];
   for(const cat of cats){
@@ -1712,7 +1733,7 @@ function buildCatalogData(){
   return sections;
 }
 // 1商品カードのHTML
-function catCardHtml(it,maxQty){
+function catCardHtml(it,maxQty,thumb){
   const heat=catalogHeat(it.qty,maxQty);
   const rankCls=it.rank<=3?('r'+it.rank):'ro';
   const so=STOCKOUT[it.code]||'';
@@ -1720,7 +1741,7 @@ function catCardHtml(it,maxQty){
   return `<div class="cat-card">
           <div class="cat-rank ${rankCls}">${it.rank}</div>
           ${so?`<div class="cat-so">欠 ${x(so)}</div>`:''}
-          <div class="cat-imgbox">${prodImgHtml(it.code,'cat-img','',true)}</div>
+          <div class="cat-imgbox">${thumb?(imgHas(it.code)?prodImgHtml(it.code,'cat-img',''):'<span class="cat-noimg">画像なし</span>'):prodImgHtml(it.code,'cat-img','',true)}</div>
           <div class="cat-pname">${x(it.shortName||it.name)}</div>
           <div class="cat-line"><span class="cat-code">${x(it.code)}</span><span class="cat-price">¥${(it.price||0).toLocaleString()}</span></div>
           <div class="cat-qty" style="${qtyStyle}">${it.qty.toLocaleString()}個</div>
@@ -1826,6 +1847,12 @@ function paginateCatalog(blocks, container){
   };
   let lastWasCalcol=false;
   for(const b of blocks){
+    if(b.type==='cover'){                                // 表紙（販売数のまとめ）: 全幅の1ページ
+      const pg=document.createElement('div');pg.className='cat-page cat-cover';container.appendChild(pg);
+      pg.appendChild(makeNode(b.html));
+      page=null;curTitle=null;lastWasCalcol=false;
+      continue;
+    }
     if(b.type==='calcol'){
       // カレンダー：各年=1カラム。最初は新ページ、以降は次カラム（同ページの別カラム）へ
       if(!lastWasCalcol){ curTitle=null; newPage(null); } else advance();
@@ -1861,19 +1888,136 @@ function paginateCatalog(blocks, container){
     }
   }
 }
-function openCatalog(){
-  const sections=buildCatalogData();
-  if(!sections.length){alert('手帳・カレンダーのカテゴリーを選択してください。');return;}
+// ── 手帳・カレンダー以外のカタログ（ランキング順の画像カード。検索結果もこの形）──
+// 実カテゴリを大分類（MACRO_GROUPS）ごとにまとめる。大分類ごとに新しいページから始め、中はカテゴリごとの小見出しで区切る
+function catalogGroupsOf(cats){
+  const groups=[],used=new Set();
+  for(const c of cats){
+    if(used.has(c)||!aggregated[c])continue;
+    const mg=MACRO_GROUPS.find(m=>m.cats.includes(c));
+    const members=mg?cats.filter(k=>mg.cats.includes(k)&&aggregated[k]):[c];
+    members.forEach(k=>used.add(k));
+    groups.push({name:mg?mg.name:c,cats:members});
+  }
+  for(const g of groups){g.items=g.cats.map(c=>({cat:c,items:catalogRank(Object.values(aggregated[c]))}));}
+  const qtyOf=g=>g.items.reduce((s,ci)=>s+ci.items.reduce((t,i)=>t+i.qty,0),0);
+  groups.forEach(g=>{g.qty=qtyOf(g);g.amount=g.items.reduce((s,ci)=>s+ci.items.reduce((t,i)=>t+i.amount,0),0);g.n=g.items.reduce((s,ci)=>s+ci.items.length,0);});
+  return groups.sort((a,b)=>b.qty-a.qty);
+}
+// 個数の多い順（同数なら金額、品番）に並べて、順位を付けた複製を返す（aggregated は書き換えない）
+function catalogRank(items){
+  return [...items].sort((a,b)=>b.qty-a.qty||b.amount-a.amount||codeCompare(a.code,b.code)).map((it,i)=>({...it,rank:i+1}));
+}
+function catalogSubHdr(label,items){
+  const q=items.reduce((s,i)=>s+i.qty,0);
+  return `<div class="cat-fmt">▌ ${x(label)} <span class="cat-fmt-cnt">(${items.length}種 ／ ${q.toLocaleString()}個)</span></div>`;
+}
+function catalogSecHdr(icon,label,n,qty,amount){
+  return `<div class="cat-sec-hdr">${icon} ${x(label)} <span class="cat-sec-cnt">(${n}種 ／ ${qty.toLocaleString()}個 ／ ¥${amount.toLocaleString()})</span></div>`;
+}
+function genericCatalogBlocks(groups){
+  const blocks=[];
+  for(const g of groups){
+    blocks.push({type:'sec',html:catalogSecHdr(CAT_ICONS[g.name]||'📦',g.name,g.n,g.qty,g.amount)});
+    for(const ci of g.items){
+      if(!ci.items.length)continue;
+      if(g.items.length>1)blocks.push({type:'sub',html:catalogSubHdr(ci.cat,ci.items)});
+      const maxQty=ci.items.reduce((m,i)=>Math.max(m,i.qty),1);
+      for(const it of ci.items)blocks.push({type:'card',html:catCardHtml(it,maxQty,true)});
+    }
+  }
+  return blocks;
+}
+// 表紙（販売数のまとめ）: 期間・店舗・合計と、大分類ごとの種数・個数・金額・構成比
+function catalogCoverHtml(rows,periodStr){
+  const all=Object.values(aggregated).flatMap(o=>Object.values(o));
+  const allAmt=all.reduce((s,i)=>s+i.amount,0)||1;
+  const tq=rows.reduce((s,r)=>s+r.qty,0),ta=rows.reduce((s,r)=>s+r.amount,0),tn=rows.reduce((s,r)=>s+r.n,0);
+  const st=document.getElementById('f-store').value;
+  const maxA=Math.max(...rows.map(r=>r.amount),1);
+  let h=`<div class="cov"><div class="cov-title">EC事業部 販売データ：自社商品<small>カタログ</small></div>
+    <div class="cov-sub">${x(periodStr)}　／　${st==='all'?'すべての店舗':x(st)}　／　個数順</div>
+    <div class="cov-kpis"><div class="cov-kpi"><b>${tq.toLocaleString()} 個</b><span>個数</span></div><div class="cov-kpi"><b>¥${ta.toLocaleString()}</b><span>税抜金額</span></div><div class="cov-kpi"><b>${tn.toLocaleString()} 種</b><span>SKU数</span></div><div class="cov-kpi"><b>${(ta/allAmt*100).toFixed(1)}%</b><span>全体（金額）に占める割合</span></div></div>
+    <div class="cov-h">カテゴリ別 販売数</div><table class="cov-tbl"><thead><tr><th>カテゴリ</th><th class="r">種数</th><th class="r">個数</th><th class="r">税抜金額</th><th>構成比（金額）</th></tr></thead><tbody>`;
+  for(const r of rows)h+=`<tr><td><b>${x(r.name)}</b></td><td class="r">${r.n.toLocaleString()}</td><td class="r">${r.qty.toLocaleString()}</td><td class="r">¥${r.amount.toLocaleString()}</td><td><div class="cov-bar"><i style="width:${Math.round(r.amount/maxA*100)}%"></i></div><small style="color:#888">${(r.amount/allAmt*100).toFixed(1)}%</small></td></tr>`;
+  return h+`</tbody></table></div>`;
+}
+// カタログのプレビューを開く（ブロックを2カラムのA4横ページに分配し、画像の読み込みを待ってから印刷できるようにする）
+let CAT_LOAD_SEQ=0;
+function showCatalog(blocks){
   const {dateFrom,dateTo}=getFilterPeriod();
-  const fmtP=(d)=>{const p=(d||'').split('-');return p.length===3?p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日':'';};
-  const period=(dateFrom&&dateTo)?fmtP(dateFrom)+' 〜 '+fmtP(dateTo):'全期間';
-  document.getElementById('catalog-period').textContent=period;
+  document.getElementById('catalog-period').textContent=catalogPeriodStr();
   document.getElementById('catalog-modal').classList.add('open');
   document.body.classList.add('catalog-open');
+  const cont=document.getElementById('catalog-print');
+  cont.innerHTML='<div class="cat-wait">カタログを作成しています…</div>';
+  const pb=document.querySelector('.cat-tb-print');if(pb)pb.disabled=true;
+  const seq=++CAT_LOAD_SEQ;
   // モーダルを開いてレイアウトを確定させてから、列の高さを実測してページ分配する
-  paginateCatalog(catalogBlocks(sections), document.getElementById('catalog-print'));
+  setTimeout(()=>{
+    if(seq!==CAT_LOAD_SEQ)return;
+    paginateCatalog(blocks,cont);
+    waitCatalogImages(seq);
+  },30);
+}
+function catalogPeriodStr(){
+  const {dateFrom,dateTo}=getFilterPeriod();
+  const fmtP=(d)=>{const p=(d||'').split('-');return p.length===3?p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日':'';};
+  return (dateFrom&&dateTo)?fmtP(dateFrom)+' 〜 '+fmtP(dateTo):'全期間';
+}
+// 画像の読み込みが終わるまで印刷ボタンを使えなくする（読み込み前に印刷して画像が抜けるのを防ぐ。最大20秒）
+function waitCatalogImages(seq){
+  const imgs=[...document.querySelectorAll('#catalog-print img')];
+  imgs.forEach(i=>{i.loading='eager';});
+  const note=document.getElementById('cat-load'),pb=document.querySelector('.cat-tb-print');
+  const total=imgs.length;let done=0,finished=false;
+  const fin=()=>{if(seq!==CAT_LOAD_SEQ||finished)return;finished=true;if(pb)pb.disabled=false;note.textContent='';};
+  if(!total){fin();return;}
+  const timer=setTimeout(fin,20000);
+  const tick=()=>{done++;if(seq!==CAT_LOAD_SEQ)return;if(done>=total){clearTimeout(timer);fin();}else note.textContent=`画像を読み込み中 ${done}/${total}`;};
+  note.textContent=`画像を読み込み中 0/${total}`;
+  imgs.forEach(img=>{if(img.complete)tick();else{img.addEventListener('load',tick,{once:true});img.addEventListener('error',tick,{once:true});}});
+}
+// 選んだカテゴリのカタログ。手帳・カレンダーは従来の形式、それ以外はランキング順のカードで、続けて並べる
+function openCatalog(catsArg){
+  const cats=Array.isArray(catsArg)?catsArg:[...exportChecks];
+  const dcCats=cats.filter(c=>getCatType(c));
+  const gen=catalogGroupsOf(cats.filter(c=>!getCatType(c)));
+  const sections=dcCats.length?buildCatalogData(dcCats):[];
+  if(!sections.length&&!gen.length){alert('カテゴリーを選択してください。');return;}
+  const blocks=[];
+  if(gen.length){
+    const rows=gen.map(g=>({name:g.name,n:g.n,qty:g.qty,amount:g.amount}));
+    for(const sec of sections){const its=sec.groups.flatMap(g=>g.items);rows.push({name:sec.cat,n:its.length,qty:its.reduce((s,i)=>s+i.qty,0),amount:its.reduce((s,i)=>s+i.amount,0)});}
+    blocks.push({type:'cover',html:catalogCoverHtml(rows,catalogPeriodStr())});   // 手帳・カレンダーだけのときは従来どおり表紙なし
+  }
+  blocks.push(...catalogBlocks(sections),...genericCatalogBlocks(gen));
+  showCatalog(blocks);
+}
+// 今開いているカテゴリ（大分類なら中のカテゴリすべて）のカタログ
+function openCategoryCatalog(){
+  if(!selectedCategory){alert('カテゴリーを選択してください。');return;}
+  const cats=(getGroupCats(selectedCategory)||[selectedCategory]).filter(c=>aggregated[c]);
+  openCatalog(cats);
+}
+// 検索結果のカタログ（画面の検索結果と同じ商品。カテゴリごとに区切り、カテゴリの個数が多い順・ランキング順のカード）
+function openSearchCatalog(){
+  const S=window._lastSearch;
+  if(!S||!S.results.length){alert('検索結果がありません。');return;}
+  const byCat={};
+  for(const r of S.results)(byCat[r.cat]||(byCat[r.cat]=[])).push(r);
+  const cl=Object.entries(byCat).map(([cat,arr])=>({cat,items:catalogRank(arr)})).sort((a,b)=>b.items.reduce((s,i)=>s+i.qty,0)-a.items.reduce((s,i)=>s+i.qty,0));
+  const all=cl.flatMap(c=>c.items);
+  const blocks=[{type:'sec',html:catalogSecHdr('🔍','検索結果「'+S.q+'」',all.length,all.reduce((s,i)=>s+i.qty,0),all.reduce((s,i)=>s+i.amount,0))}];
+  for(const c of cl){
+    if(cl.length>1)blocks.push({type:'sub',html:catalogSubHdr(c.cat,c.items)});
+    const maxQty=c.items.reduce((m,i)=>Math.max(m,i.qty),1);
+    for(const it of c.items)blocks.push({type:'card',html:catCardHtml(it,maxQty,true)});
+  }
+  showCatalog(blocks);
 }
 function closeCatalog(){
+  CAT_LOAD_SEQ++;
   document.getElementById('catalog-modal').classList.remove('open');
   document.body.classList.remove('catalog-open');
 }
@@ -3618,7 +3762,8 @@ document.getElementById('hd-search').addEventListener('input',e=>{
     if(typeof va==='string'){const c=searchSortCol==='code'?codeCompare(va,vb):va.localeCompare(vb,'ja');return searchSortDir==='asc'?c:-c;}
     return searchSortDir==='asc'?va-vb:vb-va;
   });
-  document.getElementById('search-title').innerHTML=`🔍 "${x(q)}" <span style="font-size:14px;font-weight:400;color:var(--ink3);margin-left:6px">${results.length}件</span>`;
+  window._lastSearch={q,results};       // 検索結果のカタログPDF用
+  document.getElementById('search-title').innerHTML=`🔍 "${x(q)}" <span style="font-size:14px;font-weight:400;color:var(--ink3);margin-left:6px">${results.length}件</span> <button class="pdf-mini" style="margin-left:10px;vertical-align:middle" onclick="openSearchCatalog()" title="この検索結果をカタログPDFにします">🖼️ 検索結果をカタログPDF</button>`;
   const maxQtyS=results.reduce((m,r)=>Math.max(m,r.qty),1);
   const maxAmtS=results.reduce((m,r)=>Math.max(m,r.amount),1);
   // 前年比較列: 期間を1年・2年ずらしたコード索引で前年/前々年の個数を取得
