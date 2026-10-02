@@ -426,13 +426,94 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 #ptr.busy .ptr-ic::before{content:''}
 @keyframes ptrspin{to{transform:rotate(360deg)}}
 @media print{#ptr{display:none!important}}
+/* ── 商品画像・カタログPDF（自社商品アプリ ranking と同じ画像カード形式。クラス名は表の .cat-col 等と区別するため cg- で始める）── */
+.prod-thumb{width:34px;height:46px;object-fit:contain;background:#fff;border-radius:3px;cursor:zoom-in;display:block;box-shadow:0 1px 3px rgba(0,0,0,.2);flex:0 0 auto}
+.nc-flex{display:flex;gap:8px;align-items:center}
+.nc-body{min-width:0;flex:1 1 auto}
+@media(max-width:600px){.prod-thumb{width:44px;height:58px;align-self:flex-start}.nc-flex{align-items:flex-start}}
+#img-lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
+#img-lb.open{display:flex}
+#img-lb-img{max-width:90vw;max-height:90vh;min-width:min(70vw,500px);object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);cursor:zoom-out}
+.pdf-mini{font-size:11px;font-weight:600;color:#E85D26;background:#fff;border:1px solid #E85D26;border-radius:5px;padding:2px 9px;cursor:pointer;white-space:nowrap;align-self:center}
+.pdf-mini:hover{background:#fff3ec}
+@media(max-width:600px){.pdf-mini{display:none}}
+#catalog-modal{display:none;position:fixed;inset:0;z-index:10000;background:#cdd2d8;flex-direction:column}
+#catalog-modal.open{display:flex}
+.cg-toolbar{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 14px;background:#2c2c3a;color:#fff;flex-wrap:wrap}
+.cg-tb-l{display:flex;align-items:baseline;gap:10px}
+.cg-tb-l b{font-size:14px}
+.cg-tb-period{font-size:12px;color:#cfd3e0}
+.cg-tb-r{display:flex;align-items:center;gap:10px}
+.cg-tb-note{font-size:10px;color:#aeb3c2;max-width:280px;line-height:1.3}
+.cg-tb-print{background:#E85D26;color:#fff;border:none;border-radius:5px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer}
+.cg-tb-print:hover{background:#c94d1a}
+.cg-tb-print:disabled{opacity:.5;cursor:default}
+.cg-tb-close{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;padding:7px 12px;font-size:13px;cursor:pointer}
+.cg-tb-close:hover{background:rgba(255,255,255,.12)}
+.cg-scroll{flex:1 1 auto;overflow:auto;padding:16px;display:flex;justify-content:center;align-items:flex-start}
+#catalog-print{background:transparent}
+/* 横向きA4ページ。上部に全幅の見出し＋下部に2カラム。JSが列の高さを実測して分配する */
+.cg-page{width:281mm;height:194mm;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.2);box-sizing:border-box;margin:0 auto 16px;display:flex;flex-direction:column;overflow:hidden}
+.cg-cols{flex:1 1 auto;min-height:0;display:flex;gap:8mm}
+.cg-col{width:calc(50% - 4mm);height:100%;overflow:hidden;font-size:0}
+.cg-page>.cg-sec{margin:2px 0 6px;flex:0 0 auto}
+.cg-sec{font-size:14px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:3px;margin:10px 0 5px}
+.cg-sec-cnt{font-size:10px;font-weight:400;color:#888}
+.cg-sub{display:block;font-size:11px;font-weight:700;color:#555;background:#f1ece4;border-left:3px solid #E85D26;padding:2px 7px;margin-top:3px}
+.cg-sub-cnt{font-weight:400;font-size:9px;color:#999}
+/* CSS Gridはページ跨ぎの印刷描画が不安定（空白ページが出る）ため、印刷に強い inline-block 方式で並べる。font-size:0 で余白を消す */
+.cg-card{display:inline-block;width:10.7%;margin:0.2%;vertical-align:top;box-sizing:border-box;position:relative;border:1px solid #e2ddd4;border-radius:4px;padding:2px 2px 3px;text-align:center;background:#fff;color:#2c2c3a}
+.cg-rank{position:absolute;top:2px;left:2px;min-width:15px;height:15px;line-height:15px;padding:0 3px;border-radius:8px;font-size:9px;font-weight:700;color:#fff;background:#9a948c;box-shadow:0 1px 2px rgba(0,0,0,.25);z-index:1}
+.cg-rank.k1{background:#E85D26}.cg-rank.k2{background:#888}.cg-rank.k3{background:#a07040}
+.cg-rank.ko{background:#ece8e2;color:#8c867d;box-shadow:none;border:1px solid #ddd7cf;box-sizing:border-box;line-height:13px}
+.cg-imgbox{width:100%;aspect-ratio:5/7;display:flex;align-items:center;justify-content:center;margin:1px 0 2px}
+.cg-img{width:100%;height:100%;object-fit:contain}
+.cg-noimg{display:flex;align-items:center;justify-content:center;width:100%;height:100%;border:1px dashed #ddd7cf;border-radius:2px;box-sizing:border-box;font-size:6px;color:#b9b2a8;text-align:center}
+.cg-pname{font-size:6.5px;font-weight:600;line-height:1.12;height:15px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.cg-var{font-size:5.5px;line-height:1.15;height:6.5px;color:#7a746b;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cg-mk{display:block;font-size:5.5px;color:#7a746b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cg-line{margin-top:1px;text-align:center}
+.cg-code{display:block;font-family:monospace;font-size:5.5px;line-height:1.1;max-height:12.5px;overflow:hidden;word-break:break-all}
+.cg-price{display:block;font-size:6px;white-space:nowrap}
+.cg-qty,.cg-amt{margin-top:1px;border-radius:3px;padding:1px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.cg-qty{font-size:9px;font-weight:700}
+.cg-amt{font-size:6.5px;font-weight:600}
+.cg-wait{background:#fff;padding:40px 60px;border-radius:8px;font-size:14px;color:#555;box-shadow:0 4px 24px rgba(0,0,0,.2)}
+.cg-cover{padding:8mm 10mm;font-size:12px;color:#2c2c3a;-webkit-print-color-adjust:exact;print-color-adjust:exact;display:block}
+.cv-title{font-size:22px;font-weight:700}.cv-title small{font-size:12px;font-weight:400;color:#888;margin-left:8px}
+.cv-sub{font-size:12px;color:#666;margin:4px 0 12px;padding-bottom:6px;border-bottom:2.5px solid #E85D26}
+.cv-kpis{display:flex;gap:8px;margin:0 0 12px}
+.cv-kpi{flex:1;border:1px solid #e4dfd6;border-radius:6px;padding:8px 12px;background:#fbf9f5}
+.cv-kpi b{display:block;font-size:18px}.cv-kpi span{font-size:10px;color:#888}
+.cv-h{font-size:13px;font-weight:700;margin:6px 0;border-left:4px solid #E85D26;padding-left:7px}
+.cv-tbl{width:100%;border-collapse:collapse;font-size:10.5px}
+.cv-tbl th{background:#f1ece4;text-align:left;padding:3px 8px;border-bottom:1.5px solid #cfc7ba;font-size:10px}
+.cv-tbl td{padding:2.5px 8px;border-bottom:1px solid #eee6da}
+.cv-tbl .r{text-align:right}
+.cv-bar{height:6px;background:#eee6da;border-radius:3px;overflow:hidden;min-width:90px}.cv-bar i{display:block;height:100%;background:#E85D26}
+@media print{
+  @page{size:A4 landscape;margin:8mm}
+  body.catalog-open>*:not(#catalog-modal){display:none!important}
+  body.catalog-open{background:#fff!important}
+  /* モーダル/スクロールは flex だとページ分割されず1ページ目が空白になるため block 強制 */
+  #catalog-modal.open{position:static!important;display:block!important;background:#fff;overflow:visible!important;inset:auto!important}
+  .cg-scroll{overflow:visible!important;padding:0!important;display:block!important}
+  .cg-toolbar{display:none!important}
+  #catalog-print{width:auto;padding:0;box-shadow:none;background:#fff}
+  /* JSで分配済みの各 .cg-page を1枚ずつ印刷（高さは内容に合わせ、ページ間で改ページ） */
+  .cg-page{width:auto!important;height:auto!important;box-shadow:none!important;margin:0!important;break-after:page;break-inside:avoid}
+  .cg-page:last-child{break-after:auto}
+  .cg-cols{height:auto!important}
+  .cg-col{height:auto!important;overflow:visible!important}
+  .cg-card,.cg-sub,.cg-sec{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 </style>
 </head>
 <body>
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v126</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v127</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -546,6 +627,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
     <div class="sb-update-mobile"><button class="btn-block btn-ghost" onclick="openModal()">⬆ データ更新</button></div>
     <div class="sb-export">
       <button id="export-btn" class="btn-block btn-export" onclick="downloadCheckedGroups()" disabled>📥 選択してExcelダウンロード</button>
+      <button id="catalog-btn" class="btn-block btn-export" style="margin-top:6px" onclick="openCatalog()" disabled>🖼️ 選択してカタログPDF</button>
     </div>
   </aside>
 
@@ -573,6 +655,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
         <div class="cat-name" id="cat-name"></div>
         <div class="cat-rate" id="cat-rate"></div>
         <div class="cat-stats" id="cat-stats"></div>
+        <button class="pdf-mini" id="grp-pdf" onclick="openGroupCatalog()" title="今開いているメーカー（カテゴリ）をカタログPDFにします" style="display:none">🖼️ カタログPDF</button>
         <div class="col-tog" id="col-tog" style="display:none">
           <button class="col-tbtn" id="col-tog-maker" onclick="setListCol('maker')">メーカー</button>
           <button class="col-tbtn" id="col-tog-category" onclick="setListCol('category')">カテゴリ</button>
@@ -608,6 +691,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
       <div class="cat-hd">
         <div class="cat-name">検索結果</div>
         <div class="cat-stats" id="search-stats"></div>
+        <button class="pdf-mini" id="search-pdf" onclick="openSearchCatalog()" title="この検索結果をカタログPDFにします" style="display:none">🖼️ 検索結果をカタログPDF</button>
         <div class="col-tog" id="search-col-tog">
           <button class="col-tbtn" id="search-col-tog-maker" onclick="setSearchListCol('maker')">メーカー</button>
           <button class="col-tbtn" id="search-col-tog-category" onclick="setSearchListCol('category')">カテゴリ</button>
@@ -637,9 +721,24 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
   </main>
 </div>
 
+<div id="img-lb" onclick="closeLightbox()"><img id="img-lb-img" src="" alt=""></div>
+<div id="catalog-modal" role="dialog" aria-modal="true" aria-label="カタログプレビュー">
+  <div class="cg-toolbar">
+    <div class="cg-tb-l"><b>📖 カタログプレビュー</b><span id="catalog-period" class="cg-tb-period"></span></div>
+    <div class="cg-tb-r">
+      <span class="cg-tb-note" id="cg-load"></span>
+      <span class="cg-tb-note">※背景色を出すにはプリンタ設定で「背景のグラフィック」をONにしてください</span>
+      <button class="cg-tb-print" onclick="printCatalog()">🖨️ PDF保存（印刷）</button>
+      <button class="cg-tb-close" onclick="closeCatalog()">✕ 閉じる</button>
+    </div>
+  </div>
+  <div class="cg-scroll"><div id="catalog-print"></div></div>
+</div>
+
 <script>
   var _ver=((document.querySelector('.hd-sub span')||{}).textContent||'0').replace(/\D/g,'');
   document.write('<script src="data.js?v='+_ver+'"><\/script>');
+  document.write('<script src="image-index.js?v='+_ver+'"><\/script>');
 </script>
 <script>
 // ── データマージ ──────────────────────────────────────────
@@ -1476,6 +1575,8 @@ function hasCheckedLeaf(name){
 function updateExportBtns(){
   const eb=document.getElementById('export-btn');
   if(eb) eb.disabled=!exportChecks.size;
+  const cb=document.getElementById('catalog-btn');
+  if(cb) cb.disabled=!exportChecks.size;
 }
 function renderSidebar(){
   const list=document.getElementById('sb-list');
@@ -1842,6 +1943,7 @@ function sortItems(rows){
   return rows;
 }
 function showAllGroups(){
+  document.getElementById('grp-pdf').style.display='none';
   document.getElementById('cat-view').style.display='';
   document.getElementById('search-view').style.display='none';
   setOverviewVisible(true);
@@ -1869,6 +1971,7 @@ function showAllGroups(){
   renderOverview(groupMode==='category'?'全カテゴリ':'全メーカー', Object.keys(AGG));
 }
 function showGroup(g){
+  document.getElementById('grp-pdf').style.display='';
   document.getElementById('cat-view').style.display='';
   document.getElementById('search-view').style.display='none';
   document.getElementById('col-tog').style.display='none';
@@ -1989,7 +2092,7 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
     <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
     <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
     <td class="cc">${codeHtml(r.code)}</td>
-    <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" data-pid="${r.pid}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
+    <td class="nc"><div class="nc-flex">${thumbHtml(r.code)}<div class="nc-body"><div class="nc-row"><div class="nm" title="${x(r.name)}" data-pid="${r.pid}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></div></div></td>
     <td class="num price-col">¥${r.price.toLocaleString()}</td>
     <td class="num qty-col"${qtyStyle}>${r.qty.toLocaleString()}</td>
     ${cmpHtml}
@@ -2050,6 +2153,223 @@ function renderRankTableGroupedByCategory(rows, totalAmount){
   note.textContent = rows.length>count ? `上位${count}件を表示中（全${rows.length.toLocaleString()}件）` : '';
 }
 
+// ── 商品画像 ─────────────────────────────────────────────────────────────────
+// 一覧・カタログには軽いサムネ(thumbs/)を出し、クリックの拡大表示では原寸(images/)を読む。
+// image-index.js（IMG_INDEX: 画像キー→[原寸の幅,高さ]。tools/build-images.py --app supplier-ranking が生成）に無い商品は画像が無いので読みに行かない。
+// 画像キー = 商品番号を小文字にし、a-z 0-9 _ - 以外の文字を ~16進コードポイント~ に置き換えたもの（tools/import-image-zips.py の supplier_key と同じ規則）
+function imgKey(code){return String(code||'').trim().toLowerCase().replace(/[^a-z0-9_-]/gu,c=>'~'+c.codePointAt(0).toString(16)+'~');}
+function imgHas(code){return !!(window.IMG_INDEX&&window.IMG_INDEX[imgKey(code)]);}
+function imgFallback(el){
+  if(el.dataset.f!=='1'&&el.dataset.full){el.dataset.f='1';el.src=el.dataset.full;}   // サムネが無い → 原寸
+  else{el.onerror=null;el.style.visibility='hidden';}
+}
+function prodImgHtml(code,cls,extra){
+  if(!imgHas(code))return '';
+  const k=imgKey(code);
+  return `<img class="${cls}" src="thumbs/${k}.jpg" data-full="images/${k}.jpg" onerror="imgFallback(this)"${extra||''} loading="lazy" alt="">`;
+}
+function thumbHtml(code){return prodImgHtml(code,'prod-thumb',` onclick="if(this.naturalWidth>0)openLightbox(this.dataset.full||this.src)"`);}
+function openLightbox(src){document.getElementById('img-lb-img').src=src;document.getElementById('img-lb').classList.add('open');}
+function closeLightbox(){document.getElementById('img-lb').classList.remove('open');document.getElementById('img-lb-img').src='';}
+
+// ── カタログPDF（自社商品アプリ ranking と同じ画像カード形式）──────────────────
+// メーカー別表示ではメーカーごと、カテゴリ別表示では親カテゴリごとに新しいページから始め、中は小見出しで区切る。
+// カードは「個数/金額」の選択（rankMetric）どおりの順で、順位は小見出しごと。印刷はブラウザの印刷（PDF保存）を使う。
+function cgMetric(){return rankMetric==='amount'?'amount':'qty';}
+function cgRank(rows){
+  const m=cgMetric(),o=m==='amount'?'qty':'amount';
+  return [...rows].sort((a,b)=>(b[m]-a[m])||(b[o]-a[o])||(a.code<b.code?-1:a.code>b.code?1:0)).map((r,i)=>({...r,rank:i+1}));
+}
+function cgSum(rows){return {n:rows.length,qty:rows.reduce((s,r)=>s+r.qty,0),amount:rows.reduce((s,r)=>s+r.amount,0)};}
+// 選んだグループ名（メーカー名 or カテゴリ名）の一覧 → ページのまとまり。メーカー別: メーカー→カテゴリ、カテゴリ別: 親カテゴリ→小分類
+function cgGroupsOf(keys){
+  const m=cgMetric(),groups=[],used=new Set();
+  for(const k of keys){
+    if(used.has(k)||!AGG[k])continue;
+    let name=k,subs;
+    if(groupMode==='category'){
+      const mg=MACRO_GROUPS.find(g=>g.cats.includes(k));
+      const members=mg?keys.filter(c=>mg.cats.includes(c)&&AGG[c]):[k];
+      members.forEach(c=>used.add(c));
+      if(mg)name=mg.name;
+      subs=members.map(c=>({label:c,rows:cgRank(itemRows(AGG[c].items))}));
+    }else{
+      used.add(k);
+      const by=new Map();
+      itemRows(AGG[k].items).forEach(r=>{if(!by.has(r.category))by.set(r.category,[]);by.get(r.category).push(r);});
+      subs=[...by.entries()].map(([c,rows])=>({label:c,rows:cgRank(rows)}));
+    }
+    subs=subs.filter(s=>s.rows.length).sort((a,b)=>cgSum(b.rows)[m]-cgSum(a.rows)[m]);
+    const all=subs.flatMap(s=>s.rows);
+    groups.push({name,subs,...cgSum(all)});
+  }
+  return groups.sort((a,b)=>b[m]-a[m]);
+}
+function cgHeat(val,maxVal){
+  if(!maxVal||!val)return {bg:'#ffffff',light:true};
+  const r=Math.min(val/maxVal,1);
+  return {bg:`rgb(${Math.round(232+23*(1-r))},${Math.round(93+150*(1-r))},${Math.round(38+200*(1-r))})`,light:r<=0.5};
+}
+function cgCardHtml(it,maxV,showMaker){
+  const m=cgMetric();
+  const heat=cgHeat(it[m],maxV);
+  const hs=`background:${heat.bg};color:${heat.light?'#7a3a16':'#fff'}`;
+  const rankCls=it.rank<=3?('k'+it.rank):'ko';
+  return `<div class="cg-card">
+          <div class="cg-rank ${rankCls}">${it.rank}</div>
+          <div class="cg-imgbox">${imgHas(it.code)?prodImgHtml(it.code,'cg-img',''):'<span class="cg-noimg">画像なし</span>'}</div>
+          <div class="cg-pname">${x(it.name)}</div>
+          <div class="cg-var">${x(it.varName||'')}</div>
+          <div class="cg-line">${showMaker?`<span class="cg-mk">${x(it.maker)}</span>`:''}<span class="cg-code">${x(it.code)}</span><span class="cg-price">¥${(it.price||0).toLocaleString()}</span></div>
+          <div class="cg-qty" style="${m==='qty'?hs:''}">${it.qty.toLocaleString()}個</div>
+          <div class="cg-amt" style="${m==='amount'?hs:''}">¥${Math.round(it.amount).toLocaleString()}</div>
+        </div>`;
+}
+function cgSecHtml(icon,label,n,qty,amount){
+  return `<div class="cg-sec">${icon} ${x(label)} <span class="cg-sec-cnt">(${n.toLocaleString()}種 ／ ${qty.toLocaleString()}個 ／ ¥${Math.round(amount).toLocaleString()})</span></div>`;
+}
+function cgSubHtml(label,rows){
+  const s=cgSum(rows);
+  return `<div class="cg-sub">▌ ${x(label)} <span class="cg-sub-cnt">(${s.n}種 ／ ${s.qty.toLocaleString()}個)</span></div>`;
+}
+// 1つのまとまり（見出し・小見出し・カード）→ ブロック配列
+function cgBlocks(sec,subs,showMaker,multiSub){
+  const m=cgMetric(),blocks=[{type:'sec',html:sec}];
+  for(const s of subs){
+    if(!s.rows.length)continue;
+    if(multiSub)blocks.push({type:'sub',html:cgSubHtml(s.label,s.rows)});
+    const maxV=s.rows.reduce((a,r)=>Math.max(a,r[m]),1);
+    for(const r of s.rows)blocks.push({type:'card',html:cgCardHtml(r,maxV,showMaker)});
+  }
+  return blocks;
+}
+// 表紙（販売数のまとめ）: 期間・店舗・合計と、グループごとの種数・個数・金額・構成比。行が多いときは続きのページに分ける
+function cgCoverBlocks(groups,periodStr){
+  const tq=groups.reduce((s,g)=>s+g.qty,0),ta=groups.reduce((s,g)=>s+g.amount,0),tn=groups.reduce((s,g)=>s+g.n,0);
+  const st=document.getElementById('f-store').value;
+  const allAmt=ALL_TOTAL.amount||1,maxA=Math.max(...groups.map(g=>g.amount),1);
+  const unit=groupMode==='category'?'カテゴリ':'メーカー';
+  const row=g=>`<tr><td><b>${x(g.name)}</b></td><td class="r">${g.n.toLocaleString()}</td><td class="r">${g.qty.toLocaleString()}</td><td class="r">¥${Math.round(g.amount).toLocaleString()}</td><td><div class="cv-bar"><i style="width:${Math.round(Math.max(g.amount,0)/maxA*100)}%"></i></div><small style="color:#888">${(g.amount/allAmt*100).toFixed(1)}%</small></td></tr>`;
+  const tblHead=`<table class="cv-tbl"><thead><tr><th>${unit}</th><th class="r">種数</th><th class="r">個数</th><th class="r">税抜金額</th><th>構成比（金額）</th></tr></thead><tbody>`;
+  const head=`<div class="cv-title">EC事業部 販売データ：仕入れ商品<small>カタログ</small></div>
+    <div class="cv-sub">${x(periodStr)}　／　${st==='all'?'すべての店舗':x(st)}　／　${rankMetric==='amount'?'金額順':'個数順'}</div>
+    <div class="cv-kpis"><div class="cv-kpi"><b>${tq.toLocaleString()} 個</b><span>個数</span></div><div class="cv-kpi"><b>¥${Math.round(ta).toLocaleString()}</b><span>税抜金額</span></div><div class="cv-kpi"><b>${tn.toLocaleString()} 種</b><span>SKU数</span></div><div class="cv-kpi"><b>${(ta/allAmt*100).toFixed(1)}%</b><span>全体（金額）に占める割合</span></div></div>
+    <div class="cv-h">${unit}別 販売数</div>`;
+  const out=[],FIRST=12,NEXT=18;   // 1ページに収まる行数（行の高さ約29px）
+  let i=0,first=true;
+  while(i<groups.length||first){
+    const n=first?FIRST:NEXT,part=groups.slice(i,i+n);
+    out.push({type:'cover',html:`<div>${first?head:`<div class="cv-h">${unit}別 販売数（続き）</div>`}${tblHead}${part.map(row).join('')}</tbody></table></div>`});
+    i+=n;first=false;
+  }
+  return out;
+}
+function cgPaginate(blocks,container){
+  container.innerHTML='';
+  const tpl=document.createElement('div');
+  let page=null,cols=null,col=null,colIdx=0,curTitle=null;
+  const makeNode=h=>{tpl.innerHTML=h;return tpl.firstElementChild;};
+  const newCol=()=>{col=document.createElement('div');col.className='cg-col';cols.appendChild(col);};
+  const newPage=t=>{
+    page=document.createElement('div');page.className='cg-page';container.appendChild(page);
+    if(t)page.appendChild(makeNode(t));
+    cols=document.createElement('div');cols.className='cg-cols';page.appendChild(cols);
+    colIdx=0;newCol();
+  };
+  const advance=()=>{if(colIdx===0){colIdx=1;newCol();}else newPage(curTitle);};
+  const place=html=>{                                  // 追加し、列からあふれたら次カラムへ折り返す
+    const node=makeNode(html);
+    col.appendChild(node);
+    if(col.scrollHeight>col.clientHeight+1){
+      col.removeChild(node);
+      let orphan=null;                                 // 直前の小見出しが列末で孤立しないよう一緒に送る
+      const last=col.lastElementChild;
+      if(last&&last.classList.contains('cg-sub')){orphan=last;col.removeChild(last);}
+      advance();
+      if(orphan)col.appendChild(orphan);
+      col.appendChild(node);
+    }
+  };
+  for(const b of blocks){
+    if(b.type==='cover'){
+      const pg=document.createElement('div');pg.className='cg-page cg-cover';container.appendChild(pg);
+      pg.appendChild(makeNode(b.html));
+      page=null;curTitle=null;
+    }else if(b.type==='sec'){
+      curTitle=b.html;newPage(curTitle);               // まとまりごとに新ページ＋両カラムを突き抜ける全幅の見出し
+    }else{
+      if(!page)newPage(curTitle);
+      place(b.html);
+    }
+  }
+}
+let CG_SEQ=0;
+function cgPeriodStr(){
+  const f=document.getElementById('f-date-from').value||PRELOADED.date_from,t=document.getElementById('f-date-to').value||PRELOADED.date_to;
+  const fmt=d=>{const p=(d||'').split('-');return p.length===3?p[0]+'年'+parseInt(p[1])+'月'+parseInt(p[2])+'日':'';};
+  return fmt(f)+' 〜 '+fmt(t);
+}
+// プレビューを開く（ブロックを2カラムのA4横ページに分配し、画像の読み込みを待ってから印刷できるようにする）
+function showCatalog(blocks){
+  document.getElementById('catalog-period').textContent=cgPeriodStr();
+  document.getElementById('catalog-modal').classList.add('open');
+  document.body.classList.add('catalog-open');
+  const cont=document.getElementById('catalog-print');
+  cont.innerHTML='<div class="cg-wait">カタログを作成しています…</div>';
+  const pb=document.querySelector('.cg-tb-print');if(pb)pb.disabled=true;
+  const seq=++CG_SEQ;
+  // モーダルを開いてレイアウトを確定させてから、列の高さを実測してページ分配する
+  setTimeout(()=>{
+    if(seq!==CG_SEQ)return;
+    cgPaginate(blocks,cont);
+    cgWaitImages(seq);
+  },30);
+}
+// 画像の読み込みが終わるまで印刷ボタンを使えなくする（読み込み前に印刷して画像が抜けるのを防ぐ。最大20秒）
+function cgWaitImages(seq){
+  const imgs=[...document.querySelectorAll('#catalog-print img')];
+  imgs.forEach(i=>{i.loading='eager';});
+  const note=document.getElementById('cg-load'),pb=document.querySelector('.cg-tb-print');
+  const total=imgs.length;let done=0,finished=false;
+  const fin=()=>{if(seq!==CG_SEQ||finished)return;finished=true;if(pb)pb.disabled=false;note.textContent='';};
+  if(!total){fin();return;}
+  const timer=setTimeout(fin,20000);
+  const tick=()=>{done++;if(seq!==CG_SEQ)return;if(done>=total){clearTimeout(timer);fin();}else note.textContent=`画像を読み込み中 ${done}/${total}`;};
+  note.textContent=`画像を読み込み中 0/${total}`;
+  imgs.forEach(img=>{if(img.complete)tick();else{img.addEventListener('load',tick,{once:true});img.addEventListener('error',tick,{once:true});}});
+}
+// 選んだメーカー（カテゴリ）のカタログ。複数選んだときは先頭に販売数のまとめ（表紙）を付ける
+function openCatalog(keysArg){
+  const keys=Array.isArray(keysArg)?keysArg:[...exportChecks];
+  const groups=cgGroupsOf(keys);
+  if(!groups.length){alert(groupMode==='category'?'カテゴリーを選択してください。':'メーカーを選択してください。');return;}
+  const blocks=groups.length>1?cgCoverBlocks(groups,cgPeriodStr()):[];
+  const icon=groupMode==='category'?'📦':'🏭';
+  for(const g of groups)blocks.push(...cgBlocks(cgSecHtml(icon,g.name,g.n,g.qty,g.amount),g.subs,groupMode==='category',g.subs.length>1));
+  showCatalog(blocks);
+}
+// 今開いているメーカー／カテゴリ（親カテゴリなら中の小分類すべて）のカタログ
+function openGroupCatalog(){
+  if(!currentGroup){alert(groupMode==='category'?'カテゴリーを選択してください。':'メーカーを選択してください。');return;}
+  openCatalog(getGroupCats(currentGroup)||[currentGroup]);
+}
+// 検索結果のカタログ（画面の検索結果と同じ商品。カテゴリごとに区切り、カテゴリの合計が大きい順・小見出しごとに順位）
+function openSearchCatalog(){
+  const S=window._lastSearch;
+  if(!S||!S.rows.length){alert('検索結果がありません。');return;}
+  const m=cgMetric(),by=new Map();
+  S.rows.forEach(r=>{if(!by.has(r.category))by.set(r.category,[]);by.get(r.category).push(r);});
+  const subs=[...by.entries()].map(([c,rows])=>({label:c,rows:cgRank(rows)})).sort((a,b)=>cgSum(b.rows)[m]-cgSum(a.rows)[m]);
+  const t=cgSum(S.rows);
+  showCatalog(cgBlocks(cgSecHtml('🔍','検索結果「'+S.q+'」',t.n,t.qty,t.amount),subs,true,subs.length>1));
+}
+function closeCatalog(){
+  CG_SEQ++;
+  document.getElementById('catalog-modal').classList.remove('open');
+  document.body.classList.remove('catalog-open');
+}
+function printCatalog(){window.print();}
+
 // ── 検索 ──────────────────────────────────────────────────
 function clearSearch(){
   searchQuery='';
@@ -2074,6 +2394,8 @@ function renderSearch(){
     });
   });
   document.getElementById('search-stats').innerHTML=`<span class="cs">一致件数 <b>${rows.length}</b> 件</span>`;
+  window._lastSearch={q:searchQuery,rows};       // 検索結果のカタログPDF用
+  document.getElementById('search-pdf').style.display=rows.length?'':'none';
   const searchNote=document.getElementById('search-note');
   const colspan=7;
   refreshVisibleTableWidth();
@@ -2088,7 +2410,7 @@ function renderSearch(){
       <td class="rank-col">${rankHtml}</td>
       <td class="mk-col"><span class="ct">${makerHtml(r.maker)}</span></td>
       <td class="cc">${codeHtml(r.code)}</td>
-      <td class="nc"><div class="nc-row"><div class="nm" title="${x(r.name)}" data-pid="${r.pid}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></td>
+      <td class="nc"><div class="nc-flex">${thumbHtml(r.code)}<div class="nc-body"><div class="nc-row"><div class="nm" title="${x(r.name)}" data-pid="${r.pid}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></div></div></td>
       <td class="num price-col">¥${r.price.toLocaleString()}</td>
       <td class="num qty-col">${r.qty.toLocaleString()}</td>
       <td class="num amt-col">¥${Math.round(r.amount).toLocaleString()}</td>
@@ -2149,6 +2471,8 @@ function closeModal(){
 // Esc: データ更新モーダル → サイドバードロワー の順で開いているものを閉じる
 document.addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
+  if(document.getElementById('img-lb').classList.contains('open'))return closeLightbox();
+  if(document.getElementById('catalog-modal').classList.contains('open'))return closeCatalog();
   if(document.getElementById('modal').classList.contains('show'))return closeModal();
   if(document.querySelector('.sb.open'))document.getElementById('sb-overlay').click();
 });

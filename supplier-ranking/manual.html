@@ -117,6 +117,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li><a href="#storesplit">店舗別の内訳を見る</a></li>
       <li><a href="#search">商品を検索する</a></li>
       <li><a href="#excel">Excelでダウンロードする</a></li>
+      <li><a href="#catalog">商品画像とカタログPDF</a></li>
       <li><a href="#upload">販売データを追加する（データ更新）</a></li>
       <li><a href="#sister">自社商品アプリに切り替える</a></li>
       <li><a href="#mobile">スマホでの表示と便利機能</a></li>
@@ -445,6 +446,34 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <li>見出し行には<strong>オートフィルタ</strong>が設定済みで、開いてすぐ並べ替え・絞り込みができます</li>
       <li>商品番号・商品名の列幅は内容に合わせて自動調整されます</li>
     </ul>
+  </div>
+
+  <!-- 商品画像・カタログPDF -->
+  <div class="section" id="catalog">
+    <div class="section-hdr">
+      <div class="step-badge">★</div>
+      <h2>商品画像とカタログPDF</h2>
+    </div>
+    <p>商品画像が登録されている商品は、一覧の商品名の横に<strong>小さな画像</strong>が出ます（クリックで拡大）。画像つきの<strong>カタログ形式のPDF</strong>も出力できます（自社商品アプリと同じ形式です）。</p>
+    <h3>出し方（3か所）</h3>
+    <ul class="step-list">
+      <li><span class="txt"><strong>選んだメーカー（カテゴリ）</strong>：サイドバーのチェックボックスにチェックを入れ、サイドバー下部の <strong>「🖼️ 選択してカタログPDF」</strong> を押します</span></li>
+      <li><span class="txt"><strong>今開いているメーカー（カテゴリ）</strong>：見出しの横の <strong>「🖼️ カタログPDF」</strong> を押します（親カテゴリを開いているときは中の小分類すべて）</span></li>
+      <li><span class="txt"><strong>検索結果</strong>：検索結果の見出しの横の <strong>「🖼️ 検索結果をカタログPDF」</strong> を押します（画面の検索結果と同じ商品が出ます）</span></li>
+    </ul>
+    <p>プレビューが開いたら、右上の <strong>「PDF保存（印刷）」</strong> を押し、印刷ダイアログで <strong>「PDFとして保存」</strong>（用紙サイズ A4・「背景のグラフィック」オン）を選びます。画像の読み込み中は印刷ボタンが押せません（最大20秒）。</p>
+    <h3>カタログの形</h3>
+    <ul>
+      <li><strong>メーカー別表示</strong>のときはメーカーごと、<strong>カテゴリ別表示</strong>のときは親カテゴリごとに新しいページから始まり、中は小見出し（カテゴリ／小分類）で区切られます</li>
+      <li>カードは、画面で選んでいる<strong>「個数順／金額順」</strong>の順に並び、順位は小見出しごとに付きます（1〜3位は金・銀・銅色）。カードには画像・商品名・項目（色など）・商品番号・単価・個数・金額が入ります</li>
+      <li>画像がまだ登録されていない商品は、枠の中に薄く「画像なし」と出ます</li>
+      <li>メーカー（カテゴリ）を<strong>2つ以上</strong>選んだときは、先頭に<strong>販売数のまとめ（表紙）</strong>が付きます（期間・店舗・個数・金額・SKU数と、メーカー別／カテゴリ別の表）。仕入金額は載せません</li>
+      <li>期間と店舗は、画面で選んでいるものがそのまま使われます</li>
+    </ul>
+    <div class="note">
+      <strong>画像の追加について</strong><br>
+      画像は楽天の商品データ（CSV）から取り込みます（管理者向けの手順は <code>CLAUDE.md</code> を参照）。取り込まれていない商品は「画像なし」のままです。
+    </div>
   </div>
 
   <!-- 12. データ更新 -->

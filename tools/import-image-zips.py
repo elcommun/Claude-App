@@ -3,6 +3,7 @@
 
   python3 tools/import-image-zips.py ranking_images_1.zip ranking_images_2.zip ...
   python3 tools/import-image-zips.py --keep-existing x.zip  # すでにある画像は置き換えずに飛ばす（既定は新しい画像に置き換える）
+  python3 tools/import-image-zips.py --app supplier-ranking x.zip  # メーカー販売データ（supplier-ranking/）の画像
 
 - ファイル名は次のどれかを受け付け、すべて「品番のハイフンをアンダースコアにしたもの.jpg」（大文字）で保存する
     ・CLB_1210.jpg（すでにその形）
@@ -16,14 +17,16 @@
 - 画像として読めないもの・JPEGでないものは取り込まない。長辺が800pxを超えるものは800pxに縮小する
 - 品番が商品マスタ（ranking/data.js）に無いもの（まだ売れていない商品）も取り込む。件数と一覧は必ず表示する。
   販売データに登録されたら、アプリが自動でその品番の画像を表示する（画像の一覧 image-index.js に入っているため）
-- 取り込んだあとは python3 tools/build-images.py を実行し、ranking/index.html のバージョンを上げること
+- メーカー販売データ（--app supplier-ranking）: ZIP内のファイル名は rakuten-image-dl の「メーカー販売データ用」が付けたもの
+  （商品番号を小文字にし、a-z 0-9 _ - 以外の文字を ~16進コードポイント~ に置き換えた名前。例: cocochi-no1-9-no.1-9 → cocochi-no1-9-no~2e~1-9）。
+  そのまま supplier-ranking/images/ に保存する（名前が規則に合わないものは取り込まない）。マスタ = supplier-ranking/data.js の商品番号
+- 取り込んだあとは python3 tools/build-images.py（メーカーは --app supplier-ranking を付ける）を実行し、ranking/index.html のバージョンを上げること
 """
 import argparse, io, json, os, re, sys, zipfile
 from PIL import Image, ImageOps
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-IMG_DIR = os.path.join(ROOT, 'ranking', 'images')
-THUMB_DIR = os.path.join(ROOT, 'ranking', 'thumbs')
+IMG_DIR = THUMB_DIR = None   # main() で --app に合わせて決める
 EXT_RE = re.compile(r'\.jpe?g$', re.I)
 
 
@@ -39,7 +42,23 @@ def code_key(stem):
 MAX_SIDE = 800
 
 
-def master_keys():
+def supplier_key(code):
+    """メーカー販売データの商品番号 → 画像のファイル名（拡張子なし）。小文字にし、a-z 0-9 _ - 以外は ~16進コードポイント~ にする
+    （アプリ側の imgKey と同じ規則。日本語や . を含む商品番号でもファイル名にできる）"""
+    return ''.join(c if re.fullmatch(r'[a-z0-9_-]', c) else '~%x~' % ord(c) for c in code.strip().lower())
+
+
+def supplier_stem_key(stem):
+    """ZIP内のファイル名（拡張子なし）が supplier_key の規則に合っていればそのまま返す。合わなければ None"""
+    s = stem.strip()
+    return s if re.fullmatch(r'[a-z0-9_~-]+', s) else None
+
+
+def master_keys(app='ranking'):
+    if app == 'supplier-ranking':
+        t = open(os.path.join(ROOT, 'supplier-ranking', 'data.js'), encoding='utf-8').read()
+        d = json.JSONDecoder().raw_decode(t[t.index('{', t.index('PRELOADED')):])[0]
+        return {supplier_key(p[3]) for p in d['products'].values() if p[3]}
     t = open(os.path.join(ROOT, 'ranking', 'data.js'), encoding='utf-8').read()
     d = json.JSONDecoder().raw_decode(t[t.index('{'):])[0]
     return {c.replace('-', '_') for c in d['products']}
@@ -49,9 +68,15 @@ def main():
     ap = argparse.ArgumentParser(description='画像ZIPを ranking/images/ に取り込む')
     ap.add_argument('zips', nargs='+')
     ap.add_argument('--keep-existing', action='store_true', help='すでにある画像は置き換えずに飛ばす（既定は置き換える）')
+    ap.add_argument('--app', default='ranking', choices=['ranking', 'supplier-ranking'], help='対象のアプリ（既定: ranking）')
     args = ap.parse_args()
+    global IMG_DIR, THUMB_DIR
+    IMG_DIR = os.path.join(ROOT, args.app, 'images')
+    THUMB_DIR = os.path.join(ROOT, args.app, 'thumbs')
+    os.makedirs(IMG_DIR, exist_ok=True)
+    to_key = supplier_stem_key if args.app == 'supplier-ranking' else code_key
 
-    master = master_keys()
+    master = master_keys(args.app)
     added, skipped, bad, resized, unknown, badname, renamed, conflict, replaced, same = [], [], [], [], [], [], [], [], [], []
     seen = {}
     for zp in args.zips:
@@ -65,7 +90,7 @@ def main():
                 if not EXT_RE.search(base):
                     badname.append(info.filename)
                     continue
-                key = code_key(os.path.splitext(base)[0])
+                key = to_key(os.path.splitext(base)[0])
                 if not key:
                     badname.append(info.filename)
                     continue
@@ -127,7 +152,7 @@ def main():
         print('❌', f, e)
     for f in badname[:10]:
         print('❌ 名前が不正:', f)
-    print('次: python3 tools/build-images.py を実行 → ranking/index.html のバージョンを上げる')
+    print('次: python3 tools/build-images.py' + (' --app supplier-ranking' if args.app == 'supplier-ranking' else '') + ' を実行 → ' + args.app + '/index.html のバージョンを上げる')
     return 1 if (bad or badname or conflict) else 0
 
 
