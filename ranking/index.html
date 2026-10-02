@@ -555,13 +555,22 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
   body.hd-bottom .sbi-l1{padding-left:14px;padding-right:22px}
   body.hd-bottom .sbi-l2{padding-left:14px;padding-right:36px}
 }
+/* ── スマホ: 引っ張って更新の表示 ── */
+#ptr{position:fixed;left:50%;top:0;z-index:9000;transform:translate(-50%,-12px);opacity:0;pointer-events:none;display:flex;align-items:center;gap:8px;background:#fff;color:#444;border:1px solid #e4dfd6;border-radius:999px;padding:7px 15px;font-size:12px;font-weight:700;box-shadow:0 2px 10px rgba(0,0,0,.2);white-space:nowrap}
+#ptr .ptr-ic{display:inline-block;width:14px;height:14px;line-height:14px;text-align:center;font-style:normal;transition:transform .15s}
+#ptr .ptr-ic::before{content:'↓';font-size:14px;font-weight:700;color:#E85D26}
+#ptr.ready .ptr-ic{transform:rotate(180deg)}
+#ptr.busy .ptr-ic{border:2px solid #E85D26;border-top-color:transparent;border-radius:50%;animation:ptrspin .7s linear infinite}
+#ptr.busy .ptr-ic::before{content:''}
+@keyframes ptrspin{to{transform:rotate(360deg)}}
+@media print{#ptr{display:none!important}}
 </style>
 </head>
 <body>
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v273</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v274</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -4551,6 +4560,90 @@ document.getElementById('boot')?.remove();
     document.addEventListener('mouseup',onUp);
   });
 })();
+// ── スマホ: 画面を下に引っ張って更新（プル・トゥ・リフレッシュ）──────────────────
+// .main だけがスクロールする作りで overscroll-behavior も指定しているため、ブラウザ標準の引っ張って更新は働かない。
+// 画面幅600px以下で、.main が一番上のときだけ、下に引っ張って離すと読み直す。
+// 読み直す前に data.js / image-index.js を「変更があれば取り直す」形で取得し、更新直後に古いデータが残らないようにする。
+(function(){
+  const main=document.querySelector('.main');
+  if(!main) return;
+  const bar=document.createElement('div');
+  bar.id='ptr'; bar.setAttribute('aria-live','polite');
+  bar.innerHTML='<i class="ptr-ic"></i><span class="ptr-tx">引っ張って更新</span>';
+  document.body.appendChild(bar);
+  const tx=bar.querySelector('.ptr-tx');
+  const TH=90;                                  // 離したときに更新する引っ張り量（px）
+  // 引っ張りを始めない場所: 画像（押したまま下にスライドするプレビュー用）・グラフ・入力欄・選択合計
+  const BLOCK='.prod-thumb,.tc-body,.sp-body,input,select,textarea,#sel-sum';
+  // サイドメニュー・モーダル・拡大表示・カタログが開いているとき、入力中のときも始めない
+  const OPEN='.sb.open,.modal-bg.show,#img-lb.open,#catalog-modal.open';
+  const isPhone=()=>window.innerWidth<=600;
+  let sy=0,sx=0,dy=0,active=false,armed=false,busy=false;
+  const place=(y)=>{bar.style.transform='translate(-50%,'+y+'px)';};
+  function show(dist){
+    bar.style.transition='none';
+    bar.style.opacity=String(Math.min(dist/50,1));
+    place(-12+Math.min(dist*0.5,44));
+    bar.classList.toggle('ready',dist>=TH);
+    tx.textContent=dist>=TH?'離して更新':'引っ張って更新';
+  }
+  function hide(){
+    bar.style.transition='opacity .2s,transform .2s';
+    bar.style.opacity='0'; place(-12);
+    bar.classList.remove('ready','busy');
+  }
+  async function refresh(){
+    busy=true;
+    bar.style.transition='opacity .15s,transform .15s';
+    bar.style.opacity='1'; place(30);
+    if(navigator.onLine===false){
+      bar.classList.remove('ready'); tx.textContent='オフラインです';
+      setTimeout(()=>{hide();busy=false;},1800);
+      return;
+    }
+    bar.classList.remove('ready'); bar.classList.add('busy'); tx.textContent='更新中…';
+    try{
+      const urls=[...document.scripts].map(s=>s.src).filter(u=>/\/(data|image-index)\.js(\?|$)/.test(u));
+      await Promise.race([
+        Promise.allSettled(urls.map(u=>fetch(u,{cache:'no-cache'}))),
+        new Promise(r=>setTimeout(r,8000))
+      ]);
+    }catch(e){}
+    location.replace(location.pathname+'?_v='+Date.now());
+  }
+  function cancel(){active=false;armed=false;hide();}
+  document.addEventListener('touchstart',e=>{
+    active=false; armed=false; dy=0;
+    if(busy||!isPhone()||e.touches.length!==1) return;
+    if(!e.target.closest('.main')||main.scrollTop>0) return;
+    if(e.target.closest(BLOCK)||document.querySelector(OPEN)) return;
+    const a=document.activeElement;
+    if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+    const t=e.touches[0]; sy=t.clientY; sx=t.clientX; active=true;
+    bar.style.top=(main.getBoundingClientRect().top+8)+'px';
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!active) return;
+    if(e.touches.length!==1||main.scrollTop>0){cancel();return;}
+    const t=e.touches[0]; dy=t.clientY-sy; const dx=t.clientX-sx;
+    if(!armed){
+      if(dy<0||(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>10)){active=false;return;}  // 上へのスクロール・横の動きは対象外
+      if(dy<12) return;
+      armed=true;
+    }
+    e.preventDefault();                                   // 引っ張りが確定してから、ゴムのような伸びを止める
+    show(dy);
+  },{passive:false});
+  const end=()=>{
+    if(!active) return;
+    const go=armed&&dy>=TH&&main.scrollTop<=0;
+    active=false;
+    if(go) refresh(); else if(armed){armed=false;hide();}
+  };
+  document.addEventListener('touchend',end,{passive:true});
+  document.addEventListener('touchcancel',()=>{if(active)cancel();},{passive:true});
+})();
+
 // Auto-update: バージョン確認は先頭64KBのみ取得（本体は約7MBあり全取得は重いため）。
 // バージョン番号のspanは約25KB目にあるため64KBで確実に含まれる。
 // Rangeが無視された場合も従来通り全文取得にフォールバックするため安全。
