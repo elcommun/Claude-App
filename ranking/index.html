@@ -593,7 +593,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v312</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v313</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1017,7 +1017,11 @@ const DIARY_FORMATS=[
 ];
 function getDiaryFormat(code){for(const f of DIARY_FORMATS){if(code.includes(f.prefix))return f.name;}return 'その他';}
 function getCalendarFormat(code,name){if(/卓上/.test(code)||/卓上/.test(name))return '卓上';if(/壁掛け/.test(code)||/壁掛け/.test(name))return '壁掛け';return 'その他';}
+// 全商品を横断する「TOP100」表示（リロードした初期画面）。実カテゴリではなく特別な表示名
+const ALL_TOP_NAME='全商品 TOP100', ALL_TOP_N=100;
+function isAllTop(cat){return cat===ALL_TOP_NAME;}
 function getCatType(cat){
+  if(isAllTop(cat))return null;
   const rc=getGroupCats(cat)||[cat];
   const hg=CAT_GROUPS.find(g=>g.name==='手帳'), cg=CAT_GROUPS.find(g=>g.name==='カレンダー');
   if(rc.some(c=>hg.match(c)))return '手帳';
@@ -1037,6 +1041,7 @@ function getGroupCats(displayName){
 }
 // getGroupCats と同じ区分で、指定した集計（前期・前々期・今期1年など）に含まれる実カテゴリを返す
 function catsIn(displayName,agg){
+  if(isAllTop(displayName)) return Object.keys(agg);
   for(const g of CAT_GROUPS){
     if(displayName===g.name) return Object.keys(agg).filter(c=>g.match(c));
     for(const s of g.subs){
@@ -1107,7 +1112,7 @@ function buildYearEqSCIdx(currentAgg,compAgg,yearOffset){
   }
   return idx;
 }
-const CAT_ICONS={'手帳':'📔','カレンダー':'📆','手帳:1月始まり':'🗓️','手帳:4月始まり':'🌸','手帳:10月始まり':'🍂','ブックカバー':'📖','レターセット':'✉️','ランチサック・巾着':'👝','ランチポーチ':'🍙','ボトルバッグ':'🥤','ランチクロス':'🧣','保冷ショッピングバッグ':'🛒','保冷ショッピングバックパック':'🎒','ペンケース':'✏️','ブックマーク':'🔖','メッセージカード':'💌','ぽち袋・金封':'🧧','ポーチ・ケース':'👜','ノート':'📓','ステッカー・シール':'⭐','メガネケース':'👓','マスキングテープ':'📏','スタンプ':'📮','メモ':'📋','マウスパッド':'🖱️','ふせん':'📌','ポスター':'🎨','下敷き':'📐','ボールペン':'🖊️','バッグ類':'🛍️','掛け時計':'🕐','置き時計':'⏰','ランチボックス':'🍱','ランチバッグ':'🎒','キーリング':'🗝️','エコバッグ':'🌿','箸セット':'🥢','タグ':'🎟️','ギフトタグ':'🎁','クリアファイル':'📂','他カバー系':'🗂️','食器':'🍽️','ハンカチクロス':'🎗️','コースター他':'☕','アウトドア':'⛺','ブランケット':'🧣','ライトスポーツ':'🪁','デスクトップ':'🗃️','ネオンライト':'💡'};
+const CAT_ICONS={'全商品 TOP100':'🏆','手帳':'📔','カレンダー':'📆','手帳:1月始まり':'🗓️','手帳:4月始まり':'🌸','手帳:10月始まり':'🍂','ブックカバー':'📖','レターセット':'✉️','ランチサック・巾着':'👝','ランチポーチ':'🍙','ボトルバッグ':'🥤','ランチクロス':'🧣','保冷ショッピングバッグ':'🛒','保冷ショッピングバックパック':'🎒','ペンケース':'✏️','ブックマーク':'🔖','メッセージカード':'💌','ぽち袋・金封':'🧧','ポーチ・ケース':'👜','ノート':'📓','ステッカー・シール':'⭐','メガネケース':'👓','マスキングテープ':'📏','スタンプ':'📮','メモ':'📋','マウスパッド':'🖱️','ふせん':'📌','ポスター':'🎨','下敷き':'📐','ボールペン':'🖊️','バッグ類':'🛍️','掛け時計':'🕐','置き時計':'⏰','ランチボックス':'🍱','ランチバッグ':'🎒','キーリング':'🗝️','エコバッグ':'🌿','箸セット':'🥢','タグ':'🎟️','ギフトタグ':'🎁','クリアファイル':'📂','他カバー系':'🗂️','食器':'🍽️','ハンカチクロス':'🎗️','コースター他':'☕','アウトドア':'⛺','ブランケット':'🧣','ライトスポーツ':'🪁','デスクトップ':'🗃️','ネオンライト':'💡'};
 // Large category groupings (drill-down in sidebar, below 手帳/カレンダー)
 const MACRO_GROUPS=[
   {name:'ステーショナリー',icon:'📝',cats:['ブックカバー','レターセット','ペンケース','ブックマーク','メッセージカード','ぽち袋・金封','ノート','ステッカー・シール','マスキングテープ','スタンプ','メモ','ふせん','下敷き','ボールペン','クリアファイル','タグ','ギフトタグ','デスクトップ','マウスパッド']},
@@ -1370,11 +1375,12 @@ function applyFilter() {
   updateHeaderDate();
   renderSidebar();
   const firstGroup=CAT_GROUPS.find(g=>Object.keys(aggregated).some(c=>g.match(c)));
-  const first=firstGroup?.name||CATEGORY_ORDER.find(c=>aggregated[c])||Object.keys(aggregated)[0];
+  const hasData=Object.keys(aggregated).length>0;
+  const first=hasData?ALL_TOP_NAME:(firstGroup?.name||CATEGORY_ORDER.find(c=>aggregated[c])||Object.keys(aggregated)[0]);   // 初期画面は全商品のTOP100
   const searchBox=document.getElementById('hd-search');
   if(searchBox.value.trim()){
     searchBox.dispatchEvent(new Event('input'));
-  } else if(selectedCategory&&(getGroupCats(selectedCategory)||aggregated[selectedCategory])){
+  } else if(selectedCategory&&(isAllTop(selectedCategory)||getGroupCats(selectedCategory)||aggregated[selectedCategory])){
     showCategory(selectedCategory,false);
   } else if(first){
     showCategory(first);
@@ -1451,6 +1457,7 @@ function setSearchSort(col) {
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function getCatTotal(cat) {
+  if(isAllTop(cat)) return {qty:totalQty,amount:totalAmount};
   const realCats=getGroupCats(cat);
   if(realCats){const items=realCats.flatMap(c=>Object.values(aggregated[c]||{}));return{qty:items.reduce((s,i)=>s+i.qty,0),amount:items.reduce((s,i)=>s+i.amount,0)};}
   const items=Object.values(aggregated[cat]||{});
@@ -1551,7 +1558,13 @@ function renderSidebar() {
     </div>`;
   }
 
-  let html='';
+  // 先頭: 全商品のTOP100（リロードした初期画面。ほかのカテゴリを見たあとでも戻れる）
+  let html=`<div class="sbi${isAllTop(selectedCategory)?' active':''}" onclick="showCategory('${ALL_TOP_NAME}')" data-cat="${ALL_TOP_NAME}">
+      <input type="checkbox" disabled style="margin:0 4px 0 0;visibility:hidden;flex-shrink:0">
+      <span style="font-size:13px">${CAT_ICONS[ALL_TOP_NAME]}</span>
+      <span class="sbi-name">${ALL_TOP_NAME}</span>
+      <span class="sbi-badge">全${Object.values(aggregated).reduce((n,c)=>n+Object.keys(c).length,0).toLocaleString()}種</span>
+    </div>`;
   // Group sections (手帳 / カレンダー) pinned at top
   for(const g of CAT_GROUPS){
     const matchingCats=Object.keys(aggregated).filter(c=>g.match(c));
@@ -2427,10 +2440,14 @@ function showCategory(cat, updateSidebar=true) {
     document.querySelectorAll('.sbi').forEach(el=>el.classList.toggle('active',el.dataset.cat===cat));
 
   // Combine items from real categories (supports group display names like '手帳')
-  const realCats=getGroupCats(cat)||[cat];
+  const isTop=isAllTop(cat);
+  const realCats=isTop?Object.keys(aggregated):(getGroupCats(cat)||[cat]);
   const combined={};
   for(const rc of realCats){for(const[code,item] of Object.entries(aggregated[rc]||{})){if(!combined[code])combined[code]={...item,qty:0,amount:0};combined[code].qty+=item.qty;combined[code].amount+=item.amount;}}
-  const items=Object.values(combined);
+  let items=Object.values(combined);
+  const allItemCount=items.length;
+  // 全商品TOP100: 個数（並び順が金額順のときは金額）の上位100商品に絞る。表示順は下の並び替えで今の選択どおりにする
+  if(isTop){const m=sortMode==='amount'?'amount':'qty',o=m==='amount'?'qty':'amount';items=items.sort((a,b)=>b[m]-a[m]||b[o]-a[o]||codeCompare(a.code,b.code)).slice(0,ALL_TOP_N);}
   items.sort((a,b)=>{const nat=sortMode==='amount'?b.amount-a.amount:sortMode==='code'?-codeCompare(a.code,b.code):sortMode==='price'?b.price-a.price:b.qty-a.qty;return sortDir==='asc'?-nat:nat;});
   const t=getCatTotal(cat);
   const topVal = items.length?(sortMode==='amount'?items.reduce((m,i)=>Math.max(m,i.amount),1):items.reduce((m,i)=>Math.max(m,i.qty),1)):1;
@@ -2541,6 +2558,7 @@ function showCategory(cat, updateSidebar=true) {
   const cmpSt=curSt+csFor(prevLabel,prevSfx,prevCatTot)+csFor(prev2Label,prev2Sfx,prev2CatTot);
 
   document.getElementById('cat-name').textContent=(CAT_ICONS[cat]||'📦')+' '+cat;
+  const pdfMini=document.querySelector('#cat-view .pdf-mini');if(pdfMini)pdfMini.style.display=isTop?'none':'';   // 全商品TOP100はカタログPDFの対象外
   document.getElementById('cat-stats').innerHTML=cmpSt;
 
   // 前年比較ONのときは個数・税抜金額に前期比バッジを付ける（見出しの比較表示と同じ計算）
@@ -2551,10 +2569,10 @@ function showCategory(cat, updateSidebar=true) {
   };
   const kdOn=comparisonMode&&prevCatTot;
   document.getElementById('kpi-row').innerHTML = [
-    ['個数',         t.qty.toLocaleString()+' 個',      kdOn?kpiD(tCmp.qty,prevCatTot.qty):''],
-    ['税抜金額',      '¥'+t.amount.toLocaleString(),    kdOn?kpiD(tCmp.amount,prevCatTot.amount):''],
-    ['全体の割合',    catPct+'%',                       ''],
-    ['SKU 数',       items.length+' 種',                ''],
+    [isTop?'個数（全商品）':'個数',         t.qty.toLocaleString()+' 個',      kdOn?kpiD(tCmp.qty,prevCatTot.qty):''],
+    [isTop?'税抜金額（全商品）':'税抜金額',      '¥'+t.amount.toLocaleString(),    kdOn?kpiD(tCmp.amount,prevCatTot.amount):''],
+    isTop?['TOP'+ALL_TOP_N+'の占有率（個数）', (totalQty?(items.reduce((sm,i)=>sm+i.qty,0)/totalQty*100).toFixed(1):0)+'%', '']:['全体の割合',    catPct+'%',                       ''],
+    [isTop?'SKU 数（全商品）':'SKU 数',       (isTop?allItemCount:items.length).toLocaleString()+' 種',                ''],
   ].map(([l,v,d])=>`<div class="kpi"><div class="kpi-v">${v}${d}</div><div class="kpi-l">${l}</div></div>`).join('');
 
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
@@ -2613,7 +2631,7 @@ function showCategory(cat, updateSidebar=true) {
   document.getElementById('rank-tbody').innerHTML=html;
 
   // 推移グラフ・店舗別内訳の対象を決めて描画（手帳・カレンダーは前期＝前年度版のカテゴリを見る）
-  window._ovCat=cat;
+  window._ovCat=isTop?'全商品':cat;   // 推移・店舗別の見出しでは「全商品」（TOP100に絞った合計ではない）
   window._ovCats=realCats;
   window._ovPrevCats=catType?realCats.map(c=>getEquivYearCat(c,-1)||c):realCats;
   renderTrendPanel();
@@ -4671,7 +4689,9 @@ const _uiSt=loadUiState();
     if(typeof _uiSt.comparisonMode==='boolean'){comparisonMode=_uiSt.comparisonMode;document.getElementById('tog-cmp').classList.toggle('on',comparisonMode);}
     if(typeof _uiSt.heatmapMode==='boolean'){heatmapMode=_uiSt.heatmapMode;document.getElementById('tog-heat').classList.toggle('on',heatmapMode);}
     if(_uiSt.sortMode){sortMode=_uiSt.sortMode;sortDir=_uiSt.sortDir||'desc';}
-    if(_uiSt.cat)selectedCategory=_uiSt.cat; // 存在確認は applyFilter 側で行う
+    // カテゴリは、バージョン更新の自動リロード（doReload が印を付ける）のときだけ復元する。手動のリロードは全商品TOP100に戻る
+    if(_uiSt.cat&&sessionStorage.getItem('ecRankKeepView')==='1')selectedCategory=_uiSt.cat; // 存在確認は applyFilter 側で行う
+    try{sessionStorage.removeItem('ecRankKeepView');}catch(e){}
     if(_uiSt.trendBack&&_uiSt.trendBack.from&&_uiSt.trendBack.to)trendBack=_uiSt.trendBack;
     if(_uiSt.trendMetric==='amount'||_uiSt.trendMetric==='qty')trendMetric=_uiSt.trendMetric;
     if(_uiSt.trendScope==='all'||_uiSt.trendScope==='cat')trendScope=_uiSt.trendScope;
@@ -4885,6 +4905,7 @@ document.getElementById('boot')?.remove();
     return [...document.querySelectorAll('.modal-bg')].some(m=>getComputedStyle(m).display!=='none');
   }
   function doReload(){
+    try{sessionStorage.setItem('ecRankKeepView','1');}catch(e){}   // 自動更新のときは見ていたカテゴリに戻す（手動リロードは全商品TOP100）
     // Navigate to a cache-busted URL so the browser/CDN must serve fresh HTML
     location.replace(location.pathname+'?_v='+Date.now());
   }

@@ -143,6 +143,11 @@ function closeLightbox(){...}
 // <div id="img-lb"> + <img id="img-lb-img">
 ```
 
+### 初期画面＝全商品 TOP100（2026-10-02 ユーザー指示）
+- リロードした初期の画面は、全カテゴリを通した**全商品のTOP100ランキング**（`showCategory(ALL_TOP_NAME)`。`ALL_TOP_NAME='全商品 TOP100'`、`isAllTop()`）。個数順（並び順が金額順のときは金額順）の上位100商品。サイドバー先頭の「🏆 全商品 TOP100」からも開く
+- 手動リロードではカテゴリは復元せずTOP100に戻る。バージョン更新の自動リロード（`doReload()`）のときだけ `sessionStorage` の `ecRankKeepView` で見ていたカテゴリに戻す
+- 全商品TOP100は実カテゴリではないため、`getCatType()` は `null`、`getCatTotal()`/`catsIn()` は全カテゴリの合計。カタログPDF（`openCategoryCatalog`）の対象外（ボタンは隠す）
+
 ### フォーマット名グループヘッダー
 手帳・カレンダーカテゴリで `sortMode !== 'price'` のとき（品番ソートを含む全ソートで）フォーマット名ごとのグループ区切り行を表示。  
 条件: `} else if (catType && sortMode!=='price') {`
