@@ -514,7 +514,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v128</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v129</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -3253,7 +3253,7 @@ document.getElementById('boot')?.remove();
   const place=(y)=>{bar.style.transform='translate(-50%,'+y+'px)';};
   // 誤作動を防ぐため、引っ張り始めてから HOLD ミリ秒（2秒）たつまでは、十分に引っ張っていても離して更新しない。
   // 待つ間は「そのまま… あと◯秒」と表示し、バーの背景が左から塗られていく（待ち時間は指を動かさなくても進む）
-  const HOLD=2000;
+  const HOLD=1600;
   let t0=0,raf=0;
   const holdLeft=()=>Math.max(0,HOLD-(performance.now()-t0));
   function paint(){
