@@ -70,7 +70,7 @@ def main():
                 if key in seen:                       # 同じ品番になる画像が複数ある（先に出たものを使う）
                     conflict.append((base, seen[key]))
                     continue
-                seen[key] = base
+                orig = base
                 base = key + '.jpg'
                 dst = os.path.join(IMG_DIR, base)
                 if os.path.exists(dst) and not args.overwrite:
@@ -87,6 +87,7 @@ def main():
                     im.thumbnail((MAX_SIDE, MAX_SIDE), Image.LANCZOS)
                     resized.append(base)
                 im.save(dst, 'JPEG', quality=82, optimize=True)
+                seen[key] = orig                      # 取り込めたものだけを「使用済み」にする（読めない画像のあとに正常な同名画像があれば、そちらを使う）
                 added.append(base)
                 if base[:-4] not in master:
                     unknown.append(base[:-4])
