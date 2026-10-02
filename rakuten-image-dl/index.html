@@ -190,6 +190,7 @@
           <input type="text" id="slugInput" placeholder="例: elcommun">
           <span class="slug-hint">image.rakuten.co.jp/<b>ここの部分</b>/cabinet/… ─ CSVから自動検出されます</span>
         </div>
+        <div class="slug-hint" id="slugAuto" style="display:none;margin:2px 0 0 4px;">※ 店舗名を自動で検出できなかったため <b>elcommun</b>（EL COMMUN楽天店）を入れました。違う店舗のCSVなら書き換えてください</div>
         <div class="slug-warn" id="slugWarn"></div>
       </div>
 
@@ -351,7 +352,13 @@ let SLUG_CANDIDATES = [];
 function analyzeNewText(text) {
   RAW_TEXT = text;
   SLUG_CANDIDATES = detectSlugs(text);
-  document.getElementById('slugInput').value = SLUG_CANDIDATES[0] || '';
+  let slug0 = SLUG_CANDIDATES[0] || '';
+  // CSVの画像パスが「/フォルダ/ファイル.jpg」の相対パスだけで店舗名が見つからないときは、EL COMMUN楽天店（elcommun）を入れる。
+  // 欄は書き換えられるし、店舗の実在チェック（validateSlug）が違いに気づかせる
+  const autoSlug = !slug0 && /(^|[,"\n])\/[^\s,"]+\.(jpe?g|png|gif|webp)\b/i.test(text);
+  if (autoSlug) slug0 = 'elcommun';
+  document.getElementById('slugInput').value = slug0;
+  document.getElementById('slugAuto').style.display = autoSlug ? '' : 'none';
   rebuild();
   // 商品画像列・本文中URLの両方を初期選択（不要ならチェックを外す）
   document.getElementById('srcCabinet').checked = true;
@@ -669,6 +676,7 @@ function rebuild() {
 
   renderPreview();
   scheduleSlugCheck();
+  updateFileStatus();
 }
 
 // ========== 店舗名の実在チェック ==========
@@ -746,6 +754,7 @@ function applySlug(s) {
 
 // 貼り付けテキストとファイルは「後から操作した方」を使う
 document.getElementById('pasteArea').addEventListener('input', e => {
+  FILE_NAME = '';
   document.getElementById('fileStatus').innerHTML = '';
   analyzeNewText(e.target.value);
 });
@@ -755,7 +764,7 @@ document.getElementById('srcBody').addEventListener('change', rebuild);
 let RANK_LAST = '';   // 最後に押した方（両方オンになったとき、もう一方を外す）
 document.getElementById('optRank').addEventListener('change', () => { RANK_LAST = 'rank'; rebuild(); });
 document.getElementById('optSup').addEventListener('change', () => { RANK_LAST = 'sup'; rebuild(); });
-document.getElementById('slugInput').addEventListener('input', rebuild);
+document.getElementById('slugInput').addEventListener('input', () => { document.getElementById('slugAuto').style.display = 'none'; rebuild(); });
 
 // ========== ファイル読み込み（Shift-JIS対応） ==========
 document.getElementById('fileInput').addEventListener('change', e => {
@@ -769,6 +778,26 @@ zone.addEventListener('drop', e => {
   if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
 });
 
+let FILE_NAME = '';   // 読み込んだファイル名（状態表示用。貼り付けに切り替えたら空にする）
+// 読み込んだCSVの状態表示。通常の画像が0件でも、「メーカー販売データ用」「販売ランキング用」（SKU画像）が使えるときは次の操作を案内する
+function updateFileStatus() {
+  const st = document.getElementById('fileStatus');
+  if (!FILE_NAME) return;
+  const n = escapeHtml(FILE_NAME);
+  const slugEmpty = !document.getElementById('slugInput').value.trim();
+  const modes = [HAS_SUP ? '「🏭 メーカー販売データ用」' : '', HAS_SKU ? '「🏷 販売ランキング用」' : ''].filter(Boolean).join(' または ');
+  if (IMAGES.length) {
+    const kind = rankKind();
+    const label = kind === 'supplier' ? '（メーカー販売データ用）' : kind === 'ranking' ? '（販売ランキング用）' : '';
+    // 通常モードは「すべての商品画像」を拾うので、単品画像だけを取り込みたいときは専用モードを使うよう案内する
+    const hint = (!kind && (HAS_SUP || HAS_SKU)) ? `。<b>単品画像（SKU画像）だけを取り込むときは、下の${modes}にチェック</b>を入れてください（今は商品ページの画像すべてが対象です）` : '';
+    st.innerHTML = `<div class="file-status ok">✅ ${n} から画像を ${IMAGES.length} 件見つけました${label}${hint}</div>`;
+  } else if (HAS_SUP || HAS_SKU) {
+    st.innerHTML = `<div class="file-status ok">✅ ${n} を読み込みました。下の${modes}にチェックを入れると、取り込む画像が選ばれます${slugEmpty ? '（先に「店舗名（URLの一部）」を入力してください）' : ''}</div>`;
+  } else {
+    st.innerHTML = `<div class="file-status err">❌ ${n} に画像が見つかりませんでした${slugEmpty ? '（「店舗名（URLの一部）」が空です。入力すると見つかる場合があります）' : ''}</div>`;
+  }
+}
 async function readFile(file) {
   const buf = await file.arrayBuffer();
   let text;
@@ -779,11 +808,9 @@ async function readFile(file) {
     text = new TextDecoder('shift-jis').decode(buf);
   }
   document.getElementById('pasteArea').value = '';
+  FILE_NAME = file.name;
   analyzeNewText(text);
-  const st = document.getElementById('fileStatus');
-  st.innerHTML = IMAGES.length
-    ? `<div class="file-status ok">✅ ${escapeHtml(file.name)} から画像を ${IMAGES.length} 件見つけました</div>`
-    : `<div class="file-status err">❌ ${escapeHtml(file.name)} に画像が見つかりませんでした</div>`;
+  updateFileStatus();
 }
 
 function escapeHtml(s) {
