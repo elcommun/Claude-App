@@ -439,7 +439,7 @@ async function loadSupRefs() {
   if (RAW_TEXT) rebuild();
 }
 function computeSup(rows, slug) {
-  SUP = { items: [], total: SUP_MASTER ? Object.keys(SUP_MASTER).length : 0, matched: 0, bySku: 0, byMain: 0, noImage: 0, existing: 0, unmatched: [], loaded: SUP.loaded, noMaster: !SUP_MASTER, noIndex: !SUP_HAVE };
+  SUP = { items: [], total: SUP_MASTER ? Object.keys(SUP_MASTER).length : 0, matched: 0, bySku: 0, byMain: 0, byBase: 0, needSlug: false, noImage: 0, existing: 0, unmatched: [], loaded: SUP.loaded, noMaster: !SUP_MASTER, noIndex: !SUP_HAVE };
   if (!rows || rows.length < 2) return false;
   const h = rows[0].map(v => (v || '').trim());
   const iSys = h.indexOf('システム連携用SKU番号');
@@ -452,19 +452,43 @@ function computeSup(rows, slug) {
   if (!SUP_MASTER) return true;
   const toUrl = img => {
     if (/^https?:\/\//i.test(img)) return { url: normalizeUrl(img), srcPath: null };
-    if (/^\/[^\s,]+$/.test(img) && slug) { const p = img.replace(/^\/+/, ''); return { url: 'https://image.rakuten.co.jp/' + slug + '/cabinet/' + p, srcPath: p }; }
+    if (/^\/[^\s,]+$/.test(img)) {
+      if (!slug) { SUP.needSlug = true; return null; }   // 店舗名が空だとURLを作れない（下の表示で入力をお願いする）
+      const p = img.replace(/^\/+/, ''); return { url: 'https://image.rakuten.co.jp/' + slug + '/cabinet/' + p, srcPath: p };
+    }
     return null;
   };
   const okExt = u => /\.(jpe?g|png|gif|webp)(\?|$)/i.test(u);
   const done = new Set();          // 採用済みの画像キー
-  let mng = '', main = '';
+  // 商品管理番号ごとのメイン画像（その商品の最初の空でない「商品画像パス1」）。
+  // 商品CSVによっては「商品管理番号」が全SKU行に入っていて、商品画像パス1は先頭行にしか無いため、先に全行から集めておく
+  const mainBy = {};
+  if (iMain >= 0) {
+    for (const row of rows.slice(1)) {
+      const m = (row[iMng] || '').trim(), v = (row[iMain] || '').trim();
+      if (m && v && !mainBy[m.toLowerCase()]) mainBy[m.toLowerCase()] = v;
+    }
+  }
+  const imgOf = (skuImg, mainImg) => {
+    let pick = null, kind = '';
+    if (skuImg) { pick = toUrl(skuImg); kind = 'sku'; }
+    if ((!pick || !okExt(pick.url)) && mainImg) { pick = toUrl(mainImg); kind = 'main'; }
+    return (pick && okExt(pick.url)) ? { pick, kind } : null;
+  };
+  const push = (key, r, kind) => {
+    if (SUP_HAVE && SUP_HAVE[key]) { SUP.existing++; return; }
+    if (kind === 'sku') SUP.bySku++; else if (kind === 'base') SUP.byBase++; else SUP.byMain++;
+    SUP.items.push({ code: SUP_MASTER[key], url: r.pick.url, srcPath: r.pick.srcPath, path: key + '.jpg', kind });
+  };
+  let mng = '';
   for (const row of rows.slice(1)) {
     const m = (row[iMng] || '').trim();
-    if (m) { mng = m; main = iMain >= 0 ? (row[iMain] || '').trim() : ''; }
+    if (m) mng = m;
     if (!mng) continue;
     const sys = iSys >= 0 ? (row[iSys] || '').trim() : '';
     const sku = iSku >= 0 ? (row[iSku] || '').trim() : '';
-    const cands = [sys, sku ? mng + sku : '', sku, m].filter(Boolean);
+    // 商品管理番号そのもの（SKUなしの商品）は、SKU行ではない行だけで照合する（SKU行まで商品管理番号に一致させない）
+    const cands = [sys, sku ? mng + sku : '', sku, (!sys && !sku) ? mng : ''].filter(Boolean);
     let key = '';
     for (const c of cands) { const k = supKey(c); if (SUP_MASTER[k]) { key = k; break; } }
     if (!key || done.has(key)) continue;
@@ -472,16 +496,44 @@ function computeSup(rows, slug) {
     SUP.matched++;
     let skuImg = '';
     for (const i of iImgs) { const v = (row[i] || '').trim(); if (v) { skuImg = v; break; } }
-    let pick = null, kind = '';
-    if (skuImg) { pick = toUrl(skuImg); kind = 'sku'; }
-    if ((!pick || !okExt(pick.url)) && main) { pick = toUrl(main); kind = 'main'; }
-    if (!pick || !okExt(pick.url)) { SUP.noImage++; continue; }
-    if (SUP_HAVE && SUP_HAVE[key]) { SUP.existing++; continue; }
-    if (kind === 'sku') SUP.bySku++; else SUP.byMain++;
-    SUP.items.push({ code: SUP_MASTER[key], url: pick.url, srcPath: pick.srcPath, path: key + '.jpg', kind });
+    const r = imgOf(skuImg, mainBy[mng.toLowerCase()] || '');
+    if (!r) { SUP.noImage++; continue; }
+    push(key, r, r.kind);
+  }
+  // CSVにSKU行が無い商品（色違いなど）は、商品番号から商品管理番号を導き（supBase）、その商品のメイン画像で補う
+  for (const key of Object.keys(SUP_MASTER)) {
+    if (done.has(key)) continue;
+    const b = supBase(SUP_MASTER[key]);
+    if (!b) continue;
+    const bl = b.toLowerCase(), mainImg = mainBy[bl] || mainBy[bl.replace(/-$/, '')] || mainBy[bl.replace(/-?$/, '-')] || '';
+    if (!mainImg) continue;
+    done.add(key);
+    SUP.matched++;
+    const r = imgOf('', mainImg);
+    if (!r) { SUP.noImage++; continue; }
+    push(key, r, 'base');
   }
   SUP.unmatched = Object.keys(SUP_MASTER).filter(k => !done.has(k)).map(k => SUP_MASTER[k]);
   return true;
+}
+// 商品番号 → 楽天の商品管理番号（supplier-ranking/index.html の rakutenCodeBase と同じ規則。変えるときは両方そろえる）
+function supBase(code) {
+  const c = (code || '').trim();
+  if (!/^[a-z0-9]/.test(c)) return null;
+  const mApj = c.match(/^apj-(.+)$/i);
+  if (mApj) return mApj[1];
+  if (/^ldw001-/i.test(c)) return 'ldw001-';
+  const mPb = c.match(/^pb-[a-z0-9]*([A-Z][A-Z0-9]*)$/);
+  if (mPb) { const pb = mPb[1].slice(0, -1).toLowerCase(); if (pb) return 'pb-' + pb; }
+  const m8 = c.match(/^8mw-[^-]+-/i);
+  if (m8) return m8[0];
+  const segs = c.split('-');
+  if (segs.length < 3) return null;
+  for (let i = 2; i < segs.length - 1; i++) {
+    const s = segs[i].toLowerCase();
+    if (s && segs.slice(0, i).some(t => { const u = t.toLowerCase(); return u === s || u.startsWith(s); })) return segs.slice(0, i).join('-') + '-';
+  }
+  return c.replace(/[^-]*$/, '');
 }
 function renderSupInfo() {
   const box = document.getElementById('supInfo');
@@ -494,10 +546,11 @@ function renderSupInfo() {
   }
   const ex = r.unmatched.slice(0, 6).map(escapeHtml).join('、');
   let html = `仕入れ商品 <b>${r.total.toLocaleString()}</b> 件のうち、CSVと照合できた商品 <b>${r.matched.toLocaleString()}</b> 件` +
-    ` → 取り込み対象 <b>${r.items.length.toLocaleString()}</b> 枚（SKU画像 ${r.bySku.toLocaleString()} ／ メイン画像で補った ${r.byMain.toLocaleString()}）` +
+    ` → 取り込み対象 <b>${r.items.length.toLocaleString()}</b> 枚（SKU画像 ${r.bySku.toLocaleString()} ／ メイン画像で補った ${r.byMain.toLocaleString()} ／ 商品管理番号でメイン画像を補った ${r.byBase.toLocaleString()}）` +
     ` ／ すでに画像あり ${r.existing.toLocaleString()} 件（除外）` +
     ` ／ 画像パスなし ${r.noImage.toLocaleString()} 件` +
     ` ／ <span class="${r.unmatched.length ? 'warn' : ''}">CSVに見つからなかった商品 ${r.unmatched.length.toLocaleString()} 件${ex ? '：例 ' + ex : ''}</span>`;
+  if (r.needSlug) html += `<br><span class="warn">⚠️ このCSVの画像パスには店舗名が含まれていないため、下の「店舗名（URLの一部）」に <b>elcommun</b> と入力してください（入力すると取り込み対象の枚数が出ます）</span>`;
   if (r.noIndex) html += `<br><span class="warn">⚠️ 既存画像の一覧（supplier-ranking/image-index.js）を読み込めなかったため、すでにある画像も対象に含まれます</span>`;
   box.className = 'rank-info show';
   box.innerHTML = html;
