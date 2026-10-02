@@ -446,6 +446,11 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 .nc-flex{display:flex;gap:8px;align-items:center}
 .nc-body{min-width:0;flex:1 1 auto}
 @media(max-width:600px){.prod-thumb{width:44px;height:58px;align-self:flex-start}.nc-flex{align-items:flex-start}}
+#img-prev-wrap{display:none;position:fixed;pointer-events:none;z-index:9998;box-sizing:border-box;padding:10px;border-radius:12px;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.45)}
+#img-prev{display:block;width:100%;height:100%;border-radius:4px;object-fit:contain}
+#img-prev-arrow{position:absolute;top:50%;width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;transform:translateY(-50%)}
+#img-prev-wrap.side-left #img-prev-arrow{left:-9px;border-right:10px solid #fff}
+#img-prev-wrap.side-right #img-prev-arrow{right:-9px;border-left:10px solid #fff}
 #img-lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out}
 #img-lb.open{display:flex}
 #img-lb-img{max-width:90vw;max-height:90vh;min-width:min(70vw,500px);object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);cursor:zoom-out}
@@ -528,7 +533,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v134</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v135</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -737,6 +742,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
   </main>
 </div>
 
+<div id="img-prev-wrap"><div id="img-prev-arrow"></div><img id="img-prev" src="" alt=""></div>
 <div id="img-lb" onclick="closeLightbox()"><img id="img-lb-img" src="" alt=""></div>
 <div id="catalog-modal" role="dialog" aria-modal="true" aria-label="カタログプレビュー">
   <div class="cg-toolbar">
@@ -2181,12 +2187,146 @@ function imgFallback(el){
 }
 function prodImgHtml(code,cls,extra){
   if(!imgHas(code))return '';
-  const k=imgKey(code);
-  return `<img class="${cls}" src="thumbs/${k}.jpg" data-full="images/${k}.jpg" onerror="imgFallback(this)"${extra||''} loading="lazy" alt="">`;
+  const k=imgKey(code), d=window.IMG_INDEX[k];
+  return `<img class="${cls}" src="thumbs/${k}.jpg" data-full="images/${k}.jpg"${d?` data-w="${d[0]}" data-h="${d[1]}"`:''} onerror="imgFallback(this)"${extra||''} loading="lazy" alt="">`;
 }
 function thumbHtml(code){return prodImgHtml(code,'prod-thumb',` onclick="if(this.naturalWidth>0)openLightbox(this.dataset.full||this.src)"`);}
 function openLightbox(src){document.getElementById('img-lb-img').src=src;document.getElementById('img-lb').classList.add('open');}
 function closeLightbox(){document.getElementById('img-lb').classList.remove('open');document.getElementById('img-lb-img').src='';}
+
+// ── Image hover preview ───────────────────────────────────────────────────────
+(function(){
+  const wrap=document.getElementById('img-prev-wrap');
+  const prev=document.getElementById('img-prev');
+  const arrow=document.getElementById('img-prev-arrow');
+  let hideTimer=null;
+  const PAD=10;
+  function setPos(left,top,dw,dh,side,pointY,correct){
+    const ww=dw+PAD*2, wh=dh+PAD*2;
+    wrap.style.width=ww+'px'; wrap.style.height=wh+'px';
+    left=Math.max(8,Math.min(left-PAD,window.innerWidth-ww-8));
+    top=Math.max(8,Math.min(top-PAD,window.innerHeight-wh-8));
+    wrap.style.left=left+'px'; wrap.style.top=top+'px';
+    // iOS standalone縦画面では fixed座標とタッチ座標がステータスバー分ずれるため、
+    // 実際の表示位置を測定してずれを補正する（タッチ操作時のみ。マウス時は誤発火防止で無効）
+    if(correct){
+      const wr=wrap.getBoundingClientRect();
+      if(Math.abs(wr.left-left)>1||Math.abs(wr.top-top)>1){
+        wrap.style.left=(left+(left-wr.left))+'px';
+        wrap.style.top=(top+(top-wr.top))+'px';
+      }
+    }
+    wrap.classList.toggle('side-left',side==='left');
+    wrap.classList.toggle('side-right',side==='right');
+    if(pointY!=null){
+      const ay=Math.max(14,Math.min(pointY-top,wh-14));
+      arrow.style.top=ay+'px';
+    }
+  }
+  // サムネ自身の実寸法(naturalWidth/Height)を基準にプレビューを配置する。
+  // prev.naturalWidthは画像切替直後に0になりフォールバック比で枠がずれるため使わない。
+  function placeMousePreview(img){
+    const pw=+img.dataset.w||img.naturalWidth||200, ph=+img.dataset.h||img.naturalHeight||280;
+    const r=img.getBoundingClientRect();
+    const gap=36;
+    // 幅は画面幅の固定割合で決定（テーブル構成によるサイズ差をなくす）
+    let dw=Math.min(pw, window.innerWidth*0.16);
+    let scale=dw/pw;
+    // 高さは画面の8割まで
+    const maxH=window.innerHeight*0.8;
+    if(ph*scale>maxH){scale=maxH/ph;dw=pw*scale;}
+    const dh=Math.round(ph*scale); dw=Math.round(dw);
+    const cy=r.top+r.height/2;
+    // 基本は行の高さに画像中央を合わせる。画面端からはみ出す場合のみ、
+    // その行を起点に空いている方向へ伸ばす（上端→行上端から下へ／下端→行下端から上へ）。
+    let top=cy-dh/2;
+    if(top<8) top=r.top;                                   // 上にはみ出す→行の上端から下へ
+    else if(top+dh>window.innerHeight-8) top=r.bottom-dh;  // 下にはみ出す→行の下端から上へ
+    // マウスホバー時は常にサムネの右側に表示する
+    setPos(r.right+gap,top,dw,dh,'left',cy);
+  }
+  document.addEventListener('mouseover',e=>{
+    const img=e.target.closest('.prod-thumb');
+    if(!img||!img.naturalWidth)return;
+    clearTimeout(hideTimer);
+    prev.src=img.dataset.full||img.src;
+    wrap.style.display='block';
+    placeMousePreview(img); // 表示と同時に正しい位置・サイズに配置
+  });
+  document.addEventListener('mousemove',e=>{
+    if(wrap.style.display==='none')return;
+    const img=e.target.closest('.prod-thumb');
+    if(!img){wrap.style.display='none';return;}
+    placeMousePreview(img);
+  });
+  document.addEventListener('mouseout',e=>{
+    if(!e.target.closest('.prod-thumb'))return;
+    hideTimer=setTimeout(()=>{wrap.style.display='none';},80);
+  });
+  // ── タッチ操作: サムネを押したまま下にスライドすると拡大プレビューを表示 ──
+  let touchActive=false, touchDragging=false, suppressClick=false, startX=0, startY=0;
+  function showPreviewFor(img,touchX,touchY){
+    prev.src=img.dataset.full||img.src;
+    wrap.style.display='block';
+    const pw=+img.dataset.w||img.naturalWidth||200;
+    const ph=+img.dataset.h||img.naturalHeight||280;
+    const isSmall=window.innerWidth<=600;
+    const widthRatio=isSmall?0.3:0.4;
+    const heightRatio=isSmall?0.22:0.5;
+    const maxScale=isSmall?1:2.5;
+    const scale=Math.min(window.innerWidth*widthRatio/pw, window.innerHeight*heightRatio/ph, maxScale);
+    const dw=Math.round(pw*scale), dh=Math.round(ph*scale);
+    const gap=24;
+    // サムネ自身の位置を基準に配置（タッチ座標基準だと縦横にずれるため）
+    const r=img.getBoundingClientRect();
+    const cy=r.top+r.height/2;
+    let left,side;
+    if(r.left+r.width/2<window.innerWidth/2){left=r.right+gap;side='left';}
+    else{left=r.left-dw-gap;side='right';}
+    setPos(left,cy-dh/2,dw,dh,side,cy,true);
+  }
+  document.addEventListener('touchstart',e=>{
+    const img=e.target.closest('.prod-thumb');
+    if(!img||!img.naturalWidth)return;
+    touchActive=true; touchDragging=false;
+    const t=e.touches[0];
+    startX=t.clientX; startY=t.clientY;
+  },{passive:true});
+  document.addEventListener('touchmove',e=>{
+    if(!touchActive)return;
+    const t=e.touches[0];
+    if(!touchDragging){
+      const dx=t.clientX-startX, dy=t.clientY-startY;
+      if(Math.abs(dy)<10||Math.abs(dy)<Math.abs(dx))return;
+      touchDragging=true;
+    }
+    e.preventDefault();
+    const el=document.elementFromPoint(t.clientX,t.clientY);
+    const img=el&&el.closest('.prod-thumb');
+    if(img&&img.naturalWidth){
+      showPreviewFor(img,t.clientX,t.clientY);
+    }else{
+      wrap.style.display='none';
+    }
+  },{passive:false});
+  document.addEventListener('touchend',()=>{
+    if(touchDragging){suppressClick=true;setTimeout(()=>{suppressClick=false;},300);}
+    touchActive=false; touchDragging=false;
+    wrap.style.display='none';
+  });
+  document.addEventListener('click',e=>{
+    if(suppressClick&&e.target.closest('.prod-thumb')){e.preventDefault();e.stopPropagation();}
+  },true);
+  // 画面回転・リサイズ時はプレビューを閉じて状態をリセット（位置崩れ防止）
+  window.addEventListener('orientationchange',()=>{
+    touchActive=false; touchDragging=false;
+    wrap.style.display='none';
+  });
+  window.addEventListener('resize',()=>{
+    touchActive=false; touchDragging=false;
+    wrap.style.display='none';
+  });
+})();
 
 // ── カタログPDF（自社商品アプリ ranking と同じ画像カード形式）──────────────────
 // メーカー別表示ではメーカーごと、カテゴリ別表示では親カテゴリごとに新しいページから始め、中は小見出しで区切る。
@@ -2462,7 +2602,7 @@ function renderSearch(){
 }
 // ── 検索窓の候補: タップ（フォーカス）したとき、入力が空なら「よく使う検索ワード」と「最近の検索」を出す ──
 // よく使う検索ワードはここに足す（商品名・メーカー・品番に当たる語だけを載せる）。最近の検索は localStorage（ec_supplier_search_history_v1・最大5件。自社商品アプリとは別のキー）
-const SEARCH_SUGGEST=['松尾ミユキ'];
+const SEARCH_SUGGEST=['松尾ミユキ','ナタリーレテ'];
 (function(){
   const inp=document.getElementById('hd-search'),box=document.getElementById('hd-suggest');
   const KEY='ec_supplier_search_history_v1';
