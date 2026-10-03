@@ -530,7 +530,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v141</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v142</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2350,7 +2350,7 @@ function cgGroupsOf(keys){
       const mg=MACRO_GROUPS.find(g=>g.cats.includes(k));
       const members=mg?keys.filter(c=>mg.cats.includes(c)&&AGG[c]):[k];
       members.forEach(c=>used.add(c));
-      if(mg)name=mg.name;
+      if(mg&&members.length>1)name=mg.name;   // 1カテゴリだけ選んだときは見出しをそのカテゴリ名にする
       subs=members.map(c=>({label:c,rows:cgRank(itemRows(AGG[c].items))}));
     }else{
       used.add(k);

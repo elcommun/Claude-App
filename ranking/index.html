@@ -595,7 +595,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v317</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v318</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1943,7 +1943,7 @@ function catalogGroupsOf(cats){
     const mg=MACRO_GROUPS.find(m=>m.cats.includes(c));
     const members=mg?cats.filter(k=>mg.cats.includes(k)&&aggregated[k]):[c];
     members.forEach(k=>used.add(k));
-    groups.push({name:mg?mg.name:c,cats:members});
+    groups.push({name:(mg&&members.length>1)?mg.name:c,cats:members});   // 大分類の中で1カテゴリだけ選んだときは、見出しをそのカテゴリ名にする
   }
   for(const g of groups){g.items=g.cats.map(c=>({cat:c,items:catalogRank(Object.values(aggregated[c]))}));}
   const qtyOf=g=>g.items.reduce((s,ci)=>s+ci.items.reduce((t,i)=>t+i.qty,0),0);
