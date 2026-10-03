@@ -440,7 +440,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 @media(max-width:600px){.pdf-mini{display:none}}
 /* 種類別売上TOP5（画像付き・2カラム）：新書判の右の空きスペース */
 .cat-ranktbl-wrap{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-.cat-rt-after{margin-top:8px;padding-bottom:7px}   /* 上8px・下は最後のブロックの余白5px＋7px＝12px */
+.ser-rt{margin:4px 0 6px}
 .rt-title{font-size:10px;font-weight:700;color:#2c2c3a;border-bottom:2px solid #E85D26;padding-bottom:2px;margin:0 0 4px}
 .rt-grid{column-count:2;column-gap:7px}
 .rt-block{break-inside:avoid;margin-bottom:5px}
@@ -597,7 +597,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v323</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v324</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1930,23 +1930,6 @@ function paginateCatalog(blocks, container){
       if(!page) newPage(curTitle);
       if(b.type==='sub'&&col.childElementCount>0) advance();
       place(b.html);
-    } else if(b.type==='catrank'){
-      // シリーズごとのTOP5の表: 見出しつきブロックを1つずつ置き、入りきらなければ次の段・ページへ「つづき」の表題つきで続ける
-      if(!page) newPage(curTitle);
-      let wrap=null,grid=null;
-      const start=(cont)=>{wrap=makeNode(`<div class="cat-ranktbl-wrap cat-rt-after"><div class="rt-title">${cont?b.titleCont:b.title}</div><div class="rt-grid"></div></div>`);grid=wrap.querySelector('.rt-grid');col.appendChild(wrap);};
-      start(false);
-      for(const bh of b.blocks){
-        const n=makeNode(bh);grid.appendChild(n);
-        if(col.scrollHeight>col.clientHeight+1){
-          grid.removeChild(n);
-          const hadBlocks=grid.childElementCount>0;
-          if(!hadBlocks)col.removeChild(wrap);
-          if(hadBlocks||col.childElementCount>0)advance();
-          start(hadBlocks);
-          grid.appendChild(n);
-        }
-      }
     } else if(b.type==='ranktable'){
       // ランキング表は右カラム（空き）へ配置。両カラムとも埋まっていれば次ページへ
       if(!page) newPage(curTitle);
@@ -1985,18 +1968,12 @@ function catalogSubHdr(label,items){
 function catalogSecHdr(icon,label,n,qty,amount){
   return `<div class="cat-sec-hdr">${icon} ${x(label)} <span class="cat-sec-cnt">(${n}種 ／ ${qty.toLocaleString()}個 ／ ¥${amount.toLocaleString()})</span></div>`;
 }
-// シリーズ（小見出し）ごとの売上TOP5の表（手帳の「種類別 売上ランキング（各TOP5）」と同じ形）。カードの後ろの空いたスペースに入れる。カテゴリが5種以下なら全カードに順位が出ているので付けない
+// シリーズ（小見出し）ごとの売上TOP5の表。小見出しの直後（カードの前）に入れる。6種以上のシリーズだけ（5種以下は全カードに順位が出ているので付けない）
 const CAT_RANK_TOP=5;
-function buildCatTopTable(label,ranked,series){
-  if(ranked.length<=5) return null;
-  const blocks=[];
-  for(const sr of series){
-    const top=[...sr.items].sort((a,b)=>a.rank-b.rank).slice(0,CAT_RANK_TOP);
-    if(!top.length) continue;
-    blocks.push(`<div class="rt-block"><div class="rt-fmt">${x(sr.label)}${sr.pfx?'（'+x(sr.pfx)+'）':''}</div>${top.map(it=>rtRowHtml({...it,shortName:it.cardName})).join('')}</div>`);
-  }
-  // 表が1ページに収まらないことがあるので、ブロックを1つずつ並べて入りきらなければ次の段・ページへ「つづき」として続ける（paginateCatalog の catrank）
-  return {type:'catrank',title:`${x(label)} 種類別 売上ランキング（各TOP${CAT_RANK_TOP}）`,titleCont:`${x(label)} 種類別 売上ランキング（各TOP${CAT_RANK_TOP}・つづき）`,blocks};
+function buildSerTopTable(sr){
+  if(sr.items.length<=CAT_RANK_TOP) return '';
+  const top=[...sr.items].sort((a,b)=>a.rank-b.rank).slice(0,CAT_RANK_TOP);
+  return `<div class="cat-ranktbl-wrap ser-rt"><div class="rt-title">売上ランキング（TOP${CAT_RANK_TOP}）</div><div class="rt-grid">${top.map(it=>rtRowHtml({...it,shortName:it.cardName})).join('')}</div></div>`;
 }
 // カテゴリ内をシリーズ（品番の頭文字＋商品名の先頭の語が同じ商品）に分ける。ranked は売上順（rank 付き）。
 // 見出し＝商品名の共通する先頭の語＋（品番の頭文字）。例: Point ﾌﾞｯｸｶﾊﾞｰ（PBC）。1点だけの群は「その他」にまとめる
@@ -2031,7 +2008,7 @@ function catalogSeriesOf(ranked){
 function catalogSerHdr(sr){
   return `<div class="cat-fmt cat-ser">▌ ${x(sr.label)}${sr.pfx?'（'+x(sr.pfx)+'）':''} <span class="cat-fmt-cnt">(${sr.items.length}種)</span></div>`;
 }
-// カテゴリ1つ分のブロック: シリーズ（品番の頭文字）ごとの見出し＋品番順のカード（バッジの順位はシリーズ内の売上順位）、最後の空いたスペースにシリーズごとの売上TOP5の表。ranked は売上順（rank 付き）
+// カテゴリ1つ分のブロック: シリーズ（品番の頭文字）ごとの見出し＋そのシリーズの売上TOP5の表＋品番順のカード（バッジの順位はシリーズ内の売上順位）。ranked は売上順（rank 付き）
 function catalogCatBlocks(label,ranked,showSub){
   const blocks=[];
   if(!ranked.length)return blocks;
@@ -2040,10 +2017,10 @@ function catalogCatBlocks(label,ranked,showSub){
   const series=catalogSeriesOf(ranked);
   for(const sr of series){
     blocks.push({type:'ser',html:catalogSerHdr(sr)});
+    const rt=buildSerTopTable(sr);
+    if(rt)blocks.push({type:'serrank',html:rt});   // 小見出しの直後に、そのシリーズの売上TOP5
     for(const it of sr.items)blocks.push({type:'card',html:catCardHtml(it,maxQty,true)});
   }
-  const rt=buildCatTopTable(label,ranked,series);
-  if(rt)blocks.push(rt);
   return blocks;
 }
 // 手帳・カレンダー以外: 大分類ごとに新しいページ、中はカテゴリごとに品番順のカード＋カテゴリ内の売上ランキング表
