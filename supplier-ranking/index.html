@@ -530,7 +530,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v145</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v146</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2401,16 +2401,16 @@ function cgTopTable(label,rows){
   const row=r=>`<div class="cg-rt-row"><span class="cg-rt-rk ${r.rank<=3?'k'+r.rank:'ko'}">${r.rank}</span>${prodImgHtml(r.code,'cg-rt-img','')}<span class="cg-rt-nm">${x(r.name)}${r.varName?' '+x(r.varName):''}</span><span class="cg-rt-v">${m==='amount'?'¥'+Math.round(r.amount).toLocaleString():r.qty.toLocaleString()}</span></div>`;
   return `<div class="cg-rt-wrap"><div class="cg-rt-title">${x(label)} ${m==='amount'?'金額':'個数'}ランキング（TOP${top.length}）</div><div class="cg-rt-grid">${top.map(row).join('')}</div></div>`;
 }
-// 1つのまとまり（見出し・小見出し・カード）→ ブロック配列。カードは小見出しごとに商品番号順（バッジの順位は小見出し内の個数/金額順位）、カードの後ろの空きに売上ランキング表
+// 1つのまとまり（見出し・小見出し・カード）→ ブロック配列。小見出しの直後に売上ランキング表、続けて小見出しごとに商品番号順のカード（バッジの順位は小見出し内の個数/金額順位）
 function cgBlocks(sec,subs,showMaker,multiSub){
   const m=cgMetric(),blocks=[{type:'sec',html:sec}];
   for(const s of subs){
     if(!s.rows.length)continue;
     if(multiSub)blocks.push({type:'sub',html:cgSubHtml(s.label,s.rows)});
     const maxV=s.rows.reduce((a,r)=>Math.max(a,r[m]),1);
-    for(const r of [...s.rows].sort(cgCodeCmp))blocks.push({type:'card',html:cgCardHtml(r,maxV,showMaker)});
-    const rt=cgTopTable(s.label,s.rows);   // s.rows は個数/金額順（rank 付き）
+    const rt=cgTopTable(s.label,s.rows);   // s.rows は個数/金額順（rank 付き）。小見出しの直後（カードの前）に置く
     if(rt)blocks.push({type:'cgrank',html:rt});
+    for(const r of [...s.rows].sort(cgCodeCmp))blocks.push({type:'card',html:cgCardHtml(r,maxV,showMaker)});
   }
   return blocks;
 }
