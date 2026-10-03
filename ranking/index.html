@@ -593,7 +593,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v315</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v316</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1020,6 +1020,8 @@ function getCalendarFormat(code,name){if(/卓上/.test(code)||/卓上/.test(name
 // 全商品を横断する「TOP100」表示（リロードした初期画面）。実カテゴリではなく特別な表示名
 const ALL_TOP_NAME='全商品 TOP100', ALL_TOP_N=100;
 function isAllTop(cat){return cat===ALL_TOP_NAME;}
+// 福袋（商品名に「福袋」、または品番が LBG- で始まる）は、全体のランキング（全商品TOP100）に含めない
+function isLuckyBag(item){return /福袋/.test(item.name||'')||/^LBG-/i.test(item.code||'');}
 function getCatType(cat){
   if(isAllTop(cat))return null;
   const rc=getGroupCats(cat)||[cat];
@@ -2447,7 +2449,7 @@ function showCategory(cat, updateSidebar=true) {
   let items=Object.values(combined);
   const allItemCount=items.length;
   // 全商品TOP100: 個数（並び順が金額順のときは金額）の上位100商品に絞る。表示順は下の並び替えで今の選択どおりにする
-  if(isTop){const m=sortMode==='amount'?'amount':'qty',o=m==='amount'?'qty':'amount';items=items.sort((a,b)=>b[m]-a[m]||b[o]-a[o]||codeCompare(a.code,b.code)).slice(0,ALL_TOP_N);}
+  if(isTop){const m=sortMode==='amount'?'amount':'qty',o=m==='amount'?'qty':'amount';items=items.filter(it=>!isLuckyBag(it)).sort((a,b)=>b[m]-a[m]||b[o]-a[o]||codeCompare(a.code,b.code)).slice(0,ALL_TOP_N);}
   items.sort((a,b)=>{const nat=sortMode==='amount'?b.amount-a.amount:sortMode==='code'?-codeCompare(a.code,b.code):sortMode==='price'?b.price-a.price:b.qty-a.qty;return sortDir==='asc'?-nat:nat;});
   const t=getCatTotal(cat);
   const topVal = items.length?(sortMode==='amount'?items.reduce((m,i)=>Math.max(m,i.amount),1):items.reduce((m,i)=>Math.max(m,i.qty),1)):1;
@@ -2558,6 +2560,7 @@ function showCategory(cat, updateSidebar=true) {
   const cmpSt=curSt+csFor(prevLabel,prevSfx,prevCatTot)+csFor(prev2Label,prev2Sfx,prev2CatTot);
 
   document.getElementById('cat-name').textContent=(CAT_ICONS[cat]||'📦')+' '+cat;
+  if(isTop){const nt=document.createElement('span');nt.style.cssText='font-size:11px;font-weight:400;color:var(--ink4);margin-left:8px';nt.textContent='福袋を除く';document.getElementById('cat-name').appendChild(nt);}
   const pdfMini=document.querySelector('#cat-view .pdf-mini');if(pdfMini)pdfMini.style.display=isTop?'none':'';   // 全商品TOP100はカタログPDFの対象外
   document.getElementById('cat-stats').innerHTML=cmpSt;
 
