@@ -530,7 +530,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v140</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v141</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1600,7 +1600,7 @@ function updateExportBtns(){
 function renderSidebar(){
   const list=document.getElementById('sb-list');
   const metric = rankMetric;
-  const allLabel = groupMode==='category' ? '🗂 全カテゴリ' : '🏷 全メーカー';
+  const allLabel = '🏆 全商品 TOP'+ALL_TOP_N;
   const allBadge = metric==='amount' ? '¥'+Math.round(ALL_TOTAL.amount).toLocaleString() : ALL_TOTAL.qty.toLocaleString()+'個';
   let html = `<div class="sbi sbi-all${currentGroup===null?' active':''}" onclick="selectGroup(null)">
       <span class="sbi-name">${allLabel}</span>
@@ -1938,7 +1938,9 @@ function computeRanks(rows){
   const ranked=rows.slice().sort((a,b)=>{
     const av = rankMetric==='amount' ? a.amount : a.qty;
     const bv = rankMetric==='amount' ? b.amount : b.qty;
-    return (bv-av) || (b.amount-a.amount);
+    // 同数のときは、個数順なら金額、金額順なら個数、それも同じなら商品番号（上位100の線引きを毎回同じにする）
+    const ov = rankMetric==='amount' ? (b.qty-a.qty) : (b.amount-a.amount);
+    return (bv-av) || ov || (a.code<b.code?-1:a.code>b.code?1:0);
   });
   const ranks={};
   ranked.forEach((r,i)=>{ ranks[r.pid]=i+1; });
@@ -1961,6 +1963,7 @@ function sortItems(rows){
   });
   return rows;
 }
+const ALL_TOP_N=100;   // 全体の表（リロードした初期画面）は全商品の上位100
 function showAllGroups(){
   document.getElementById('grp-pdf').style.display='none';
   document.getElementById('cat-view').style.display='';
@@ -1968,11 +1971,13 @@ function showAllGroups(){
   setOverviewVisible(true);
   const items={};
   Object.keys(AGG).forEach(g=>Object.assign(items, AGG[g].items));
-  const rows=itemRows(items);
-  const ranks=computeRanks(rows);
+  const allRows=itemRows(items);
+  const ranks=computeRanks(allRows);
+  renderKPI(ALL_TOTAL.qty, ALL_TOTAL.amount, costOf(allRows), allRows.length, prevTotalOf(allRows));   // KPI・前年比較は全商品の数字
+  // 表は全商品の上位100（個数順／金額順は rankMetric）に絞ってから、今の並び替えで表示する
+  const rows=allRows.filter(r=>ranks[r.pid]<=ALL_TOP_N);
   sortItems(rows);
-  renderKPI(ALL_TOTAL.qty, ALL_TOTAL.amount, costOf(rows), rows.length, prevTotalOf(rows));
-  document.getElementById('cat-name').textContent = groupMode==='category' ? '全カテゴリ' : '全メーカー';
+  document.getElementById('cat-name').textContent = '🏆 全商品 TOP'+ALL_TOP_N;
   document.getElementById('cat-rate').textContent='';
   const cntLabel = groupMode==='category' ? 'カテゴリ数' : 'メーカー数';
   let cnt;
@@ -1986,6 +1991,7 @@ function showAllGroups(){
   document.getElementById('col-tog').style.display='flex';
   syncColTogButtons();
   renderRankTable(rows, ALL_TOTAL.amount, listCol==='maker', listCol==='category', ranks);
+  if(rows.length) document.getElementById('rank-note').textContent=`全商品のTOP${ALL_TOP_N}を表示中（全${allRows.length.toLocaleString()}件）`;
   refreshVisibleTableWidth();
   renderOverview(groupMode==='category'?'全カテゴリ':'全メーカー', Object.keys(AGG));
 }
@@ -3407,7 +3413,9 @@ function restoreUiState(){
     if(typeof s.trendOpen==='boolean') document.getElementById('trend-panel').open=s.trendOpen;
     if(typeof s.splitOpen==='boolean') document.getElementById('split-panel').open=s.splitOpen;
     document.querySelectorAll('.tc-sbtn[data-m]').forEach(b=>b.classList.toggle('on',b.dataset.m===trendMetric));
-    if(typeof s.group==='string'&&s.group) currentGroup=s.group; // 存在確認は applyFilter 側（groupHasData）で行う
+    // メーカー／カテゴリは、バージョン更新の自動リロード（scheduleReload が印を付ける）のときだけ復元する。手動のリロードは全商品TOP100に戻る
+    if(typeof s.group==='string'&&s.group&&sessionStorage.getItem('ecSupKeepView')==='1') currentGroup=s.group; // 存在確認は applyFilter 側（groupHasData）で行う
+    try{ sessionStorage.removeItem('ecSupKeepView'); }catch(e){}
   }catch(e){ return false; }
   return true;
 }
@@ -3528,6 +3536,7 @@ document.getElementById('boot')?.remove();
   }
   function scheduleReload(){
     if(isBusy()){ setTimeout(scheduleReload, 3000); return; }
+    try{ sessionStorage.setItem('ecSupKeepView','1'); }catch(e){}   // 自動更新のときは見ていたメーカー／カテゴリに戻す（手動リロードは全商品TOP100）
     location.replace(location.pathname+'?_v='+Date.now());
   }
   let lastCheck=0;

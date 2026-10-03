@@ -149,6 +149,10 @@ function closeLightbox(){...}
 - 手動リロードではカテゴリは復元せずTOP100に戻る。バージョン更新の自動リロード（`doReload()`）のときだけ `sessionStorage` の `ecRankKeepView` で見ていたカテゴリに戻す
 - 全商品TOP100は実カテゴリではないため、`getCatType()` は `null`、`getCatTotal()`/`catsIn()` は全カテゴリの合計。カタログPDF（`openCategoryCatalog`）の対象外（ボタンは隠す）
 
+### 仕入れ商品アプリ（supplier-ranking）の初期画面＝全商品 TOP100（2026-10-03 ユーザー指示）
+- 全体の表（サイドバー先頭「🏆 全商品 TOP100」＝`showAllGroups()`。メーカー別・カテゴリ別とも同じ）は、全商品の上位100（`rankMetric` の個数順/金額順。同数は 個数順なら金額→金額順なら個数→商品番号）。KPI・前年比較は全商品の数字のまま。福袋の除外は無い（仕入れ商品に福袋は無い）
+- 手動リロードでは前回のメーカー/カテゴリを復元せずこの表に戻る。バージョン更新の自動リロード（`scheduleReload()`）のときだけ `sessionStorage` の `ecSupKeepView` で復元する
+
 ### フォーマット名グループヘッダー
 手帳・カレンダーカテゴリで `sortMode !== 'price'` のとき（品番ソートを含む全ソートで）フォーマット名ごとのグループ区切り行を表示。  
 条件: `} else if (catType && sortMode!=='price') {`
