@@ -597,7 +597,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v325</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v326</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1968,12 +1968,12 @@ function catalogSubHdr(label,items){
 function catalogSecHdr(icon,label,n,qty,amount){
   return `<div class="cat-sec-hdr">${icon} ${x(label)} <span class="cat-sec-cnt">(${n}種 ／ ${qty.toLocaleString()}個 ／ ¥${amount.toLocaleString()})</span></div>`;
 }
-// シリーズ（小見出し）ごとの売上TOP5の表。小見出しの直後（カードの前）に入れる。6種以上のシリーズだけ（5種以下は全カードに順位が出ているので付けない）
-const CAT_RANK_TOP=5;
+// シリーズ（小見出し）ごとの売上TOP10の表（手帳・カレンダーはTOP5のまま）。小見出しの直後（カードの前）に入れる。6種以上のシリーズだけ（5種以下は全カードに順位が出ているので付けない）
+const CAT_RANK_TOP=10, CAT_RANK_MIN=5;
 function buildSerTopTable(sr){
-  if(sr.items.length<=CAT_RANK_TOP) return '';
+  if(sr.items.length<=CAT_RANK_MIN) return '';
   const top=[...sr.items].sort((a,b)=>a.rank-b.rank).slice(0,CAT_RANK_TOP);
-  return `<div class="cat-ranktbl-wrap ser-rt"><div class="rt-title">売上ランキング（TOP${CAT_RANK_TOP}）</div><div class="rt-grid">${top.map(it=>rtRowHtml({...it,shortName:it.cardName})).join('')}</div></div>`;
+  return `<div class="cat-ranktbl-wrap ser-rt"><div class="rt-title">売上ランキング（TOP${top.length}）</div><div class="rt-grid">${top.map(it=>rtRowHtml({...it,shortName:it.cardName})).join('')}</div></div>`;
 }
 // カテゴリ内をシリーズ（品番の頭文字＋商品名の先頭の語が同じ商品）に分ける。ranked は売上順（rank 付き）。
 // 見出し＝商品名の共通する先頭の語＋（品番の頭文字）。例: Point ﾌﾞｯｸｶﾊﾞｰ（PBC）。1点だけの群は「その他」にまとめる
