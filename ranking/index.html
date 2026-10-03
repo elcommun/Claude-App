@@ -411,6 +411,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-grid{display:block;font-size:0;margin-bottom:4px}
 .cat-fmt{display:block;font-size:11px;font-weight:700;color:#555;background:#f1ece4;border-left:3px solid #E85D26;padding:2px 7px;margin-top:3px}
 .cat-fmt-cnt{font-weight:400;font-size:9px;color:#999}
+.cat-ser{font-size:10.5px;background:#f7f4ee;border-left-color:#d9a58a}
 /* カレンダー：1年=1カラム（卓上+壁掛けを縦に重ね）。複数年は別カラムに並ぶ */
 .cal-col{font-size:0}
 .cal-yr{font-size:12px;font-weight:700;color:#2c2c3a;border-bottom:1.5px solid #E85D26;padding-bottom:2px;margin:0 0 4px}
@@ -595,7 +596,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v318</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v319</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1794,7 +1795,7 @@ function catCardHtml(it,maxQty,thumb){
           <div class="cat-rank ${rankCls}">${it.rank}</div>
           ${so?`<div class="cat-so">欠 ${x(so)}</div>`:''}
           <div class="cat-imgbox">${thumb?(imgHas(it.code)?prodImgHtml(it.code,'cat-img',''):'<span class="cat-noimg">画像なし</span>'):prodImgHtml(it.code,'cat-img','',true)}</div>
-          <div class="cat-pname">${x(it.shortName||it.name)}</div>
+          <div class="cat-pname">${x(it.cardName||it.shortName||it.name)}</div>
           <div class="cat-line"><span class="cat-code">${x(it.code)}</span><span class="cat-price">¥${(it.price||0).toLocaleString()}</span></div>
           <div class="cat-qty" style="${qtyStyle}">${it.qty.toLocaleString()}個</div>
         </div>`;
@@ -1923,6 +1924,11 @@ function paginateCatalog(blocks, container){
       }
       colHasFmt=true;
       place(b.html);
+    } else if(b.type==='sub'||b.type==='ser'){
+      // カテゴリの小見出しは新しい段から。シリーズ見出しは続けて置く（段を分けるとシリーズが多いカテゴリでページが何倍にもなるため。列末で見出しだけが孤立するのは place が防ぐ）
+      if(!page) newPage(curTitle);
+      if(b.type==='sub'&&col.childElementCount>0) advance();
+      place(b.html);
     } else if(b.type==='ranktable'){
       // ランキング表は右カラム（空き）へ配置。両カラムとも埋まっていれば次ページへ
       if(!page) newPage(curTitle);
@@ -1968,13 +1974,44 @@ function buildCatTopTable(label,ranked){
   const top=ranked.slice(0,CAT_RANK_TOP);
   return `<div class="cat-ranktbl-wrap"><div class="rt-title">${x(label)} 売上ランキング（TOP${top.length}）</div><div class="rt-grid">${top.map(rtRowHtml).join('')}</div></div>`;
 }
-// カテゴリ1つ分のブロック: 品番順のカード（バッジの順位はカテゴリ内の売上順位）＋空いたスペースにカテゴリの売上ランキング表。ranked は売上順（rank 付き）
+// カテゴリ内をシリーズ（品番の頭文字＋商品名の先頭の語が同じ商品）に分ける。ranked は売上順（rank 付き）。
+// 見出し＝商品名の共通する先頭の語＋（品番の頭文字）。例: Point ﾌﾞｯｸｶﾊﾞｰ（PBC）。1点だけの群は「その他」にまとめる
+function catalogSeriesOf(ranked){
+  const pfxOf=code=>{const c=String(code||'').toUpperCase();const m=c.match(/^([A-Z0-9]+)[-_]/)||c.match(/^([A-Z]+)/);return m?m[1]:'';};
+  const toks=n=>String(n||'').replace(/[\s\u3000]+/g,' ').trim().split(' ').filter(Boolean);
+  const by=new Map();
+  for(const it of ranked){
+    const t=toks(it.name),k=pfxOf(it.code)+'|'+normalize(t[0]||'');
+    if(!by.has(k))by.set(k,{pfx:pfxOf(it.code),list:[]});
+    by.get(k).list.push({it,t});
+  }
+  const series=[],others=[];
+  for(const g of by.values()){
+    if(g.list.length<2){others.push(...g.list.map(e=>e.it));continue;}
+    const T=g.list.map(e=>e.t),minLen=Math.min(...T.map(t=>t.length));
+    let L=0;while(L<minLen-1&&T.every(t=>normalize(t[L])===normalize(T[0][L])))L++;
+    const n=Math.max(L,1);   // 見出しに使う語数（デザイン名が残るよう最短の語数−1まで。最低1語）
+    const items=g.list.map(e=>({...e.it,cardName:e.t.length>n?e.t.slice(n).join(' '):e.it.name}));
+    items.sort((a,b)=>codeCompare(a.code,b.code));
+    series.push({label:T[0].slice(0,n).join(' '),pfx:g.pfx,items,qty:items.reduce((s,i)=>s+i.qty,0)});
+  }
+  series.sort((a,b)=>b.qty-a.qty||codeCompare(a.items[0].code,b.items[0].code));
+  if(others.length){const items=[...others].sort((a,b)=>codeCompare(a.code,b.code));series.push({label:'その他',pfx:'',items,qty:items.reduce((s,i)=>s+i.qty,0)});}
+  return series;
+}
+function catalogSerHdr(sr){
+  return `<div class="cat-fmt cat-ser">▌ ${x(sr.label)}${sr.pfx?'（'+x(sr.pfx)+'）':''} <span class="cat-fmt-cnt">(${sr.items.length}種)</span></div>`;
+}
+// カテゴリ1つ分のブロック: シリーズ（品番の頭文字）ごとの見出し＋品番順のカード（バッジの順位はカテゴリ内の売上順位）、最後の空いたスペースにカテゴリの売上ランキング表。ranked は売上順（rank 付き）
 function catalogCatBlocks(label,ranked,showSub){
   const blocks=[];
   if(!ranked.length)return blocks;
   if(showSub)blocks.push({type:'sub',html:catalogSubHdr(label,ranked)});
   const maxQty=ranked.reduce((m,i)=>Math.max(m,i.qty),1);
-  for(const it of [...ranked].sort((a,b)=>codeCompare(a.code,b.code)))blocks.push({type:'card',html:catCardHtml(it,maxQty,true)});
+  for(const sr of catalogSeriesOf(ranked)){
+    blocks.push({type:'ser',html:catalogSerHdr(sr)});
+    for(const it of sr.items)blocks.push({type:'card',html:catCardHtml(it,maxQty,true)});
+  }
   const rt=buildCatTopTable(label,ranked);
   if(rt)blocks.push({type:'catrank',html:rt});
   return blocks;
