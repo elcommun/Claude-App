@@ -447,7 +447,9 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .rt-rk{flex:0 0 auto;width:10px;text-align:center;font-weight:700}
 .rt-rk.rt1{color:var(--r1)}.rt-rk.rt2{color:var(--r2)}.rt-rk.rt3{color:var(--r3)}.rt-rk.rto{color:#b3ada4}
 .rt-img{flex:0 0 auto;width:18px;height:25px;object-fit:contain}
-.rt-nm{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rt-nm{flex:1 1 auto;min-width:0;display:flex;overflow:hidden}   /* 商品名は長いとき「…」で省略し、右隣の（品番）は切らない */
+.rt-nm-t{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rt-cd{flex:0 0 auto;margin-left:3px;color:#8c867d;white-space:nowrap}
 .rt-so{flex:0 0 auto;background:var(--danger);color:#fff;font-size:7px;font-weight:700;border-radius:2px;padding:0 2px;white-space:nowrap}
 .rt-qty{flex:0 0 auto;text-align:right;white-space:nowrap;font-weight:600}
 @media print{
@@ -593,7 +595,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v316</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v317</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1835,7 +1837,7 @@ function catalogBlocks(sections){
 function rtRowHtml(it){
   const rk=it.rank<=3?('rt'+it.rank):'rto';
   const so=STOCKOUT[it.code]||'';
-  return `<div class="rt-row"><span class="rt-rk ${rk}">${it.rank}</span>${prodImgHtml(it.code,'rt-img')}<span class="rt-nm">${x(it.shortName||it.name)}</span>${so?`<span class="rt-so">欠${x(so)}</span>`:''}<span class="rt-qty">${it.qty.toLocaleString()}</span></div>`;
+  return `<div class="rt-row"><span class="rt-rk ${rk}">${it.rank}</span>${prodImgHtml(it.code,'rt-img')}<span class="rt-nm"><span class="rt-nm-t">${x(it.shortName||it.name)}</span><span class="rt-cd">(${x(it.code)})</span></span>${so?`<span class="rt-so">欠${x(so)}</span>`:''}<span class="rt-qty">${it.qty.toLocaleString()}</span></div>`;
 }
 // 各フォーマットの売上TOP5を、画像付き・2カラムで表示（新書判の右の空きスペースに配置）
 function buildRankTable(sec){
