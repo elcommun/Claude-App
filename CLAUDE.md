@@ -145,6 +145,7 @@ function closeLightbox(){...}
 
 ### 初期画面＝全商品 TOP100（2026-10-02 ユーザー指示）
 - リロードした初期の画面は、全カテゴリを通した**全商品のTOP100ランキング**（`showCategory(ALL_TOP_NAME)`。`ALL_TOP_NAME='全商品 TOP100'`、`isAllTop()`）。個数順（並び順が金額順のときは金額順）の上位100商品。サイドバー先頭の「🏆 全商品 TOP100」からも開く
+- **福袋は全体のランキング（全商品TOP100）に含めない**（2026-10-03 ユーザー指示）。判定は `isLuckyBag()`＝商品名に「福袋」、または品番が `LBG-` で始まる。KPI（全商品の合計）・前年比較・各カテゴリ（「その他」に出る）は福袋を含めたまま
 - 手動リロードではカテゴリは復元せずTOP100に戻る。バージョン更新の自動リロード（`doReload()`）のときだけ `sessionStorage` の `ecRankKeepView` で見ていたカテゴリに戻す
 - 全商品TOP100は実カテゴリではないため、`getCatType()` は `null`、`getCatTotal()`/`catsIn()` は全カテゴリの合計。カタログPDF（`openCategoryCatalog`）の対象外（ボタンは隠す）
 
