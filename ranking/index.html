@@ -597,7 +597,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v320</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v321</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1930,6 +1930,23 @@ function paginateCatalog(blocks, container){
       if(!page) newPage(curTitle);
       if(b.type==='sub'&&col.childElementCount>0) advance();
       place(b.html);
+    } else if(b.type==='catrank'){
+      // シリーズごとのTOP5の表: 見出しつきブロックを1つずつ置き、入りきらなければ次の段・ページへ「つづき」の表題つきで続ける
+      if(!page) newPage(curTitle);
+      let wrap=null,grid=null;
+      const start=(cont)=>{wrap=makeNode(`<div class="cat-ranktbl-wrap cat-rt-after"><div class="rt-title">${cont?b.titleCont:b.title}</div><div class="rt-grid"></div></div>`);grid=wrap.querySelector('.rt-grid');col.appendChild(wrap);};
+      start(false);
+      for(const bh of b.blocks){
+        const n=makeNode(bh);grid.appendChild(n);
+        if(col.scrollHeight>col.clientHeight+1){
+          grid.removeChild(n);
+          const hadBlocks=grid.childElementCount>0;
+          if(!hadBlocks)col.removeChild(wrap);
+          if(hadBlocks||col.childElementCount>0)advance();
+          start(hadBlocks);
+          grid.appendChild(n);
+        }
+      }
     } else if(b.type==='ranktable'){
       // ランキング表は右カラム（空き）へ配置。両カラムとも埋まっていれば次ページへ
       if(!page) newPage(curTitle);
@@ -1968,15 +1985,26 @@ function catalogSubHdr(label,items){
 function catalogSecHdr(icon,label,n,qty,amount){
   return `<div class="cat-sec-hdr">${icon} ${x(label)} <span class="cat-sec-cnt">(${n}種 ／ ${qty.toLocaleString()}個 ／ ¥${amount.toLocaleString()})</span></div>`;
 }
-// カテゴリ内の売上TOP10の表（手帳・カレンダーと同じ ranktable の形）。カードの後ろの空いたスペースに入れる。5種以下は全カードに順位が出ているので付けない
-const CAT_RANK_TOP=10;
-function buildCatTopTable(label,ranked){
-  if(ranked.length<=5) return '';
-  const top=ranked.slice(0,CAT_RANK_TOP);
-  return `<div class="cat-ranktbl-wrap cat-rt-after"><div class="rt-title">${x(label)} 売上ランキング（TOP${top.length}）</div><div class="rt-grid">${top.map(rtRowHtml).join('')}</div></div>`;
+// シリーズ（小見出し）ごとの売上TOP5の表（手帳の「種類別 売上ランキング（各TOP5）」と同じ形）。カードの後ろの空いたスペースに入れる。カテゴリが5種以下なら全カードに順位が出ているので付けない
+const CAT_RANK_TOP=5;
+function buildCatTopTable(label,ranked,series){
+  if(ranked.length<=5) return null;
+  const blocks=[];
+  for(const sr of series){
+    const top=[...sr.items].sort((a,b)=>a.rank-b.rank).slice(0,CAT_RANK_TOP);
+    if(!top.length) continue;
+    blocks.push(`<div class="rt-block"><div class="rt-fmt">${x(sr.label)}${sr.pfx?'（'+x(sr.pfx)+'）':''}</div>${top.map(it=>rtRowHtml({...it,shortName:it.cardName})).join('')}</div>`);
+  }
+  // 表が1ページに収まらないことがあるので、ブロックを1つずつ並べて入りきらなければ次の段・ページへ「つづき」として続ける（paginateCatalog の catrank）
+  return {type:'catrank',title:`${x(label)} 種類別 売上ランキング（各TOP${CAT_RANK_TOP}）`,titleCont:`${x(label)} 種類別 売上ランキング（各TOP${CAT_RANK_TOP}・つづき）`,blocks};
 }
 // カテゴリ内をシリーズ（品番の頭文字＋商品名の先頭の語が同じ商品）に分ける。ranked は売上順（rank 付き）。
 // 見出し＝商品名の共通する先頭の語＋（品番の頭文字）。例: Point ﾌﾞｯｸｶﾊﾞｰ（PBC）。1点だけの群は「その他」にまとめる
+// シリーズ内の売上順位（個数→金額→品番）を rank に入れ、品番順に並べ替える（手帳のフォーマット別順位と同じ）
+function rankInSeries(items){
+  [...items].sort((a,b)=>b.qty-a.qty||b.amount-a.amount||codeCompare(a.code,b.code)).forEach((it,i)=>{it.rank=i+1;});
+  items.sort((a,b)=>codeCompare(a.code,b.code));
+}
 function catalogSeriesOf(ranked){
   const pfxOf=code=>{const c=String(code||'').toUpperCase();const m=c.match(/^([A-Z0-9]+)[-_]/)||c.match(/^([A-Z]+)/);return m?m[1]:'';};
   const toks=n=>String(n||'').replace(/[\s\u3000]+/g,' ').trim().split(' ').filter(Boolean);
@@ -1993,28 +2021,29 @@ function catalogSeriesOf(ranked){
     let L=0;while(L<minLen-1&&T.every(t=>normalize(t[L])===normalize(T[0][L])))L++;
     const n=Math.max(L,1);   // 見出しに使う語数（デザイン名が残るよう最短の語数−1まで。最低1語）
     const items=g.list.map(e=>({...e.it,cardName:e.t.length>n?e.t.slice(n).join(' '):e.it.name}));
-    items.sort((a,b)=>codeCompare(a.code,b.code));
+    rankInSeries(items);
     series.push({label:T[0].slice(0,n).join(' '),pfx:g.pfx,items,qty:items.reduce((s,i)=>s+i.qty,0)});
   }
   series.sort((a,b)=>b.qty-a.qty||codeCompare(a.items[0].code,b.items[0].code));
-  if(others.length){const items=[...others].sort((a,b)=>codeCompare(a.code,b.code));series.push({label:'その他',pfx:'',items,qty:items.reduce((s,i)=>s+i.qty,0)});}
+  if(others.length){const items=others.map(i=>({...i}));rankInSeries(items);series.push({label:'その他',pfx:'',items,qty:items.reduce((s,i)=>s+i.qty,0)});}
   return series;
 }
 function catalogSerHdr(sr){
   return `<div class="cat-fmt cat-ser">▌ ${x(sr.label)}${sr.pfx?'（'+x(sr.pfx)+'）':''} <span class="cat-fmt-cnt">(${sr.items.length}種)</span></div>`;
 }
-// カテゴリ1つ分のブロック: シリーズ（品番の頭文字）ごとの見出し＋品番順のカード（バッジの順位はカテゴリ内の売上順位）、最後の空いたスペースにカテゴリの売上ランキング表。ranked は売上順（rank 付き）
+// カテゴリ1つ分のブロック: シリーズ（品番の頭文字）ごとの見出し＋品番順のカード（バッジの順位はシリーズ内の売上順位）、最後の空いたスペースにシリーズごとの売上TOP5の表。ranked は売上順（rank 付き）
 function catalogCatBlocks(label,ranked,showSub){
   const blocks=[];
   if(!ranked.length)return blocks;
   if(showSub)blocks.push({type:'sub',html:catalogSubHdr(label,ranked)});
   const maxQty=ranked.reduce((m,i)=>Math.max(m,i.qty),1);
-  for(const sr of catalogSeriesOf(ranked)){
+  const series=catalogSeriesOf(ranked);
+  for(const sr of series){
     blocks.push({type:'ser',html:catalogSerHdr(sr)});
     for(const it of sr.items)blocks.push({type:'card',html:catCardHtml(it,maxQty,true)});
   }
-  const rt=buildCatTopTable(label,ranked);
-  if(rt)blocks.push({type:'catrank',html:rt});
+  const rt=buildCatTopTable(label,ranked,series);
+  if(rt)blocks.push(rt);
   return blocks;
 }
 // 手帳・カレンダー以外: 大分類ごとに新しいページ、中はカテゴリごとに品番順のカード＋カテゴリ内の売上ランキング表
