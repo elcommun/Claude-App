@@ -530,7 +530,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v148</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v149</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2394,9 +2394,9 @@ function cgSubHtml(label,rows){
 // 商品番号の自然順（数字は数として比較。ranking の品番順に相当）
 const CG_COLLATOR=new Intl.Collator('en',{numeric:true,sensitivity:'base'});
 function cgCodeCmp(a,b){return CG_COLLATOR.compare(a.code,b.code)||(a.code<b.code?-1:a.code>b.code?1:0);}
-// 小見出し内の売上ランキング表（TOP10。個数/金額は rankMetric どおり）。5種以下は全カードに順位が出ているので付けない。rows は順位付き
+// 小見出し内の売上ランキング表（TOP10。個数/金額は rankMetric どおり）。2種以上の小見出しすべてに付ける。rows は順位付き
 function cgTopTable(label,rows){
-  if(rows.length<=5)return '';
+  if(rows.length<2)return '';   // 2種以上の小見出しすべてに付ける（1種だけなら順位を付ける意味が無い）
   const m=cgMetric(),top=rows.slice(0,10);
   const row=r=>`<div class="cg-rt-row"><span class="cg-rt-rk ${r.rank<=3?'k'+r.rank:'ko'}">${r.rank}</span>${prodImgHtml(r.code,'cg-rt-img','')}<span class="cg-rt-nm">${x(r.name)}${r.varName?' '+x(r.varName):''}</span><span class="cg-rt-v">${m==='amount'?'¥'+Math.round(r.amount).toLocaleString():r.qty.toLocaleString()}</span></div>`;
   return `<div class="cg-rt-wrap"><div class="cg-rt-title">${x(label)} ${m==='amount'?'金額':'個数'}ランキング（TOP${top.length}）</div><div class="cg-rt-grid">${top.map(row).join('')}</div></div>`;

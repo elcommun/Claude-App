@@ -597,7 +597,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v327</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v328</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1891,11 +1891,12 @@ function paginateCatalog(blocks, container){
     col.appendChild(node);
     if(col.scrollHeight>col.clientHeight+1){
       col.removeChild(node);
-      let orphanFmt=null;                              // 直前のフォーマット見出しが列末で孤立しないよう一緒に送る
-      const last=col.lastElementChild;
-      if(last && last.classList.contains('cat-fmt')){orphanFmt=last;col.removeChild(last);}
+      const orphans=[];                                // 直前のフォーマット見出し（とシリーズのランキング表）が列末で孤立しないよう一緒に送る
+      while(col.lastElementChild && orphans.length<2 && (col.lastElementChild.classList.contains('cat-fmt')||col.lastElementChild.classList.contains('ser-rt'))){
+        orphans.unshift(col.lastElementChild);col.removeChild(col.lastElementChild);
+      }
       advance();
-      if(orphanFmt) col.appendChild(orphanFmt);
+      orphans.forEach(o=>col.appendChild(o));
       col.appendChild(node);
     }
   };
@@ -1968,8 +1969,8 @@ function catalogSubHdr(label,items){
 function catalogSecHdr(icon,label,n,qty,amount){
   return `<div class="cat-sec-hdr">${icon} ${x(label)} <span class="cat-sec-cnt">(${n}種 ／ ${qty.toLocaleString()}個 ／ ¥${amount.toLocaleString()})</span></div>`;
 }
-// シリーズ（小見出し）ごとの売上TOP10の表（手帳・カレンダーはTOP5のまま）。小見出しの直後（カードの前）に入れる。6種以上のシリーズだけ（5種以下は全カードに順位が出ているので付けない）
-const CAT_RANK_TOP=10, CAT_RANK_MIN=5;
+// シリーズ（小見出し）ごとの売上TOP10の表（手帳・カレンダーはTOP5のまま）。小見出しの直後（カードの前）に入れる。2種以上のシリーズすべてに付ける（1種だけのシリーズ・「その他」は順位を付ける意味が無いので付けない）
+const CAT_RANK_TOP=10, CAT_RANK_MIN=1;
 function buildSerTopTable(sr){
   if(sr.items.length<=CAT_RANK_MIN) return '';
   const top=[...sr.items].sort((a,b)=>a.rank-b.rank).slice(0,CAT_RANK_TOP);
