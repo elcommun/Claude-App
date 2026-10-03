@@ -130,6 +130,9 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 .main{margin-left:var(--sb);flex:1;padding:22px 26px 60px;min-width:0}
 /* KPI */
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+.flt-note{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:-10px 0 14px;padding:7px 10px;font-size:12px;line-height:1.5;color:#3a2a20;background:#fff3ea;border-left:3px solid #E85D26;border-radius:6px}
+.flt-note[hidden]{display:none}
+.flt-note button{font:inherit;font-weight:700;color:#E85D26;background:#fff;border:1px solid #E85D26;border-radius:999px;padding:2px 10px;cursor:pointer}
 .kpi{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;position:relative;overflow:hidden}
 .kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--gold);opacity:.28}
 .kpi-v{font-size:19px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:4px;letter-spacing:-.02em}
@@ -597,7 +600,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v328</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v329</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -706,6 +709,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
   <main class="main">
     <div id="ov-block">
     <div class="kpi-row" id="kpi-row"></div>
+    <div class="flt-note" id="flt-note" hidden></div>
     <details class="tc-panel" id="trend-panel" open>
       <summary class="tc-head"><span class="tc-title">📈 販売推移</span><span class="tc-sub" id="trend-sub"></span></summary>
       <div class="tc-ctl">
@@ -2624,6 +2628,7 @@ function showCategory(cat, updateSidebar=true) {
     isTop?['TOP'+ALL_TOP_N+'の占有率（個数）', (totalQty?(items.reduce((sm,i)=>sm+i.qty,0)/totalQty*100).toFixed(1):0)+'%', '']:['全体の割合',    catPct+'%',                       ''],
     [isTop?'SKU 数（全商品）':'SKU 数',       (isTop?allItemCount:items.length).toLocaleString()+' 種',                ''],
   ].map(([l,v,d])=>`<div class="kpi"><div class="kpi-v">${v}${d}</div><div class="kpi-l">${l}</div></div>`).join('');
+  updateFilterNote();
 
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
   const maxAmtC = items.reduce((m,i)=>Math.max(m,i.amount),1);
@@ -4699,6 +4704,18 @@ function saveUiState(){
     localStorage.setItem(UI_STATE_KEY,JSON.stringify({sortMode,sortDir,comparisonMode,heatmapMode,dateFrom,dateTo,qbtn,store:document.getElementById('f-store').value,cat:selectedCategory,trendMetric,trendScope,trendOpen:!!document.getElementById('trend-panel')?.open,splitOpen:!!document.getElementById('split-panel')?.open,trendBack}));
   }catch(e){}
 }
+// 絞り込み中（期間が1年以外・店舗がすべて以外）のとき、KPI の下に今の絞り込みを出して1タップで戻せるようにする
+function updateFilterNote(){
+  const el=document.getElementById('flt-note'); if(!el)return;
+  const {dateFrom,dateTo}=getFilterPeriod(), store=document.getElementById('f-store').value;
+  const defFrom=yearsFromDate(1), defTo=window._periodLatest||'';
+  const periodOff=!!(defFrom&&(dateFrom!==defFrom||dateTo!==defTo)), storeOff=store!=='all';
+  if(!periodOff&&!storeOff){el.hidden=true;el.innerHTML='';return;}
+  const f=d=>d?d.replace(/^(\d+)-0?(\d+)-0?(\d+)$/,'$1/$2/$3'):'';
+  el.hidden=false;
+  el.innerHTML=`<span>🔎 絞り込み中: 期間 ${x(f(dateFrom))}〜${x(f(dateTo))}${storeOff?' ／ 店舗 '+x(store):''}</span><button type="button" onclick="resetFilters()">1年・すべての店舗に戻す</button>`;
+}
+function resetFilters(){document.getElementById('f-store').value='all';setYearsPeriod(1);}
 function loadUiState(){try{return JSON.parse(localStorage.getItem(UI_STATE_KEY)||'null');}catch(e){return null;}}
 // 最新販売日から n 年遡った開始日（クイックボタン共通）
 function yearsFromDate(n){
@@ -4729,20 +4746,22 @@ const _uiSt=loadUiState();
 (function restoreUiState(){
   if(!_uiSt)return;
   try{
+    // 期間は、バージョン更新の自動リロード（doReload が印を付ける）のときだけ復元する。手動のリロードは1年に戻る。店舗はリロードのたびに「すべての店舗」に戻す
+    const keep=sessionStorage.getItem('ecRankKeepView')==='1';
     const fi=document.getElementById('f-date-from'),ti=document.getElementById('f-date-to');
     const ea=window._periodEarliest||'',la=window._periodLatest||'';
-    if(/^qbtn-[123]$/.test(_uiSt.qbtn)){fi.value=yearsFromDate(parseInt(_uiSt.qbtn.slice(5)));ti.value=la;setQBtnActive(_uiSt.qbtn);window._qbtnRestored=true;}
-    else if(_uiSt.qbtn==='qbtn-all'){fi.value=ea;ti.value=la;setQBtnActive('qbtn-all');window._qbtnRestored=true;}
-    else if(_uiSt.dateFrom&&_uiSt.dateTo){fi.value=ea&&_uiSt.dateFrom<ea?ea:_uiSt.dateFrom;ti.value=la&&_uiSt.dateTo>la?la:_uiSt.dateTo;setQBtnActive('');window._qbtnRestored=true;}
-    const st=document.getElementById('f-store');
-    if(_uiSt.store&&[...st.options].some(o=>o.value===_uiSt.store))st.value=_uiSt.store;
+    if(keep){
+      if(/^qbtn-[123]$/.test(_uiSt.qbtn)){fi.value=yearsFromDate(parseInt(_uiSt.qbtn.slice(5)));ti.value=la;setQBtnActive(_uiSt.qbtn);window._qbtnRestored=true;}
+      else if(_uiSt.qbtn==='qbtn-all'){fi.value=ea;ti.value=la;setQBtnActive('qbtn-all');window._qbtnRestored=true;}
+      else if(_uiSt.dateFrom&&_uiSt.dateTo){fi.value=ea&&_uiSt.dateFrom<ea?ea:_uiSt.dateFrom;ti.value=la&&_uiSt.dateTo>la?la:_uiSt.dateTo;setQBtnActive('');window._qbtnRestored=true;}
+    }
     if(typeof _uiSt.comparisonMode==='boolean'){comparisonMode=_uiSt.comparisonMode;document.getElementById('tog-cmp').classList.toggle('on',comparisonMode);}
     if(typeof _uiSt.heatmapMode==='boolean'){heatmapMode=_uiSt.heatmapMode;document.getElementById('tog-heat').classList.toggle('on',heatmapMode);}
     if(_uiSt.sortMode){sortMode=_uiSt.sortMode;sortDir=_uiSt.sortDir||'desc';}
     // カテゴリは、バージョン更新の自動リロード（doReload が印を付ける）のときだけ復元する。手動のリロードは全商品TOP100に戻る
-    if(_uiSt.cat&&sessionStorage.getItem('ecRankKeepView')==='1')selectedCategory=_uiSt.cat; // 存在確認は applyFilter 側で行う
+    if(_uiSt.cat&&keep)selectedCategory=_uiSt.cat; // 存在確認は applyFilter 側で行う
     try{sessionStorage.removeItem('ecRankKeepView');}catch(e){}
-    if(_uiSt.trendBack&&_uiSt.trendBack.from&&_uiSt.trendBack.to)trendBack=_uiSt.trendBack;
+    if(keep&&_uiSt.trendBack&&_uiSt.trendBack.from&&_uiSt.trendBack.to)trendBack=_uiSt.trendBack;
     if(_uiSt.trendMetric==='amount'||_uiSt.trendMetric==='qty')trendMetric=_uiSt.trendMetric;
     if(_uiSt.trendScope==='all'||_uiSt.trendScope==='cat')trendScope=_uiSt.trendScope;
     if(typeof _uiSt.trendOpen==='boolean')document.getElementById('trend-panel').open=_uiSt.trendOpen;
