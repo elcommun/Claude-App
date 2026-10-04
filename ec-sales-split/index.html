@@ -503,7 +503,7 @@ function isOwn(pn,sku,rawName,code,ownSet){
   if(ns&&ownSet.has(ns))return true;
   if(sku&&ownSet.has(sku.trim()))return true;
   if(t&&ownSet.has(t))return true;
-  if(code&&(OWN_PREFIX.test(code)||code==='LNC-413'))return true;
+  if(code&&OWN_PREFIX.test(code))return true;
   return false;
 }
 
@@ -796,7 +796,7 @@ document.getElementById('goBtn').onclick=async()=>{
           if(alt&&productMap.has(alt)){ name=productMap.get(alt); matched=true; code=alt; }
         }
       }
-      if(!matched&&(/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-|WCL-|X?DR-)/i.test(code)||/^AK-/.test(code)||code==='LNC-413')){ matched=true; }
+      if(!matched&&(/^(?:EGP-|LBG-|AMP-C|SFD-|MK-|CRB-|WCL-|X?DR-)/i.test(code)||/^AK-/.test(code))){ matched=true; }
 
       dates.push(date);
       const own_=isOwn(pn,sku,rawName,code,ownSet);
