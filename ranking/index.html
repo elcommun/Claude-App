@@ -600,7 +600,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v330</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v331</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1987,17 +1987,32 @@ function rankInSeries(items){
   [...items].sort((a,b)=>b.qty-a.qty||b.amount-a.amount||codeCompare(a.code,b.code)).forEach((it,i)=>{it.rank=i+1;});
   items.sort((a,b)=>codeCompare(a.code,b.code));
 }
+// 品番の頭文字ごとに、見出しと商品名の整え方を固定するシリーズ（名前が揺れていても1つの見出しにまとめる）。
+// PPC: 「Point ﾍﾟﾝｹｰｽ」「Point ﾌﾗｯﾄﾍﾟﾝｹｰｽ」「PVCﾍﾟﾝｹｰｽ Point …」「PVCフラットペンケース Point …」などを全部「Point ﾍﾟﾝｹｰｽ（PPC）」にまとめる。
+// カードの名前は、Point・ペンケースの語を除き、形の違い（ﾌﾗｯﾄ・PVC・PVCﾌﾗｯﾄ）は残す（同じデザインが重複して見分けがつかなくならないように）
+const SERIES_FIXED={
+  PPC:{label:'Point ﾍﾟﾝｹｰｽ',cardName:name=>{
+    const t=String(name||'').replace(/[\s\u3000]+/g,' ').trim().split(' ').map(w=>/^point$/i.test(w)?'':w.replace(/(ﾍﾟﾝｹｰｽ|ペンケース)$/,'')).filter(Boolean);
+    return t.join(' ')||name;
+  }}
+};
 function catalogSeriesOf(ranked){
   const pfxOf=code=>{const c=String(code||'').toUpperCase();const m=c.match(/^([A-Z0-9]+)[-_]/)||c.match(/^([A-Z]+)/);return m?m[1]:'';};
   const toks=n=>String(n||'').replace(/[\s\u3000]+/g,' ').trim().split(' ').filter(Boolean);
   const by=new Map();
   for(const it of ranked){
-    const t=toks(it.name),k=pfxOf(it.code)+'|'+normalize(t[0]||'');
-    if(!by.has(k))by.set(k,{pfx:pfxOf(it.code),list:[]});
+    const t=toks(it.name),fx=SERIES_FIXED[pfxOf(it.code)],k=fx?'*|'+pfxOf(it.code):pfxOf(it.code)+'|'+normalize(t[0]||'');
+    if(!by.has(k))by.set(k,{pfx:pfxOf(it.code),fx,list:[]});
     by.get(k).list.push({it,t});
   }
   const series=[],others=[];
   for(const g of by.values()){
+    if(g.fx){   // 固定のシリーズ（見出し・カード名を決め打ち）
+      const items=g.list.map(e=>({...e.it,cardName:g.fx.cardName(e.it.name)}));
+      rankInSeries(items);
+      series.push({label:g.fx.label,pfx:g.pfx,items,qty:items.reduce((s,i)=>s+i.qty,0)});
+      continue;
+    }
     if(g.list.length<2){others.push(...g.list.map(e=>e.it));continue;}
     const T=g.list.map(e=>e.t),minLen=Math.min(...T.map(t=>t.length));
     let L=0;while(L<minLen-1&&T.every(t=>normalize(t[L])===normalize(T[0][L])))L++;
