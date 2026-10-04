@@ -230,6 +230,9 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 #boot .spinner{width:22px;height:22px;border-width:3px;margin:0 8px 0 0}
 /* 商品名クリック時の販売推移ミニグラフ */
 .sale-period .spark{display:block;margin-top:4px;max-width:100%;height:auto}
+.sale-period .sp-out{margin-top:4px;color:#a0522d;line-height:1.5}
+.sale-period .sp-out-h{font-weight:700}
+.sale-period .sp-out .nw{white-space:nowrap}
 .spark-cap{font-size:10px;color:var(--ink4);margin-top:1px}
 .alias-panel{margin-bottom:12px;border:1px solid var(--border);border-radius:7px;padding:0 12px;font-family:inherit}
 .alias-panel summary{padding:9px 0;cursor:pointer;font-size:11px;font-weight:600;color:var(--ink3);user-select:none;list-style:none;outline:none}
@@ -600,7 +603,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v332</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v333</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -4112,12 +4115,14 @@ function allTimeMonthly(){
   const t={};
   for(const [date,stores] of Object.entries(PRELOADED.by_store)){
     const ym=date.slice(0,7);
-    for(const cats of Object.values(stores)){
+    for(const [storeName,cats] of Object.entries(stores)){
+      const daily=storeName!=='合計';   // 店舗「合計」はシーズン合計（発送日が無い時代の代表日）。長期欠品の判定には使わない
       for(const codes of Object.values(cats)){
         for(const [code,qa] of Object.entries(codes)){
           let e=t[code];
-          if(!e){e=t[code]={min:date,max:date,m:{}};}
+          if(!e){e=t[code]={min:date,max:date,m:{},d:new Set()};}
           else{if(date<e.min)e.min=date;if(date>e.max)e.max=date;}
+          if(daily)e.d.add(date);
           const mm=e.m[ym];
           if(mm){mm[0]+=qa[0];mm[1]+=qa[1];}else e.m[ym]=[qa[0],qa[1]];
         }
@@ -4138,6 +4143,31 @@ function getSalePeriodText(code){
   const {minD,maxD}=productHistory(code);
   if(!minD)return '販売実績なし';
   return minD===maxD?`販売期間: ${minD}`:`販売期間: ${minD} 〜 ${maxD}`;
+}
+// 長期欠品の期間: 販売日と販売日の間で、売れていない日が OUTAGE_MIN_DAYS 日以上続いた期間（途中の空きだけ。最後に売れた日より後は販売終了と区別がつかないので出さない）。
+// 欠品の記録（STOCKOUT）は始まりの日しか無いので、販売データから判定する
+const OUTAGE_MIN_DAYS=60, OUTAGE_SHOW_MAX=10;
+function productOutages(code){
+  const e=allTimeMonthly()[code]; if(!e||!e.d)return [];
+  if(e.out)return e.out;
+  const a=[...e.d].sort(), out=[];
+  const D=s=>Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10))/86400000;
+  const iso=n=>new Date(n*86400000).toISOString().slice(0,10);
+  for(let i=1;i<a.length;i++){
+    const days=D(a[i])-D(a[i-1])-1;
+    if(days>=OUTAGE_MIN_DAYS)out.push({from:iso(D(a[i-1])+1),to:iso(D(a[i])-1),days});
+  }
+  e.out=out; return out;
+}
+function outageLenText(days){
+  const m=Math.round(days/30.4);
+  return m<24?`約${m}か月`:`約${Math.floor(m/12)}年${m%12?(m%12)+'か月':''}`;
+}
+function outageHtml(code){
+  const out=productOutages(code); if(!out.length)return '';
+  const rows=[...out].reverse().slice(0,OUTAGE_SHOW_MAX).map(o=>`<div><span class="nw">${o.from} 〜 ${o.to}</span> <span class="nw">（${outageLenText(o.days)}）</span></div>`).join('');
+  const more=out.length>OUTAGE_SHOW_MAX?`<div>ほか${out.length-OUTAGE_SHOW_MAX}件</div>`:'';
+  return `<div class="sp-out"><div class="sp-out-h">長期欠品（${OUTAGE_MIN_DAYS}日以上売れていない期間）</div>${rows}${more}</div>`;
 }
 // 直近24ヶ月の月別販売数をミニグラフ（面付き折れ線）にする。最大月に点、各月に<title>でツールチップ
 function sparklineHtml(code){
@@ -4171,7 +4201,7 @@ function toggleNameExpand(el,code){
   cell.classList.add('open');
   const newEl=document.createElement('div');
   newEl.className='sale-period';
-  newEl.innerHTML=x(getSalePeriodText(code))+sparklineHtml(code);
+  newEl.innerHTML=x(getSalePeriodText(code))+outageHtml(code)+sparklineHtml(code);
   cell.appendChild(newEl);
 }
 function hl(text,words,trans=[]){

@@ -196,6 +196,9 @@ td.cat-col{text-align:left}
 .nc .var{color:var(--ink3);white-space:nowrap}
 .nc .sale-period{flex-basis:100%;color:var(--ink4);font-size:11px}
 .sale-period .spark{display:block;margin-top:4px;max-width:100%;height:auto}
+.sale-period .sp-out{margin-top:4px;color:#a0522d;line-height:1.5}
+.sale-period .sp-out-h{font-weight:700}
+.sale-period .sp-out .nw{white-space:nowrap}
 .spark-cap{font-size:10px;color:var(--ink4);margin-top:1px}
 .nc .nm::after{content:' ▾';font-size:9px;color:var(--ink4)}
 .nc .nm.nm-expand::after{content:' ▴'}
@@ -533,7 +536,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v150</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v151</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2035,15 +2038,16 @@ const ROW_LIMIT=300;
 // 商品ごとの販売履歴（初回/最終販売日・月別販売数）を全期間データから集計し、商品IDごとにキャッシュ
 function productHistory(pid){
   if(PROD_HISTORY.has(pid)) return PROD_HISTORY.get(pid);
-  let minD=null, maxD=null; const months={};
+  let minD=null, maxD=null; const months={}, days=new Set();
   for(const rec of ALL_RECORDS){
     if(rec[2]!==pid) continue;
     const d=rec[0];
     if(!minD||d<minD) minD=d;
     if(!maxD||d>maxD) maxD=d;
+    days.add(d);
     const ym=d.slice(0,7); months[ym]=(months[ym]||0)+rec[3];
   }
-  const h={minD,maxD,months};
+  const h={minD,maxD,months,days};
   PROD_HISTORY.set(pid,h);
   return h;
 }
@@ -2052,6 +2056,30 @@ function getSalePeriodText(pid){
   const {minD,maxD}=productHistory(pid);
   if(!minD) return '販売実績なし';
   return minD===maxD ? `販売期間: ${minD}` : `販売期間: ${minD} 〜 ${maxD}`;
+}
+// 長期欠品の期間: 販売日と販売日の間で、売れていない日が OUTAGE_MIN_DAYS 日以上続いた期間（途中の空きだけ。最後に売れた日より後は販売終了と区別がつかないので出さない）
+const OUTAGE_MIN_DAYS=60, OUTAGE_SHOW_MAX=10;
+function productOutages(pid){
+  const h=productHistory(pid);
+  if(h.out) return h.out;
+  const a=[...(h.days||[])].sort(), out=[];
+  const D=s=>Date.UTC(+s.slice(0,4),+s.slice(5,7)-1,+s.slice(8,10))/86400000;
+  const iso=n=>new Date(n*86400000).toISOString().slice(0,10);
+  for(let i=1;i<a.length;i++){
+    const days=D(a[i])-D(a[i-1])-1;
+    if(days>=OUTAGE_MIN_DAYS) out.push({from:iso(D(a[i-1])+1),to:iso(D(a[i])-1),days});
+  }
+  h.out=out; return out;
+}
+function outageLenText(days){
+  const m=Math.round(days/30.4);
+  return m<24?`約${m}か月`:`約${Math.floor(m/12)}年${m%12?(m%12)+'か月':''}`;
+}
+function outageHtml(pid){
+  const out=productOutages(pid); if(!out.length) return '';
+  const rows=[...out].reverse().slice(0,OUTAGE_SHOW_MAX).map(o=>`<div><span class="nw">${o.from} 〜 ${o.to}</span> <span class="nw">（${outageLenText(o.days)}）</span></div>`).join('');
+  const more=out.length>OUTAGE_SHOW_MAX?`<div>ほか${out.length-OUTAGE_SHOW_MAX}件</div>`:'';
+  return `<div class="sp-out"><div class="sp-out-h">長期欠品（${OUTAGE_MIN_DAYS}日以上売れていない期間）</div>${rows}${more}</div>`;
 }
 // 直近24ヶ月の月別販売数をミニグラフ（面付き折れ線）にする。最大月に点、各月に<title>でツールチップ
 function sparklineHtml(pid){
@@ -2088,7 +2116,7 @@ function toggleNameExpand(el, pid){
       periodEl.className='sale-period';
       row.appendChild(periodEl);
     }
-    periodEl.innerHTML=x(getSalePeriodText(pid))+sparklineHtml(pid);
+    periodEl.innerHTML=x(getSalePeriodText(pid))+outageHtml(pid)+sparklineHtml(pid);
   } else if(periodEl){
     periodEl.remove();
   }
