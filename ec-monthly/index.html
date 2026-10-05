@@ -200,6 +200,8 @@
     box-shadow: 0 0 0 4px var(--accent-glow), inset 0 0 40px rgba(139,92,246,0.05);
     transform: scale(1.01);
   }
+  .dropzone.sub { padding: 16px 20px; margin-top: 12px; }
+  .dropzone.sub .dz-label { font-size: 13px; }
   .dropzone input[type="file"] {
     position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
   }
@@ -750,6 +752,13 @@
       <div class="file-status" id="fileStatus">ファイル未選択</div>
     </div>
 
+    <!-- 商品マスタ（任意） -->
+    <div class="dropzone sub" id="masterDrop">
+      <input type="file" accept=".xlsx,.xlsm" id="masterInput">
+      <div class="dz-label" id="masterLabel">商品マスタExcel（任意）：自社の商品名を品番から取得</div>
+      <div class="file-status" id="masterStatus">未選択（選ばなくても変換できます）</div>
+    </div>
+
     <!-- 変換ボタン -->
     <button class="btn-convert" id="convertBtn" disabled>
       <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -898,6 +907,49 @@ dropzone.addEventListener('drop', e => {
   const f = e.dataTransfer.files[0];
   if (f && f.name.endsWith('.csv')) setFile(f);
   else showMsg('CSVファイルを選択してください', 'error');
+});
+
+const masterInput  = document.getElementById('masterInput');
+const masterDrop   = document.getElementById('masterDrop');
+const masterStatus = document.getElementById('masterStatus');
+let masterNames = null;
+
+async function setMaster(f) {
+  if (!f) return;
+  try {
+    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+    const ws = wb.Sheets['商品データ'] || wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    const norm = v => String(v).replace(/[\s　]/g, '');
+    let hi = -1, ci = -1, ni = -1;
+    for (let i = 0; i < Math.min(rows.length, 10) && hi < 0; i++) {
+      const c = rows[i].findIndex(v => norm(v) === '品番');
+      const n = rows[i].findIndex(v => norm(v) === '品名');
+      if (c >= 0 && n >= 0) { hi = i; ci = c; ni = n; }
+    }
+    if (hi < 0) throw new Error('「品番」「品名」列が見つかりません');
+    const map = new Map();
+    for (let i = hi + 1; i < rows.length; i++) {
+      const pn = String(rows[i][ci]).trim(), nm = String(rows[i][ni]).trim();
+      if (pn && nm && !map.has(pn)) map.set(pn, nm);
+    }
+    masterNames = map;
+    masterStatus.textContent = `${f.name}（${map.size.toLocaleString()}件）`;
+    masterStatus.classList.add('has-file');
+  } catch (err) {
+    masterNames = null;
+    masterStatus.textContent = '未選択（選ばなくても変換できます）';
+    masterStatus.classList.remove('has-file');
+    showMsg('商品マスタを読み込めませんでした: ' + err.message, 'error');
+  }
+}
+masterInput.addEventListener('change', e => setMaster(e.target.files[0]));
+masterDrop.addEventListener('dragover', e => { e.preventDefault(); masterDrop.classList.add('drag-over'); });
+masterDrop.addEventListener('dragleave', () => masterDrop.classList.remove('drag-over'));
+masterDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  masterDrop.classList.remove('drag-over');
+  setMaster(e.dataTransfer.files[0]);
 });
 
 function setFile(f) {
@@ -1246,6 +1298,7 @@ async function processData() {
     if (pn.startsWith('DR-') && (name.includes('【限定】')||name.includes('【EC限定】')))
       pn='XDR-'+pn.substring(3);
     row['商品番号']=pn;
+    if (masterNames && masterNames.has(pn)) row['商品名']=masterNames.get(pn);
   });
 
   const calcTotal = row =>
