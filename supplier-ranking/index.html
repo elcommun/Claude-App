@@ -111,7 +111,7 @@ input[type=file]{display:none}
 .sb-chip{display:inline-block;background:#2d2926;color:#fff;border-radius:5px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;letter-spacing:.03em;flex-shrink:0}
 .fsel{width:100%;height:29px;padding:0 7px;border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--ink);background:var(--white);outline:none;font-family:inherit;transition:border-color .15s}
 .fsel:focus{border-color:var(--accent)}
-.qbtn{flex:1;padding:3px 4px;font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--ink3);cursor:pointer;line-height:1.4;font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+.qbtn{flex:1;padding:3px 2px;white-space:nowrap;font-size:10px;background:var(--white);border:1px solid var(--border);border-radius:4px;color:var(--ink3);cursor:pointer;line-height:1.4;font-family:inherit;transition:background .15s,color .15s,border-color .15s}
 .qbtn:hover{border-color:var(--accent);color:var(--accent)}
 .qbtn.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 .sb-tog{padding:7px 11px;border-bottom:1px solid var(--border2);display:flex;gap:4px}
@@ -536,7 +536,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v151</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v152</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -622,6 +622,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
           <input type="date" class="fsel" id="f-date-to" onchange="setQBtnActive(null);applyFilter()">
         </div>
         <div style="display:flex;gap:4px;margin-top:6px">
+          <button id="qbtn-h" onclick="setHalfYearPeriod()" class="qbtn">半年</button>
           <button id="qbtn-1" onclick="setYearsPeriod(1)" class="qbtn">1年</button>
           <button id="qbtn-2" onclick="setYearsPeriod(2)" class="qbtn">2年</button>
           <button id="qbtn-3" onclick="setYearsPeriod(3)" class="qbtn">3年</button>
@@ -1373,6 +1374,21 @@ function yearsFrom(years){
   const from=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   return from<PRELOADED.date_from?PRELOADED.date_from:from;
 }
+// 最新販売日から半年（6か月）遡った開始日
+function halfYearFrom(){
+  const d=new Date(PRELOADED.date_to+'T00:00:00');
+  const day=d.getDate(); d.setDate(1); d.setMonth(d.getMonth()-6);
+  d.setDate(Math.min(day,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()));
+  d.setDate(d.getDate()+1);
+  const from=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return from<PRELOADED.date_from?PRELOADED.date_from:from;
+}
+function setHalfYearPeriod(){
+  document.getElementById('f-date-from').value=halfYearFrom();
+  document.getElementById('f-date-to').value=PRELOADED.date_to;
+  setQBtnActive('qbtn-h');
+  applyFilter();
+}
 function setYearsPeriod(years){
   document.getElementById('f-date-from').value=yearsFrom(years);
   document.getElementById('f-date-to').value=PRELOADED.date_to;
@@ -1380,7 +1396,7 @@ function setYearsPeriod(years){
   applyFilter();
 }
 function setQBtnActive(id){
-  ['qbtn-1','qbtn-2','qbtn-3','qbtn-all'].forEach(b=>{
+  ['qbtn-h','qbtn-1','qbtn-2','qbtn-3','qbtn-all'].forEach(b=>{
     const el=document.getElementById(b);
     if(el) el.classList.toggle('on', b===id);
   });
@@ -3244,7 +3260,7 @@ function focusMonth(ym){
   const fi=document.getElementById('f-date-from'),ti=document.getElementById('f-date-to');
   // 絞り込む前の期間を控えておき、「← 期間を戻す」で元に戻せるようにする
   trendBack={from:fi.value,to:ti.value,
-    qbtn:['qbtn-1','qbtn-2','qbtn-3','qbtn-all'].find(id=>document.getElementById(id)?.classList.contains('on'))||'',
+    qbtn:['qbtn-h','qbtn-1','qbtn-2','qbtn-3','qbtn-all'].find(id=>document.getElementById(id)?.classList.contains('on'))||'',
     focusedFrom:fD,focusedTo:tD};
   fi.value=fD; ti.value=tD;
   setQBtnActive('');
@@ -3407,7 +3423,7 @@ function renderOverview(cat,cats){
 const UI_STATE_KEY='ec_supplier_state_v1';
 function saveUiState(){
   try{
-    const qbtn=['qbtn-1','qbtn-2','qbtn-3','qbtn-all'].find(id=>document.getElementById(id)?.classList.contains('on'))||'';
+    const qbtn=['qbtn-h','qbtn-1','qbtn-2','qbtn-3','qbtn-all'].find(id=>document.getElementById(id)?.classList.contains('on'))||'';
     localStorage.setItem(UI_STATE_KEY,JSON.stringify({
       rankMetric, groupMode, listCol, sortMode, sortDir, comparisonMode, heatmapMode,
       dateFrom:document.getElementById('f-date-from').value, dateTo:document.getElementById('f-date-to').value,
@@ -3437,7 +3453,8 @@ function restoreUiState(){
     const keep=sessionStorage.getItem('ecSupKeepView')==='1';
     const fi=document.getElementById('f-date-from'), ti=document.getElementById('f-date-to');
     const ea=PRELOADED.date_from, la=PRELOADED.date_to;
-    if(keep&&/^qbtn-[123]$/.test(s.qbtn)){ fi.value=yearsFrom(parseInt(s.qbtn.slice(5))); ti.value=la; setQBtnActive(s.qbtn); }
+    if(keep&&s.qbtn==='qbtn-h'){ fi.value=halfYearFrom(); ti.value=la; setQBtnActive('qbtn-h'); }
+    else if(keep&&/^qbtn-[123]$/.test(s.qbtn)){ fi.value=yearsFrom(parseInt(s.qbtn.slice(5))); ti.value=la; setQBtnActive(s.qbtn); }
     else if(keep&&s.qbtn==='qbtn-all'){ fi.value=ea; ti.value=la; setQBtnActive('qbtn-all'); }
     else if(keep&&s.dateFrom&&s.dateTo){ fi.value=s.dateFrom<ea?ea:s.dateFrom; ti.value=s.dateTo>la?la:s.dateTo; setQBtnActive(''); }
     else { fi.value=yearsFrom(1); ti.value=la; setQBtnActive('qbtn-1'); }
