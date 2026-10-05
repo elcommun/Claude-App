@@ -2519,6 +2519,66 @@ async function downloadCheckedCategories(){
   setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
 }
 
+// 手帳・カレンダーの年版商品について、前年版・前々年版の販売数を求める（全商品TOP100・検索・カテゴリ画面で共通）。
+// rows=[{code, yc(その商品の年版カテゴリ名。年版でなければ無し)}] → {prev:{code:[数,金額]|null}, prev2:{…}}
+// 年版でない商品・検索コードの無い商品は結果に入らない（呼び出し側で従来どおり同じ品番自身の前期間を使う）。
+// 手帳は末尾の英字デザイン名で照合（位置照合なし）、カレンダーは検索コードのみ。前年版が無い新デザインは null（-）。
+function calcEditionPrev(rows){
+  const itemPrevQA={},itemPrev2QA={};
+  function designName(n){const m=(n||'').match(/([A-Za-z][A-Za-z0-9 &]*)\s*$/);return m?m[1].trim():'';}
+  function dnMatch(a,b){if(!a||!b)return false;const al=a.toLowerCase(),bl=b.toLowerCase();return al===bl||al.includes(bl)||bl.includes(al);}
+  const grps={};
+  for(const r of rows){
+    const sc=(DATA.products[r.code]||[])[2];if(!sc)continue;
+    const yc=r.yc;if(!yc||!isYearGroupCat(yc))continue;
+    const tp=r.code.match(/^[^0-9]+/)?.[0]||'';
+    const type=/カレンダー/.test(yc)?'カレンダー':'手帳';
+    const key=sc+'|'+tp+'|'+yc;
+    if(!grps[key])grps[key]={sc,tp,yc,type,items:[]};
+    grps[key].items.push({code:r.code,dn:designName((DATA.products[r.code]||[])[0]||'')});
+  }
+  for(const g of Object.values(grps)){
+    g.items.sort((a,b)=>codeCompare(a.code,b.code));
+    for(const[offset,tgt,pAgg] of [[-1,itemPrevQA,aggPrev],[-2,itemPrev2QA,aggPrev2]]){
+      const prevCat=getEquivYearCat(g.yc,offset);
+      if(!prevCat){for(const{code}of g.items)tgt[code]=null;continue;}
+      const pCodes=Object.keys(pAgg[prevCat]||{}).filter(c=>(DATA.products[c]||[])[2]===g.sc&&(!g.tp||c.startsWith(g.tp))).sort();
+      if(!pCodes.length){for(const{code}of g.items)tgt[code]=null;continue;}
+      if(g.type==='カレンダー'){
+        // カレンダー: sc-only matching (one product per sc per year, no color variants)
+        let tq=0,ta=0;for(const pc of pCodes){const qa=pAgg[prevCat][pc];if(qa){tq+=qa[0];ta+=qa[1];}}
+        for(const{code}of g.items)tgt[code]=tq>0?[tq,ta]:null;
+      } else {
+        const prevDN={};
+        for(const pc of pCodes){const d=designName((DATA.products[pc]||[])[0]||'');if(!prevDN[d])prevDN[d]=[];prevDN[d].push(pc);}
+        const used=new Set();
+        for(const{code,dn}of g.items){
+          // exact match first, then partial match
+          let mc=dn&&prevDN[dn]?.find(c=>!used.has(c));
+          if(!mc&&dn){for(const[d,cs]of Object.entries(prevDN)){if(dnMatch(dn,d)){mc=cs.find(c=>!used.has(c));if(mc)break;}}}
+          if(mc){used.add(mc);const qa=pAgg[prevCat][mc];tgt[code]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}
+          else tgt[code]=undefined;
+        }
+        // デザイン名が毎年変わる商品（例: Trot Grege ← Slither Grege）は、同じ検索コード（＝同じ商品ページ）内の
+        // 「名前照合で残った今年の商品」と「残った前年版の商品」が同数で、色（名前の最後の語）が1対1に決まるときだけ照合する。
+        // 数が違う・色が重なる・色が合わないときはあいまいなので照合しない（＝「-」）
+        const colorOf=n=>(n||'').trim().split(/\s+/).pop().toLowerCase();
+        const unm=g.items.filter(it=>tgt[it.code]===undefined);
+        const left=pCodes.filter(c=>!used.has(c));
+        if(unm.length&&unm.length===left.length){
+          const lc=left.map(c=>[c,colorOf(designName((DATA.products[c]||[])[0]||''))]);
+          const uc=unm.map(it=>colorOf(it.dn));
+          if(new Set(uc).size===uc.length&&new Set(lc.map(x=>x[1])).size===lc.length&&uc.every(c=>c&&lc.some(x=>x[1]===c))){
+            for(const it of unm){const pc=lc.find(x=>x[1]===colorOf(it.dn))[0];used.add(pc);const qa=pAgg[prevCat][pc];tgt[it.code]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}
+          }
+        }
+        for(const it of unm)if(tgt[it.code]===undefined)tgt[it.code]=null;
+      }
+    }
+  }
+  return {prev:itemPrevQA,prev2:itemPrev2QA};
+}
+
 // ── Category view ─────────────────────────────────────────────────────────────
 function showCategory(cat, updateSidebar=true) {
   selectedCategory = cat;
@@ -2568,56 +2628,13 @@ function showCategory(cat, updateSidebar=true) {
   // Per-item year-equivalent lookup for 手帳/カレンダー parent/sub categories.
   // Each item belongs to exactly one year category; we look up its shifted-year equivalent
   // to avoid incorrectly summing multiple year-versions of the same design.
-  const itemPrevQA={},itemPrev2QA={};
-  if(catType){
-    const codeToYearCat={};
+  // 手帳・カレンダーの年版商品は、前年版・前々年版（同じ検索コード・同じデザイン）の販売数と比べる（全画面共通）
+  const codeToYearCat={};
+  if(catType||isTop){
     for(const rc of realCats){if(isYearGroupCat(rc)){for(const code of Object.keys(aggregated[rc]||{})){if(!codeToYearCat[code])codeToYearCat[code]=rc;}}}
-    // Name-based matching: match by trailing ASCII design name (partial/contains).
-    // No positional fallback — new designs with no prior-year equivalent show null.
-    function designName(n){const m=(n||'').match(/([A-Za-z][A-Za-z0-9 &]*)\s*$/);return m?m[1].trim():'';}
-    const grps={};
-    for(const item of items){
-      const sc=(DATA.products[item.code]||[])[2];if(!sc)continue;
-      const yc=codeToYearCat[item.code];if(!yc)continue;
-      const tp=item.code.match(/^[^0-9]+/)?.[0]||'';
-      const key=sc+'|'+tp+'|'+yc;
-      if(!grps[key])grps[key]={sc,tp,yc,items:[]};
-      grps[key].items.push({code:item.code,dn:designName((DATA.products[item.code]||[])[0]||'')});
-    }
-    for(const g of Object.values(grps)){
-      g.items.sort((a,b)=>codeCompare(a.code,b.code));
-      if(catType==='カレンダー'){
-        // カレンダー: sc-only matching (one product per sc per year, no color variants)
-        for(const[offset,tgt,pAgg] of [[-1,itemPrevQA,aggPrev],[-2,itemPrev2QA,aggPrev2]]){
-          const prevCat=getEquivYearCat(g.yc,offset);
-          if(!prevCat){for(const{code}of g.items)tgt[code]=null;continue;}
-          const pCodes=Object.keys(pAgg[prevCat]||{}).filter(c=>(DATA.products[c]||[])[2]===g.sc&&(!g.tp||c.startsWith(g.tp)));
-          if(!pCodes.length){for(const{code}of g.items)tgt[code]=null;continue;}
-          let tq=0,ta=0;for(const pc of pCodes){const qa=pAgg[prevCat][pc];if(qa){tq+=qa[0];ta+=qa[1];}}
-          for(const{code}of g.items)tgt[code]=tq>0?[tq,ta]:null;
-        }
-      } else {
-        // 手帳: name-based partial matching only — no positional fallback.
-        // If no name match found (new design with no prior-year equivalent), show null (—).
-        function dnMatch(a,b){if(!a||!b)return false;const al=a.toLowerCase(),bl=b.toLowerCase();return al===bl||al.includes(bl)||bl.includes(al);}
-        for(const[offset,tgt,pAgg] of [[-1,itemPrevQA,aggPrev],[-2,itemPrev2QA,aggPrev2]]){
-          const prevCat=getEquivYearCat(g.yc,offset);
-          if(!prevCat){for(const{code}of g.items)tgt[code]=null;continue;}
-          const pCodes=Object.keys(pAgg[prevCat]||{}).filter(c=>(DATA.products[c]||[])[2]===g.sc&&(!g.tp||c.startsWith(g.tp))).sort();
-          if(!pCodes.length){for(const{code}of g.items)tgt[code]=null;continue;}
-          const prevDN={};
-          for(const pc of pCodes){const d=designName((DATA.products[pc]||[])[0]||'');if(!prevDN[d])prevDN[d]=[];prevDN[d].push(pc);}
-          const used=new Set();
-          for(const{code,dn}of g.items){
-            // exact match first, then partial match
-            let mc=dn&&prevDN[dn]?.find(c=>!used.has(c));
-            if(!mc&&dn){for(const[d,cs]of Object.entries(prevDN)){if(dnMatch(dn,d)){mc=cs.find(c=>!used.has(c));if(mc)break;}}}
-            if(mc){used.add(mc);const qa=pAgg[prevCat][mc];tgt[code]=qa&&qa[0]>0?[qa[0],qa[1]]:null;}
-            else tgt[code]=null;
-          }
-        }
-      }
-    }
+  }
+  const {prev:itemPrevQA,prev2:itemPrev2QA}=calcEditionPrev(items.map(item=>({code:item.code,yc:codeToYearCat[item.code]})));
+  if(catType){
     for(const item of items){const sc=(DATA.products[item.code]||[])[2];if(sc&&!(item.code in itemPrevQA)){itemPrevQA[item.code]=null;itemPrev2QA[item.code]=null;}}
   }
   // Compute category-level comparison totals for the header
@@ -2692,7 +2709,7 @@ function showCategory(cat, updateSidebar=true) {
       <td class="img-col">${thumb}</td>
       <td class="num price-col">¥${item.price.toLocaleString()}</td>
       <td class="num qty-col" style="font-weight:600;color:${rank<=3?'var(--gold)':'var(--ink)'}${heatBg(item.qty,maxQtyC)}">${item.qty.toLocaleString()}</td>
-      ${(()=>{const pqa=catType?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=catType?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
+      ${(()=>{const ed=item.code in itemPrevQA;const pqa=(catType||ed)?(itemPrevQA[item.code]??null):localPrevByCode[item.code];const p2qa=(catType||ed)?(itemPrev2QA[item.code]??null):localPrev2ByCode[item.code];return cmpCell(pqa)+cmpCell(p2qa);})()}
       <td class="num amount-col" style="${heatBg(item.amount,maxAmtC).slice(1)}">¥${item.amount.toLocaleString()}</td>
       <td class="share-col"><div class="bb"><div class="bf" style="width:${pct}%"></div></div></td>
       <td class="so-col" style="text-align:center"><div class="so-val">${catType?(STOCKOUT_REASON[item.code]?`<span class="so-reason" data-tip="${x(STOCKOUT_REASON[item.code])}" style="cursor:help;text-decoration:underline dotted">${x(STOCKOUT[item.code]||'')}</span>`:x(STOCKOUT[item.code]||'')):''}</div></td>
@@ -3935,9 +3952,12 @@ document.getElementById('hd-search').addEventListener('input',e=>{
   const anyDC=results.some(r=>_dcGroups.some(g=>g.match(r.cat)));
   document.getElementById('search-tbl').classList.toggle('show-img', true);
   document.getElementById('search-tbl').classList.toggle('show-so', anyDC);
+  // 手帳・カレンダーの年版商品は、前年版・前々年版（同じ検索コード・同じデザイン）と比べる。同じ品番が複数カテゴリに出ることは無いが、念のためカテゴリごとに引く
+  const _ed=calcEditionPrev(results.map(r=>({code:r.code,yc:r.cat})));
   function cmpCellS(code,curQty){
     if(isLongPeriod)curQty=curByCode1[code]?.[0]||0;  // 1年超の期間は直近1年（今期）と比べる
-    const qa=prevByCode[code], p2=prev2ByCode[code];
+    const ed=code in _ed.prev;
+    const qa=ed?_ed.prev[code]:prevByCode[code], p2=ed?_ed.prev2[code]:prev2ByCode[code];
     function cell(pqa){
       const pq=pqa?.[0]||0;
       if(!pq)return`<td class="num s-cmp-col" style="color:var(--ink4);text-align:center">-</td>`;
