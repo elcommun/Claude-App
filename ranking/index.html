@@ -603,7 +603,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v342</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v343</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -3985,10 +3985,14 @@ document.getElementById('hd-search').addEventListener('input',e=>{
         let c = (ya!=null&&yb!=null) ? ya-yb : (ya!=null?-1:(yb!=null?1:a[0].localeCompare(b[0],'ja')));
         return searchSortDir==='asc'?c:-c;
       }
-      // 既定：手帳/カレンダーを年月の若い順で上に、その他はqty降順
-      if(ya!=null&&yb!=null) return ya-yb;
-      if(ya!=null) return -1;
-      if(yb!=null) return 1;
+      // 既定：手帳以外（カレンダー含む）をカテゴリ合計の個数順で先に、手帳は後ろにまとめて始まりの新しい順
+      // （2027年1月始まり→2026年10月始まり→2026年4月始まり…。検索結果のカタログPDFと同じ並び）
+      const da=getCatType(a[0])==='手帳', db=getCatType(b[0])==='手帳';
+      if(da!==db) return da?1:-1;
+      if(da){
+        const dk=cat=>{const m=cat.match(/(\d{4})年\s*(\d{1,2})月始まり/);return m?(+m[1])*100+(+m[2]):-1;};
+        return dk(b[0])-dk(a[0])||b[1].totalQty-a[1].totalQty;
+      }
       return b[1].totalQty-a[1].totalQty;
     });
     cats.forEach(([cat,g])=>{
