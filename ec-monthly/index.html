@@ -1228,6 +1228,11 @@ async function processData() {
   sortByStore(ownData); sortByStore(makerData);
 
   // ── 自社データの商品番号整形 ──
+  const calMap = new Map();
+  data.forEach(row => {
+    const m = (row['商品番号']||'').match(/^(cal-[^-]+-)(CAL-[^-]+)/);
+    if (m && !calMap.has(m[1])) calMap.set(m[1], m[2]);
+  });
   ownData.forEach(row => {
     const s = row['販売店舗']||'';
     let pn = row['商品番号']||'';
@@ -1240,7 +1245,8 @@ async function processData() {
     }
 
     if (s==='EL COMMUN auPAYマーケット店') {
-      if (pn.match(/^cal-.+-CAL-.+$/))      { row['商品番号']=pn.replace(/^cal-.+-(CAL-.+)$/,'$1'); return; }
+      if (pn.match(/^cal-.+-CAL-.+$/))      { row['商品番号']=pn.replace(/^cal-.+-(CAL-.+)$/,'$1').replace(/cal-[^-]+-$/,''); return; }
+      if (calMap.has(pn))                   { row['商品番号']=calMap.get(pn); return; }
       if (pn.match(/^elco-(LLN|ECL)-.+$/)) { row['商品番号']=pn.replace(/^elco-/,''); return; }
       if (pn.match(/^elco-pnt-?(.+)$/i))  { row['商品番号']='PNT-'+pn.replace(/^elco-pnt-?/i,''); return; }
       row['商品番号']=pn.replace(/elco-[^-]+-/g,''); return;
