@@ -1199,7 +1199,7 @@ async function processData() {
 
   // ── ステップ6: 自社/メーカー分類 ──
   const makerPrefixes = ['4on-','8mw-','af','ai-','aito-','ak-','alsk-','apj-','bm-','cocochi-','cre-','ef','ldw',
-                         'ma-','mgt-','MO','nlf','nm-','pb-','psm-','rio-','sh-','SLW-','tp-','tri-','wf','wh-','ky-'];
+                         'ma-','mgt-','MO','KITP','nlf','nm-','pb-','psm-','rio-','sh-','SLW-','tp-','tri-','wf','wh-','ky-'];
   const makerProductNames = ['【Raffinart】'];
   const makerData = [], ownData = [];
 
@@ -1228,6 +1228,14 @@ async function processData() {
   sortByStore(ownData); sortByStore(makerData);
 
   // ── 自社データの商品番号整形 ──
+  const normElco = pn => {
+    let m;
+    if ((m = pn.match(/^elco-(lln|ecl)-(?!.*wf-)(.+)$/i))) return m[1].toUpperCase()+'-'+m[2];
+    if ((m = pn.match(/^elco-pnt-?(.+)$/i)))               return 'PNT-'+m[1];
+    if ((m = pn.match(/^elco-amp-?c(\d+)(?:-.*)?$/i)))     return 'AMP-C'+m[1];
+    if ((m = pn.match(/^elco-nxt-?(.+)$/i)))               return 'NXT-'+m[1].toUpperCase();
+    return null;
+  };
   const calMap = new Map();
   data.forEach(row => {
     const m = (row['商品番号']||'').match(/^(cal-[^-]+-)(CAL-[^-]+)/);
@@ -1247,12 +1255,14 @@ async function processData() {
     if (s==='EL COMMUN auPAYマーケット店') {
       if (pn.match(/^cal-.+-CAL-.+$/))      { row['商品番号']=pn.replace(/^cal-.+-(CAL-.+)$/,'$1').replace(/cal-[^-]+-$/,''); return; }
       if (calMap.has(pn))                   { row['商品番号']=calMap.get(pn); return; }
+      if (normElco(pn))                     { row['商品番号']=normElco(pn); return; }
       if (pn.match(/^elco-(LLN|ECL)-.+$/)) { row['商品番号']=pn.replace(/^elco-/,''); return; }
       if (pn.match(/^elco-pnt-?(.+)$/i))  { row['商品番号']='PNT-'+pn.replace(/^elco-pnt-?/i,''); return; }
       row['商品番号']=pn.replace(/elco-[^-]+-/g,''); return;
     }
 
-    if      (pn.match(/^cal-.+-CAL-.+$/))                { pn=pn.replace(/^cal-.+-(CAL-.+)$/,'$1'); }
+    if      (normElco(pn))                               { pn=normElco(pn); }
+    else if (pn.match(/^cal-.+-CAL-.+$/))                { pn=pn.replace(/^cal-.+-(CAL-.+)$/,'$1'); }
     else if (pn.match(/GYR/))                            { pn=pn.replace(/^.*?(GYR.*)$/,'$1'); }
     else if (pn.match(/^elco-ampc(\d+)-/))               { pn=pn.replace(/^elco-ampc(\d+)-.*$/,'AMP-C$1'); }
     else if (pn.match(/^elco-(LLN|ECL)-.+$/))            { row['商品番号']=pn.replace(/^elco-/,''); return; }
