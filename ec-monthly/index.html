@@ -1138,7 +1138,7 @@ async function processData() {
     if (s==='EL COMMUN Qoo10' && pn.startsWith('wv-41-'))                     { ownData.push(row); return; }
     if (s==='EL COMMUN Qoo10' && pn.startsWith('ma-41-'))                     { ownData.push(row); return; }
     if (s==='EL COMMUN Yahoo店' && pn.startsWith('ma-46-'))                   { ownData.push(row); return; }
-    if (s==='EL COMMUN Yahoo店' && pn.startsWith('MOF-'))                     { ownData.push(row); return; }
+    if (pn.startsWith('MOF-'))                                                  { ownData.push(row); return; }
     if (pn.startsWith('DR-') || pn.startsWith('XDR-'))                        { ownData.push(row); return; }
     const isMaker = makerPrefixes.some(p => pn.startsWith(p)) || pn==='303069-C'
                     || makerProductNames.some(n => name.startsWith(n))
