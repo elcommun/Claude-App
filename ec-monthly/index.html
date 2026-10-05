@@ -810,6 +810,20 @@
     </div>
   </div>
 
+  <!-- マスタ未登録リスト -->
+  <div id="unmatchedSection" style="display:none;" class="empty-section">
+    <div class="empty-title">
+      <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      商品マスタに品番が無い自社商品（<span id="unmatchedCount">0</span>品番）
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>商品番号</th><th>商品名（CSVのまま）</th><th>販売店舗</th><th>行数</th></tr></thead>
+        <tbody id="unmatchedTbody"></tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- データのダウンロード方法 -->
   <div class="info-section">
     <div class="info-title">
@@ -861,6 +875,9 @@ const msgArea    = document.getElementById('msgArea');
 const emptySection = document.getElementById('emptySection');
 const emptyCount = document.getElementById('emptyCount');
 const emptyTbody = document.getElementById('emptyTbody');
+const unmatchedSection = document.getElementById('unmatchedSection');
+const unmatchedCount   = document.getElementById('unmatchedCount');
+const unmatchedTbody   = document.getElementById('unmatchedTbody');
 const previewSection = document.getElementById('previewSection');
 const previewCount   = document.getElementById('previewCount');
 const previewTbody   = document.getElementById('previewTbody');
@@ -960,6 +977,7 @@ function setFile(f) {
   convertBtn.disabled = false;
   msgArea.style.display = 'none';
   emptySection.style.display = 'none';
+  unmatchedSection.style.display = 'none';
   previewSection.style.display = 'none';
   showPreview(f);
 }
@@ -1074,6 +1092,7 @@ convertBtn.addEventListener('click', async () => {
   convertBtn.innerHTML = `<span class="spinner"></span><span>処理中...</span>`;
   showMsg('処理中...', 'info');
   emptySection.style.display = 'none';
+  unmatchedSection.style.display = 'none';
 
   await new Promise(r => setTimeout(r, 30));
   try {
@@ -1342,6 +1361,27 @@ async function processData() {
       `<tr><td>${esc(item.シート)}</td><td>${esc(item.販売店舗)}</td><td>${esc(item.受注番号)}</td><td>${esc(item.商品名)}</td></tr>`
     ).join('');
     emptySection.style.display='block';
+  }
+
+  if (masterNames) {
+    const um=new Map();
+    ownData.forEach(row => {
+      const pn=(row['商品番号']||'').toString().trim();
+      if (!pn || masterNames.has(pn)) return;
+      if (!um.has(pn)) um.set(pn,{name:row['商品名']||'', stores:new Set(), n:0});
+      const u=um.get(pn);
+      if (row['販売店舗']) u.stores.add(row['販売店舗']);
+      u.n++;
+    });
+    if (um.size>0) {
+      unmatchedCount.textContent=um.size;
+      unmatchedTbody.innerHTML=Array.from(um.entries())
+        .sort((a,b)=>a[0].localeCompare(b[0]))
+        .map(([pn,u])=>
+          `<tr><td>${esc(pn)}</td><td>${esc(u.name)}</td><td>${esc(Array.from(u.stores).join('、'))}</td><td>${u.n}</td></tr>`
+        ).join('');
+      unmatchedSection.style.display='block';
+    }
   }
 
   const wb=XLSX.utils.book_new();
