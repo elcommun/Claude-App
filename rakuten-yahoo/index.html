@@ -139,6 +139,12 @@
   .dl-btn small{font-size:11px;font-weight:400;opacity:.9;}
   .dl-warn{background:var(--red-light);}
   .rule-box{background:var(--gray-50);border:1px solid var(--gray-200);color:var(--gray-600);}
+  .pv-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .pv-bar select{max-width:320px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:6px;font-size:12px;font-family:inherit;}
+  .pv-tabs{display:inline-flex;gap:6px;}
+  .pv-wrap{background:var(--gray-100);border:1px solid var(--gray-200);border-radius:8px;padding:12px;text-align:center;}
+  .pv-wrap iframe{background:#fff;border:1px solid var(--gray-200);width:100%;max-width:900px;height:720px;}
+  .pv-wrap.sp iframe{width:390px;max-width:100%;}
   .hint{font-size:12px;color:var(--gray-600);line-height:1.7;margin-bottom:10px;}
   .lead-bulk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:12px;}
   .lead-in{width:90px;}
@@ -221,6 +227,15 @@
         </div>
         <div class="note" id="leadNote"></div>
         <div class="table-wrap"><table class="data-table"><thead><tr><th></th><th>商品コード</th><th>楽天の値</th><th>Yahoo用（lead-time-instock）</th></tr></thead><tbody id="leadBody"></tbody></table></div>
+      </details>
+
+      <details class="fold" id="pvFold"><summary>プレビュー（Yahooでの見た目の目安）</summary>
+        <div class="pv-bar">
+          <select id="pvItem"></select>
+          <span class="pv-tabs"><button class="tab-btn active" id="pvPc" type="button">PC</button><button class="tab-btn" id="pvSp" type="button">スマホ</button></span>
+        </div>
+        <p class="hint">商品説明（表）とフリースペースを並べて表示します。画像はアップ前なので楽天の画像で表示しています。Yahoo実画面とは文字の太さなどが少し違います。</p>
+        <div class="pv-wrap" id="pvWrap"><iframe id="pvFrame" title="プレビュー"></iframe></div>
       </details>
 
       <details class="fold" id="warnFold"><summary>要確認の項目 <span class="badge badge-gray" id="warnCount">0</span></summary>
@@ -468,7 +483,8 @@ function cleanCommon(html, ctx) {
 var GAP_BLOCK = '0 0 24px';     // 画像ブロックの下の余白（次の画像との距離）
 var GAP_TEXT = '16px 0 0';      // 画像と説明文の間
 var GAP_HEAD = '32px 0 16px';   // 見出し（<b>）の上下
-var CELL_CAP = '12px 16px';     // 商品説明の表のセル内の余白
+var CELL_CAP = '14px 18px';     // 商品説明の表のセル内の余白（PC）
+var SPEC_LINE = '#e3e3e3', SPEC_HEAD = '#f6f6f4';   // スペック表の罫線・見出しの色
 /* 関連商品を表（横並び）に作り直す。per=1行の数、cell=1セルのCSS */
 function relatedTable(cells, per, style) {
   var w = Math.floor(100 / per) + '%', h = '<table width="100%" cellspacing="0" cellpadding="0" style="table-layout:fixed"><tr>';
@@ -502,6 +518,16 @@ function convAdditional(html, ctx) {
   return padPc(html);
 }
 /* スマホの関連商品は横に2つ */
+/* スマホ用のスペック表を、薄い罫線・淡い見出し・広めの行間に整える */
+function styleSpTable(html) {
+  return html.replace(/<table[^>]*bgcolor="#bfb7b5"[^>]*>([\s\S]*?)<\/table>/, function (m, body) {
+    var line = SPEC_LINE;
+    body = body.replace(/<th bgcolor="#F3F3F3"[^>]*>/g, '<th width="28%" style="padding:12px 8px;background:' + SPEC_HEAD + ';vertical-align:middle;text-align:center;font-size:13px">')
+      .replace(/<td colspan="2" bgcolor="#FFFFFF">/g, '<td colspan="2" style="padding:14px 12px;line-height:1.9;background:#fff">')
+      .replace(/<td bgcolor="#FFFFFF">/g, '<td style="padding:12px;line-height:1.8;background:#fff">');
+    return '<table width="100%" cellspacing="1" cellpadding="0" border="0" bgcolor="' + line + '" style="width:100%">' + body + '</table>';
+  });
+}
 function relatedSp(html) {
   return html.replace(/(<b>関連商品<\/b><br><hr><br>)<table[^>]*>([\s\S]*?)<\/table>/, function (m, head, body) {
     var cells = [], re = /<td[^>]*>([\s\S]*?)<\/td>/g, x;
@@ -524,7 +550,7 @@ function convSp(html, ctx) {
   html = html.replace(/<tr[^>]*>\s*<th[^>]*>([\s\S]*?)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi, function (m, th, td) {
     return dropRow(htmlToText(th), td, false) ? '' : m;
   });
-  return relatedSp(cleanCommon(html, ctx));
+  return styleSpTable(relatedSp(cleanCommon(html, ctx)));
 }
 /* ---------- PC用商品説明文 → caption / explanation ---------- */
 function parseSpecTable(html) {
@@ -580,11 +606,11 @@ function convPcDesc(html, ctx) {
     specs.push(r);
   });
   var one = function (v) { return v.replace(/\n/g, '').replace(/^(?:\s|<br>)+|(?:\s|<br>)+$/g, ''); };
-  var cap = '<table cellspacing="1" cellpadding="8" border="1">';
-  var cellStyle = function (extra) { return ' style="padding:' + CELL_CAP + (extra ? ';' + extra : '') + '"'; };
-  var ph = cellStyle('white-space:nowrap;vertical-align:middle;text-align:center');
-  if (desc) cap += '<tr><td colspan="2"' + cellStyle() + '>' + one(desc) + '</td></tr>';
-  specs.forEach(function (r) { cap += '<tr><th' + ph + '><b>' + r.key + '</b></th><td' + cellStyle() + '>' + one(r.val) + '</td></tr>'; });
+  // 見やすさ重視：薄い罫線、見出しは淡い背景、行間は広め（スペックの中身は楽天のまま）
+  var cap = '<table width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;border:1px solid ' + SPEC_LINE + '">';
+  var cell = function (extra) { return ' style="padding:' + CELL_CAP + ';border:1px solid ' + SPEC_LINE + ';line-height:1.8;' + extra + '"'; };
+  if (desc) cap += '<tr><td colspan="2"' + cell('line-height:2') + '>' + one(desc) + '</td></tr>';
+  specs.forEach(function (r) { cap += '<tr><th width="22%"' + cell('background:' + SPEC_HEAD + ';white-space:nowrap;vertical-align:middle;text-align:center;font-weight:bold') + '>' + r.key + '</th><td' + cell('vertical-align:middle') + '>' + one(r.val) + '</td></tr>'; });
   cap += '</table>';
   return { caption: cap, specKeys: specs.map(function (r) { return r.key; }), explanation: buildExplanation(htmlToText(paragraphize(desc)), specs.map(function (r) { return r.key + ' ' + htmlToText(r.val); })) };
 }
@@ -994,7 +1020,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 18;
+var APP_VERSION = 20;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
@@ -1116,7 +1142,31 @@ function doConvert() {
   $('reviewCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function overList() { return findOver(result.items, result.cfg.limits); }
-function renderAll() { renderStats(); renderWarnings(); renderLead(); renderReview(); }
+function renderAll() { renderStats(); renderWarnings(); renderLead(); renderReview(); renderPreview(); }
+/* プレビュー：Yahooの追加画像のURLは、アップ前なので楽天の画像に置き換えて表示する */
+var pvMode = 'pc';
+function pvImages(html) {
+  var store = result.cfg.store;
+  return String(html).replace(new RegExp('https://shopping\\.c\\.yimg\\.jp/lib/' + store.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '/([^"\'\\s<>]+)', 'g'), function (m, f) { return result.lib[f] || m; });
+}
+function renderPreview() {
+  var sel = $('pvItem'), cur = sel.value;
+  sel.innerHTML = result.items.map(function (it) { return '<option value="' + escHtml(it.code) + '">' + escHtml(it.code) + '</option>'; }).join('');
+  if (cur && result.items.some(function (it) { return it.code === cur; })) sel.value = cur;
+  drawPreview();
+}
+function drawPreview() {
+  var it = result.items.filter(function (x) { return x.code === $('pvItem').value; })[0]; if (!it) return;
+  var o = it.out, body = pvMode === 'sp' ? o['sp-additional'] : o.caption + '<div style="height:24px"></div>' + o.additional1;
+  $('pvWrap').className = 'pv-wrap' + (pvMode === 'sp' ? ' sp' : '');
+  $('pvPc').classList.toggle('active', pvMode === 'pc'); $('pvSp').classList.toggle('active', pvMode === 'sp');
+  $('pvFrame').srcdoc = '<meta charset="utf-8"><base target="_blank"><body style="margin:12px;font-family:sans-serif;font-size:' + (pvMode === 'sp' ? 14 : 15) + 'px;color:#333;text-align:left">' + pvImages(body) + '</body>';
+}
+function pvInit() {
+  $('pvItem').addEventListener('change', drawPreview);
+  $('pvPc').addEventListener('click', function () { pvMode = 'pc'; drawPreview(); });
+  $('pvSp').addEventListener('click', function () { pvMode = 'sp'; drawPreview(); });
+}
 /* 在庫あり時納期：楽天の値が 1000 でない商品（予約商品の可能性）を確認・一括変更 */
 var LEAD_NORMAL = ['1000', '4'];  // 通常の納期管理番号（これ以外は予約商品の可能性）
 function leadItems() { return result.items.filter(function (it) { return it.rakLead && LEAD_NORMAL.indexOf(it.rakLead) < 0; }); }
@@ -1215,7 +1265,7 @@ function onReviewInput(e) {
   var r = findItem(ta.dataset.id); if (!r.it) return;
   r.it.out[r.f] = ta.value.replace(/\r\n/g, '\n');
   ta.closest('tr').querySelector('.rv-count').outerHTML = counterHtml(r.it.out[r.f], result.cfg.limits[r.f]);
-  renderStats();
+  renderStats(); if ($('pvFold').open) drawPreview();
 }
 
 /* ---------- 要約の往復 ---------- */
@@ -1356,7 +1406,7 @@ function init() {
     fr.onload = function () { importResponse(decodeAuto(fr.result)); }; fr.readAsArrayBuffer(f); this.value = '';
   });
   $('dlCsv').addEventListener('click', downloadCsv);
-  leadInit();
+  leadInit(); pvInit();
   $('dlOpt').addEventListener('click', downloadOption);
   $('dlQty').addEventListener('click', downloadQuantity);
   $('btnImg').addEventListener('click', copyImageCommand);
