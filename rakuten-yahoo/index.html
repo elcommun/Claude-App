@@ -211,7 +211,7 @@
       </div>
 
       <details class="fold" id="leadFold" style="display:none"><summary>在庫あり時納期の確認 <span class="badge badge-orange" id="leadCount">0</span></summary>
-        <p class="hint">楽天の「在庫あり時納期管理番号」が <b>1000</b> でない商品です（予約商品の可能性）。初期値は固定値の 1000 です。商品ごとに直すか、チェックした商品へ一括で変更できます。</p>
+        <p class="hint">楽天の「在庫あり時納期管理番号」が <b>1000 と 4 以外</b>の商品です（予約商品の可能性）。初期値は固定値の 1000 です。商品ごとに直すか、チェックした商品へ一括で変更できます。</p>
         <div class="lead-bulk">
           <label class="check"><input type="checkbox" id="leadAll" checked> すべて選択</label>
           <span>選択した商品を</span><input type="text" id="leadVal" value="1000" class="lead-in">
@@ -960,7 +960,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 7;
+var APP_VERSION = 8;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
@@ -1077,7 +1077,8 @@ function doConvert() {
 function overList() { return findOver(result.items, result.cfg.limits); }
 function renderAll() { renderStats(); renderWarnings(); renderLead(); renderReview(); }
 /* 在庫あり時納期：楽天の値が 1000 でない商品（予約商品の可能性）を確認・一括変更 */
-function leadItems() { return result.items.filter(function (it) { return it.rakLead && it.rakLead !== '1000'; }); }
+var LEAD_NORMAL = ['1000', '4'];  // 通常の納期管理番号（これ以外は予約商品の可能性）
+function leadItems() { return result.items.filter(function (it) { return it.rakLead && LEAD_NORMAL.indexOf(it.rakLead) < 0; }); }
 function renderLead() {
   var list = leadItems(), keep = {};
   Array.prototype.forEach.call($('leadBody').querySelectorAll('input[type=checkbox]'), function (c) { keep[c.getAttribute('data-code')] = c.checked; });
