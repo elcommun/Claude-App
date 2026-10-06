@@ -542,12 +542,14 @@ function parseSpecTable(html) {
 function groupRuns(parts) {
   var out = [], run = [];
   var flush = function () {
-    if (run.length >= 4) {
-      for (var i = 0; i < run.length; i += 2) {
-        var n = run.length - i === 3 ? 3 : 2;
-        if (i) out.push('');
-        for (var k = 0; k < n; k++) out.push(run[i + k]);
-        if (n === 3) break;
+    var n = run.length;
+    if (n >= 4) {
+      // 区切りは多くても3か所まで：4〜5行は1か所、6行以上は2〜3か所（行数を均等に分ける）
+      var g = n < 6 ? 2 : Math.min(4, Math.max(3, Math.ceil(n / 3))), base = Math.floor(n / g), extra = n % g, pos = 0;
+      for (var k = 0; k < g; k++) {
+        var size = base + (k >= g - extra ? 1 : 0);
+        if (k) out.push('');
+        for (var m = 0; m < size; m++) out.push(run[pos++]);
       }
     } else run.forEach(function (t) { out.push(t); });
     run = [];
@@ -889,7 +891,7 @@ function buildRequest(items, over) {
     '## ルール',
     '- 文字数は「全角1文字＝半角2文字」で数え、limit_hankaku（半角換算）以内に収める。改行も半角1文字として数える。',
     '- サイズ・重量・仕様・素材・原産国・メーカーなどのスペック行は削除・変更しない。削るのは前半の説明文のみ。',
-    '- 説明文は句点で改行し、2〜3行ごとに空行を1行入れて段落分けして読みやすくする。説明文とスペックの間にも空行を1行入れる。',
+    '- 説明文は句点で改行し、意味のまとまりで2〜3か所だけ空行を1行入れて段落分けする（入れすぎない）。説明文とスペックの間にも空行を1行入れる。',
     '- 事実を追加しない。商品名・型番・数値は変えない。',
     '- text に HTML タグが含まれる場合は、タグの対応を崩さず、リンクと画像のURLは変更しない。',
     '',
