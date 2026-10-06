@@ -4,7 +4,7 @@
 
 - 公開先（予定）：https://elcommun.github.io/Claude-App/rakuten-yahoo/
 - 構成：`index.html` 1ファイルのみ（HTML／CSS／JSをすべて内包。ビルド不要）
-- 現在のバージョン：`APP_VERSION = 2`（未公開。v2でオプション・在庫CSVを追加）
+- 現在のバージョン：`APP_VERSION = 3`（未公開。v2でオプション・在庫CSVを追加）
 
 このファイルは、Claudeのチャットで作成した初版をClaude Codeに引き継ぐためのメモです。
 
@@ -41,7 +41,7 @@
 | Yahoo | 楽天の元データ | 処理 |
 |---|---|---|
 | code | 商品管理番号（商品URL） | そのまま |
-| path | dl-item-cat.csv の表示先カテゴリ | `\` を `:` に置換、複数は改行で連結 |
+| path | dl-item-cat.csv の表示先カテゴリ（全商品分のCSVでOK。dl-normal-item.csv にある商品の分だけ使う） | `\` を `:` に置換、複数は改行で連結 |
 | name | 商品名 | 下記「商品名」（上限：半角換算150） |
 | headline | キャッチコピー | 【ゆうメール便・送料無料】→【メール便・送料無料】（上限60） |
 | caption | PC用商品説明文 | スペック表を整形。関連カテゴリ／関連ワード／メール便注意事項の行を削除 |
