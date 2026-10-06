@@ -246,7 +246,7 @@
     <div class="card-body">
       <div class="dl-warn" id="dlWarn" style="display:none">⚠️ 文字数を超えている項目が残っています。そのままアップするとYahoo側でエラーになる可能性があります。</div>
 
-      <div class="sec-title">商品CSV <span class="sub">Shift-JIS</span></div>
+      <div class="sec-title">商品CSV <span class="sub">Shift-JIS／セール価格・販売期間は空欄の列で出力（以前の値を消す）</span></div>
       <div class="dl-grid">
         <button class="dl-btn" id="dlCsv">⬇️ data_add.csv<small>商品データ</small></button>
         <button class="dl-btn" id="dlOpt">⬇️ option.csv<small>オプション（SKU画像の紐づけ付き）</small></button>
@@ -348,6 +348,7 @@
         <div class="field"><label>スペックIDと楽天の属性名</label><textarea id="set-specAttr" rows="4" class="mono"></textarea><small>spec_id,楽天の商品属性の項目名　例：10011,代表カラー</small></div>
         <div class="field"><label>ジャンルごとの固定スペック</label><textarea id="set-genreSpec" rows="4" class="mono"></textarea><small>楽天ジャンルID,spec_id,Yahooの値ID　例：567236,52,259</small></div>
         <div class="field"><label>ブランドルール</label><textarea id="set-brandRules" rows="4" class="mono"></textarea><small>楽天の表示先カテゴリ,brand-code</small></div>
+        <div class="field"><label>空欄で出力して消す列（上書き時に以前の値を消す）</label><textarea id="set-clearCols" rows="3" class="mono"></textarea><small>1行に1列。data_add.csv の右端に、値が空の列として追加します（既定：セール価格・販売期間の開始／終了）。列名はYahooのCSVの見出しと同じにしてください。</small></div>
       </div>
       <div class="btn-row" style="margin-top:16px"><button class="sub-btn main" id="btnSaveSet">💾 設定を保存</button><button class="sub-btn" id="btnResetSet">初期値に戻す</button></div>
       <div class="note" id="setNote"></div>
@@ -961,7 +962,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 10;
+var APP_VERSION = 11;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
@@ -972,7 +973,8 @@ var DEFAULT_SETTINGS = {
   specAttr: '10011,代表カラー',
   specValues: '10011,ベージュ,10690\n10011,ブラック,10676',
   genreSpec: '567236,52,259\n111167,1145,431',
-  brandRules: 'メーカー・ブランド\\MATOKA｜マトカ,64324'
+  brandRules: 'メーカー・ブランド\\MATOKA｜マトカ,64324',
+  clearCols: 'sale-price\nsale-period-start\nsale-period-end'
 };
 var settings = loadSettings();
 var state = { rak: null, cat: null };
@@ -1229,12 +1231,18 @@ function downloadBytes(bytes, fileName, mime) {
   a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a);
   if (/^blob:/.test(a.href)) setTimeout(function () { URL.revokeObjectURL(a.href); }, 3000);
 }
+/* 上書きで以前の値が残らないよう、空欄で出力する列（設定で変更可） */
+function clearColumns() {
+  var out = [];
+  lines(settings.clearCols).forEach(function (c) { c = c.trim(); if (c && OUT_HEADER.indexOf(c) < 0 && out.indexOf(c) < 0) out.push(c); });
+  return out;
+}
 function downloadCsv() {
   if (!result) return;
   var over = overList();
   if (over.length && !confirm('文字数を超えている項目が ' + over.length + ' 件あります。このままダウンロードしますか？')) return;
-  var bad = {}, rows = [OUT_HEADER];
-  result.items.forEach(function (it) { rows.push(OUT_HEADER.map(function (h) { return sjisSafe(it.out[h], bad); })); });
+  var bad = {}, clr = clearColumns(), head = OUT_HEADER.concat(clr), rows = [head];
+  result.items.forEach(function (it) { rows.push(head.map(function (h) { return clr.indexOf(h) >= 0 ? '' : sjisSafe(it.out[h], bad); })); });
   var bytes = new Uint8Array(Encoding.convert(Encoding.stringToCode(toCSV(rows)), { to: 'SJIS', from: 'UNICODE' }));
   downloadBytes(bytes, 'data_add.csv', 'text/csv');
   var b = Object.keys(bad);
@@ -1256,7 +1264,7 @@ function imageCommand() {
 function copyImageCommand() { copyText(imageCommand(), function () { flash('imgNote', '✅ コマンドをコピーしました。ターミナルに貼り付けて Enter を押してください。'); }); }
 
 /* ---------- 設定 ---------- */
-var SET_TEXT = ['linkAdd', 'specAttr', 'specValues', 'genreSpec', 'brandRules'];
+var SET_TEXT = ['linkAdd', 'specAttr', 'specValues', 'genreSpec', 'brandRules', 'clearCols'];
 function fillSettings() {
   $('setStore').value = settings.store; $('setSingle').value = settings.singleOptName; $('setZip').value = settings.zipMb;
   Object.keys(DEFAULT_LIMITS).forEach(function (k) { $('lim-' + k).value = settings.limits[k]; });
