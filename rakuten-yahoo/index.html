@@ -462,7 +462,9 @@ function convertUrls(html, ctx) {
   html = html.replace(new RegExp('https?://item\\.rakuten\\.co\\.jp/' + R_SHOP + '/(?!c/)([A-Za-z0-9_\\-]+)/?', 'gi'), function (m, code) {
     return 'https://store.shopping.yahoo.co.jp/' + store + '/' + code + '.html';
   });
-  // 特集ページ（GOLD）
+  // 特集ページ（GOLD）：イベントページはYahooのストアページへ。ダイアリー（diary2027_01 など）は diary-01.html の形
+  html = html.replace(new RegExp('https?://www\\.rakuten\\.ne\\.jp/gold/' + R_SHOP + '/event/diary\\d{4}_(\\d{2})/?(?:index\\.html)?', 'gi'), 'https://store.shopping.yahoo.co.jp/' + store + '/diary-$1.html');
+  html = html.replace(new RegExp('https?://www\\.rakuten\\.ne\\.jp/gold/' + R_SHOP + '/event/([A-Za-z0-9_\\-]+)/?(?:index\\.html)?', 'gi'), 'https://store.shopping.yahoo.co.jp/' + store + '/$1.html');
   html = html.replace(new RegExp('https?://www\\.rakuten\\.ne\\.jp/gold/' + R_SHOP + '/', 'gi'), 'https://shopping.geocities.jp/' + store + '/');
   // 変換できなかった楽天URL
   var rest = html.match(/https?:\/\/[a-z0-9.\-]*rakuten\.(?:co|ne)\.jp[^"'\s<>]*/gi) || [];
@@ -1027,7 +1029,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 21;
+var APP_VERSION = 22;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
