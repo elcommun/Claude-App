@@ -536,7 +536,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v152</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v153</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -961,7 +961,7 @@ const CODE_NAME_CUT=[[/^apj-cff/i,'フォトフレーム'],[/^apj-ncb/i,'フォ�
 const CODE_NAME_CUT_AFTER=[[/^wh-plus-51876-/i,'プラス デコレーションテープ デコラッシュPLUS テープ 6mm']];
 // 商品名が指定フレーズで「始まる」場合、フレーズより後ろを非表示検索ワードに回すルール（商品番号を問わない）
 // 長いフレーズを先に並べること（先にマッチしたものを採用）
-const NAME_CUT_AFTER=['キングジム KITTA キッタミシン マスキングテープ','キングジム KITTA マスキングテープ','Ohhh BENTOU ランチボックス','松尾ミユキ マグカップ Cat handle mug','松尾ミユキ Sheer Drawstring pouch','ナタリーレテ ミニバッグ チェック柄','松尾ミユキ Stripe Mesh flat pouch','ナタリーレテ マルチマット（Mサイズ）','松尾ミユキ Boat and Tote チェック柄','松尾ミユキ Cat Mirror'];
+const NAME_CUT_AFTER=['キングジム KITTA キッタミシン マスキングテープ','キングジム KITTA マスキングテープ','Ohhh BENTOU ランチボックス','松尾ミユキ マグカップ Cat handle mug','松尾ミユキ Sheer Drawstring pouch','ナタリーレテ ミニバッグ チェック柄','松尾ミユキ Stripe Mesh flat pouch','ナタリーレテ マルチマット（Mサイズ）','松尾ミユキ Boat and Tote チェック柄','松尾ミユキ Cat Mirror','ナタリーレテ マルチマット（Lサイズ）'];
 // 商品名末尾の【…】ブロックは検索ワードの羅列とみなして商品名から外し、非表示検索ワードに回す。
 // ただし寸法表記（数字+mm/cm・数字×数字を含むもの。例:【特寸：450mm×500mm】）は商品名に残す
 const TRAIL_BRACKET_RE=/【([^【】]*)】\s*$/;
