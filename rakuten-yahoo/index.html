@@ -468,7 +468,6 @@ function cleanCommon(html, ctx) {
 var GAP_BLOCK = '0 0 24px';     // 画像ブロックの下の余白（次の画像との距離）
 var GAP_TEXT = '16px 0 0';      // 画像と説明文の間
 var GAP_HEAD = '32px 0 16px';   // 見出し（<b>）の上下
-var LINE_DESC = '2';           // 商品説明（表の上段）の行間
 var CELL_CAP = '12px 16px';     // 商品説明の表のセル内の余白
 /* 関連商品を表（横並び）に作り直す。per=1行の数、cell=1セルのCSS */
 function relatedTable(cells, per, style) {
@@ -523,9 +522,7 @@ function convSp(html, ctx) {
   html = html.replace(/<tr[^>]*>\s*<th[^>]*>([\s\S]*?)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi, function (m, th, td) {
     return dropRow(htmlToText(th), td, false) ? '' : m;
   });
-  html = relatedSp(cleanCommon(html, ctx));
-  // スペック表の上段（商品説明）の行間
-  return html.replace(/(<table[^>]*bgcolor="#bfb7b5"[^>]*><tr><td bgcolor="#FFFFFF")>/, '$1 style="line-height:' + LINE_DESC + '">');
+  return relatedSp(cleanCommon(html, ctx));
 }
 /* ---------- PC用商品説明文 → caption / explanation ---------- */
 function parseSpecTable(html) {
@@ -580,15 +577,14 @@ function convPcDesc(html, ctx) {
     if (dropRow(r.key, r.val, true)) return;
     specs.push(r);
   });
-  if (desc) desc = paragraphize(desc);
   var one = function (v) { return v.replace(/\n/g, '').replace(/^(?:\s|<br>)+|(?:\s|<br>)+$/g, ''); };
   var cap = '<table cellspacing="1" cellpadding="8" border="1">';
   var cellStyle = function (extra) { return ' style="padding:' + CELL_CAP + (extra ? ';' + extra : '') + '"'; };
   var ph = cellStyle('white-space:nowrap;vertical-align:middle;text-align:center');
-  if (desc) cap += '<tr><td colspan="2"' + cellStyle('line-height:' + LINE_DESC) + '>' + one(desc) + '</td></tr>';
+  if (desc) cap += '<tr><td colspan="2"' + cellStyle() + '>' + one(desc) + '</td></tr>';
   specs.forEach(function (r) { cap += '<tr><th' + ph + '><b>' + r.key + '</b></th><td' + cellStyle() + '>' + one(r.val) + '</td></tr>'; });
   cap += '</table>';
-  return { caption: cap, specKeys: specs.map(function (r) { return r.key; }), explanation: buildExplanation(htmlToText(desc), specs.map(function (r) { return r.key + ' ' + htmlToText(r.val); })) };
+  return { caption: cap, specKeys: specs.map(function (r) { return r.key; }), explanation: buildExplanation(htmlToText(paragraphize(desc)), specs.map(function (r) { return r.key + ' ' + htmlToText(r.val); })) };
 }
 function buildExplanation(descText, specLines) {
   var out = descText;
@@ -996,7 +992,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 16;
+var APP_VERSION = 17;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
