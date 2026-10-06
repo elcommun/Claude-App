@@ -4,7 +4,7 @@
 
 - 公開先（予定）：https://elcommun.github.io/Claude-App/rakuten-yahoo/
 - 構成：`index.html` 1ファイルのみ（HTML／CSS／JSをすべて内包。ビルド不要）
-- 現在のバージョン：`APP_VERSION = 10`（v2でオプション・在庫CSVを追加、v4で画面を整理、v5で納期の確認を追加）
+- 現在のバージョン：`APP_VERSION = 11`（v2でオプション・在庫CSVを追加、v4で画面を整理、v5で納期の確認を追加）
 
 このファイルは、Claudeのチャットで作成した初版をClaude Codeに引き継ぐためのメモです。
 
@@ -57,7 +57,7 @@
 | brand-code／product-code | 商品コード、カテゴリ | `cal-` で始まる商品は 64324／11495。ほかは設定のブランドルール |
 | 固定値 | — | lead-time-instock=1000、lead-time-outstock=空、keep-stock=0、taxable=1、delivery=0、condition=0、display=1（倉庫指定=1なら0） |
 
-出力するのは上記30列のみ（`OUT_HEADER`）。
+出力するのは上記30列（`OUT_HEADER`）に、設定の「空欄で出力して消す列」を右端に足したもの。上書き登録で以前のセール価格・販売期間が残らないよう、既定は `sale-price`・`sale-period-start`・`sale-period-end` を値なしの列として出力する（v11）。**列名はYahooの一般的な見出しからの推定で、実際のYahooのCSVとの一致は未確認**。違う場合は設定で直す。
 
 ### バリエーションなしの商品
 
