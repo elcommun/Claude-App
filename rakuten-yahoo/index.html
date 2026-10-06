@@ -537,6 +537,24 @@ function parseSpecTable(html) {
   }
   return rows;
 }
+/* 空行なしで4行以上続く説明文は、2行ごと（最後は2〜3行）に空行を入れて読みやすくする */
+function paragraphize(html) {
+  var parts = String(html).replace(/\n/g, '').split('<br>'), out = [], run = [];
+  var flush = function () {
+    if (run.length >= 4) {
+      for (var i = 0; i < run.length; i += 2) {
+        var n = run.length - i === 3 ? 3 : 2;
+        if (i) out.push('');
+        for (var k = 0; k < n; k++) out.push(run[i + k]);
+        if (n === 3) break;
+      }
+    } else run.forEach(function (t) { out.push(t); });
+    run = [];
+  };
+  parts.forEach(function (t) { if (t.trim() === '') { flush(); out.push(t); } else run.push(t); });
+  flush();
+  return out.join('<br>');
+}
 function convPcDesc(html, ctx) {
   html = cleanCommon(html, ctx);
   var rows = parseSpecTable(html);
@@ -550,6 +568,7 @@ function convPcDesc(html, ctx) {
     if (dropRow(r.key, r.val, true)) return;
     specs.push(r);
   });
+  if (desc) desc = paragraphize(desc);
   var one = function (v) { return v.replace(/\n/g, '').replace(/^(?:\s|<br>)+|(?:\s|<br>)+$/g, ''); };
   var cap = '<table cellspacing="1" cellpadding="8" border="1">';
   var cellStyle = function (extra) { return ' style="padding:' + CELL_CAP + (extra ? ';' + extra : '') + '"'; };
@@ -965,7 +984,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 12;
+var APP_VERSION = 13;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
