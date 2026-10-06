@@ -549,8 +549,9 @@ function convPcDesc(html, ctx) {
   });
   var one = function (v) { return v.replace(/\n/g, '').replace(/^(?:\s|<br>)+|(?:\s|<br>)+$/g, ''); };
   var cap = '<table cellspacing="1" cellpadding="8" border="1">', pd = ' style="padding:' + CELL_CAP + '"';
+  var ph = ' style="padding:' + CELL_CAP + ';white-space:nowrap;vertical-align:middle;text-align:center"';
   if (desc) cap += '<tr><td colspan="2"' + pd + '>' + one(desc) + '</td></tr>';
-  specs.forEach(function (r) { cap += '<tr><th' + pd.replace('"', ';white-space:nowrap"') + '><b>' + r.key + '</b></th><td' + pd + '>' + one(r.val) + '</td></tr>'; });
+  specs.forEach(function (r) { cap += '<tr><th' + ph + '><b>' + r.key + '</b></th><td' + pd + '>' + one(r.val) + '</td></tr>'; });
   cap += '</table>';
   return { caption: cap, explanation: buildExplanation(htmlToText(desc), specs.map(function (r) { return r.key + ' ' + htmlToText(r.val); })) };
 }
@@ -960,7 +961,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 8;
+var APP_VERSION = 9;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
