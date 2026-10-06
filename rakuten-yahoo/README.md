@@ -4,7 +4,7 @@
 
 - 公開先（予定）：https://elcommun.github.io/Claude-App/rakuten-yahoo/
 - 構成：`index.html` 1ファイルのみ（HTML／CSS／JSをすべて内包。ビルド不要）
-- 現在のバージョン：`APP_VERSION = 21`（v2でオプション・在庫CSVを追加、v4で画面を整理、v5で納期の確認を追加）
+- 現在のバージョン：`APP_VERSION = 22`（v2でオプション・在庫CSVを追加、v4で画面を整理、v5で納期の確認を追加）
 
 このファイルは、Claudeのチャットで作成した初版をClaude Codeに引き継ぐためのメモです。
 
@@ -75,7 +75,9 @@
 |---|---|
 | `item.rakuten.co.jp/elcommun/商品管理番号/` | `store.shopping.yahoo.co.jp/el-market/商品管理番号.html` |
 | `item.rakuten.co.jp/elcommun/c/番号/` | `store.shopping.yahoo.co.jp/el-market/ページID.html`（`LINK_MAP`＋設定の追加分。未登録は楽天URLのまま＋警告） |
-| `www.rakuten.ne.jp/gold/elcommun/…` | `shopping.geocities.jp/el-market/…` |
+| `www.rakuten.ne.jp/gold/elcommun/event/名前/` | `store.shopping.yahoo.co.jp/el-market/名前.html`（v22） |
+| `www.rakuten.ne.jp/gold/elcommun/event/diary2027_01/`（ダイアリー） | `store.shopping.yahoo.co.jp/el-market/diary-01.html`（年は無視し、月の2桁だけ使う。04・10も同様） |
+| `www.rakuten.ne.jp/gold/elcommun/…`（上記以外） | `shopping.geocities.jp/el-market/…` |
 | `image.rakuten.co.jp/elcommun/cabinet/…/ファイル名` | `shopping.c.yimg.jp/lib/el-market/ファイル名` |
 
 ### 配送（既存の yahoo-data-add と同じ6パターン）
