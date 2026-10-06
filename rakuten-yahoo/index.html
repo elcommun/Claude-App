@@ -984,7 +984,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 13;
+var APP_VERSION = 14;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
@@ -993,7 +993,7 @@ var DEFAULT_SETTINGS = {
   limits: JSON.parse(JSON.stringify(DEFAULT_LIMITS)),
   linkAdd: '',
   specAttr: '10011,代表カラー',
-  specValues: '10011,ベージュ,10690\n10011,ブラック,10676',
+  specValues: '10011,イエロー,10673\n10011,ブラック,10676\n10011,レッド,10677\n10011,ホワイト,10678\n10011,グリーン,10680\n10011,ブラウン,10681\n10011,オレンジ,10682\n10011,グレー,10684\n10011,ゴールド,10686\n10011,ブルー,10688\n10011,ベージュ,10690\n10011,ネイビー,58106\n10011,カーキ,236353\n10011,ピンク,10683\n10011,シルバー,10685\n10011,パープル,10687\n10011,マルチカラー,81577\n10011,クリア,236354\n10011,イエロー系,10673\n10011,ブラック系,10676\n10011,レッド系,10677\n10011,ホワイト系,10678\n10011,グリーン系,10680\n10011,ブラウン系,10681\n10011,オレンジ系,10682\n10011,グレー系,10684\n10011,ゴールド系,10686\n10011,ブルー系,10688\n10011,ベージュ系,10690\n10011,ネイビー系,58106\n10011,カーキ系,236353\n10011,ピンク系,10683\n10011,シルバー系,10685\n10011,パープル系,10687',
   genreSpec: '567236,52,259\n111167,1145,431',
   brandRules: 'メーカー・ブランド\\MATOKA｜マトカ,64324',
   clearCols: 'sale-price\nsale-period-start\nsale-period-end'
@@ -1007,6 +1007,12 @@ function loadSettings() {
   try {
     var saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
     if (saved) Object.keys(s).forEach(function (k) { if (saved[k] != null) s[k] = saved[k]; });
+    // 初期値のスペック値は、保存済みの設定に無いものだけ追加する（色の追加を既存の端末にも反映）
+    if (saved && saved.specValues != null) {
+      var have = {}; lines(saved.specValues).forEach(function (l) { var a = l.split(','); have[a[0] + '|' + a[1]] = 1; });
+      var add = lines(DEFAULT_SETTINGS.specValues).filter(function (l) { var a = l.split(','); return !have[a[0] + '|' + a[1]]; });
+      if (add.length) s.specValues = (String(saved.specValues).replace(/\s+$/, '') + '\n' + add.join('\n')).replace(/^\n/, '');
+    }
     Object.keys(DEFAULT_LIMITS).forEach(function (k) { if (!(s.limits[k] > 0)) s.limits[k] = DEFAULT_LIMITS[k]; });
   } catch (e) { /* 保存データが読めない場合は初期値を使う */ }
   return s;
