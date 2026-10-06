@@ -539,8 +539,8 @@ function parseSpecTable(html) {
   return rows;
 }
 /* 空行なしで4行以上続く説明文は、2行ごと（最後は2〜3行）に空行を入れて読みやすくする */
-function paragraphize(html) {
-  var parts = String(html).replace(/\n/g, '').split('<br>'), out = [], run = [];
+function groupRuns(parts) {
+  var out = [], run = [];
   var flush = function () {
     if (run.length >= 4) {
       for (var i = 0; i < run.length; i += 2) {
@@ -554,7 +554,16 @@ function paragraphize(html) {
   };
   parts.forEach(function (t) { if (t.trim() === '') { flush(); out.push(t); } else run.push(t); });
   flush();
-  return out.join('<br>');
+  return out;
+}
+function paragraphize(html) { return groupRuns(String(html).replace(/\n/g, '').split('<br>')).join('<br>'); }
+/* 商品情報（テキスト）：スペック行より前の説明文だけを段落分けする（要約の取り込み後にも使う） */
+function paragraphizeText(text, specKeys) {
+  var lines = String(text).split('\n'), cut = lines.length;
+  for (var i = 0; i < lines.length; i++) {
+    if ((specKeys || []).some(function (k) { return lines[i] === k || lines[i].indexOf(k + ' ') === 0; })) { cut = i; break; }
+  }
+  return groupRuns(lines.slice(0, cut)).concat(lines.slice(cut)).join('\n');
 }
 function convPcDesc(html, ctx) {
   html = cleanCommon(html, ctx);
@@ -577,7 +586,7 @@ function convPcDesc(html, ctx) {
   if (desc) cap += '<tr><td colspan="2"' + cellStyle('line-height:' + LINE_DESC) + '>' + one(desc) + '</td></tr>';
   specs.forEach(function (r) { cap += '<tr><th' + ph + '><b>' + r.key + '</b></th><td' + cellStyle() + '>' + one(r.val) + '</td></tr>'; });
   cap += '</table>';
-  return { caption: cap, explanation: buildExplanation(htmlToText(desc), specs.map(function (r) { return r.key + ' ' + htmlToText(r.val); })) };
+  return { caption: cap, specKeys: specs.map(function (r) { return r.key; }), explanation: buildExplanation(htmlToText(desc), specs.map(function (r) { return r.key + ' ' + htmlToText(r.val); })) };
 }
 function buildExplanation(descText, specLines) {
   var out = descText;
@@ -704,7 +713,7 @@ function convertAll(rakRows, catRows, cfg) {
 
     // 説明文
     var pc = convPcDesc(raw(it, 'PC用商品説明文'), ctx);
-    o.caption = pc.caption; o.explanation = pc.explanation;
+    o.caption = pc.caption; o.explanation = pc.explanation; var specKeys = pc.specKeys || [];
     o.additional1 = convAdditional(raw(it, 'PC用販売説明文'), ctx);
     o['sp-additional'] = convSp(raw(it, 'スマートフォン用商品説明文'), ctx);
 
@@ -823,7 +832,7 @@ function convertAll(rakRows, catRows, cfg) {
       res.lib[v.imgName] = imgUrl(v.imgPath, v.imgType);
     });
 
-    res.items.push({ code: code, out: o, notes: notes, srcName: g(it, '商品名'), rakLead: rakLead, freeOpts: freeOpts, varRows: varRows });
+    res.items.push({ code: code, out: o, notes: notes, srcName: g(it, '商品名'), rakLead: rakLead, specKeys: specKeys, freeOpts: freeOpts, varRows: varRows });
   });
   return res;
 }
@@ -880,7 +889,7 @@ function buildRequest(items, over) {
     '## ルール',
     '- 文字数は「全角1文字＝半角2文字」で数え、limit_hankaku（半角換算）以内に収める。改行も半角1文字として数える。',
     '- サイズ・重量・仕様・素材・原産国・メーカーなどのスペック行は削除・変更しない。削るのは前半の説明文のみ。',
-    '- 説明文は句点で改行して読みやすくし、説明文とスペックの間には空行を1行入れる。',
+    '- 説明文は句点で改行し、2〜3行ごとに空行を1行入れて段落分けして読みやすくする。説明文とスペックの間にも空行を1行入れる。',
     '- 事実を追加しない。商品名・型番・数値は変えない。',
     '- text に HTML タグが含まれる場合は、タグの対応を崩さず、リンクと画像のURLは変更しない。',
     '',
@@ -985,7 +994,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 15;
+var APP_VERSION = 16;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
@@ -1229,7 +1238,11 @@ function importResponse(text) {
   var ok = 0, miss = 0;
   arr.forEach(function (a) {
     var r = findItem(a.id);
-    if (r.it && r.f in r.it.out) { r.it.out[r.f] = String(a.text).replace(/\r\n/g, '\n'); ok++; } else miss++;
+    if (r.it && r.f in r.it.out) {
+      var t = String(a.text).replace(/\r\n/g, '\n');
+      r.it.out[r.f] = r.f === 'explanation' ? paragraphizeText(t, r.it.specKeys) : t;  // 商品情報は2行ごとに段落分け
+      ok++;
+    } else miss++;
   });
   renderAll();
   var rest = overList().length;
