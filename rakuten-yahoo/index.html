@@ -204,6 +204,8 @@
 
       <div class="sec-title">商品CSV</div>
       <div class="btn-row"><button class="dl-btn" id="dlCsv">⬇️ data_add.csv をダウンロード</button><span class="sub">Shift-JIS／値を入れた列だけを出力します</span></div>
+      <div class="btn-row"><button class="dl-btn" id="dlOpt">⬇️ option.csv（オプション）をダウンロード</button><span class="sub">バリエーションごとのSKU画像を紐づけ</span></div>
+      <div class="btn-row"><button class="dl-btn" id="dlQty">⬇️ quantity.csv（在庫）をダウンロード</button><span class="sub">在庫数はすべて0（GoQ連携で反映）</span></div>
 
       <div class="sec-title">画像 <span class="sub"><span id="imgCount">0</span> 枚</span></div>
       <div class="btn-row"><button class="sub-btn main" id="btnImg">📋 画像ダウンロード用コマンドをコピー</button></div>
@@ -316,6 +318,10 @@ var R_IMG_BASE = 'https://image.rakuten.co.jp/' + R_SHOP + '/cabinet';
 var R_GOLD_BASE = 'https://www.rakuten.ne.jp/gold/' + R_SHOP;
 
 /* 出力する列（値を入れる列だけを出力し、既存商品の他項目を空で上書きしない） */
+var OPT_HEADER = ['code', 'sub-code', 'name', 'option-name-1', 'option-value-1', 'unselectable-1', 'spec-id-1', 'spec-value-id-1', 'option-charge-1',
+  'option-name-2', 'option-value-2', 'spec-id-2', 'spec-value-id-2', 'etc-options', 'subcode-price', 'postage-set', 'lead-time-instock', 'lead-time-outstock',
+  'sub-code-img1', 'main-flag', 'exist-flag'];
+var QTY_HEADER = ['code', 'name', 'sub-code', 'quantity', 'allow-overdraft', 'stock-close'];
 var OUT_HEADER = ['path', 'name', 'code', 'sub-code', 'price', 'options', 'headline', 'caption', 'explanation',
   'additional1', 'ship-weight', 'taxable', 'brand-code', 'product-code', 'jan', 'delivery', 'condition',
   'product-category', 'spec1', 'spec2', 'spec3', 'spec4', 'spec5', 'display', 'sp-additional',
@@ -589,13 +595,13 @@ function convertAll(rakRows, catRows, cfg) {
     o['sp-additional'] = convSp(raw(it, 'スマートフォン用商品説明文'), ctx);
 
     // オプション・バリエーション
-    var optLines = [];
+    var optLines = [], freeOpts = [], varRows = [];
     G.opts.forEach(function (r) {
       var type = g(r, '選択肢タイプ'), title = renameOption(g(r, '商品オプション項目名'));
       if (type === 'f') { warn(code, 'フリーテキストのオプション「' + title + '」はYahooのoptionsに変換できないため除外'); return; }
       var ch = [];
       for (var k = 1; k <= 100; k++) { var v = optToken(g(r, '商品オプション選択肢' + k)); if (v) ch.push(v); }
-      if (title && ch.length) optLines.push(title + ' ' + ch.join(' '));
+      if (title && ch.length) { optLines.push(title + ' ' + ch.join(' ')); freeOpts.push({ title: title, choices: ch }); }
     });
     var keys = g(it, 'バリエーション項目キー定義').split('|').filter(Boolean);
     var names = g(it, 'バリエーション項目名定義').split('|');
@@ -614,11 +620,12 @@ function convertAll(rakRows, catRows, cfg) {
       skuList.forEach(function (s) {
         var sc = g(s.r, 'システム連携用SKU番号') || g(s.r, 'SKU管理番号');
         subs.push(keys.map(function (k, i) { return optToken(names[i] || k) + ':' + optToken(s.sel[k]); }).join('#') + '=' + sc);
+        varRows.push({ sub: sc, axes: keys.map(function (k, i) { return { n: optToken(names[i] || k), v: optToken(s.sel[k]) }; }), imgPath: g(s.r, 'SKU画像パス'), imgType: g(s.r, 'SKU画像タイプ') });
       });
     } else {
       // バリエーションなし：楽天の商品番号をサブコードに採用
       var pn = optToken(g(it, '商品番号')) || (G.skus[0] ? optToken(g(G.skus[0], 'SKU管理番号')) : '');
-      if (pn) { optLines.push(cfg.singleOptName + ' ' + pn); subs.push(cfg.singleOptName + ':' + pn + '=' + pn); }
+      if (pn) { optLines.push(cfg.singleOptName + ' ' + pn); subs.push(cfg.singleOptName + ':' + pn + '=' + pn); varRows.push({ sub: pn, axes: [{ n: cfg.singleOptName, v: pn }], imgPath: '', imgType: '' }); }
       else warn(code, '商品番号が空のため sub-code を設定できません');
     }
     o.options = optLines.join('\n\n');
@@ -675,9 +682,10 @@ function convertAll(rakRows, catRows, cfg) {
 
     // 商品画像（1枚目=商品コード、2枚目以降=商品コード_1〜）
     var n = 0, seen = {}, skuN = 0, skuSkip = 0;
+    var imgUrl = function (p, type) { return /^https?:/.test(p) ? p : (String(type).toUpperCase() === 'GOLD' ? R_GOLD_BASE : R_IMG_BASE) + (p[0] === '/' ? '' : '/') + p; };
     var addImg = function (p, type, isSku) {
       if (!p) return;
-      var url = /^https?:/.test(p) ? p : (String(type).toUpperCase() === 'GOLD' ? R_GOLD_BASE : R_IMG_BASE) + (p[0] === '/' ? '' : '/') + p;
+      var url = imgUrl(p, type);
       if (seen[url]) return;
       if (n >= MAX_ITEM_IMAGES) { if (isSku) skuSkip++; return; }
       seen[url] = 1;
@@ -692,9 +700,43 @@ function convertAll(rakRows, catRows, cfg) {
     if (skuSkip) warn(code, '画像が' + MAX_ITEM_IMAGES + '枚を超えるため、SKU画像 ' + skuSkip + '枚を追加できませんでした');
     if (!n) warn(code, '商品画像がありません');
 
-    res.items.push({ code: code, out: o, notes: notes, srcName: g(it, '商品名') });
+    // バリエーションごとのSKU画像：追加画像「商品コード_サブコード.拡張子（小文字）」として取得し、sub-code-img1 に設定
+    varRows.forEach(function (v) {
+      if (!v.imgPath) return;
+      var ext = (/\.(jpe?g|png|gif)(?:\?|$)/i.exec(v.imgPath) || [0, 'jpg'])[1].toLowerCase();
+      v.imgName = (code + '_' + v.sub).toLowerCase() + '.' + ext;
+      res.lib[v.imgName] = imgUrl(v.imgPath, v.imgType);
+    });
+
+    res.items.push({ code: code, out: o, notes: notes, srcName: g(it, '商品名'), freeOpts: freeOpts, varRows: varRows });
   });
   return res;
+}
+
+/* オプションデータ・在庫データ（Yahooからダウンロードした見本と同じ列構成） */
+function buildOptionRows(items, store) {
+  var rows = [OPT_HEADER];
+  items.forEach(function (it) {
+    var name = it.out.name;
+    var row = function (f) { var r = OPT_HEADER.map(function () { return ''; }); Object.keys(f).forEach(function (k) { r[OPT_HEADER.indexOf(k)] = f[k]; }); return r; };
+    (it.freeOpts || []).forEach(function (op) {
+      op.choices.forEach(function (c) { rows.push(row({ code: it.code, name: name, 'option-name-1': op.title, 'option-value-1': c, 'unselectable-1': '0' })); });
+    });
+    (it.varRows || []).forEach(function (v) {
+      var f = { code: it.code, 'sub-code': v.sub, name: name, 'option-name-1': v.axes[0].n, 'option-value-1': v.axes[0].v, 'unselectable-1': '0' };
+      if (v.axes[1]) { f['option-name-2'] = v.axes[1].n; f['option-value-2'] = v.axes[1].v; }
+      if (v.imgName) { f['sub-code-img1'] = 'https://shopping.c.yimg.jp/lib/' + store + '/' + v.imgName; f['main-flag'] = '0'; f['exist-flag'] = '1'; }
+      rows.push(row(f));
+    });
+  });
+  return rows;
+}
+function buildQuantityRows(items) {
+  var rows = [QTY_HEADER];
+  items.forEach(function (it) {
+    (it.varRows || []).forEach(function (v) { rows.push([it.code, it.out.name, v.sub, '0', '0', '0']); });
+  });
+  return rows;
 }
 
 /* 文字数超過の一覧 */
@@ -828,7 +870,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 1;
+var APP_VERSION = 2;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
@@ -1069,6 +1111,15 @@ function downloadCsv() {
   var b = Object.keys(bad);
   if (b.length) log('⚠️ Shift-JISにない文字を「-」に置き換えました：' + escHtml(b.join(' ')), 'log-warn');
 }
+function downloadRows(rows, fileName) {
+  var bad = {};
+  var safe = rows.map(function (r, i) { return i === 0 ? r : r.map(function (c) { return sjisSafe(c, bad); }); });
+  downloadBytes(new Uint8Array(Encoding.convert(Encoding.stringToCode(toCSV(safe)), { to: 'SJIS', from: 'UNICODE' })), fileName, 'text/csv');
+  var b = Object.keys(bad);
+  if (b.length) log('⚠️ Shift-JISにない文字を「-」に置き換えました：' + escHtml(b.join(' ')), 'log-warn');
+}
+function downloadOption() { if (result) downloadRows(buildOptionRows(result.items, settings.store), 'option.csv'); }
+function downloadQuantity() { if (result) downloadRows(buildQuantityRows(result.items), 'quantity.csv'); }
 function imageCommand() {
   var sh = buildImageScript(result.itemImages, result.lib, result.stamp, Number(settings.zipMb) || 20);
   return "cat > /tmp/yahoo_dl.sh <<'YAHOO_EOF'\n" + sh + "\nYAHOO_EOF\nbash /tmp/yahoo_dl.sh\n";
@@ -1126,6 +1177,8 @@ function init() {
     fr.onload = function () { importResponse(decodeAuto(fr.result)); }; fr.readAsArrayBuffer(f); this.value = '';
   });
   $('dlCsv').addEventListener('click', downloadCsv);
+  $('dlOpt').addEventListener('click', downloadOption);
+  $('dlQty').addEventListener('click', downloadQuantity);
   $('btnImg').addEventListener('click', copyImageCommand);
   $('btnSaveSet').addEventListener('click', applySettings);
   $('btnResetSet').addEventListener('click', resetSettings);

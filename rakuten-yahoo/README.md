@@ -4,7 +4,7 @@
 
 - 公開先（予定）：https://elcommun.github.io/Claude-App/rakuten-yahoo/
 - 構成：`index.html` 1ファイルのみ（HTML／CSS／JSをすべて内包。ビルド不要）
-- 現在のバージョン：`APP_VERSION = 1`（未公開の初版）
+- 現在のバージョン：`APP_VERSION = 2`（未公開。v2でオプション・在庫CSVを追加）
 
 このファイルは、Claudeのチャットで作成した初版をClaude Codeに引き継ぐためのメモです。
 
@@ -91,6 +91,15 @@
 
 当てはまらない商品は空欄＋警告。
 
+### オプション・在庫CSV（v2）
+
+Yahoo見本（option／quantity_name のダウンロードCSV、3商品分）の列構成に合わせて出力。ファイル名は `option.csv`・`quantity.csv`（Shift-JIS）。
+
+- **option.csv（21列）**：楽天の商品オプション（メール便の注意など）は選択肢1つにつき1行（sub-code空、option-name-1／option-value-1、unselectable-1=0）。バリエーションはSKUごとに1行（sub-code=システム連携用SKU番号、option-name-1／option-value-1=項目名／選択肢、2軸目は option-name-2／option-value-2）。name は data_add の商品名
+- **SKU画像の紐づけ**：SKU画像があるSKUだけ `sub-code-img1`=`https://shopping.c.yimg.jp/lib/ストア/商品コード_サブコード（小文字）.拡張子`、`main-flag`=0、`exist-flag`=1（見本の推定どおり）。この画像は追加画像（lib）として画像スクリプトが取得するので、`lib_images_XX.zip` に入る
+- **quantity.csv（6列）**：バリエーションごとに quantity=0、allow-overdraft=0、stock-close=0（在庫はGoQ連携で反映）
+- 見本の cal-31- には楽天に無い `cal-129` の在庫行が残っていた（Yahoo側の古い登録）。アプリは楽天のSKUだけ出力する
+
 ### 画像
 
 - 商品画像：1枚目 `商品コード.拡張子`、2枚目以降 `商品コード_1`、`_2`…
@@ -122,16 +131,14 @@
 
 ## 次の作業
 
-1. **在庫データの出力を追加**：在庫数はすべて0で登録し、GoQ連携で反映させる
-2. **オプションデータの出力を追加**
-3. **SKU画像と各バリエーションの紐づけ**：オプションデータの sub-code-img1／main-flag が使えるか確認
-4. 上記1〜3は、Yahooからダウンロードした在庫データとオプションデータのCSV（同じ3商品分）を見本にして列構成を合わせる。**見本は未受領**
-5. 検討中：文字数超過の「自動短縮」ボタン（説明文を後ろの文から削る）、画像ダウンロードのChrome拡張化
+1. **v2で実装済み（Yahoo見本CSVで列構成を確認）**：下記「オプション・在庫CSV」。Yahooへの実アップロードは未確認
+2. 検討中：文字数超過の「自動短縮」ボタン（説明文を後ろの文から削る）、画像ダウンロードのChrome拡張化
 
 ## 未確認の事項
 
 - explanation の上限：既存データから全角500と推定。運用ルールの650文字にする場合は設定で1300に
 - caption：「商品説明」の見出しを削除し、説明文セルを `colspan="2"` にした。Yahooで表示を確認する
+- option.csv／quantity.csv のアップロード時のファイル名指定、main-flag=0 の意味、複数選択肢のオプションの行の持ち方（1選択肢1行と推定）
 - 30列だけの data_add.csv をYahooが受け付けるか。CSVにない項目は削除されるという情報があるため、**登録済み商品への上書きには使わず、新規登録のみで使う**
 - 画像ZIPの容量上限と、1商品あたりの画像枚数上限（20枚は記憶による値）
 - 画像と商品CSVのアップ順（商品登録を先にする方が確実と思われる）
