@@ -469,7 +469,6 @@ var GAP_BLOCK = '0 0 24px';     // 画像ブロックの下の余白（次の画
 var GAP_TEXT = '16px 0 0';      // 画像と説明文の間
 var GAP_HEAD = '32px 0 16px';   // 見出し（<b>）の上下
 var LINE_DESC = '2';           // 商品説明（表の上段）の行間
-var LINE_SPEC = '1.7';         // スペック表の行間
 var CELL_CAP = '12px 16px';     // 商品説明の表のセル内の余白
 /* 関連商品を表（横並び）に作り直す。per=1行の数、cell=1セルのCSS */
 function relatedTable(cells, per, style) {
@@ -524,7 +523,9 @@ function convSp(html, ctx) {
   html = html.replace(/<tr[^>]*>\s*<th[^>]*>([\s\S]*?)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi, function (m, th, td) {
     return dropRow(htmlToText(th), td, false) ? '' : m;
   });
-  return relatedSp(cleanCommon(html, ctx));
+  html = relatedSp(cleanCommon(html, ctx));
+  // スペック表の上段（商品説明）の行間
+  return html.replace(/(<table[^>]*bgcolor="#bfb7b5"[^>]*><tr><td bgcolor="#FFFFFF")>/, '$1 style="line-height:' + LINE_DESC + '">');
 }
 /* ---------- PC用商品説明文 → caption / explanation ---------- */
 function parseSpecTable(html) {
@@ -574,7 +575,7 @@ function convPcDesc(html, ctx) {
   var cellStyle = function (extra) { return ' style="padding:' + CELL_CAP + (extra ? ';' + extra : '') + '"'; };
   var ph = cellStyle('white-space:nowrap;vertical-align:middle;text-align:center');
   if (desc) cap += '<tr><td colspan="2"' + cellStyle('line-height:' + LINE_DESC) + '>' + one(desc) + '</td></tr>';
-  specs.forEach(function (r) { cap += '<tr><th' + ph + '><b>' + r.key + '</b></th><td' + cellStyle('line-height:' + LINE_SPEC) + '>' + one(r.val) + '</td></tr>'; });
+  specs.forEach(function (r) { cap += '<tr><th' + ph + '><b>' + r.key + '</b></th><td' + cellStyle() + '>' + one(r.val) + '</td></tr>'; });
   cap += '</table>';
   return { caption: cap, explanation: buildExplanation(htmlToText(desc), specs.map(function (r) { return r.key + ' ' + htmlToText(r.val); })) };
 }
@@ -984,7 +985,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 14;
+var APP_VERSION = 15;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
