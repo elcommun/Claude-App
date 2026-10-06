@@ -114,6 +114,32 @@
   details.card > summary::-webkit-details-marker{display:none;}
   details.card > summary .chev{margin-left:auto;color:var(--gray-400);font-size:12px;}
   details[open] > summary .chev{transform:rotate(180deg);}
+  /* === 見た目の整理（v4） === */
+  .howto{margin-bottom:16px;font-size:13px;color:var(--gray-600);}
+  .howto summary,.fold summary,.log-wrap summary{cursor:pointer;font-weight:600;color:var(--gray-600);font-size:13px;}
+  .howto ol{margin:8px 0 0 20px;line-height:1.9;}
+  .upload-zone{padding:20px;}
+  .log-wrap{display:none;margin-top:12px;}
+  .log-box{margin-top:8px;}
+  .stats-grid{gap:8px;}
+  .stat{padding:8px;background:var(--gray-50);border:none;}
+  .stat .num{font-size:18px;}
+  .summary-box{background:var(--gray-50);border:1px solid var(--gray-200);}
+  .summary-box h3{color:var(--gray-800);}
+  .summary-box p{color:var(--gray-600);}
+  ol.flow{display:block;list-style:none;counter-reset:f;padding:0;margin:0;}
+  ol.flow>li{counter-increment:f;display:flex;flex-direction:column;gap:6px;position:relative;padding:0 0 12px 34px;font-size:12px;color:var(--gray-600);line-height:1.6;}
+  ol.flow>li::before{content:counter(f);position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;background:var(--primary);color:white;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  ol.flow>li>span:first-child{font-weight:600;color:var(--gray-800);font-size:13px;}
+  .fold{margin:16px 0;border:1px solid var(--gray-200);border-radius:8px;padding:10px 14px;}
+  .fold[open] summary{margin-bottom:10px;}
+  .fold .warn-group:last-child{margin-bottom:0;}
+  .dl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .dl-grid .dl-btn{flex-direction:column;align-items:flex-start;gap:2px;padding:12px 16px;width:100%;text-align:left;}
+  .dl-btn small{font-size:11px;font-weight:400;opacity:.9;}
+  .dl-warn{background:var(--red-light);}
+  .rule-box{background:var(--gray-50);border:1px solid var(--gray-200);color:var(--gray-600);}
+  @media (max-width:720px){.dl-grid{grid-template-columns:1fr;}}
   @media (max-width:720px){.stats-grid,.flow,.grid2,.grid3{grid-template-columns:1fr 1fr;}.flow{grid-template-columns:1fr;}header{padding:14px 16px;}}
 </style>
 </head>
@@ -127,14 +153,14 @@
 
 <div class="container">
 
-  <div class="info-box">
-    <strong>このツールについて：</strong>楽天の商品CSVから、Yahoo!ショッピング用の商品CSV（data_add.csv）と画像ZIPを作ります。ストアコンバーターは使いません。
+  <details class="howto">
+    <summary>使い方（3ステップ）</summary>
     <ol>
-      <li>楽天RMSからダウンロードした <strong>dl-normal-item.csv</strong> と <strong>dl-item-cat.csv</strong> を読み込む</li>
+      <li>楽天RMSの <b>dl-normal-item.csv</b> と <b>dl-item-cat.csv</b> を読み込む</li>
       <li>「変換する」を押し、文字数超過と要確認の項目をチェックする（超過分はClaudeのチャットで要約）</li>
-      <li><strong>data_add.csv</strong> をダウンロードし、画像はコマンドで一括ダウンロードしてZIPにする</li>
+      <li><b>data_add.csv・option.csv・quantity.csv</b> をダウンロードし、画像はコマンドで一括ダウンロードしてZIPにする</li>
     </ol>
-  </div>
+  </details>
 
   <!-- 1 -->
   <div class="card">
@@ -155,7 +181,7 @@
     <div class="card-header"><div class="step">2</div><h2>変換する</h2></div>
     <div class="card-body">
       <button class="primary-btn" id="actionBtn" disabled>⚙️ 変換する</button>
-      <div class="log-box" id="logBox"></div>
+      <details class="log-wrap" id="logWrap"><summary>変換ログ</summary><div class="log-box" id="logBox"></div></details>
     </div>
   </div>
 
@@ -168,19 +194,20 @@
       <div class="summary-box" id="summaryBox">
         <h3>✂️ 文字数を超えている項目が <span id="overCount">0</span> 件あります</h3>
         <p>Claudeのチャットで要約して取り込みます（追加費用なし）。下の表で直接書き直してもOKです。</p>
-        <div class="flow">
-          <div><b>① 依頼文をコピー</b>超過した項目と要約ルールをまとめた依頼文を作ります。
-            <div class="btn-row" style="margin-top:8px"><button class="sub-btn main" id="btnCopyReq">📋 依頼文をコピー</button><button class="sub-btn" id="btnDlReq">⬇️ ファイルで保存</button></div></div>
-          <div><b>② Claudeに送る</b>チャットに貼り付けて送信します（ファイルの場合は添付するだけ）。返ってきたコードブロックをコピーします。</div>
-          <div><b>③ 返答を取り込む</b><textarea id="importText" rows="3" class="mono" placeholder="Claudeの返答（JSON）を貼り付け"></textarea>
-            <div class="btn-row" style="margin-top:8px"><button class="sub-btn main" id="btnImport">📥 取り込む</button><label class="sub-btn">📄 ファイルから<input type="file" id="importFile" accept=".json,.txt,.md"></label></div></div>
-        </div>
+        <ol class="flow">
+          <li><span>超過した項目の依頼文を作る</span>
+            <span class="btn-row"><button class="sub-btn main" id="btnCopyReq">📋 依頼文をコピー</button><button class="sub-btn" id="btnDlReq">⬇️ ファイルで保存</button></span></li>
+          <li><span>Claudeのチャットに貼り付けて送信（ファイルなら添付）。返ってきたコードブロックをコピー</span></li>
+          <li><span>返答を取り込む</span>
+            <textarea id="importText" rows="2" class="mono" placeholder="Claudeの返答（JSON）を貼り付け"></textarea>
+            <span class="btn-row"><button class="sub-btn main" id="btnImport">📥 取り込む</button><label class="sub-btn">📄 ファイルから<input type="file" id="importFile" accept=".json,.txt,.md"></label></span></li>
+        </ol>
         <div class="note" id="reqNote"></div>
         <div id="importStatus"></div>
       </div>
 
-      <div class="sec-title">要確認の項目</div>
-      <div id="warnArea"></div>
+      <details class="fold" id="warnFold"><summary>要確認の項目 <span class="badge badge-gray" id="warnCount">0</span></summary>
+        <div id="warnArea"></div></details>
 
       <div class="sec-title">テキストの確認・手直し
         <label class="check" style="float:right;font-weight:400"><input type="checkbox" id="showAll"> すべての商品を表示（商品名・キャッチコピー・商品情報）</label>
@@ -202,14 +229,17 @@
     <div class="card-body">
       <div class="dl-warn" id="dlWarn" style="display:none">⚠️ 文字数を超えている項目が残っています。そのままアップするとYahoo側でエラーになる可能性があります。</div>
 
-      <div class="sec-title">商品CSV</div>
-      <div class="btn-row"><button class="dl-btn" id="dlCsv">⬇️ data_add.csv をダウンロード</button><span class="sub">Shift-JIS／値を入れた列だけを出力します</span></div>
-      <div class="btn-row"><button class="dl-btn" id="dlOpt">⬇️ option.csv（オプション）をダウンロード</button><span class="sub">バリエーションごとのSKU画像を紐づけ</span></div>
-      <div class="btn-row"><button class="dl-btn" id="dlQty">⬇️ quantity.csv（在庫）をダウンロード</button><span class="sub">在庫数はすべて0（GoQ連携で反映）</span></div>
+      <div class="sec-title">商品CSV <span class="sub">Shift-JIS</span></div>
+      <div class="dl-grid">
+        <button class="dl-btn" id="dlCsv">⬇️ data_add.csv<small>商品データ</small></button>
+        <button class="dl-btn" id="dlOpt">⬇️ option.csv<small>オプション（SKU画像の紐づけ付き）</small></button>
+        <button class="dl-btn" id="dlQty">⬇️ quantity.csv<small>在庫（すべて0・GoQ連携で反映）</small></button>
+      </div>
 
       <div class="sec-title">画像 <span class="sub"><span id="imgCount">0</span> 枚</span></div>
       <div class="btn-row"><button class="sub-btn main" id="btnImg">📋 画像ダウンロード用コマンドをコピー</button></div>
       <div class="note" id="imgNote"></div>
+      <details class="fold"><summary>画像のアップ手順とファイル名のルール</summary>
       <ol class="steps-list" style="margin-top:12px">
         <li>Macの<b>ターミナル</b>を開き、コピーしたコマンドを貼り付けて Enter</li>
         <li>ダウンロードフォルダに <b>yahoo_images_日時</b> フォルダができ、ZIPが自動で作られます</li>
@@ -220,7 +250,7 @@
         商品画像のファイル名：1枚目＝<b>商品コード.jpg</b>、2枚目以降＝<b>商品コード_1.jpg</b>、<b>商品コード_2.jpg</b>…<br>
         SKU画像は、商品画像の後ろにバリエーションの並び順で続けて追加します（同じ画像は重複させず、1商品20枚まで）。<br>
         説明文の中の画像は、楽天と同じファイル名のまま「追加画像」に入れると、変換後のURL（shopping.c.yimg.jp/lib/ストアアカウント/ファイル名）で表示されます。
-      </div>
+      </div></details>
     </div>
   </div>
 
@@ -871,7 +901,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 3;
+var APP_VERSION = 4;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
@@ -917,7 +947,8 @@ function buildCfg() {
 function $(id) { return document.getElementById(id); }
 function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function log(msg, cls) {
-  var box = $('logBox'); box.classList.add('show');
+  var box = $('logBox'); box.classList.add('show'); $('logWrap').style.display = 'block';
+  if (cls === 'log-err') $('logWrap').open = true;
   box.innerHTML += '<div class="' + (cls || '') + '">' + msg + '</div>';
   box.scrollTop = box.scrollHeight;
 }
@@ -1015,6 +1046,8 @@ function renderWarnings() {
   group('対応表にない楽天ジャンルID', 'product-category と spec が空欄で出力されます。', result.missGenre);
   group('配送パターンに当てはまらない商品', 'ship-weight と postage-set が空欄で出力されます。', asObj(result.noShip));
   group('カテゴリが見つからない商品', 'path が空欄で出力されます（dl-item-cat.csv に載っていない商品です）。', asObj(result.noCat));
+  $('warnCount').textContent = Object.keys(result.missLink).length + Object.keys(result.otherUrl).length + Object.keys(result.missSpec).length + Object.keys(result.missGenre).length + result.noShip.length + result.noCat.length;
+  $('warnFold').open = !!h;
   $('warnArea').innerHTML = h || '<div class="file-status ok">✅ 要確認の項目はありません</div>';
 }
 var REVIEW_FIELDS = ['name', 'headline', 'explanation'];
