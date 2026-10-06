@@ -548,7 +548,7 @@ function convertAll(rakRows, catRows, cfg) {
   var g = function (row, col) { var i = ix[col]; return i == null ? '' : String(row[i] == null ? '' : row[i]).trim(); };
   var raw = function (row, col) { var i = ix[col]; return i == null ? '' : String(row[i] == null ? '' : row[i]); };
 
-  var res = { items: [], lib: {}, itemImages: [], missLink: {}, otherUrl: {}, warns: [], missSpec: {}, missGenre: {}, noShip: [], noCat: [] };
+  var res = { catTotal: 0, items: [], lib: {}, itemImages: [], missLink: {}, otherUrl: {}, warns: [], missSpec: {}, missGenre: {}, noShip: [], noCat: [] };
   var warn = function (code, msg) { res.warns.push({ code: code, msg: msg }); };
 
   // カテゴリ
@@ -559,7 +559,8 @@ function convertAll(rakRows, catRows, cfg) {
     catRows.slice(1).forEach(function (r) {
       var code = String(r[ci] || '').trim(), c = String(r[cc] || '').trim();
       if (!code || !c) return;
-      (cats[code] = cats[code] || []);
+      if (!cats[code]) res.catTotal++;
+    (cats[code] = cats[code] || []);
       if (cats[code].indexOf(c) < 0) cats[code].push(c);
     });
   }
@@ -870,7 +871,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 2;
+var APP_VERSION = 3;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
@@ -976,6 +977,7 @@ function doConvert() {
   result.stamp = (function (d) { var p = function (n) { return ('0' + n).slice(-2); }; return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '_' + p(d.getHours()) + p(d.getMinutes()); })(new Date());
   result.items.forEach(function (it) { log('✅ [' + escHtml(it.code) + '] ' + escHtml(it.notes.join('／') || '変換完了'), 'log-ok'); });
   if (!state.cat) log('⚠️ カテゴリCSVが未読み込みのため、path（ストアカテゴリ）は空欄です', 'log-warn');
+  else log('ℹ️ カテゴリCSVは全商品分でOK：dl-normal-item.csv の ' + result.items.length + ' 商品に該当するカテゴリだけを使用しました（' + result.catTotal + ' 商品分のうち）', 'log-ok');
   result.warns.forEach(function (w) { log('⚠️ [' + escHtml(w.code) + '] ' + escHtml(w.msg), 'log-warn'); });
   log('━━━━━━━━━ 変換完了：' + result.items.length + '商品 ━━━━━━━━━', 'log-sep');
   $('reviewCard').style.display = ''; $('dlCard').style.display = '';
