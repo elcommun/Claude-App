@@ -139,6 +139,10 @@
   .dl-btn small{font-size:11px;font-weight:400;opacity:.9;}
   .dl-warn{background:var(--red-light);}
   .rule-box{background:var(--gray-50);border:1px solid var(--gray-200);color:var(--gray-600);}
+  .hint{font-size:12px;color:var(--gray-600);line-height:1.7;margin-bottom:10px;}
+  .lead-bulk{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:12px;}
+  .lead-in{width:90px;}
+  .lead-chg td{background:var(--yellow-light);}
   @media (max-width:720px){.dl-grid{grid-template-columns:1fr;}}
   @media (max-width:720px){.stats-grid,.flow,.grid2,.grid3{grid-template-columns:1fr 1fr;}.flow{grid-template-columns:1fr;}header{padding:14px 16px;}}
 </style>
@@ -205,6 +209,19 @@
         <div class="note" id="reqNote"></div>
         <div id="importStatus"></div>
       </div>
+
+      <details class="fold" id="leadFold" style="display:none"><summary>在庫あり時納期の確認 <span class="badge badge-orange" id="leadCount">0</span></summary>
+        <p class="hint">楽天の「在庫あり時納期管理番号」が <b>1000</b> でない商品です（予約商品の可能性）。初期値は固定値の 1000 です。商品ごとに直すか、チェックした商品へ一括で変更できます。</p>
+        <div class="lead-bulk">
+          <label class="check"><input type="checkbox" id="leadAll" checked> すべて選択</label>
+          <span>選択した商品を</span><input type="text" id="leadVal" value="1000" class="lead-in">
+          <button class="sub-btn main" id="leadApply">に変更</button>
+          <button class="sub-btn" id="leadRak">楽天の値にそろえる</button>
+          <button class="sub-btn" id="leadFixed">1000に戻す</button>
+        </div>
+        <div class="note" id="leadNote"></div>
+        <div class="table-wrap"><table class="data-table"><thead><tr><th></th><th>商品コード</th><th>楽天の値</th><th>Yahoo用（lead-time-instock）</th></tr></thead><tbody id="leadBody"></tbody></table></div>
+      </details>
 
       <details class="fold" id="warnFold"><summary>要確認の項目 <span class="badge badge-gray" id="warnCount">0</span></summary>
         <div id="warnArea"></div></details>
@@ -672,6 +689,7 @@ function convertAll(rakRows, catRows, cfg) {
     if (sh) { o['ship-weight'] = sh.w; o['postage-set'] = sh.p; notes.push('配送：' + sh.label); }
     else res.noShip.push(code + '（配送セット「' + g(sku0, '配送方法セット管理番号') + '」・送料区分「' + g(sku0, '送料区分1') + '」）');
     o['lead-time-instock'] = '1000'; o['lead-time-outstock'] = '';
+    var rakLead = g(it, '在庫あり時納期管理番号') || g(sku0, '在庫あり時納期管理番号');
     o['keep-stock'] = '0'; o.taxable = '1'; o.delivery = '0'; o.condition = '0';
     o['taxrate-type'] = g(it, '消費税率') || '0.1';
     o.display = g(it, '倉庫指定') === '1' ? '0' : '1';
@@ -739,7 +757,7 @@ function convertAll(rakRows, catRows, cfg) {
       res.lib[v.imgName] = imgUrl(v.imgPath, v.imgType);
     });
 
-    res.items.push({ code: code, out: o, notes: notes, srcName: g(it, '商品名'), freeOpts: freeOpts, varRows: varRows });
+    res.items.push({ code: code, out: o, notes: notes, srcName: g(it, '商品名'), rakLead: rakLead, freeOpts: freeOpts, varRows: varRows });
   });
   return res;
 }
@@ -901,7 +919,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 4;
+var APP_VERSION = 5;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
@@ -1016,7 +1034,40 @@ function doConvert() {
   $('reviewCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 function overList() { return findOver(result.items, result.cfg.limits); }
-function renderAll() { renderStats(); renderWarnings(); renderReview(); }
+function renderAll() { renderStats(); renderWarnings(); renderLead(); renderReview(); }
+/* 在庫あり時納期：楽天の値が 1000 でない商品（予約商品の可能性）を確認・一括変更 */
+function leadItems() { return result.items.filter(function (it) { return it.rakLead && it.rakLead !== '1000'; }); }
+function renderLead() {
+  var list = leadItems(), keep = {};
+  Array.prototype.forEach.call($('leadBody').querySelectorAll('input[type=checkbox]'), function (c) { keep[c.getAttribute('data-code')] = c.checked; });
+  $('leadFold').style.display = list.length ? '' : 'none';
+  if (!list.length) return;
+  if (!$('leadBody').children.length) $('leadFold').open = true;
+  $('leadCount').textContent = list.length;
+  $('leadBody').innerHTML = list.map(function (it) {
+    var on = it.code in keep ? keep[it.code] : true, v = it.out['lead-time-instock'];
+    return '<tr' + (v !== '1000' ? ' class="lead-chg"' : '') + '><td><input type="checkbox" data-code="' + escHtml(it.code) + '"' + (on ? ' checked' : '') + '></td><td>' + escHtml(it.code) + '</td><td>' + escHtml(it.rakLead) + '</td>' +
+      '<td><input type="text" class="lead-in" data-code="' + escHtml(it.code) + '" value="' + escHtml(v) + '"></td></tr>';
+  }).join('');
+}
+function leadSet(fn) {
+  var codes = {};
+  Array.prototype.forEach.call($('leadBody').querySelectorAll('input[type=checkbox]:checked'), function (c) { codes[c.getAttribute('data-code')] = 1; });
+  var n = 0;
+  leadItems().forEach(function (it) { if (codes[it.code]) { it.out['lead-time-instock'] = fn(it); n++; } });
+  renderLead(); flash('leadNote', n + '商品の在庫あり時納期を変更しました');
+}
+function leadInit() {
+  $('leadAll').addEventListener('change', function () { var v = this.checked; Array.prototype.forEach.call($('leadBody').querySelectorAll('input[type=checkbox]'), function (c) { c.checked = v; }); });
+  $('leadApply').addEventListener('click', function () { var v = $('leadVal').value.trim(); if (!/^\d+$/.test(v)) { alert('納期管理番号は数字で入力してください'); return; } leadSet(function () { return v; }); });
+  $('leadRak').addEventListener('click', function () { leadSet(function (it) { return it.rakLead; }); });
+  $('leadFixed').addEventListener('click', function () { leadSet(function () { return '1000'; }); });
+  $('leadBody').addEventListener('change', function (e) {
+    var t = e.target; if (t.type !== 'text') return;
+    var it = result.items.filter(function (x) { return x.code === t.getAttribute('data-code'); })[0];
+    if (it) { it.out['lead-time-instock'] = t.value.trim(); t.closest('tr').className = it.out['lead-time-instock'] !== '1000' ? 'lead-chg' : ''; }
+  });
+}
 function renderStats() {
   var over = overList(), libN = Object.keys(result.lib).length;
   var warnN = Object.keys(result.missLink).length + Object.keys(result.otherUrl).length + Object.keys(result.missSpec).length + Object.keys(result.missGenre).length + result.noShip.length + result.noCat.length;
@@ -1212,6 +1263,7 @@ function init() {
     fr.onload = function () { importResponse(decodeAuto(fr.result)); }; fr.readAsArrayBuffer(f); this.value = '';
   });
   $('dlCsv').addEventListener('click', downloadCsv);
+  leadInit();
   $('dlOpt').addEventListener('click', downloadOption);
   $('dlQty').addEventListener('click', downloadQuantity);
   $('btnImg').addEventListener('click', copyImageCommand);

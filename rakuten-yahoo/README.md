@@ -4,7 +4,7 @@
 
 - 公開先（予定）：https://elcommun.github.io/Claude-App/rakuten-yahoo/
 - 構成：`index.html` 1ファイルのみ（HTML／CSS／JSをすべて内包。ビルド不要）
-- 現在のバージョン：`APP_VERSION = 4`（v2でオプション・在庫CSVを追加、v4で画面を整理）
+- 現在のバージョン：`APP_VERSION = 5`（v2でオプション・在庫CSVを追加、v4で画面を整理、v5で納期の確認を追加）
 
 このファイルは、Claudeのチャットで作成した初版をClaude Codeに引き継ぐためのメモです。
 
@@ -99,6 +99,10 @@ Yahoo見本（option／quantity_name のダウンロードCSV、3商品分）の
 - **SKU画像の紐づけ**：SKU画像があるSKUだけ `sub-code-img1`=`https://shopping.c.yimg.jp/lib/ストア/商品コード_サブコード（小文字）.拡張子`、`main-flag`=0、`exist-flag`=1（見本の推定どおり）。この画像は追加画像（lib）として画像スクリプトが取得するので、`lib_images_XX.zip` に入る
 - **quantity.csv（6列）**：バリエーションごとに quantity=0、allow-overdraft=0、stock-close=0（在庫はGoQ連携で反映）
 - 見本の cal-31- には楽天に無い `cal-129` の在庫行が残っていた（Yahoo側の古い登録）。アプリは楽天のSKUだけ出力する
+
+### 在庫あり時納期の確認（v5）
+
+`lead-time-instock` は固定で 1000。ただし楽天の「在庫あり時納期管理番号」が 1000 でない商品は予約商品の可能性があるため、確認画面に「在庫あり時納期の確認」を出す。商品ごとの直接編集のほか、チェックした商品へ「指定の値に変更」「楽天の値にそろえる」「1000に戻す」を一括で行える。初期値は 1000（楽天の値は表示のみ）。楽天CSVの列名が「在庫あり時納期管理番号」でない場合は表示されない（実データでの列名は未確認）。
 
 ### 画像
 
