@@ -518,7 +518,9 @@ function convSp(html, ctx) {
   html = html.replace(/<font[^>]*>/gi, '<b>').replace(/<\/font>/gi, '</b>');
   html = html.replace(/<center>/gi, '<div align="center">').replace(/<\/center>/gi, '</div>');
   html = html.replace(/<h2[^>]*>/g, '<b>').replace(/<\/h2>/g, '</b>');
-  html = html.replace(/<th bgcolor="#F3F3F3" width="25%"><b>商品説明<\/b><\/th>/g, '');
+  // 「商品説明」の見出しセルは消し、説明文のセルを2列分にする（そのままだと表がずれて崩れる）。見出しセルは幅を25%にそろえる
+  html = html.replace(/(<tr[^>]*>\s*)<th bgcolor="#F3F3F3" width="25%"><b>商品説明<\/b><\/th>\s*<td /g, '$1<td colspan="2" ');
+  html = html.replace(/<th bgcolor="#F3F3F3"\s*>/g, '<th bgcolor="#F3F3F3" width="25%">');
   html = html.replace(/<tr[^>]*>\s*<th[^>]*>([\s\S]*?)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi, function (m, th, td) {
     return dropRow(htmlToText(th), td, false) ? '' : m;
   });
@@ -992,7 +994,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 17;
+var APP_VERSION = 18;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
