@@ -4,7 +4,7 @@
 
 - 公開先（予定）：https://elcommun.github.io/Claude-App/rakuten-yahoo/
 - 構成：`index.html` 1ファイルのみ（HTML／CSS／JSをすべて内包。ビルド不要）
-- 現在のバージョン：`APP_VERSION = 6`（v2でオプション・在庫CSVを追加、v4で画面を整理、v5で納期の確認を追加）
+- 現在のバージョン：`APP_VERSION = 7`（v2でオプション・在庫CSVを追加、v4で画面を整理、v5で納期の確認を追加）
 
 このファイルは、Claudeのチャットで作成した初版をClaude Codeに引き継ぐためのメモです。
 
@@ -99,6 +99,14 @@ Yahoo見本（option／quantity_name のダウンロードCSV、3商品分）の
 - **SKU画像の紐づけ**：SKU画像があるSKUだけ `sub-code-img1`=`https://shopping.c.yimg.jp/lib/ストア/商品コード_サブコード（小文字）.拡張子`、`main-flag`=0、`exist-flag`=1（見本の推定どおり）。この画像は追加画像（lib）として画像スクリプトが取得するので、`lib_images_XX.zip` に入る
 - **quantity.csv（6列）**：バリエーションごとに quantity=0、allow-overdraft=0、stock-close=0（在庫はGoQ連携で反映）
 - 見本の cal-31- には楽天に無い `cal-129` の在庫行が残っていた（Yahoo側の古い登録）。アプリは楽天のSKUだけ出力する
+
+### 説明文の余白・関連商品（v7）
+
+Yahooには楽天のCSSが無いため、スタイルを直接書き込む（`padPc`・`relatedSp`・`relatedTable`。余白は `GAP_*`・`CELL_CAP` の定数で調整）。
+- caption：表のセルに内側余白（12px 16px）。見出しセルは折り返さない
+- additional1：画像ブロックの間隔48px、画像と説明文16px、見出しの上下余白
+- 関連商品：PCは表で横4つ、スマホ（sp-additional）は横2つ。画像は幅100%
+- Yahooの管理画面・実ページでstyle属性が効くかは未確認（効かない場合は表やbrでの余白に切り替える）
 
 ### 在庫あり時納期の確認（v5）
 

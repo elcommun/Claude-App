@@ -463,10 +463,51 @@ function cleanCommon(html, ctx) {
   return fixQuestion(html);
 }
 
+/* ---------- 余白・関連商品の並び（Yahooには楽天のCSSが無いため、スタイルを直接書き込む） ---------- */
+var GAP_BLOCK = '0 0 48px';     // 画像ブロックの下の余白（次の画像との距離）
+var GAP_TEXT = '16px 0 0';      // 画像と説明文の間
+var GAP_HEAD = '48px 0 20px';   // 見出し（<b>）の上下
+var CELL_CAP = '12px 16px';     // 商品説明の表のセル内の余白
+/* 関連商品を表（横並び）に作り直す。per=1行の数、cell=1セルのCSS */
+function relatedTable(cells, per, style) {
+  var w = Math.floor(100 / per) + '%', h = '<table width="100%" cellspacing="0" cellpadding="0" style="table-layout:fixed"><tr>';
+  cells.forEach(function (c, i) {
+    if (i && i % per === 0) h += '</tr><tr>';
+    h += '<td width="' + w + '" valign="top" style="' + style + '">' + c + '</td>';
+  });
+  for (var k = cells.length; k % per; k++) h += '<td width="' + w + '"></td>';
+  return h + '</tr></table>';
+}
+function imgFull(t) { return t.replace(/<img\s+src="([^"]*)"[^>]*>/gi, '<img src="$1" width="100%" style="width:100%;height:auto;display:block">'); }
+function padPc(html) {
+  // 関連商品：PCは横に4つ
+  html = html.replace(/<div class="related-items__container">\s*<b>([^<]*)<\/b>\s*<div class="item-flex">([\s\S]*?)<\/div>\s*<\/div>\s*(?=<!-- ビーノ：関連商品終了|$)/, function (m, title, body) {
+    var cells = [], re = /<div class="item">([\s\S]*?)<\/div>/g, x;
+    while ((x = re.exec(body))) cells.push(imgFull(x[1]));
+    if (!cells.length) return m;
+    return '<div style="margin:56px 0 0"><b style="display:block;margin:0 0 16px">' + title + '</b>' + relatedTable(cells, 4, 'padding:4px') + '</div>\n';
+  });
+  // 商品説明の画像ブロック
+  html = html.replace(/<div class="biiino-sales-desc easy">/g, '<div class="biiino-sales-desc easy" style="padding:16px 0">')
+    .replace(/<div class="flex-container easy_col-1">/g, '<div class="flex-container easy_col-1" style="margin:' + GAP_BLOCK + '">')
+    .replace(/<div class="text">/g, '<div class="text" style="margin:' + GAP_TEXT + ';line-height:1.8">')
+    .replace(/<b>([^<]*)<\/b>(?=<div class="flex-container)/g, '<b style="display:block;margin:' + GAP_HEAD + '">$1</b>');
+  return html;
+}
 /* ---------- PC用販売説明文 → additional1 ---------- */
 function convAdditional(html, ctx) {
   html = cleanCommon(html, ctx);
-  return html.replace(/<h2 class="title">/g, '<b>').replace(/<h2 class="related-items__title">/g, '<b>').replace(/<h2[^>]*>/g, '<b>').replace(/<\/h2>/g, '</b>');
+  html = html.replace(/<h2 class="title">/g, '<b>').replace(/<h2 class="related-items__title">/g, '<b>').replace(/<h2[^>]*>/g, '<b>').replace(/<\/h2>/g, '</b>');
+  return padPc(html);
+}
+/* スマホの関連商品は横に2つ */
+function relatedSp(html) {
+  return html.replace(/(<b>関連商品<\/b><br><hr><br>)<table[^>]*>([\s\S]*?)<\/table>/, function (m, head, body) {
+    var cells = [], re = /<td[^>]*>([\s\S]*?)<\/td>/g, x;
+    while ((x = re.exec(body))) if (x[1].trim()) cells.push(x[1]);
+    if (!cells.length) return m;
+    return head + relatedTable(cells, 2, 'padding:6px');
+  });
 }
 /* ---------- スマートフォン用商品説明文 → sp-additional ---------- */
 function convSp(html, ctx) {
@@ -480,7 +521,7 @@ function convSp(html, ctx) {
   html = html.replace(/<tr[^>]*>\s*<th[^>]*>([\s\S]*?)<\/th>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/gi, function (m, th, td) {
     return dropRow(htmlToText(th), td, false) ? '' : m;
   });
-  return cleanCommon(html, ctx);
+  return relatedSp(cleanCommon(html, ctx));
 }
 /* ---------- PC用商品説明文 → caption / explanation ---------- */
 function parseSpecTable(html) {
@@ -507,9 +548,9 @@ function convPcDesc(html, ctx) {
     specs.push(r);
   });
   var one = function (v) { return v.replace(/\n/g, '').replace(/^(?:\s|<br>)+|(?:\s|<br>)+$/g, ''); };
-  var cap = '<table cellspacing="1" cellpadding="8" border="1">';
-  if (desc) cap += '<tr><td colspan="2">' + one(desc) + '</td></tr>';
-  specs.forEach(function (r) { cap += '<tr><th><b>' + r.key + '</b></th><td>' + one(r.val) + '</td></tr>'; });
+  var cap = '<table cellspacing="1" cellpadding="8" border="1">', pd = ' style="padding:' + CELL_CAP + '"';
+  if (desc) cap += '<tr><td colspan="2"' + pd + '>' + one(desc) + '</td></tr>';
+  specs.forEach(function (r) { cap += '<tr><th' + pd.replace('"', ';white-space:nowrap"') + '><b>' + r.key + '</b></th><td' + pd + '>' + one(r.val) + '</td></tr>'; });
   cap += '</table>';
   return { caption: cap, explanation: buildExplanation(htmlToText(desc), specs.map(function (r) { return r.key + ' ' + htmlToText(r.val); })) };
 }
@@ -919,7 +960,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 6;
+var APP_VERSION = 7;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
