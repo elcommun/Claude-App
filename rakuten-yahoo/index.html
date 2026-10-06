@@ -604,7 +604,7 @@ function convertAll(rakRows, catRows, cfg) {
     var ch = catRows[0].map(function (h) { return String(h).trim(); });
     var ci = ch.indexOf(KEY), cc = ch.indexOf('表示先カテゴリ');
     catRows.slice(1).forEach(function (r) {
-      var code = String(r[ci] || '').trim(), c = String(r[cc] || '').trim();
+      var code = String(r[ci] || '').trim(), c = String(r[cc] || '').trim().replace(/＼/g, '\\');  // 全角の＼も区切りとして扱う
       if (!code || !c) return;
       if (!cats[code]) res.catTotal++;
     (cats[code] = cats[code] || []);
@@ -700,7 +700,7 @@ function convertAll(rakRows, catRows, cfg) {
     if (!myCats.length) res.noCat.push(code);
 
     // ブランド・プロダクトカテゴリ・スペック
-    cfg.brandRules.forEach(function (b) { if (!o['brand-code'] && myCats.indexOf(b.cat) >= 0) o['brand-code'] = b.code; });
+    cfg.brandRules.forEach(function (b) { if (!o['brand-code'] && myCats.indexOf(b.cat.replace(/＼/g, '\\')) >= 0) o['brand-code'] = b.code; });
     if (/^cal-/.test(code)) { o['brand-code'] = '64324'; o['product-code'] = '11495'; }
     var genre = g(it, 'ジャンルID'), gm = cfg.genreMap[genre];
     if (!gm) res.missGenre[genre] = (res.missGenre[genre] || []).concat(code);
@@ -919,7 +919,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 5;
+var APP_VERSION = 6;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
