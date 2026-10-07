@@ -477,7 +477,8 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 #img-lb-img{max-width:90vw;max-height:90vh;min-width:min(70vw,500px);object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);cursor:zoom-out}
 .pdf-mini{font-size:11px;font-weight:600;color:#E85D26;background:#fff;border:1px solid #E85D26;border-radius:5px;padding:2px 9px;cursor:pointer;white-space:nowrap;align-self:center}
 .pdf-mini:hover{background:#fff3ec}
-@media(max-width:600px){.pdf-mini{display:none}}
+/* スマホ（≤600px）: カタログは画面幅に縮小して表示。ツールバーは詰める */
+@media(max-width:600px){.cg-scroll{padding:8px}.cg-toolbar{padding:6px 10px;gap:6px}.cg-tb-r{gap:6px;flex-wrap:wrap}.cg-tb-r .cg-tb-note:not(#cg-load){display:none}.cg-tb-print,.cg-tb-close{padding:6px 10px;font-size:12px}}
 #catalog-modal{display:none;position:fixed;inset:0;z-index:10000;background:#cdd2d8;flex-direction:column}
 #catalog-modal.open{display:flex}
 .cg-toolbar{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 14px;background:#2c2c3a;color:#fff;flex-wrap:wrap}
@@ -538,6 +539,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
   .cg-scroll{overflow:visible!important;padding:0!important;display:block!important}
   .cg-toolbar{display:none!important}
   #catalog-print{width:auto;padding:0;box-shadow:none;background:#fff}
+  #catalog-print{zoom:1!important}
   /* JSで分配済みの各 .cg-page を1枚ずつ印刷（高さは内容に合わせ、ページ間で改ページ） */
   .cg-page{width:auto!important;height:auto!important;box-shadow:none!important;margin:0!important;break-after:page;break-inside:avoid}
   .cg-page:last-child{break-after:auto}
@@ -551,7 +553,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v157</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v158</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2524,11 +2526,22 @@ function cgPeriodStr(){
   return fmt(f)+' 〜 '+fmt(t);
 }
 // プレビューを開く（ブロックを2カラムのA4横ページに分配し、画像の読み込みを待ってから印刷できるようにする）
+// カタログのページ（A4横 281mm）が画面より広いとき（スマホなど）は、画面の幅に収まるよう縮小して表示する（印刷には影響しない）
+function fitCatalogZoom(){
+  const cont=document.getElementById('catalog-print'); if(!cont)return;
+  cont.style.zoom='';
+  if(!document.getElementById('catalog-modal').classList.contains('open'))return;
+  const pg=cont.querySelector('.cg-page'), sc=cont.parentElement; if(!pg||!sc)return;
+  const cs=getComputedStyle(sc), avail=sc.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight), w=pg.offsetWidth;
+  if(w>avail&&avail>0)cont.style.zoom=(avail/w).toFixed(4);
+}
+window.addEventListener('resize',()=>{if(document.getElementById('catalog-modal').classList.contains('open'))fitCatalogZoom();});
 function showCatalog(blocks){
   document.getElementById('catalog-period').textContent=cgPeriodStr();
   document.getElementById('catalog-modal').classList.add('open');
   document.body.classList.add('catalog-open');
   const cont=document.getElementById('catalog-print');
+  cont.style.zoom='';   // 縮小表示はページ分配（高さの実測）のあとに掛ける
   cont.innerHTML='<div class="cg-wait">カタログを作成しています…</div>';
   const pb=document.querySelector('.cg-tb-print');if(pb)pb.disabled=true;
   const seq=++CG_SEQ;
@@ -2536,6 +2549,7 @@ function showCatalog(blocks){
   setTimeout(()=>{
     if(seq!==CG_SEQ)return;
     cgPaginate(blocks,cont);
+    fitCatalogZoom();
     cgWaitImages(seq);
   },30);
 }

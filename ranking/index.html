@@ -462,7 +462,8 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
 .cat-tb-print:disabled{opacity:.5;cursor:default}
 .pdf-mini{font-size:11px;font-weight:600;color:#E85D26;background:#fff;border:1px solid #E85D26;border-radius:5px;padding:2px 9px;cursor:pointer;white-space:nowrap}
 .pdf-mini:hover{background:#fff3ec}
-@media(max-width:600px){.pdf-mini{display:none}}
+/* スマホ（≤600px）: カタログは画面幅に縮小して表示。ツールバーは詰める */
+@media(max-width:600px){.cat-scroll{padding:8px}.cat-toolbar{padding:6px 10px;gap:6px}.cat-tb-r{gap:6px;flex-wrap:wrap}.cat-tb-r .cat-tb-note:not(#cat-load){display:none}.cat-tb-print,.cat-tb-close{padding:6px 10px;font-size:12px}}
 /* 種類別売上TOP5（画像付き・2カラム）：新書判の右の空きスペース */
 .cat-ranktbl-wrap{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .ser-rt{margin:4px 0 4px}
@@ -488,6 +489,7 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   .cat-scroll{overflow:visible!important;padding:0!important;display:block!important}
   .cat-toolbar{display:none!important}
   #catalog-print{width:auto;padding:0;box-shadow:none;background:#fff}
+  #catalog-print{zoom:1!important}
   /* JSで分配済みの各.cat-pageを1枚ずつ印刷（高さは内容に合わせ、ページ間で改ページ） */
   .cat-page{width:auto!important;height:auto!important;box-shadow:none!important;margin:0!important;break-after:page;break-inside:avoid}
   .cat-page:last-child{break-after:auto}
@@ -622,7 +624,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v347</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v348</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2096,6 +2098,16 @@ function genericCatalogBlocks(groups){
   }
   return blocks;
 }
+// カタログのページ（A4横 281mm）が画面より広いとき（スマホなど）は、画面の幅に収まるよう縮小して表示する（印刷には影響しない）
+function fitCatalogZoom(){
+  const cont=document.getElementById('catalog-print'); if(!cont)return;
+  cont.style.zoom='';
+  if(!document.getElementById('catalog-modal').classList.contains('open'))return;
+  const pg=cont.querySelector('.cat-page'), sc=cont.parentElement; if(!pg||!sc)return;
+  const cs=getComputedStyle(sc), avail=sc.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight), w=pg.offsetWidth;
+  if(w>avail&&avail>0)cont.style.zoom=(avail/w).toFixed(4);
+}
+window.addEventListener('resize',()=>{if(document.getElementById('catalog-modal').classList.contains('open'))fitCatalogZoom();});
 // カタログのプレビューを開く（ブロックを2カラムのA4横ページに分配し、画像の読み込みを待ってから印刷できるようにする）
 let CAT_LOAD_SEQ=0;
 function showCatalog(blocks){
@@ -2104,6 +2116,7 @@ function showCatalog(blocks){
   document.getElementById('catalog-modal').classList.add('open');
   document.body.classList.add('catalog-open');
   const cont=document.getElementById('catalog-print');
+  cont.style.zoom='';   // 縮小表示はページ分配（高さの実測）のあとに掛ける
   cont.innerHTML='<div class="cat-wait">カタログを作成しています…</div>';
   const pb=document.querySelector('.cat-tb-print');if(pb)pb.disabled=true;
   const seq=++CAT_LOAD_SEQ;
@@ -2111,6 +2124,7 @@ function showCatalog(blocks){
   setTimeout(()=>{
     if(seq!==CAT_LOAD_SEQ)return;
     paginateCatalog(blocks,cont);
+    fitCatalogZoom();
     waitCatalogImages(seq);
   },30);
 }
