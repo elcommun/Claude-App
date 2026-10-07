@@ -448,10 +448,11 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 #ptr{background:linear-gradient(90deg,#ffe3d6 var(--p,0%),#fff var(--p,0%))}
 @media print{#ptr{display:none!important}}
 /* ── 商品画像・カタログPDF（自社商品アプリ ranking と同じ画像カード形式。クラス名は表の .cat-col 等と区別するため cg- で始める）── */
-.prod-thumb{width:34px;height:46px;object-fit:contain;background:#fff;border-radius:3px;cursor:zoom-in;display:block;box-shadow:0 1px 3px rgba(0,0,0,.2);flex:0 0 auto}
+/* 仕入れ商品の画像はほぼ正方形なので枠も正方形（自社商品の手帳・カレンダー用の縦長3:4枠とは別） */
+.prod-thumb{width:40px;height:40px;object-fit:contain;background:#fff;border-radius:3px;cursor:zoom-in;display:block;box-shadow:0 1px 3px rgba(0,0,0,.2);flex:0 0 auto}
 .nc-flex{display:flex;gap:8px;align-items:center}
 .nc-body{min-width:0;flex:1 1 auto}
-@media(max-width:600px){.prod-thumb{width:44px;height:58px;align-self:flex-start}.nc-flex{align-items:flex-start}}
+@media(max-width:600px){.prod-thumb{width:52px;height:52px;align-self:flex-start}.nc-flex{align-items:flex-start}}
 #img-prev-wrap{display:none;position:fixed;pointer-events:none;z-index:9998;box-sizing:border-box;padding:10px;border-radius:12px;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.45)}
 #img-prev{display:block;width:100%;height:100%;border-radius:4px;object-fit:contain}
 #img-prev-arrow{position:absolute;top:50%;width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;transform:translateY(-50%)}
@@ -536,7 +537,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v153</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v154</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
