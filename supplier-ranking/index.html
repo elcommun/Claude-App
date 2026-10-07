@@ -58,7 +58,7 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 .hd-suggest .hs-chip{font:inherit;font-size:13px;line-height:1.2;padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--paper);color:var(--ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
 .hd-suggest .hs-chip:hover,.hd-suggest .hs-chip:active{border-color:var(--accent);color:var(--accent);background:var(--accent-lt)}
 .hd-suggest .hs-recent{background:#fff}
-@media(max-width:600px),(max-height:500px) and (orientation:landscape) and (pointer:coarse){
+@media(max-width:600px){
   .search-wrap .hd-suggest{position:fixed;left:10px;right:10px;top:calc(var(--hh) + 6px);bottom:auto;min-width:0;max-width:none}
   body.hd-bottom .search-wrap .hd-suggest{top:auto;bottom:calc(var(--hh) + env(safe-area-inset-bottom,0px) + 6px)}
 }
@@ -248,12 +248,12 @@ td.cat-col{text-align:left}
 #sel-sum .ss-l1,#sel-sum .ss-l2{white-space:nowrap}
 /* スマホ縦などの狭い画面では「カテゴリ名・種数」と「個数・金額」の2行に折り返し、
    文字はなるべく大きく（はみ出す場合のみ--ss-scaleでさらに縮小） */
-@media(max-width:600px),(max-height:500px) and (orientation:landscape) and (pointer:coarse){
+@media(max-width:600px){
   #sel-sum{font-size:14px;padding:8px 18px;bottom:14px;border-radius:16px;text-align:center;line-height:1.55}
   #sel-sum .ss-l1,#sel-sum .ss-l2{display:block}
   #sel-sum .ss-sep-mid{display:none}
 }
-@media(max-width:768px),(max-height:500px) and (orientation:landscape) and (pointer:coarse){
+@media(max-width:768px){
   :root{--hh:52px}
   .sb-resize{display:none}
   .hd-menu{display:block}
@@ -288,7 +288,7 @@ td.cat-col{text-align:left}
    列の対応: #rank-tbl 1順位(.rank-col) 2カテゴリ(.cat-col) 3メーカー(.tag-col) 4品番(.cc) 5商品名(.nc) 6単価(.price-col) 7数量(.qty-col)
              8前年数(.cmp-prev) 9前年比(.cmp-pct) 10売上比(.rate-col) 11小計(.amt-col)
              #search-tbl 1順位 2メーカー(.mk-col) 3品番 4商品名 5単価 6数量 7小計 */
-@media(max-width:600px),(max-height:500px) and (orientation:landscape) and (pointer:coarse){
+@media(max-width:600px){
   .m-sort{display:flex}
   .sort-lbl{display:none}
   .tbl{width:auto!important;table-layout:auto}
@@ -364,8 +364,8 @@ td.cat-col{text-align:left}
   #sel-sum{bottom:calc(20px + env(safe-area-inset-bottom,0px))}
   .hdr{padding-left:max(18px,env(safe-area-inset-left,0px));padding-right:max(18px,env(safe-area-inset-right,0px))}
 }
-@media screen and (max-width:768px), screen and (max-height:500px) and (orientation:landscape) and (pointer:coarse){.main::before{height:16px}}
-@media screen and (max-width:600px), screen and (max-height:500px) and (orientation:landscape) and (pointer:coarse){#sel-sum{bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
+@media screen and (max-width:768px){.main::before{height:16px}}
+@media screen and (max-width:600px){#sel-sum{bottom:calc(14px + env(safe-area-inset-bottom,0px))}}
 @media screen and (max-width:480px){.hdr{padding-left:max(10px,env(safe-area-inset-left,0px));padding-right:max(10px,env(safe-area-inset-right,0px))}}
 /* ── 販売推移グラフ／店舗別内訳パネル（仕入れ商品アプリと共通のクラス名） ── */
 #ov-block{margin-bottom:14px}
@@ -414,7 +414,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 .kpi-d{font-size:11px;font-weight:700;margin-left:5px;vertical-align:2px}
 .kpi-d-up{color:var(--up)}
 .kpi-d-dn{color:var(--down)}
-@media(max-width:600px),(max-height:500px) and (orientation:landscape) and (pointer:coarse){
+@media(max-width:600px){
   .tc-head{padding:8px 12px}
   .tc-ctl{padding:0 12px 8px;gap:6px}
   .tc-sbtn{padding:4px 8px;font-size:10px}
@@ -426,6 +426,17 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 @media print{.tc-hit,.tc-cursor,.tc-tip,.tc-ctl,.tc-note{display:none!important}}
 /* ── 下メニュー時（body.hd-bottom）のスマホ: サイドバーを右から出し、行の中身も左右反転（チェック=右端、▶=左端）。
    ドロワー表示になる幅（≤768px）のみ。タブレットで左に常設表示のときは反転しない ── */
+/* ── スマホ横持ち（高さ500px以下の横向きタッチ端末）: 表はPCに近いまま（カード化しない）。左のサイドメニューだけ常設せず、
+   画面の左端から右へのスワイプ（または☰）で出す。JS の isDrawerMode()/isPhoneLandscape() と同じ条件 ── */
+@media(max-height:500px) and (orientation:landscape) and (pointer:coarse){
+  :root{--hh:52px}
+  .sb-resize{display:none}
+  .hd-menu{display:block}
+  .hd-title-box{display:none}
+  .sb{width:min(320px,88vw);transform:translateX(-100%);transition:transform .25s ease;z-index:160;box-shadow:4px 0 24px rgba(0,0,0,.18)}
+  .sb.open{transform:translateX(0)}
+  .main{margin-left:0;padding:16px 14px 60px}
+}
 @media (max-width:768px),(max-height:500px) and (orientation:landscape) and (pointer:coarse){
   body.hd-bottom .sb{left:auto;right:env(safe-area-inset-right,0px);border-right:0;border-left:1px solid var(--border);transform:translateX(100%);box-shadow:-4px 0 24px rgba(0,0,0,.18)}
   body.hd-bottom .sb.open{transform:translateX(0)}
@@ -455,7 +466,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 .prod-thumb{width:40px;height:40px;object-fit:contain;background:#fff;border-radius:3px;cursor:zoom-in;display:block;box-shadow:0 1px 3px rgba(0,0,0,.2);flex:0 0 auto}
 .nc-flex{display:flex;gap:8px;align-items:center}
 .nc-body{min-width:0;flex:1 1 auto}
-@media(max-width:600px),(max-height:500px) and (orientation:landscape) and (pointer:coarse){.prod-thumb{width:52px;height:52px;align-self:flex-start}.nc-flex{align-items:flex-start}}
+@media(max-width:600px){.prod-thumb{width:52px;height:52px;align-self:flex-start}.nc-flex{align-items:flex-start}}
 #img-prev-wrap{display:none;position:fixed;pointer-events:none;z-index:9998;box-sizing:border-box;padding:10px;border-radius:12px;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,.45)}
 #img-prev{display:block;width:100%;height:100%;border-radius:4px;object-fit:contain}
 #img-prev-arrow{position:absolute;top:50%;width:0;height:0;border-top:10px solid transparent;border-bottom:10px solid transparent;transform:translateY(-50%)}
@@ -466,7 +477,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 #img-lb-img{max-width:90vw;max-height:90vh;min-width:min(70vw,500px);object-fit:contain;border-radius:8px;box-shadow:0 8px 40px rgba(0,0,0,.5);cursor:zoom-out}
 .pdf-mini{font-size:11px;font-weight:600;color:#E85D26;background:#fff;border:1px solid #E85D26;border-radius:5px;padding:2px 9px;cursor:pointer;white-space:nowrap;align-self:center}
 .pdf-mini:hover{background:#fff3ec}
-@media(max-width:600px),(max-height:500px) and (orientation:landscape) and (pointer:coarse){.pdf-mini{display:none}}
+@media(max-width:600px){.pdf-mini{display:none}}
 #catalog-modal{display:none;position:fixed;inset:0;z-index:10000;background:#cdd2d8;flex-direction:column}
 #catalog-modal.open{display:flex}
 .cg-toolbar{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 14px;background:#2c2c3a;color:#fff;flex-wrap:wrap}
@@ -540,7 +551,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v156</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v157</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -772,10 +783,11 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
   document.write('<script src="image-index.js?v='+_ver+'"><\/script>');
 </script>
 <script>
-// スマホ判定: 縦持ち（幅600px以下）と、横持ち（高さ500px以下のタッチ端末）。横持ちも縦持ちと同じ表示（カード・ドロワー）にする。
-// CSS の @media (max-width:600px),(max-height:500px) and (orientation:landscape) and (pointer:coarse) と同じ条件
-const PHONE_MQ=window.matchMedia('(max-width:600px),(max-height:500px) and (orientation:landscape) and (pointer:coarse)');
+// スマホ判定: 縦持ち＝幅600px以下（カード表示）。横持ち＝高さ500px以下の横向きタッチ端末（PCに近い表のまま、サイドメニューだけドロワー）
+const PHONE_MQ=window.matchMedia('(max-width:600px)');
+const PHONE_LS_MQ=window.matchMedia('(max-height:500px) and (orientation:landscape) and (pointer:coarse)');
 function isPhoneView(){return PHONE_MQ.matches;}
+function isPhoneLandscape(){return PHONE_LS_MQ.matches;}
 // ── データマージ ──────────────────────────────────────────
 // カテゴリ判定・商品番号正規化ルール（buildData()の初回同期実行より前に初期化されている必要があるため、
 // dedupeProductsByCode()より前にまとめて定義する）
@@ -2886,7 +2898,7 @@ document.getElementById('sb-overlay').addEventListener('click', ()=>{
 // 上メニュー時は左端から右へ、下メニュー時（body.hd-bottom＝サイドバーが右出し）は右端から左へ
 (function(){
   const sbEl=document.querySelector('.sb'), ovEl=document.getElementById('sb-overlay');
-  function isDrawerMode(){ return window.innerWidth<=768 || isPhoneView(); }
+  function isDrawerMode(){ return window.innerWidth<=768 || isPhoneLandscape(); }
   function openSb(){ sbEl.classList.add('open'); ovEl.classList.add('open'); }
   const rightSide=()=>document.body.classList.contains('hd-bottom');
   let sx=0, sy=0, tracking=false;
@@ -3110,7 +3122,7 @@ window.addEventListener('resize',()=>{
   // 確実に終了イベントを受け取れるようにする（mouseup取りこぼしで
   // ドラッグ状態が残り続け、以後のマウス移動で幅が暴走する不具合の対策）
   handle.addEventListener('pointerdown',e=>{
-    if(window.innerWidth<=768||isPhoneView()||(window.innerWidth<=900&&window.matchMedia('(orientation:portrait)').matches)) return;
+    if(window.innerWidth<=768||isPhoneLandscape()||(window.innerWidth<=900&&window.matchMedia('(orientation:portrait)').matches)) return;
     e.preventDefault();
     handle.classList.add('dragging');
     handle.setPointerCapture(e.pointerId);
