@@ -181,6 +181,7 @@ input[type=file]{display:none}
 .tbl tr[data-qty]:hover td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 .num{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
 .cc{font-size:11px;color:var(--ink3);font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
+.m-price{display:none}   /* スマホ（≤600px）のカードでだけ、単価の列の代わりに品番の隣へ出す */
 .code-link{color:var(--accent);text-decoration:none}
 .code-link:hover{text-decoration:underline}
 .rank-col{text-align:center}
@@ -313,6 +314,8 @@ td.cat-col{text-align:left}
   .tbl td.qty-col{grid-area:qty;justify-self:end;font-size:15px;font-weight:700;color:var(--ink);padding:0 4px!important;border-radius:4px;text-align:right}
   .tbl td.qty-col::after{content:'個';font-size:10px;font-weight:400;color:var(--ink3);margin-left:1px}
   .tbl td.price-col{display:none}
+  /* 単価の列は隠したまま、品番の隣に「単価 ¥…」を出す（長いときは単価だけ次の行へ折り返す） */
+  .tbl td.cc .m-price{display:inline-block;margin-left:8px;color:var(--ink3);font-family:inherit;white-space:nowrap}
   #rank-tbl td.amt-col,#search-tbl td.amt-col{grid-area:amt;display:block;justify-self:end;font-size:11px;color:var(--ink3);text-align:right}
   #rank-tbl td.rate-col{grid-area:bar;display:flex;align-items:center;gap:6px}
   .rate-col .bb{flex:1 1 auto;width:auto}
@@ -537,7 +540,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v154</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v155</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2165,7 +2168,7 @@ function mainRowHtml(r, rank, totalAmount, maxAmt, maxQty, showMakerTag){
     <td class="rank-col">${rankHtml}</td>
     <td class="cat-col"><span class="ct">${x(r.category)}</span></td>
     <td class="tag-col">${showMakerTag?`<span class="ct">${makerHtml(r.maker)}</span>`:''}</td>
-    <td class="cc">${codeHtml(r.code)}</td>
+    <td class="cc">${codeHtml(r.code)}<span class="m-price">単価 ¥${r.price.toLocaleString()}</span></td>
     <td class="nc"><div class="nc-flex">${thumbHtml(r.code)}<div class="nc-body"><div class="nc-row"><div class="nm" title="${x(r.name)}" data-pid="${r.pid}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></div></div></td>
     <td class="num price-col">¥${r.price.toLocaleString()}</td>
     <td class="num qty-col"${qtyStyle}>${r.qty.toLocaleString()}</td>
@@ -2604,7 +2607,7 @@ function renderSearch(){
     return `<tr data-qty="${r.qty}" data-amt="${r.amount}">
       <td class="rank-col">${rankHtml}</td>
       <td class="mk-col"><span class="ct">${makerHtml(r.maker)}</span></td>
-      <td class="cc">${codeHtml(r.code)}</td>
+      <td class="cc">${codeHtml(r.code)}<span class="m-price">単価 ¥${r.price.toLocaleString()}</span></td>
       <td class="nc"><div class="nc-flex">${thumbHtml(r.code)}<div class="nc-body"><div class="nc-row"><div class="nm" title="${x(r.name)}" data-pid="${r.pid}" onclick="toggleNameExpand(this,'${r.pid}')">${x(r.name)}</div>${r.varName?`<span class="var">${x(r.varName)}</span>`:''}</div></div></div></td>
       <td class="num price-col">¥${r.price.toLocaleString()}</td>
       <td class="num qty-col">${r.qty.toLocaleString()}</td>

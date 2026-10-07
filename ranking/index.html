@@ -201,6 +201,7 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 .tbl tr[data-qty]:hover td:first-child{box-shadow:inset 3px 0 0 var(--gold)}
 .num{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
 .cc{font-size:11px;color:var(--ink3);font-family:'SF Mono','Menlo',monospace;white-space:nowrap}
+.m-price{display:none}   /* スマホ（≤600px）のカードでだけ、上代の列の代わりに品番の隣へ出す */
 .nc{max-width:360px}
 .nc .nm{cursor:pointer}
 .nc .sale-period{color:var(--ink4);font-size:11px;margin-top:2px}
@@ -369,6 +370,9 @@ body.narrow-portrait #search-tbl.show-so .s-amount-col{display:none}
   .tbl td.qty-col{grid-area:qty;justify-self:end;font-size:15px;font-weight:700;color:var(--ink);padding:0 4px!important;border-radius:4px;text-align:right}
   .tbl td.qty-col::after{content:'個';font-size:10px;font-weight:400;color:var(--ink3);margin-left:1px}
   .tbl td.price-col,.tbl td.s-price-col{display:none!important}
+  /* 上代の列は隠したまま、品番の隣に「単価 ¥…」を出す（長いときは単価だけ次の行へ折り返す） */
+  #rank-tbl td.cc,#search-tbl td.cc{white-space:normal}
+  .tbl td.cc .m-price{display:inline-block;margin-left:8px;color:var(--ink3);font-family:inherit;white-space:nowrap}
   .tbl td.amount-col,.tbl td.s-amount-col{grid-area:amt;display:block!important;justify-self:end;font-size:11px;color:var(--ink3);padding:0 4px!important;border-radius:4px;text-align:right}
   .tbl td.share-col{grid-area:bar;display:block!important}
   .share-col .bb{width:100%}
@@ -603,7 +607,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v344</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v345</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2704,7 +2708,7 @@ function showCategory(cat, updateSidebar=true) {
     const thumb=prodImgHtml(item.code,'prod-thumb',` onclick="if(this.naturalWidth>0)openLightbox(this.dataset.full||this.src)"`);
     return`<tr data-qty="${item.qty}" data-amt="${item.amount}">
       <td>${ri}</td>
-      <td class="cc">${x(item.code)}</td>
+      <td class="cc">${x(item.code)}<span class="m-price">単価 ¥${item.price.toLocaleString()}</span></td>
       <td class="nc"><div class="nm" data-code="${esc(item.code)}" onclick="toggleNameExpand(this,'${esc(item.code)}')">${nameCellHtml(item.name,fmtName,!!catType)}</div></td>
       <td class="img-col">${thumb}</td>
       <td class="num price-col">¥${item.price.toLocaleString()}</td>
@@ -4029,7 +4033,7 @@ document.getElementById('hd-search').addEventListener('input',e=>{
         html+=`<tr data-qty="${r.qty}" data-amt="${r.amount}">
           <td><div class="rn ${rank<=3?'r'+rank:'ro'}">${ri}</div></td>
           <td><span class="ct">${x(r.cat)}</span></td>
-          <td class="cc">${x(r.code)}</td>
+          <td class="cc">${x(r.code)}<span class="m-price">単価 ¥${r.price.toLocaleString()}</span></td>
           <td class="nc"><div class="nm" data-code="${esc(r.code)}" onclick="toggleNameExpand(this,'${esc(r.code)}')">${(()=>{const ct=getCatType(r.cat);const fm=ct==='手帳'?getDiaryFormat(r.code):ct==='カレンダー'?getCalendarFormat(r.code,r.name):'';return nameCellHtml(r.name,fm,!!ct,t=>hl(t,words,trans));})()}</div></td>
           <td class="img-col">${thumb}</td>
           <td class="num s-price-col">¥${r.price.toLocaleString()}</td>
