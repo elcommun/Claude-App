@@ -553,7 +553,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v158</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v159</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -1933,7 +1933,7 @@ async function buildExportBlob(){
 }
 
 // ── KPIカード ─────────────────────────────────────────────
-// 前年比較ONのときは販売数量・税抜売上金額に前年同期比のバッジを付ける
+// 個数・税抜金額のカードには、前年比較のON/OFFに関係なく常に昨対（前年同期比）のバッジを付ける
 function kpiDelta(cur,base){
   if(!base)return '';
   const d=Math.round((cur-base)/base*100);
@@ -1958,11 +1958,13 @@ function prevTotalOf(rows,g){
 }
 // 前年比の比較対象の説明（1年超の期間は 今期=直近1年 と 前年=その前の1年）
 function cmpTitle(){return CUR1_AGG?`前年比: 今期 ${CMP_CUR_STR} と 前年 ${CMP_PREV_STR} の比較`:`前年比: 前年同期 ${CMP_PREV_STR} との比較`;}
-function renderKPI(qty,amount,cost,skuCount,prev){
-  const on=comparisonMode&&prev;
+// isAll=true は全商品TOP100の画面（ラベルに「（全商品）」を付ける。自社商品アプリと同じ表記）
+function renderKPI(qty,amount,cost,skuCount,prev,isAll){
+  const on=!!prev;
+  const sfx=isAll?'（全商品）':'';
   document.getElementById('kpi-row').innerHTML = `
-    <div class="kpi"${on?` title="${cmpTitle()}"`:''}><div class="kpi-v">${qty.toLocaleString()}${on?kpiDelta(prev.curQty,prev.qty):''}</div><div class="kpi-l">販売数量${on&&CUR1_AGG?'<span class="kpi-cmp-note">（前年比は直近1年）</span>':''}</div></div>
-    <div class="kpi"${on?` title="${cmpTitle()}"`:''}><div class="kpi-v">¥${Math.round(amount).toLocaleString()}${on?kpiDelta(prev.curAmount,prev.amount):''}</div><div class="kpi-l">税抜売上金額${on&&CUR1_AGG?'<span class="kpi-cmp-note">（前年比は直近1年）</span>':''}</div></div>
+    <div class="kpi"${on?` title="${cmpTitle()}"`:''}><div class="kpi-v">${qty.toLocaleString()} 個${on?kpiDelta(prev.curQty,prev.qty):''}</div><div class="kpi-l">個数${sfx}${on&&CUR1_AGG?'<span class="kpi-cmp-note">（前年比は直近1年）</span>':''}</div></div>
+    <div class="kpi"${on?` title="${cmpTitle()}"`:''}><div class="kpi-v">¥${Math.round(amount).toLocaleString()}${on?kpiDelta(prev.curAmount,prev.amount):''}</div><div class="kpi-l">税抜金額${sfx}${on&&CUR1_AGG?'<span class="kpi-cmp-note">（前年比は直近1年）</span>':''}</div></div>
     <div class="kpi"><div class="kpi-v">${cost!=null?'¥'+Math.round(cost).toLocaleString():'—'}</div><div class="kpi-l">仕入金額（概算）</div></div>
     <div class="kpi"><div class="kpi-v">${skuCount.toLocaleString()}</div><div class="kpi-l">SKU数</div></div>
   `;  updateFilterNote();
@@ -2018,7 +2020,7 @@ function showAllGroups(){
   Object.keys(AGG).forEach(g=>Object.assign(items, AGG[g].items));
   const allRows=itemRows(items);
   const ranks=computeRanks(allRows);
-  renderKPI(ALL_TOTAL.qty, ALL_TOTAL.amount, costOf(allRows), allRows.length, prevTotalOf(allRows));   // KPI・前年比較は全商品の数字
+  renderKPI(ALL_TOTAL.qty, ALL_TOTAL.amount, costOf(allRows), allRows.length, prevTotalOf(allRows), true);   // KPI・前年比較は全商品の数字
   // 表は全商品の上位100（個数順／金額順は rankMetric）に絞ってから、今の並び替えで表示する
   const rows=allRows.filter(r=>ranks[r.pid]<=ALL_TOP_N);
   sortItems(rows);

@@ -134,7 +134,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
     <ul>
       <li><strong>ヘッダー（上部）</strong>：検索ボックス・「自社商品」「使い方」「データ更新」ボタン</li>
       <li><strong>サイドバー（左）</strong>：販売期間・店舗・並び順・メーカー/カテゴリ一覧</li>
-      <li><strong>メインエリア（右）</strong>：KPIカード（販売数量・売上金額・仕入金額・SKU数）と商品ランキング表</li>
+      <li><strong>メインエリア（右）</strong>：KPIカード（個数・税抜金額・仕入金額・SKU数）と商品ランキング表</li>
     </ul>
     <div class="ui-mock">
       <div style="background:#2d2926;color:#fff;display:flex;align-items:center;padding:6px 12px;gap:10px;border-radius:6px 6px 0 0;font-size:11px">
@@ -152,7 +152,7 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
           ☐ 8mw<br>☐ APJ<br>☐ MDS …
         </div>
         <div style="padding:8px 10px;color:#666">
-          KPIカード（販売数量・売上金額など）<br>
+          KPIカード（個数・税抜金額など）<br>
           ランキング表（順位・商品番号・商品名・数量・小計金額 …）
         </div>
       </div>
@@ -340,7 +340,8 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       1年を超える期間では、期間の<strong>最終日から1年ごと</strong>に区切って比べます。最終日が 2026年9月28日 なら、<strong>今期</strong> 2025年9月29日〜2026年9月28日 と <strong>前年</strong> 2024年9月29日〜2025年9月28日 の比較です。「数量」は選択した期間全体の合計のまま、前年比だけ直近1年で計算します（KPIカードに「前年比は直近1年」と表示されます）。
     </div>
     <div class="tip">
-      <strong>💡 KPIの前年比</strong><br>
+      <strong>💡 KPIの前年比（昨対）</strong><br>
+      KPIカードの<strong>個数</strong>と<strong>税抜金額</strong>には、前年比較のオン／オフに関係なく常に昨対（前年同期比）が <span style="color:#2a8a3e;font-weight:700">▲12%</span> / <span style="color:#c0392b;font-weight:700">▼8%</span> のように表示されます。全商品 TOP100 の画面では「個数（全商品）」「税抜金額（全商品）」と表示されます。<br>
       KPIカードの前年比は、前年にそのメーカー（カテゴリ）で売れた<strong>全商品の合計</strong>と比べます（今期に売れていない商品も含みます）。
     </div>
     <div class="tip">
@@ -356,10 +357,6 @@ footer{text-align:center;padding:32px;font-size:12px;color:#aaa}
       <h2>ヒートマップ表示</h2>
     </div>
     <p>サイドバーの <strong>「ヒートマップ」</strong> をオンにすると、販売数に応じて「数量」セルの背景が青の濃淡で塗られ、売れ筋がひと目で分かります。</p>
-    <div class="tip">
-      <strong>💡 前年比のバッジ</strong><br>
-      前年比較をオンにすると、KPIカードの<strong>販売数量</strong>と<strong>税抜売上金額</strong>の横に <span style="color:#2a8a3e;font-weight:700">▲12%</span> / <span style="color:#c0392b;font-weight:700">▼8%</span> のように前年同期比が表示されます。
-    </div>
   </div>
 
   <!-- 販売推移グラフ -->
