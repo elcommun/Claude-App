@@ -4,7 +4,7 @@
 
 - 公開先（予定）：https://elcommun.github.io/Claude-App/rakuten-yahoo/
 - 構成：`index.html` 1ファイルのみ（HTML／CSS／JSをすべて内包。ビルド不要）
-- 現在のバージョン：`APP_VERSION = 22`（v2でオプション・在庫CSVを追加、v4で画面を整理、v5で納期の確認を追加）
+- 現在のバージョン：`APP_VERSION = 23`（v2でオプション・在庫CSVを追加、v4で画面を整理、v5で納期の確認を追加）
 
 このファイルは、Claudeのチャットで作成した初版をClaude Codeに引き継ぐためのメモです。
 
@@ -124,7 +124,7 @@ Yahooには楽天のCSSが無いため、スタイルを直接書き込む（`pa
 
 ### スペック表の見た目（v19・ユーザー指示：旧デザインに拘らず見やすく）
 
-PC（caption）・スマホ（sp-additional）とも、薄い罫線（`SPEC_LINE`）・淡い見出し背景（`SPEC_HEAD`）・広めの余白と行間に整える。中身（文章・改行）は楽天のまま。見た目の定数は `index.html` の `CELL_CAP`・`SPEC_LINE`・`SPEC_HEAD`、PCの行間は `cell()`、スマホは `styleSpTable()`。
+PC（caption）・スマホ（sp-additional）とも、薄い罫線（`SPEC_LINE`）・淡い見出し背景（`SPEC_HEAD`）・広めの余白と行間に整える。中身（文章・改行・**行間**）は楽天のまま（v23で、v19で入れた行間の指定を外した。ユーザー指示：商品説明の表の中は変えない）。見た目の定数は `index.html` の `CELL_CAP`・`SPEC_LINE`・`SPEC_HEAD`、PCの行間は `cell()`、スマホは `styleSpTable()`。
 
 ### スマホ用のスペック表（v18）
 

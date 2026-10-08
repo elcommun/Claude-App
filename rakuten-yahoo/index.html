@@ -509,7 +509,7 @@ function padPc(html) {
   // 商品説明の画像ブロック
   html = html.replace(/<div class="biiino-sales-desc easy">/g, '<div class="biiino-sales-desc easy" style="padding:8px 0">')
     .replace(/<div class="flex-container easy_col-1">/g, '<div class="flex-container easy_col-1" style="margin:' + GAP_BLOCK + '">')
-    .replace(/<div class="text">/g, '<div class="text" style="margin:' + GAP_TEXT + ';line-height:1.8">')
+    .replace(/<div class="text">/g, '<div class="text" style="margin:' + GAP_TEXT + '">')
     .replace(/<b>([^<]*)<\/b>(?=<div class="flex-container)/g, '<b style="display:block;margin:' + GAP_HEAD + '">$1</b>');
   return html;
 }
@@ -525,8 +525,8 @@ function styleSpTable(html) {
   return html.replace(/<table[^>]*bgcolor="#bfb7b5"[^>]*>([\s\S]*?)<\/table>/, function (m, body) {
     var line = SPEC_LINE;
     body = body.replace(/<th bgcolor="#F3F3F3"[^>]*>/g, '<th width="28%" style="padding:12px 8px;background:' + SPEC_HEAD + ';vertical-align:middle;text-align:center;font-size:13px">')
-      .replace(/<td colspan="2" bgcolor="#FFFFFF">/g, '<td colspan="2" style="padding:14px 12px;line-height:1.9;background:#fff">')
-      .replace(/<td bgcolor="#FFFFFF">/g, '<td style="padding:12px;line-height:1.8;background:#fff">');
+      .replace(/<td colspan="2" bgcolor="#FFFFFF">/g, '<td colspan="2" style="padding:14px 12px;background:#fff">')
+      .replace(/<td bgcolor="#FFFFFF">/g, '<td style="padding:12px;background:#fff">');
     return '<table width="100%" cellspacing="1" cellpadding="0" border="0" bgcolor="' + line + '" style="width:100%">' + body + '</table>';
   });
 }
@@ -611,8 +611,8 @@ function convPcDesc(html, ctx) {
   var one = function (v) { return v.replace(/\n/g, '').replace(/^(?:\s|<br>)+|(?:\s|<br>)+$/g, ''); };
   // 見やすさ重視：薄い罫線、見出しは淡い背景、行間は広め（スペックの中身は楽天のまま）
   var cap = '<table width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;border:1px solid ' + SPEC_LINE + '">';
-  var cell = function (extra) { return ' style="padding:' + CELL_CAP + ';border:1px solid ' + SPEC_LINE + ';line-height:1.8;' + extra + '"'; };
-  if (desc) cap += '<tr><td colspan="2"' + cell('line-height:2') + '>' + one(desc) + '</td></tr>';
+  var cell = function (extra) { return ' style="padding:' + CELL_CAP + ';border:1px solid ' + SPEC_LINE + (extra ? ';' + extra : '') + '"'; };
+  if (desc) cap += '<tr><td colspan="2"' + cell('') + '>' + one(desc) + '</td></tr>';
   specs.forEach(function (r) { cap += '<tr><th width="22%"' + cell('background:' + SPEC_HEAD + ';white-space:nowrap;vertical-align:middle;text-align:center;font-weight:bold') + '>' + r.key + '</th><td' + cell('vertical-align:middle') + '>' + one(r.val) + '</td></tr>'; });
   cap += '</table>';
   return { caption: cap, specKeys: specs.map(function (r) { return r.key; }), explanation: buildExplanation(htmlToText(paragraphize(desc)), specs.map(function (r) { return r.key + ' ' + htmlToText(r.val); })) };
@@ -1029,7 +1029,7 @@ function buildImageScript(itemImages, lib, stamp, maxMb) {
 
 
 /* ================= 画面まわり ================= */
-var APP_VERSION = 22;
+var APP_VERSION = 23;
 var LS_KEY = 'rakuten-yahoo-settings-v1';
 var DEFAULT_SETTINGS = {
   store: 'el-market',
