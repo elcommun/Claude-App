@@ -137,6 +137,7 @@ body{font-family:'Hiragino Kaku Gothic Pro','Meiryo',sans-serif;background:var(-
 .kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:var(--gold);opacity:.28}
 .kpi-v{font-size:19px;font-weight:700;color:var(--ink);line-height:1;margin-bottom:4px;letter-spacing:-.02em}
 .kpi-l{font-size:10px;font-weight:700;color:var(--ink4);letter-spacing:.08em;text-transform:uppercase}
+.kpi-cmp-note{font-weight:500;letter-spacing:0;margin-left:3px}
 /* Cat header */
 .cat-hd{display:flex;align-items:baseline;gap:11px;margin-bottom:14px;flex-wrap:wrap}
 .cat-name{font-size:21px;font-weight:700}
@@ -624,7 +625,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v348</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ<span class="hd-logo-sub">：自社商品</span></div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v349</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
@@ -2715,13 +2716,19 @@ function showCategory(cat, updateSidebar=true) {
     const d=Math.round((cur-base)/base*100);
     return `<span class="kpi-d ${d>=0?'kpi-d-up':'kpi-d-dn'}">${d>=0?'▲':'▼'}${Math.abs(d)}%</span>`;
   };
-  const kdOn=comparisonMode&&prevCatTot;
+  // KPIの昨対（個数・税抜金額の横の▲▼％）は、前年比較のON/OFFに関係なく常に出す（仕入れ商品アプリと共通の仕様）。
+  // 比べる相手は「前期にそのカテゴリで売れた全商品の合計」。1年を超える期間では 今期＝最終日までの直近1年 と比べる（注記を付ける）
+  let kpiPrevTot=prevCatTot;
+  if(!kpiPrevTot){const pt0=catSumIn(cat,aggPrev);if(pt0.qty)kpiPrevTot=pt0;}
+  const kdOn=!!kpiPrevTot;
+  const kpiNote=kdOn&&isLongPeriod?'<span class="kpi-cmp-note">（前年比は直近1年）</span>':'';
+  const kpiTip=!kdOn?'':prevEdition?`前年比: ${prevEdition}版との比較`:isLongPeriod?`前年比: 今期 ${curPeriodStr} と 前期 ${prevPeriodStr} の比較`:`前年比: 前期 ${prevPeriodStr} との比較`;
   document.getElementById('kpi-row').innerHTML = [
-    [isTop?'個数（全商品）':'個数',         t.qty.toLocaleString()+' 個',      kdOn?kpiD(tCmp.qty,prevCatTot.qty):''],
-    [isTop?'税抜金額（全商品）':'税抜金額',      '¥'+t.amount.toLocaleString(),    kdOn?kpiD(tCmp.amount,prevCatTot.amount):''],
+    [isTop?'個数（全商品）':'個数',         t.qty.toLocaleString()+' 個',      kdOn?kpiD(tCmp.qty,kpiPrevTot.qty):'',kpiNote],
+    [isTop?'税抜金額（全商品）':'税抜金額',      '¥'+t.amount.toLocaleString(),    kdOn?kpiD(tCmp.amount,kpiPrevTot.amount):'',kpiNote],
     isTop?['TOP'+ALL_TOP_N+'の占有率（個数）', (totalQty?(items.reduce((sm,i)=>sm+i.qty,0)/totalQty*100).toFixed(1):0)+'%', '']:['全体の割合',    catPct+'%',                       ''],
     [isTop?'SKU 数（全商品）':'SKU 数',       (isTop?allItemCount:items.length).toLocaleString()+' 種',                ''],
-  ].map(([l,v,d])=>`<div class="kpi"><div class="kpi-v">${v}${d}</div><div class="kpi-l">${l}</div></div>`).join('');
+  ].map(([l,v,d,n],i)=>`<div class="kpi"${i<2&&kpiTip?` title="${kpiTip}"`:''}><div class="kpi-v">${v}${d}</div><div class="kpi-l">${l}${n||''}</div></div>`).join('');
   updateFilterNote();
 
   const maxQtyC = items.reduce((m,i)=>Math.max(m,i.qty),1);
