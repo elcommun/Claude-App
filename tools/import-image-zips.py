@@ -14,7 +14,7 @@
 - すでに ranking/images/ にある品番は **新しい画像に置き換える**（画像を統一するため。2026-10-02 ユーザー指示）。
   置き換えた品番は件数と一覧を表示する（中身が同じ画像は「変更なし」として数える）。--keep-existing を付けると置き換えずに飛ばす。
   置き換えた品番のサムネは削除するので、build-images.py が新しい画像から作り直す
-- 画像として読めないもの・JPEGでないものは取り込まない。長辺が800pxを超えるものは800pxに縮小する
+- JPEG・PNG（PNGは白背景に合成してJPEGに変換する）を取り込む。画像として読めないものは取り込まない。長辺が800pxを超えるものは800pxに縮小し、品質82で再保存する（データ量を抑えるため）
 - 品番が商品マスタ（ranking/data.js）に無いもの（まだ売れていない商品）も取り込む。件数と一覧は必ず表示する。
   販売データに登録されたら、アプリが自動でその品番の画像を表示する（画像の一覧 image-index.js に入っているため）
 - メーカー販売データ（--app supplier-ranking）: ZIP内のファイル名は rakuten-image-dl の「メーカー販売データ用」が付けたもの
@@ -27,7 +27,7 @@ from PIL import Image, ImageOps
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 IMG_DIR = THUMB_DIR = None   # main() で --app に合わせて決める
-EXT_RE = re.compile(r'\.jpe?g$', re.I)
+EXT_RE = re.compile(r'\.(jpe?g|png)$', re.I)   # PNG（透過あり）はJPEGに変換して取り込む
 
 
 def code_key(stem):
@@ -109,7 +109,14 @@ def main():
                 try:
                     im = Image.open(io.BytesIO(zf.read(info)))
                     im.load()
-                    im = ImageOps.exif_transpose(im).convert('RGB')
+                    im = ImageOps.exif_transpose(im)
+                    if im.mode in ('RGBA', 'LA', 'PA') or (im.mode == 'P' and 'transparency' in im.info):
+                        im = im.convert('RGBA')            # 透過は白背景に合成する（そのまま RGB にすると透過部分が黒くなる）
+                        bg = Image.new('RGB', im.size, (255, 255, 255))
+                        bg.paste(im, mask=im.getchannel('A'))
+                        im = bg
+                    else:
+                        im = im.convert('RGB')
                 except Exception as e:
                     bad.append((base, str(e)[:60]))
                     continue
