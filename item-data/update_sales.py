@@ -75,7 +75,7 @@ CAT_MAP = {
 # コードのリネーム
 CODE_REMAP = {'WCL-017WCL-018': 'WCL-018', 'B6-1J7F-DA1E': 'CPC-004'}
 # 特定コードのカテゴリ強制割り当て
-CODE_REMAP_CAT = {'WCL-018': 'ペンケース', 'CPC-004': '時計', 'WPK-101': 'その他'}
+CODE_REMAP_CAT = {'WCL-018': '時計', 'CPC-004': 'ペンケース', 'WPK-101': 'その他'}
 # 除外するコードプレフィックス
 CODE_SKIP_PREFIXES = ['SLW-', 'DR-MM-']
 # コードプレフィックスによるカテゴリ上書き
