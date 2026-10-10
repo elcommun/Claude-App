@@ -169,6 +169,8 @@ input[type=file]{display:none}
 .tw{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);overflow:clip;box-shadow:var(--shadow-sm)}
 /* 表が枠より本当に広い場合（比較ON時の中間幅など）だけ横スクロールにする（fillRemainingWidth が付与） */
 .tw.tw-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* 横スクロール枠は縦方向の固定基準にもなるため、列見出しはヘッダーの高さ分ではなく枠の上端に置く（PC幅で見出しが1行目に重なっていた） */
+.tw.tw-scroll .tbl thead{top:0}
 .tbl{width:auto;border-collapse:collapse;table-layout:fixed}
 .tbl td{overflow:hidden}
 .tbl thead{position:sticky;top:var(--hh);z-index:10;box-shadow:0 1px 0 var(--line)}
@@ -553,7 +555,7 @@ details[open]>.tc-head::before{transform:rotate(90deg)}
 
 <header class="hdr">
   <button class="hd-menu" id="hd-menu" aria-label="メニュー">☰</button>
-  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v159</span></div></div>
+  <div class="hd-title-box"><div class="hd-logo" onclick="location.reload()" style="cursor:pointer">EC事業部 販売データ：仕入れ商品</div><div class="hd-sub">EL COMMUN <span style="font-size:9px;opacity:.5">v160</span></div></div>
   <div class="hd-sep"></div>
   <div class="hd-date" id="hd-date"></div>
   <div class="hd-spacer"></div>
